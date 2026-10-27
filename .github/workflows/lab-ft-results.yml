@@ -1,0 +1,80 @@
+name: Lab - Reconcile FT for all observed matches
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */2 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'h1lab/lab_results.py'
+      - 'scripts/lab_results.py'
+      - 'tests/test_lab_results.py'
+      - '.github/workflows/lab-ft-results.yml'
+
+permissions:
+  contents: write
+
+# Separate from asianodds-h1-write and from V4 auditing; no H1 delay.
+concurrency:
+  group: asianodds-lab-ft-results
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read most recent LAB/H1 input snapshots
+        run: git pull --rebase origin main
+      - name: Check independent result reconciliation
+        run: |
+          python -m unittest discover -s tests -p 'test_lab_results.py' -v
+      - name: Reconcile all observed fixture identities (bounded, no betting)
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+          LAB_RESULTS_MAX_CHECKS: ${{ vars.LAB_RESULTS_MAX_CHECKS || '20' }}
+        run: python -m scripts.lab_results
+      - name: Validate published snapshot
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('docs/lab/ft-results.json').read_text())
+          ledger=json.loads(Path('data/lab/ft-ledger.json').read_text())
+          assert d['status']=='LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED'
+          assert sum(d['status_counts'].values())==d['matches']
+          assert d['final_recorded']+d['unverified']==d['matches']
+          assert all(x['match_key'] in ledger['matches'] for x in d['games'])
+          assert all(x.get('home_goals') is None for x in d['games'] if x['status']!='FINAL')
+          assert d['matches_omitted_from_display']+d['displayed_matches']==d['matches']
+          assert Path('docs/lab/ft-results.json').stat().st_size < 400000
+          print('LAB_FT_SUMMARY_VALID', d['matches'], d['final_recorded'], d['status_counts'])
+          PY
+      - name: Commit only LAB FT artifacts
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/lab/ft-ledger.json docs/lab/ft-results.json
+          if git diff --cached --quiet; then
+            echo LAB_FT_NO_CHANGE
+            exit 0
+          fi
+          git commit -m 'data(lab): reconcile observed match FT [skip ci]'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo LAB_FT_PUBLISHED
+              exit 0
+            fi
+            sleep 2
+          done
+          echo LAB_FT_PUBLISH_FAILED
+          exit 1
