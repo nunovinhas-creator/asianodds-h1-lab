@@ -57,9 +57,11 @@ def inspect(text,when,message_id,channel_id,legacy_parsed):
     shape_labels=labels[:80]+(["TRUNCATED"] if len(labels)>80 else [])
     found=[key for key,pattern in PATTERNS if pattern.search(text)]
     fingerprint=hashlib.sha256("|".join(shape_labels).encode("utf-8")).hexdigest()[:16]
+    family_labels=["HDR_TOTAL" if x in ("HDR_TOTAL_UP","HDR_TOTAL_DOWN","HDR_TOTAL_OTHER") else x for x in shape_labels]
+    family_id=hashlib.sha256("|".join(family_labels).encode("utf-8")).hexdigest()[:16]
     return {"schema_version":VERSION,"event_id":str(channel_id)+":"+str(message_id),
         "observed_at":when.astimezone(timezone.utc).isoformat(timespec="seconds"),
-        "format_id":fingerprint,"markets_mentioned":found,
+        "format_id":fingerprint,"format_family_id":family_id,"markets_mentioned":found,
         "line_classes":shape_labels,"table_shapes":[x.lower() for x in shape_labels if x.startswith(("WAS:","NOW:"))],
         "legacy_parsed":bool(legacy_parsed)}
 
