@@ -3,7 +3,7 @@ import argparse
 import asyncio
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from .core import empty_state,parse_alert,classify_message,incorporate,public_data,load_results,dump_json
 
@@ -39,6 +39,8 @@ async def poll(state):
             # At deployment do NOT replay historical messages into prospective bets.
             newest=await client.get_messages(entity,limit=1)
             state["last_id"]=newest[0].id if newest else 0
+            state["collector"]={"last_poll_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "last_batch_new_messages":0,"batch_limit_hit":False}
             save(state)
             print("BOOTSTRAPPED: monitoring new messages after ID",state["last_id"])
             return
@@ -50,9 +52,10 @@ async def poll(state):
         inspected=0
         new_messages=0
         fresh_diagnostics=[]
+        batch_limit=1500
         # Revisit exactly the previous checkpoint, which may have been
         # skipped by an older parser. Keep duplicate protection in incorporate.
-        async for msg in client.iter_messages(entity,min_id=max(0,last-1),reverse=True,limit=500):
+        async for msg in client.iter_messages(entity,min_id=max(0,last-1),reverse=True,limit=batch_limit):
             inspected+=1
             if msg.id>original_last:
                 new_messages+=1
@@ -77,14 +80,28 @@ async def poll(state):
             diagnostics[:]=[d for d in diagnostics if d["message_id"] not in recovered_ids]
             diagnosed.difference_update(recovered_ids)
         state["diagnostics"]=diagnostics[-200:]
-        added=incorporate(state,parsed,datetime.now(timezone.utc))
+        now=datetime.now(timezone.utc)
+        added=incorporate(state,parsed,now)
         state["last_id"]=last
-        if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added:
+        last_saved_poll=state.get("collector",{}).get("last_poll_at")
+        heartbeat_due=(not last_saved_poll or
+            datetime.fromisoformat(last_saved_poll)<now-timedelta(minutes=45))
+        batch_limit_hit=inspected>=batch_limit
+        if new_messages or heartbeat_due or batch_limit_hit:
+            state["collector"]={
+                "last_poll_at":now.isoformat(timespec="seconds"),
+                "last_batch_new_messages":new_messages,
+                "last_batch_parsed":added,
+                "batch_limit_hit":batch_limit_hit,
+                "telegram_last_id":last}
+        if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added or heartbeat_due:
             save(state)
         print("Inspected:",inspected,"new Telegram messages:",new_messages,
               "new structured alerts:",added,
               "new unparsed diagnostics:",len(fresh_diagnostics),
               "H1 signals:",len(state["signals"]),"triples:",len(state["tickets"]))
+        if batch_limit_hit:
+            print("BACKLOG: batch limit reached; subsequent polls resume from Telegram ID",last)
         for diagnostic in fresh_diagnostics:
             print("UNPARSED id=",diagnostic["message_id"],
                   "reason=",diagnostic["reason"])
