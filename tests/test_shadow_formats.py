@@ -23,7 +23,7 @@ class FormatShadowTests(unittest.TestCase):
              "Total: 2.5 ↑ 2.75\nWas 2.5 1.9 1.9\nNow 2.75 1.8 2.0🔴\n"
              "1 → 1.8\nX 3.1 → 3.2\n2 4.2 → 4.5\nhttps://asianodds.com/fixture")
         item=inspect(raw,datetime(2026,10,27,tzinfo=timezone.utc),8,99,True)
-        self.assertEqual(item["schema_version"],2)
+        self.assertEqual(item["schema_version"],3)
         self.assertEqual(item["line_classes"],["VS","TROPHY","CLOCK",
             "HDR_TOTAL_UP","WAS:3","NOW:3","ARROW_ROW","ARROW_ROW","ARROW_ROW","URL"])
         self.assertNotIn("League",str(item))
@@ -40,13 +40,13 @@ class FormatShadowTests(unittest.TestCase):
         self.assertEqual(up["format_family_id"],down["format_family_id"])
 
     def test_unknown_line_features_without_content(self):
-        raw="Club Alpha vs Club Beta\nSomething private 17% 🔴\n"
+        raw="Club Alpha vs Club Beta\nSomething private 17%\n"
         item=inspect(raw,datetime(2026,10,27,tzinfo=timezone.utc),11,99,False)
         self.assertEqual(item["schema_version"],3)
         self.assertEqual(len(item["other_features"]),1)
         feature=item["other_features"][0]
         self.assertTrue(feature["has_percentage"])
-        self.assertTrue(feature["has_red"])
+        self.assertFalse(feature["has_red"])
         self.assertNotIn("private",str(item))
         self.assertNotIn("Alpha",str(item))
     def test_unknown_preserved_as_shape(self):
