@@ -86,9 +86,9 @@ def regulation_result(signal, event):
     for field in ("postponed", "cancelled", "abandoned"):
         if event.get(field) is True:
             return None, "not_played"
-    for field in ("extra_time_score", "penalty_shootout"):
-        if event.get(field) is not None:
-            return None, "extra_time_requires_review"
+    # BSD documents home_score/away_score as *regulation-time only*.
+    # The ET and shootout scores are separate fields, so their presence
+    # does not change the settled 90-minute goals.
     try:
         h, a = event["home_score"], event["away_score"]
         if not all(type(n) is int and n >= 0 for n in (h, a)):
