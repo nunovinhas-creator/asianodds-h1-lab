@@ -6,7 +6,6 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from .core import empty_state,parse_alert,classify_message,incorporate,public_data,load_results,dump_json
-from .intelligence import build as build_market_intelligence
 
 ROOT=Path(__file__).resolve().parents[1]
 STATE=ROOT/"data/state.json"
@@ -20,7 +19,6 @@ def read_state():
 def save(state):
     dump_json(STATE,state)
     dump_json(ROOT/"docs/data.json",public_data(state,load_results(ROOT/"data/results.csv"),datetime.now(timezone.utc)))
-    dump_json(ROOT/"docs/market-intelligence.json",build_market_intelligence(state,load_results(ROOT/"data/results.csv")))
 
 async def poll(state):
     from telethon import TelegramClient
@@ -56,6 +54,7 @@ async def poll(state):
         diagnostics=state.setdefault("diagnostics",[])
         diagnosed={d["message_id"] for d in diagnostics}
         parsed=[]
+        shadow_rows=[]
         inspected=0
         new_messages=0
         fresh_diagnostics=[]
@@ -73,6 +72,12 @@ async def poll(state):
             links=[url for url in links if url and "asianodds.com" in url]
             combined=raw_text+"\n"+"\n".join(links)
             event=parse_alert(combined,msg.date,msg.id,str(entity.id))
+            # Research observer runs independently; failures never stop H1.
+            try:
+                from .shadow_formats import inspect as shadow_inspect
+                shadow_rows.append(shadow_inspect(combined,msg.date,msg.id,str(entity.id),event is not None))
+            except Exception as exc:
+                print("LAB_SHADOW_INSPECT_FAILED:",type(exc).__name__)
             if event:
                 parsed.append(event)
             elif msg.id not in diagnosed:
@@ -81,6 +86,12 @@ async def poll(state):
                 diagnostics.append(diagnostic)
                 fresh_diagnostics.append(diagnostic)
                 diagnosed.add(msg.id)
+        # Shadow persistence is best effort and never affects H1 state/checkpoints.
+        try:
+            from .shadow_formats import store as shadow_store
+            shadow_store(ROOT,shadow_rows)
+        except Exception as exc:
+            print("LAB_SHADOW_STORE_FAILED:",type(exc).__name__)
         # Remove obsolete parse errors for messages now successfully recovered.
         recovered_ids={event["message_id"] for event in parsed}
         if recovered_ids:
