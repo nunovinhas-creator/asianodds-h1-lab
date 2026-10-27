@@ -70,8 +70,24 @@ def parse_alert(text,when,msg_id,channel_id="asianodds"):
     ev["h1"]=market=="total" and n[1]-w[1]>=0.24999 and n[2]>w[2]+1e-9
     return ev
 
+def classify_message(text):
+    """Return a safe diagnostic reason; never persist the source text."""
+    if not text or not text.strip():
+        return "empty"
+    if " vs " not in text:
+        return "other_channel_message"
+    if not KICK.search(text):
+        return "missing_kickoff"
+    rows=ROW.findall(text)
+    if not any(k.lower()=="was" for k,*_ in rows):
+        return "missing_was_row"
+    if not any(k.lower()=="now" for k,*_ in rows):
+        return "missing_now_row"
+    return "unrecognized_alert_format"
+
+
 def empty_state():
-    return {"last_id":0,"alerts":[],"signals":[],"tickets":[]}
+    return {"last_id":0,"alerts":[],"signals":[],"tickets":[],"diagnostics":[]}
 
 def incorporate(state,events,now,min_lead=10):
     seen={a["event_id"] for a in state["alerts"]}
