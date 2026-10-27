@@ -22,7 +22,7 @@ class LabQualityTests(unittest.TestCase):
             root=Path(tmp)
             (root/"data/lab").mkdir(parents=True)
             (root/"data/state.json").write_text('{"alerts":[]}')
-            (root/"data/lab/formats-2026-10.jsonl").write_bytes(b'\\xff\\xfe\\n{"event_id":"1","format_id":"x"}\\n')
+            (root/"data/lab/formats-2026-10.jsonl").write_bytes(b'\xff\xfe\n{"event_id":"1","format_id":"x"}\n')
             with patch.object(lab_quality,"ROOT",root):
                 lab_quality.main()
             d=json.loads((root/"docs/lab/quality.json").read_text())
