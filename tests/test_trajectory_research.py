@@ -76,7 +76,8 @@ class RepeatedStudyTests(unittest.TestCase):
         self.assertEqual(x["time_to_kickoff"]["distinct_matches_touching_bucket"]["T_60_TO_360"],1)
         self.assertEqual(x["total_line_within_alert"]["by_origin"],
                          {"H1_LEGACY_ONLY":1,"V4_EXPLICIT":1})
-        self.assertNotIn("roi",str(x).lower())
+        self.assertNotIn("roi", x)
+        self.assertNotIn("profit_units", x)
         self.assertTrue(all(h["status"]!="TESTED" for h in x["hypotheses_for_future_oos_only"]))
 
     def test_partial_sample_is_not_presented_as_complete_population(self):
