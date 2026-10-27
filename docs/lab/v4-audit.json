@@ -13,7 +13,7 @@
   "cutover_utc": "2026-10-27T16:40:50+00:00",
   "first_24h_end_utc": "2026-10-28T16:40:50+00:00",
   "format_events": 82,
-  "generated_at": "2026-10-27T21:16:18+00:00",
+  "generated_at": "2026-10-27T21:21:19+00:00",
   "golden_set": {
     "manually_verified": 0,
     "reason": "No independently signed and checked golden corpus",
@@ -462,10 +462,10 @@
     "collector_non_v4_failed_run_ids": [],
     "not_executed_run_ids": [],
     "reason": "24h window unfinished or executed runs not all verified",
-    "runs_in_window": 56,
+    "runs_in_window": 57,
     "status": "unverified",
     "summary": {
-      "checked": 56,
+      "checked": 57,
       "not_executed": 0,
       "unverified_runs": 0,
       "v4_errors_detected": 0
@@ -2635,8 +2635,147 @@
       ]
     }
   ],
+  "quality_dimensions": {
+    "collection_coverage": {
+      "captured": 66,
+      "lower_95_by_message": 0.955625,
+      "meaning": "Telegram alert messages in the window that have a V4 record",
+      "messages": 66
+    },
+    "extraction_exactness": {
+      "evidence_source": "docs/lab/golden-report.json (human transcriptions)",
+      "reason": "Agreement between two parsers of the same text is not exactness",
+      "status": "NOT_MEASURED_BY_PARSER_COMPARISON"
+    },
+    "human_validation": {
+      "golden_set_verified": false,
+      "status": "SEE_GOLDEN_REPORT"
+    },
+    "identity_independence": {
+      "independent": 54,
+      "lower_95_by_message": 0.722123,
+      "messages": 66,
+      "unrecorded_event_ids": [
+        "3571094759:50657",
+        "3571094759:50658",
+        "3571094759:50659",
+        "3571094759:50660",
+        "3571094759:50661",
+        "3571094759:50662",
+        "3571094759:50663",
+        "3571094759:50664",
+        "3571094759:50665",
+        "3571094759:50666",
+        "3571094759:50667",
+        "3571094759:50668"
+      ],
+      "unrecorded_or_inherited": 12
+    },
+    "movement_independence": {
+      "evidence_source": "docs/lab/match-trajectories.json",
+      "reason": "1X2 and Total messages of one move are correlated; unit is the match",
+      "status": "SEE_MATCH_TRAJECTORIES"
+    },
+    "note": "Informational dimensions. They do not change acceptance_gates or status.",
+    "parser_agreement": {
+      "by_family": {
+        "1x2": {
+          "fields_agree": 342,
+          "fields_compared": 342,
+          "lower_95_by_message": 0.854131,
+          "messages": 19,
+          "messages_all_fields_agree": 19
+        },
+        "total": {
+          "fields_agree": 282,
+          "fields_compared": 282,
+          "lower_95_by_message": 0.93825,
+          "messages": 47,
+          "messages_all_fields_agree": 47
+        }
+      },
+      "by_parser_period_and_family": {
+        "v4_initial_no_provenance:1x2": {
+          "fields_agree": 72,
+          "fields_compared": 72,
+          "lower_95_by_message": 0.472871,
+          "messages": 4,
+          "messages_all_fields_agree": 4
+        },
+        "v4_initial_no_provenance:total": {
+          "fields_agree": 48,
+          "fields_compared": 48,
+          "lower_95_by_message": 0.687656,
+          "messages": 8,
+          "messages_all_fields_agree": 8
+        },
+        "v4_provenance_1:1x2": {
+          "fields_agree": 252,
+          "fields_compared": 252,
+          "lower_95_by_message": 0.807364,
+          "messages": 14,
+          "messages_all_fields_agree": 14
+        },
+        "v4_provenance_1:total": {
+          "fields_agree": 174,
+          "fields_compared": 174,
+          "lower_95_by_message": 0.901855,
+          "messages": 29,
+          "messages_all_fields_agree": 29
+        },
+        "v4_provenance_1_anchored_rows:1x2": {
+          "fields_agree": 18,
+          "fields_compared": 18,
+          "lower_95_by_message": 0.05,
+          "messages": 1,
+          "messages_all_fields_agree": 1
+        },
+        "v4_provenance_1_anchored_rows:total": {
+          "fields_agree": 60,
+          "fields_compared": 60,
+          "lower_95_by_message": 0.741134,
+          "messages": 10,
+          "messages_all_fields_agree": 10
+        }
+      },
+      "caveat": "100% on available fields is not global accuracy; both parsers read the same text",
+      "meaning": "V4 explicit values equal to the H1 record, per message, on available fields",
+      "parser_period_assignment": "observed_at vs main merge time of parser changes; approximate"
+    },
+    "provenance_window": {
+      "captured": 54,
+      "elapsed": false,
+      "end_utc": "2026-10-28T17:31:15+00:00",
+      "independent_identity": 54,
+      "lower_95_agreement_by_message": 0.946034,
+      "messages": 54,
+      "messages_all_fields_agree": 54,
+      "reason": "First 24h after the first V4 record with parser provenance; separates the transitional records without provenance. Records are never rewritten.",
+      "start_utc": "2026-10-27T17:31:15+00:00",
+      "status": "INFORMATIONAL_NOT_A_GATE",
+      "transitional_messages_without_provenance": 12
+    },
+    "statistical_certification": {
+      "requires": [
+        "24h window elapsed",
+        "about 299 independent messages per family with 0 failures",
+        "complete log evidence",
+        "verified human Golden Set",
+        "out-of-sample validation"
+      ],
+      "status": "NOT_CERTIFIED"
+    },
+    "trigger_displayed_pct": {
+      "matches_simple_price_change_within_0_2pp": 0,
+      "messages_with_pct": 19,
+      "min_abs_displayed_pct": 10.0,
+      "reason": "Displayed % does not follow (after-before)/before; keep as shown only",
+      "status": "FORMULA_UNVALIDATED",
+      "use_as_predictor": false
+    }
+  },
   "schema_version": 1,
-  "source_commit": "2f8c386c9253d118f855c3d9c97f44077ef39e7a",
+  "source_commit": "b5e29e857326e003112707d264577ee89f6129cb",
   "statistical_evidence": {
     "families": {
       "1x2": {
