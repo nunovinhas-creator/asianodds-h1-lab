@@ -43,6 +43,13 @@ class MarketV2Tests(unittest.TestCase):
                    [{"event_id":"b","format_id":"y"}])
         self.assertEqual(s2["format_to_alert_coverage_pct"],0.0)
 
+    def test_old_snapshots_share_structural_family(self):
+        a={"event_id":"a","format_id":"up","line_classes":["VS","HDR_TOTAL_UP","WAS:3"]}
+        b={"event_id":"b","format_id":"down","line_classes":["VS","HDR_TOTAL_DOWN","WAS:3"]}
+        s=summary([], [a,b])
+        self.assertEqual(s["distinct_formats"],1)
+        self.assertEqual(s["distinct_directional_formats"],2)
+
     def test_dedup_and_unique_games(self):
         s=summary([{"event_id":"a","match_key":"g","market":"total"},
                    {"event_id":"b","match_key":"g","market":"1x2"}],
