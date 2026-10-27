@@ -58,6 +58,16 @@ class FormatShadowTests(unittest.TestCase):
         self.assertEqual(feature["numeric_values"],[1,2,3,4,5,6])
         self.assertTrue(feature["numeric_values_truncated"])
 
+    def test_numeric_fragments_preserve_original_notation(self):
+        from h1lab.shadow_formats import other_signature
+        tokens=other_signature("Prices 1.85 1,70 -8% 15:36 2.5-3")
+        self.assertEqual(tokens["numeric_tokens_raw"],["1.85","1,70","-8%","15:36","2.5-3"])
+        self.assertNotIn("Prices",str(tokens))
+    def test_numeric_fragment_limit(self):
+        from h1lab.shadow_formats import other_signature
+        tokens=other_signature("1 2 3 4 5 6 7")
+        self.assertEqual(len(tokens["numeric_tokens_raw"]),6)
+        self.assertTrue(tokens["numeric_tokens_raw_truncated"])
     def test_unknown_preserved_as_shape(self):
         x=inspect("Unrecognized market",datetime.now(timezone.utc),1,2,False)
         self.assertEqual(x["markets_mentioned"],[])
