@@ -1,0 +1,43 @@
+name: Lab - V4 report smoke (PR)
+on:
+  pull_request:
+    paths:
+      - "h1lab/v4_audit.py"
+      - "scripts/lab_v4_audit.py"
+      - "tests/test_v4_audit.py"
+      - ".github/workflows/lab-v4-*.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build a real-data report without writing to main
+        env:
+          LAB_SOURCE_SHA: ${{ github.sha }}
+        run: python -m scripts.lab_v4_audit
+      - name: Assert auditable schema and real Total example
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d = json.loads(Path("docs/lab/v4-audit.json").read_text())
+          assert d["schema_version"] == 1
+          assert d["status"] in ("PENDING","FAIL","PASS")
+          assert d["phase_coverage"]["first_24h"]["eligible"] >= 1
+          assert d["markets"]["total"]["totals"]["matched"] >= 6
+          assert d["markets"]["total"]["totals"].get("mismatch", 0) == 0
+          print("REAL_V4_AUDIT",d["status"],"live",d["phase_coverage"]["first_24h"],
+                "markets", {k:v["totals"] for k,v in d["markets"].items()})
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v4-production-audit-smoke
+          path: docs/lab/v4-audit.json
+          retention-days: 7
