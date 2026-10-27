@@ -86,7 +86,7 @@ def summary(alerts,formats):
         other+=sum(v=="OTHER" for v in classes)
         for feature in x.get("other_features",[]):
             if not isinstance(feature,dict): continue
-            for key in ("has_percentage","has_arrow","has_red","has_blue","has_colon","starts_emoji"):
+            for key in ("has_percentage","has_arrow","has_red","has_blue","has_colon","starts_symbol"):
                 if feature.get(key) is True: other_feature_counts[key]+=1
             other_feature_counts["numbers_"+str(feature.get("numeric_tokens","unknown"))]+=1
         total_lines+=len(classes)
