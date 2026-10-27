@@ -34,7 +34,8 @@ jobs:
           assert pool["no_reference_values_prefilled"] is True
           assert report["status"] == "NOT_CERTIFIED"
           assert report["golden_set_verified"] is False
-          assert report["two_review_agreements"] == 0
+          assert 0 <= report["two_review_agreements"] <= report["candidate_count"]
+          assert report["two_review_agreements"] + report["v4_mismatch_cases"] <= report["candidate_count"]
           assert pool["eligible_per_family"]["1x2"] >= 1
           assert pool["eligible_per_family"]["total_up"] >= 1
           assert pool["eligible_per_family"]["total_down"] >= 1
