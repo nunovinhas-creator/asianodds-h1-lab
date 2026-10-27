@@ -5,7 +5,8 @@ assume all Telegram visual decoration is present in msg.raw_text.
 """
 import json
 import re
-from datetime import timezone
+from datetime import timezone, datetime
+from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
 NUM=r"[+-]?\d+(?:[.,]\d+)?"
@@ -15,7 +16,33 @@ TOTAL=re.compile(r"(?i)\bTotal\s*:\s*("+NUM+r")\s*([↑↓])\s*("+NUM+r")")
 ONE=re.compile(r"(?i)\b1x2\s*\(([1X2])\)\s*:\s*("+NUM+r")\s*[↓↑]\s*("+NUM+r")\s*\(([+-]?\d+(?:[.,]\d+)?)%\)")
 HDR_AH=re.compile(r"(?i)\bLine\s+H\s+A\b")
 HDR_TOTAL=re.compile(r"(?i)\bLine\s+O\s+U\b")
-ODDS_THRESHOLD=1.0
+WINDOW=re.compile(r"(?i)\blast\s+(\d{1,3})\s+min\b")
+KICK=re.compile(r"🕒\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2}:\d{2})\s+UTC",re.I)
+MONTHS={m:i+1 for i,m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split())}
+URL=re.compile(r"https?://(?:www\.)?asianodds\.com/[^\s)]+",re.I)
+
+def identity(text,when,legacy_event):
+    link=URL.search(text)
+    match=parse_qs(urlparse(link.group(0)).query).get("match",[None])[0] if link else None
+    ko=None
+    m=KICK.search(text)
+    if m and m.group(2).title() in MONTHS:
+        hour,minute=map(int,m.group(3).split(":"))
+        candidates=[]
+        for year in (when.year-1,when.year,when.year+1):
+            try: candidates.append(datetime(year,MONTHS[m.group(2).title()],int(m.group(1)),hour,minute,tzinfo=timezone.utc))
+            except ValueError: pass
+        if candidates: ko=min(candidates,key=lambda x:abs((x-when).total_seconds()))
+    key=match
+    if not key and ko:
+        vs=next((line.strip() for line in text.splitlines() if " vs " in line),"")
+        vs=re.sub(r"^[^\w]+","",vs)
+        teams=vs.split(" vs ",1)
+        if len(teams)==2 and all(teams):
+            key=ko.strftime("%Y-%m-%d")+"|"+teams[0].casefold()+"|"+teams[1].casefold()
+    fallback=legacy_event if isinstance(legacy_event,dict) else {}
+    return key or fallback.get("match_key"),ko.isoformat(timespec="seconds") if ko else fallback.get("kickoff_utc")
+
 
 def number(s):
     return float(s.replace(",","."))
@@ -77,12 +104,25 @@ def parse(text,when,message_id,channel_id,legacy_event=None):
     if len(selections)==3: markets["one_x_two"]=selections
     if not markets: return None
     observed=when.astimezone(timezone.utc).isoformat(timespec="seconds")
+    match_key,kickoff_utc=identity(text,when,legacy_event)
+    trigger=None
+    if header:
+        trigger={"market":"total","selection":None,"before":number(header.group(1)),
+                 "after":number(header.group(3)),"pct":None}
+    else:
+        h=ONE.search(text)
+        if h:
+            trigger={"market":"1x2","selection":h.group(1).upper(),
+                     "before":number(h.group(2)),"after":number(h.group(3)),
+                     "pct":number(h.group(4))}
+    window=WINDOW.search(text)
     return {"schema_version":4,"parser":"telegram_multimarket_shadow",
             "event_id":event_id,"observed_at":observed,
-            "trigger_market":"total" if header else "1x2" if ONE.search(text) else "unknown",
+            "trigger_market":trigger["market"] if trigger else "unknown",
+            "trigger":trigger,"window_minutes":int(window.group(1)) if window else None,
             "markets":markets,
-            "match_key":legacy_event.get("match_key") if isinstance(legacy_event,dict) else None,
-            "kickoff_utc":legacy_event.get("kickoff_utc") if isinstance(legacy_event,dict) else None,
+            "match_key":match_key,
+            "kickoff_utc":kickoff_utc,
             "source":"telegram_explicit_rows","unverified_fields":["btts","full_market_depth"]}
 
 def store(root,records):
