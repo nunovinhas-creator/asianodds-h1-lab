@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime,timedelta,timezone
-from h1lab.core import asian_under,empty_state,parse_alert,incorporate,public_data
+from h1lab.core import asian_under,empty_state,parse_alert,classify_message,incorporate,public_data
 
 UTC=timezone.utc
 OBS=datetime(2026,10,26,18,0,tzinfo=UTC)
@@ -32,6 +32,15 @@ class ParseTest(unittest.TestCase):
 
     def test_no_match_returns_none(self):
         self.assertIsNone(parse_alert("spam",OBS,1))
+
+    def test_non_alert_diagnostic(self):
+        self.assertEqual(classify_message("AsianOdds service message"), "other_channel_message")
+
+    def test_missing_kickoff_diagnostic(self):
+        self.assertEqual(classify_message("Clube A vs Clube B\nWas 2.50 1.80 1.90\nNow 2.75 1.90 1.80"), "missing_kickoff")
+
+    def test_structured_alert_is_not_a_diagnostic(self):
+        self.assertTrue(parse_alert(message(), OBS, 10)["h1"])
 
 class AsianSettlement(unittest.TestCase):
     def test_quarter_under(self):
