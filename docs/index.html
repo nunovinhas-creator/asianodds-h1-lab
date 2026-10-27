@@ -65,7 +65,14 @@ function draw(data){
   tr.appendChild(first);
   cell(tr,s.kickoff_utc.replace("T"," ").slice(0,16),"mono");
   cell(tr,num(s.line),"mono");cell(tr,num(s.under_odds),"mono");
-  cell(tr,s.result?s.result.home_goals+"–"+s.result.away_goals:"Pendente","mono");
+  const resultCell=document.createElement("td");
+  resultCell.className="mono";
+  resultCell.appendChild(node("span",s.result?s.result.home_goals+"–"+s.result.away_goals:"Pendente"));
+  if(s.result?.source && /^https:\/\//i.test(s.result.source)){
+   const source=node("a","Ver fonte FT");source.href=s.result.source;source.target="_blank";
+   source.rel="noopener noreferrer";source.style.display="block";resultCell.appendChild(source);
+  }
+  tr.appendChild(resultCell);
   cell(tr,money(s.profit),s.profit==null?"muted":s.profit>=0?"positive":"negative");sb.appendChild(tr);
  }
  const tb=$("body-triple");tb.replaceChildren();
