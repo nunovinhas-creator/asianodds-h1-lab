@@ -1,0 +1,55 @@
+name: Lab - Golden Set smoke (PR)
+on:
+  pull_request:
+    paths:
+      - "h1lab/golden.py"
+      - "scripts/lab_golden.py"
+      - "tests/test_golden.py"
+      - "docs/golden-review.html"
+      - "data/lab/golden/reviews/**"
+      - ".github/workflows/lab-golden-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test Golden reference and source validation
+        run: python -m unittest discover -s tests -p 'test_golden.py' -v
+      - name: Generate first queue from real tracked Telegram observations
+        run: python -m scripts.lab_golden
+      - name: Validate no model odds are prefilled and source is not certified
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          pool=json.loads(Path("docs/lab/golden-candidates.json").read_text())
+          report=json.loads(Path("docs/lab/golden-report.json").read_text())
+          assert pool["no_reference_values_prefilled"] is True
+          assert report["status"] == "NOT_CERTIFIED"
+          assert report["golden_set_verified"] is False
+          assert report["two_review_agreements"] == 0
+          assert pool["eligible_per_family"]["1x2"] >= 1
+          assert pool["eligible_per_family"]["total_up"] >= 1
+          assert pool["eligible_per_family"]["total_down"] >= 1
+          assert pool["candidates"]
+          for c in pool["candidates"]:
+              assert "markets" not in c
+              assert "source_url" not in c
+          print("GOLDEN_REAL_SOURCE_QUEUE",
+                pool["eligible_per_family"],"selected",report["candidate_count"],
+                "human_verification",report["status"])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden-review-queue
+          path: |
+            docs/lab/golden-candidates.json
+            docs/lab/golden-report.json
+          retention-days: 7
