@@ -68,6 +68,8 @@ def summary(alerts,formats):
     unknown_timing=sum(r["pre_kickoff"] is None for r in rows)
     observations={x.get("event_id"):x for x in formats if isinstance(x,dict) and x.get("event_id")}
     fmt=Counter(x.get("format_id","unknown") for x in observations.values())
+    alert_ids={r["event_id"] for r in rows if r.get("event_id")}
+    observed_alert_ids=set(observations)&alert_ids
     shapes={}
     other=total_lines=unknown=0
     for x in observations.values():
@@ -83,10 +85,11 @@ def summary(alerts,formats):
         "format_counts":dict(fmt),"format_shapes":shapes,
         "other_lines":other,"observed_lines":total_lines,
         "other_pct":round(100*other/total_lines,2) if total_lines else None,
-        "format_to_alert_coverage_pct":round(100*len(observations)/len(rows),2) if rows else None,
+        "alerts_with_format":len(observed_alert_ids),
+        "format_to_alert_coverage_pct":round(100*len(observed_alert_ids)/len(alert_ids),2) if alert_ids else None,
         "post_kickoff_alerts":post_kickoff,"unknown_kickoff_relation":unknown_timing,
         "legacy_parsed_formats":sum(bool(x.get("legacy_parsed")) for x in observations.values()),
         "unknown_legacy_formats":sum(not x.get("legacy_parsed") for x in observations.values()),
-        "coverage_note":"Snapshot formats may cover fewer messages than legacy historical alerts.",
+        "coverage_note":"Matched alert IDs with format observations / distinct historical alert IDs. All-message coverage is a separate measure.",
         "limitations":["No BTTS prices verified","Cross-line prices must not be read as probabilities",
           "Telegram reports selected alerts, not all market changes"]}
