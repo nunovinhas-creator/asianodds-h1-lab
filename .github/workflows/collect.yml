@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: asianodds-h1-collector
+  group: asianodds-h1-write
   cancel-in-progress: false
 jobs:
   collect:
@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Reconcile latest data checkpoint
+        run: git pull --rebase origin main
       - run: pip install -r requirements.txt
       - name: Read authorised Telegram channel
         env:
@@ -38,5 +40,6 @@ jobs:
           git add data/state.json docs/data.json
           if ! git diff --cached --quiet; then
             git commit -m 'data: collect and notify H1 [skip ci]'
-            git push
+            git pull --rebase origin main
+            git push origin main
           fi
