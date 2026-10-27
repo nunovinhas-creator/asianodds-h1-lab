@@ -4,6 +4,16 @@
 
 Este projeto ainda **não dispõe** de um corpus de mensagens Telegram originais, verificado manualmente e de forma independente. Os resultados `108/108`, `10/10` ou posteriores são apenas concordância entre parsers, nunca verdade-terreno.
 
+## Ferramenta operacional
+
+- Página de revisão manual: [Golden Set — revisão](https://nunovinhas-creator.github.io/asianodds-h1-lab/golden-review.html)
+- Fila de candidatos reais: `docs/lab/golden-candidates.json`
+- Relatório com as transcrições e divergências: `docs/lab/golden-report.json`
+- Mecanismo autónomo de comparação: `h1lab/golden.py`
+- Ficheiros de revisões (sem texto nem capturas originais): `data/lab/golden/reviews/`
+
+Estes registos são gerados e publicados autonomamente após as recolhas, mas nenhuma mensagem passa automaticamente a Golden verificado. A transcrição original é manual e cega, pelo que a origem só poderá ser certificada depois de uma revisão independente dos materiais originais.
+
 ## Procedimento de recolha e dupla verificação
 
 1. Selecionar mensagens reais do canal Telegram, incluindo Total ascendente, Total descendente, 1X2 com AH/Total, mudanças de linhas e variantes de apresentação.
