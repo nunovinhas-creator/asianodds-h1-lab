@@ -1,0 +1,207 @@
+{
+  "generated_at": "2026-10-27T21:51:20+00:00",
+  "hypotheses_for_future_oos_only": [
+    {
+      "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
+      "endpoint": "independently settled full-time total goals",
+      "id": "H1_DIRECTION_REVERSAL_AND_TOTAL_GOALS",
+      "status": "NOT_TESTED"
+    },
+    {
+      "design": "compare lead-time buckets only after uniform sampling/coverage and independent closing line",
+      "endpoint": "next independently observed market snapshot (not interpolated)",
+      "id": "H2_PREMATCH_TIMING_AND_PERSISTENCE",
+      "status": "NOT_TESTED"
+    },
+    {
+      "design": "cluster at match_key; do not use linked notifications as independent bets or trials",
+      "endpoint": "message clusters by match and shared Total snapshot",
+      "id": "H3_LINKED_ALERTS_ARE_CORRELATED",
+      "status": "DESCRIPTIVE_ONLY"
+    }
+  ],
+  "limitations": [
+    "The channel is event-triggered, not a continuous market feed; sample is selectively observed.",
+    "Only repeated-match trajectories are included; do not generalise rates to all matches.",
+    "Opposing directions in messages do not prove the intermediate line reversed in real time.",
+    "Unobserved gaps are not interpolated; legacy H1 is not independent source validation.",
+    "Published trajectories may be a recent subset when sampling.timelines_omitted > 0.",
+    "No match result, bet settlement, expected value, ROI, p-value or profitability was tested.",
+    "Descriptive percentages are conditional on the published repeated-match sample.",
+    "User-provided Telegram messages and snapshots are not published with this summary."
+  ],
+  "match_level_patterns": {
+    "at_least_two_nonflat_total_alerts": {
+      "matches": 19,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 59.4
+    },
+    "both_total_and_1x2": {
+      "matches": 23,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 71.9
+    },
+    "opposing_intra_alert_directions": {
+      "matches": 4,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 12.5
+    },
+    "with_ambiguous_repeats": {
+      "matches": 4,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 12.5
+    },
+    "with_identical_total_snapshots": {
+      "matches": 4,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 12.5
+    },
+    "with_mixed_origin_total": {
+      "matches": 11,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 34.4
+    },
+    "with_only_legacy_total": {
+      "matches": 10,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 31.2
+    },
+    "with_only_v4_total": {
+      "matches": 11,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 34.4
+    },
+    "with_post_kickoff_alerts": {
+      "matches": 2,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 6.2
+    },
+    "with_related_alerts": {
+      "matches": 7,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 21.9
+    },
+    "with_unobserved_line_gaps": {
+      "matches": 3,
+      "of_repeated_matches_analysed": 32,
+      "percentage_descriptive": 9.4
+    }
+  },
+  "opposing_direction_examples": [
+    {
+      "directions": [
+        "DOWN",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:50622",
+        "3571094759:50669"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-28,1077,1048",
+      "match_label": "AC Sparta Praha vs FC Baník Ostrava"
+    },
+    {
+      "directions": [
+        "DOWN",
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50584",
+        "3571094759:50594",
+        "3571094759:50598"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-27,10052413,10062563",
+      "match_label": "NEC FC vs Ntugasaze FC"
+    },
+    {
+      "directions": [
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50648",
+        "3571094759:50666"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-27,10068586,24722",
+      "match_label": "SPG Wels vs Wolfsberger AC"
+    },
+    {
+      "directions": [
+        "DOWN",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:50630",
+        "3571094759:50641"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-27,32555,24870",
+      "match_label": "Shabab Al Ahli Dubai FC vs Esteghlal Tehran FC"
+    }
+  ],
+  "schema_version": 1,
+  "scope": {
+    "all_distinct_matches": 109,
+    "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
+    "events_analysed": 69,
+    "messages_in_source": 146,
+    "repeated_matches_analysed": 32,
+    "repeated_matches_in_source": 32,
+    "repeated_matches_omitted": 0,
+    "unit_for_direction_tabulation": "one Total table per Telegram message",
+    "unit_for_pattern_prevalence": "distinct match_key"
+  },
+  "source_commit": "7f0bae01d246425bfcf1fd365bbae6286256d857",
+  "source_generated_at": "2026-10-27T21:51:20+00:00",
+  "status": "EXPLORATORY_NO_OUTCOME_TEST",
+  "time_to_kickoff": {
+    "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
+    "distinct_matches_touching_bucket": {
+      "AFTER_KICKOFF": 2,
+      "T_0_TO_60": 16,
+      "T_360_TO_1440": 8,
+      "T_60_TO_360": 16,
+      "T_OVER_1440": 4,
+      "UNKNOWN": 0
+    },
+    "messages_by_bucket": {
+      "AFTER_KICKOFF": 3,
+      "T_0_TO_60": 25,
+      "T_360_TO_1440": 12,
+      "T_60_TO_360": 23,
+      "T_OVER_1440": 6,
+      "UNKNOWN": 0
+    },
+    "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
+  },
+  "total_line_within_alert": {
+    "by_origin": {
+      "H1_LEGACY_ONLY": 34,
+      "V4_EXPLICIT": 35
+    },
+    "direction_pct_of_messages_with_total": {
+      "DOWN": 42.0,
+      "FLAT": 23.2,
+      "UP": 34.8
+    },
+    "down": 29,
+    "flat": 16,
+    "messages_with_total": 69,
+    "up": 24,
+    "warning": "This tabulation is per message, not independent betting trials"
+  },
+  "transitions": {
+    "ambiguous_repeat_or_reversal": 4,
+    "continuous": 22,
+    "identical_total_pairs": 4,
+    "related_pairs": 7,
+    "rule": "Relations are annotations; do not delete alerts or assert independent moves",
+    "same_lines_different_prices_pairs": 3,
+    "same_movement_repeat": 7,
+    "unobserved_change": 4
+  }
+}
