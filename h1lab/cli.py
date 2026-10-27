@@ -35,6 +35,8 @@ async def poll(state):
             if len(matches)!=1: raise RuntimeError("TG_CHANNEL is not an unambiguous subscribed channel")
             entity=matches[0]
         last=state["last_id"]
+        original_last=last
+        previous_tickets=len(state["tickets"])
         parsed=[];seen=0
         async for msg in client.iter_messages(entity,min_id=last,reverse=True,limit=500):
             seen+=1;last=max(last,msg.id)
@@ -43,7 +45,8 @@ async def poll(state):
                 if ev: parsed.append(ev)
         added=incorporate(state,parsed,datetime.now(timezone.utc))
         state["last_id"]=last
-        save(state)
+        if last!=original_last or len(state["tickets"])!=previous_tickets:
+            save(state)
         print("Read:",seen,"new structured alerts:",added,
               "H1 signals:",len(state["signals"]),"triples:",len(state["tickets"]))
 
@@ -57,7 +60,6 @@ def main():
         missing=[name for name in names if not os.environ.get(name)]
         if missing:
             print("SETUP_REQUIRED: configure "+", ".join(missing))
-            save(state)
             return
         asyncio.run(poll(state))
     else: save(state)
