@@ -55,6 +55,18 @@ def parse_alert(text,when,msg_id,channel_id="asianodds"):
         "home":home,"away":away,"competition":comp,"market":market,
         "source_url":url,"total_before":w[1],"over_before":w[2],"under_before":w[3],
         "total_after":n[1],"over_after":n[2],"under_after":n[3]}
+    if market=="1x2":
+        selections={}
+        for label in ("1","X","2"):
+            mm=re.search(r"(?m)^\s*"+label+r"\s+("+NUM+r"|[-–])\s*→\s*("+NUM+r"|[-–])",text)
+            if mm:
+                selections[label]={"before":None if mm.group(1) in ("-","–") else float(mm.group(1).replace(",",".")),
+                                   "after":None if mm.group(2) in ("-","–") else float(mm.group(2).replace(",","."))}
+        ev["one_x_two"]=selections
+        if len(rows)>=4:
+            ah_before,ah_after=rows[0],rows[1]
+            ev["asian_handicap"]={"before":{"line":ah_before[1],"home_odds":ah_before[2],"away_odds":ah_before[3]},
+                                 "after":{"line":ah_after[1],"home_odds":ah_after[2],"away_odds":ah_after[3]}}
     ev["h1"]=market=="total" and n[1]-w[1]>=0.24999 and n[2]>w[2]+1e-9
     return ev
 
