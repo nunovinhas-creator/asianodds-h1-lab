@@ -46,15 +46,21 @@ def line_class(line):
         return "EMOJI"
     return "OTHER"
 
+# Bounded numeric fragments preserve punctuation, not arbitrary text.
+RAW_NUMERIC=re.compile(r"(?<![\w])[-+]?\d+(?:[.,]\d+)?(?:\s*%|:\d{1,2}|-\d+(?:[.,]\d+)?)?(?![\w])")
+
 def other_signature(line):
     """Closed vocabulary of non-identifying syntactic features."""
     value=line.strip()
     tokens=NUM.findall(value)
     n=len(tokens)
     numbers=[float(token.replace(",",".")) for token in tokens[:6]]
+    raw_tokens=RAW_NUMERIC.findall(value)
     return {
         "numeric_tokens":min(n,20),
         "numeric_values":numbers,
+        "numeric_tokens_raw":raw_tokens[:6],
+        "numeric_tokens_raw_truncated":len(raw_tokens)>6,
         "numeric_values_truncated":n>6,
         "has_percentage":bool(re.search(r"\d\s*%",value)),
         "has_arrow":any(ch in value for ch in "↑↓→➡"),
