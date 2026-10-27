@@ -1,0 +1,50 @@
+name: Verificar autenticacao BSD
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/bsd-smoke.yml"
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify real BSD API access without logging credentials
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime, timedelta, timezone
+          from urllib.parse import urlencode
+          from h1lab.bsd import request_json, ROOT, BSDProviderError
+
+          token = os.environ.get("BSD_API_KEY", "").strip()
+          if not token:
+              raise SystemExit("BSD_SECRET_MISSING: configure BSD_API_KEY in repository Secrets")
+          day = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+          url = ROOT + "?" + urlencode({"date_from":day,"date_to":day,"status":"finished","limit":1})
+          try:
+              payload = request_json(url, token)
+          except BSDProviderError as exc:
+              raise SystemExit("BSD_AUTH_OR_API_FAILED: " + str(exc)) from None
+          if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
+              raise SystemExit("BSD_UNEXPECTED_SCHEMA")
+          print("BSD_AUTH_OK: authenticated events query")
+          print("BSD_EVENTS_SCHEMA_OK: paginated results array confirmed")
+          print("BSD_PREVIOUS_DAY_FINISHED_TOTAL:", payload.get("count", "unknown"))
+          events = payload["results"]
+          if events and isinstance(events[0], dict):
+              expected=("id","status","event_date","home_team","away_team",
+                        "home_score","away_score","extra_time_score","penalty_shootout")
+              print("BSD_FIELD_PRESENCE:", 
+                    ", ".join(k+"="+str(k in events[0]) for k in expected))
+          else:
+              print("BSD_NO_SAMPLE_FINISHED_EVENT: access valid; structure of event untested")
+          PY
