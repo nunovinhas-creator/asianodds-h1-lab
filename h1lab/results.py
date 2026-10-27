@@ -180,13 +180,43 @@ def sync(now=None, search=api_events):
         if scanned >= 20:  # bounded workload and free API usage
             break
         scanned += 1
+        bsd_result = None
+        bsd_reason = "bsd_not_configured"
+        if os.environ.get("BSD_API_KEY", "").strip():
+            from .bsd import BSDProviderError, find_result
+            try:
+                bsd_result, bsd_reason = find_result(signal)
+            except BSDProviderError:
+                bsd_reason = "bsd_provider_unavailable"
+                errors += 1
+
+        fallback = None
+        fallback_reason = "not_checked"
         try:
-            result, reason = choose_result(signal, search(signal))
-        except (OSError, ValueError, TimeoutError, json.JSONDecodeError) as exc:
+            fallback, fallback_reason = choose_result(signal, search(signal))
+        except (OSError, ValueError, TimeoutError, json.JSONDecodeError):
             # Never echo untrusted payloads, request URLs or secrets.
-            reason = "provider_unavailable"
-            result = None
+            fallback_reason = "thesportsdb_unavailable"
             errors += 1
+
+        if bsd_result is not None and fallback is not None:
+            same_score=(bsd_result["home_goals"], bsd_result["away_goals"]) == (
+                fallback["home_goals"], fallback["away_goals"])
+            if same_score:
+                result=bsd_result
+                reason="confirmed_bsd_and_thesportsdb"
+            else:
+                result=None
+                reason="score_conflict_requires_manual_review"
+        elif bsd_result is not None:
+            result=bsd_result
+            reason="confirmed_bsd_only"
+        elif fallback is not None:
+            result=fallback
+            reason="confirmed_thesportsdb_only"
+        else:
+            result=None
+            reason="bsd:" + bsd_reason + ";thesportsdb:" + fallback_reason
         audit[key] = {
             "checked_at": now.isoformat(timespec="seconds"),
             "status": "settled" if result else "pending",
