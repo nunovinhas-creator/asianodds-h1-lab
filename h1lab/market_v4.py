@@ -4,8 +4,9 @@ Never produces picks. Parses only explicit rows and verified headings; does not
 assume all Telegram visual decoration is present in msg.raw_text.
 """
 import json
-import os
+import functools
 import re
+import subprocess
 from datetime import timezone, datetime
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
@@ -21,6 +22,19 @@ WINDOW=re.compile(r"(?i)\blast\s+(\d{1,3})\s+min\b")
 KICK=re.compile(r"🕒\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2}:\d{2})\s+UTC",re.I)
 MONTHS={m:i+1 for i,m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split())}
 URL=re.compile(r"https?://(?:www\.)?asianodds\.com/[^\s)]+",re.I)
+
+@functools.lru_cache(maxsize=1)
+def running_parser_commit():
+    """Actual checkout HEAD; the Actions event GITHUB_SHA may be stale."""
+    try:
+        result = subprocess.run(["git", "rev-parse", "HEAD"],
+                                cwd=Path(__file__).resolve().parents[1],
+                                capture_output=True, text=True, check=True, timeout=2)
+        sha = result.stdout.strip()
+        return sha if re.fullmatch(r"[0-9a-f]{40}", sha) else None
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
 
 def identity(text,when,legacy_event):
     link=URL.search(text)
@@ -134,7 +148,7 @@ def parse(text,when,message_id,channel_id,legacy_event=None):
             "identity_source":identity_source,
             "field_source": "telegram_explicit_rows",
             "parser_revision": "v4-provenance-1",
-            "parser_commit": os.environ.get("GITHUB_SHA") or None,
+            "parser_commit": running_parser_commit(),
             "source":"telegram_explicit_rows",
             "unverified_fields":["btts","full_market_depth","trigger_pct"]}
 
