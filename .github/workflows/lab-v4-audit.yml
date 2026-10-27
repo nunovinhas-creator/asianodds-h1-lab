@@ -42,11 +42,13 @@ jobs:
         run: python -m scripts.lab_v4_audit
       - name: Build independent Golden Set review queue and report
         run: python -m scripts.lab_golden
+      - name: Select high-information source events for Golden review
+        run: python -m scripts.lab_golden_priority
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json
+          git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json docs/lab/golden-priority.json
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
