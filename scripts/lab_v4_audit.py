@@ -115,7 +115,7 @@ def log_evidence(root, token, run_id, now):
         destination = root / "data" / "lab" / RUN_FILE
         destination.parent.mkdir(parents=True, exist_ok=True)
         valid = {k: v for k, v in journal.items() if isinstance(k, int)}
-        destination.write_text("".join(json.dumps(v, sort_keys=True) + "\\n"
+        destination.write_text("".join(json.dumps(v, sort_keys=True) + "\n"
                                        for k, v in sorted(valid.items())), encoding="utf-8")
     counts = {"checked": sum(isinstance(k, int) for k in journal),
               "errors_detected": sum(v.get("status") == "fail" for v in journal.values()),
