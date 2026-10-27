@@ -1,0 +1,51 @@
+name: Lab - Match chronology smoke (PR)
+on:
+  pull_request:
+    paths:
+      - "h1lab/timeline.py"
+      - "scripts/lab_match_trajectories.py"
+      - "tests/test_timeline.py"
+      - ".github/workflows/lab-timeline-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  timeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Unit tests and real-data validation
+        run: python -m unittest discover -s tests -p 'test_timeline.py' -v
+      - name: Build chronology from tracked real observations (not committed)
+        env:
+          LAB_SOURCE_SHA: ${{ github.sha }}
+        run: python -m scripts.lab_match_trajectories
+      - name: Assert required real cases and no data loss
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("docs/lab/match-trajectories.json").read_text())
+          alerts = json.loads(Path("data/state.json").read_text())["alerts"]
+          s = r["summary"]
+          assert r["status"] == "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED"
+          assert s["messages"] + s["messages_excluded"] - s["messages_v4_only"] == len(alerts)
+          ch = "3571094759:"
+          def tl(n):
+              return next(t for t in r["timelines"] if ch + n in t["event_ids"])
+          assert tl("50675")["event_ids"][:3] == [ch+"50588", ch+"50675", ch+"50681"]
+          pairs = {tuple(x["events"]) for t in r["timelines"] for x in t["related_messages"]}
+          for a, b in (("50685","50686"), ("50654","50655"), ("50710","50711")):
+              assert (ch+a, ch+b) in pairs, (a, b)
+          assert len(Path("docs/lab/match-trajectories.json").read_bytes()) < 2_000_000
+          print("LAB_TIMELINE_REAL", s)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: match-trajectories
+          path: docs/lab/match-trajectories.json
+          retention-days: 7
