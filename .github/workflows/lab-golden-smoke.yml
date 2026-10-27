@@ -35,6 +35,16 @@ jobs:
           assert pool["no_reference_values_prefilled"] is True
           assert report["status"] == "NOT_CERTIFIED"
           assert report["golden_set_verified"] is False
+          assert 0 <= report["user_validated_case_count"] <= report["candidate_count"]
+          assert report["user_validated_case_count"] >= 1
+          target = next(item for item in report["cases"]
+                        if item["event_id"] == "3571094759:50671")
+          assert target["firsthand_user_validation"] == "CONFIRMED_BY_SOURCE_VIEWER"
+          assert target["firsthand_verified_fields"] == 19
+          assert target["telegram_authenticated_externally"] is False
+          assert target["reviews_received"] == 1
+          assert all("second_independent_review" in item for item in report["cases"]
+                     if item["status"] == "USER_SOURCE_VALIDATED")
           assert report["supplemental_corroboration_count"] <= report["candidate_count"]
           assert all(item["independent_reviewer"] is False
                      and item["telegram_authenticity_verified"] is False

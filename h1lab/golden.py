@@ -377,6 +377,7 @@ def append_corroboration_evidence(report, candidate_document, rows, observations
         diffs_r1 = compare_reference(record, r1) if r1 else None
         entry = {
             "event_id": eid, "source_kind": record["source_kind"],
+            "source_sha256": record["source_sha256"],
             "independent_reviewer": False,
             "telegram_authenticity_verified": False,
             "v4_matching_fields": len(review_values(record)) - len(diffs_v4),
@@ -397,6 +398,89 @@ def append_corroboration_evidence(report, candidate_document, rows, observations
     report["limitations"].append(
         "User-pasted text checked against screenshot R1 and V4 is not an independent R2 "
         "or proof of Telegram authenticity; quoted trigger % remains unvalidated")
+    return report
+
+
+def read_firsthand_attestations(root):
+    """User declarations stored as metadata only; not artificial R2 reviews."""
+    directory = root / "data" / "lab" / "golden" / "attestations"
+    records, errors = [], []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            item = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(item, dict):
+                raise ValueError("attestation must be an object")
+            records.append((path.name, item))
+        except (ValueError, OSError, UnicodeDecodeError):
+            errors.append({"type": "attestation_read_error", "file": path.name})
+    return records, errors
+
+
+def append_user_attestations(report, candidates, attestations, reviews):
+    """Recognise user's firsthand validation without claiming a second reviewer.
+
+    This is strong per-event human source attestation, but NOT an external
+    Telegram authenticity check or statistically certified parser accuracy.
+    """
+    by_id = {case["event_id"]: case for case in report["cases"]}
+    candidate_ids = {c["event_id"] for c in candidates["candidates"]}
+    first_review = {row.get("event_id"): row for _, row in reviews if
+                    isinstance(row, dict) and row.get("reviewer_code") == "R1"}
+    corroborations = {v["event_id"]: v for v in report.get("supplemental_corroborations", [])}
+    verified = []
+    seen = set()
+    required = {"schema_version", "event_id", "attestation", "asserted_by",
+                "attested_date_utc", "source_kind", "screenshot_sha256",
+                "corroboration_sha256", "reviewed_fields", "independent_second_reviewer"}
+    for filename, item in attestations:
+        eid = item.get("event_id") if isinstance(item, dict) else None
+        if eid in seen:
+            report["issues"].append({"type": "duplicate_firsthand_attestation", "event_id": eid})
+            continue
+        seen.add(eid)
+        try:
+            if (not isinstance(item, dict) or set(item) != required or
+                item.get("schema_version") != 1 or eid not in candidate_ids or
+                item.get("attestation") !=
+                  "I personally captured the original AsianOdds Telegram message and copied its text" or
+                item.get("asserted_by") != "user_who_supplied_source" or
+                not re.fullmatch(r"\d{4}-\d{2}-\d{2}", item.get("attested_date_utc") or "") or
+                item.get("source_kind") != "telegram_screenshot_and_copied_text" or
+                item.get("independent_second_reviewer") is not False or
+                type(item.get("reviewed_fields")) is not int or item["reviewed_fields"] < 1 or
+                not isinstance(item.get("screenshot_sha256"), str) or
+                not SHA.fullmatch(item["screenshot_sha256"]) or
+                not isinstance(item.get("corroboration_sha256"), str) or
+                not SHA.fullmatch(item["corroboration_sha256"])):
+                raise ValueError("invalid_firsthand_attestation")
+            r1 = first_review.get(eid)
+            supplement = corroborations.get(eid)
+            if (not r1 or r1.get("source_kind") != "telegram_screenshot" or
+                r1.get("source_sha256") != item["screenshot_sha256"] or
+                not supplement or
+                supplement.get("status") != "MATCHES_R1_AND_V4_NOT_INDEPENDENT" or
+                supplement.get("source_sha256") != item["corroboration_sha256"] or
+                supplement.get("total_fields") != item["reviewed_fields"] or
+                supplement.get("v4_matching_fields") != item["reviewed_fields"] or
+                supplement.get("r1_matching_fields") != item["reviewed_fields"]):
+                raise ValueError("attestation_evidence_not_matched")
+            case = by_id[eid]
+            case["firsthand_user_validation"] = "CONFIRMED_BY_SOURCE_VIEWER"
+            case["firsthand_verified_fields"] = item["reviewed_fields"]
+            case["second_independent_review"] = "NOT_RECEIVED" if case["reviews_received"] < 2 else "RECEIVED"
+            case["telegram_authenticated_externally"] = False
+            if case["status"] == "AWAITING_REVIEWS":
+                case["status"] = "USER_SOURCE_VALIDATED"
+            verified.append(eid)
+        except (ValueError, TypeError) as exc:
+            report["issues"].append({"type": "invalid_firsthand_attestation",
+                                      "event_id": eid, "file": filename, "reason": str(exc)})
+    report["user_validated_case_count"] = len(verified)
+    report["user_validated_event_ids"] = verified
+    report["status_counts"] = dict(Counter(c["status"] for c in report["cases"]))
+    report["limitations"].append(
+        "A firsthand user confirmation validates a message transcription, "
+        "not a second independent review or statistical 99% parser reliability")
     return report
 
 
@@ -424,4 +508,7 @@ def build(root):
         candidates, reviews, markets,
         source_errors=ferrors + merrors + errors + corroboration_errors)
     append_corroboration_evidence(report, candidates, corroborations, markets, reviews)
+    attestations, attestation_errors = read_firsthand_attestations(root)
+    report["issues"].extend(attestation_errors)
+    append_user_attestations(report, candidates, attestations, reviews)
     return candidates, report

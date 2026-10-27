@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from h1lab.golden import (select_candidates, validate_review, assemble_report,
                           build, source_family, compare_reference,
-                          validate_corroboration, append_corroboration_evidence)
+                          validate_corroboration, append_corroboration_evidence, append_user_attestations)
 
 EID = "3571094759:50671"
 OBSERVED = "2026-10-27T17:41:40+00:00"
@@ -263,6 +263,55 @@ class GoldenSetTests(unittest.TestCase):
             validate_corroboration(counterfeit, candidate)
         with self.assertRaisesRegex(ValueError, "unsafe"):
             validate_corroboration(dict(good, raw_text="sensitive message"), candidate)
+
+    def test_firsthand_attestation_validates_case_not_second_reviewer(self):
+        c = test_selection()
+        _, obs = fixture()
+        r1 = review(c, "R1")
+        r1["source_kind"] = "telegram_screenshot"
+        result = make_report(c, [r1], obs)
+        corroboration = {
+            "schema_version": 1, "event_id": c["event_id"], "family": c["family"],
+            "source_kind": "user_pasted_telegram_text",
+            "source_sha256": HASH,
+            "source_custody": "pasted_in_conversation_not_authenticated_with_telegram",
+            "transcribed_by": "assistant", "independent_reviewer": False,
+            "kickoff_utc": KICKOFF,
+            "trigger": {"market": "1x2", "selection": "2", "before": 1.64,
+                        "after": 1.55, "displayed_pct": -14.2, "window_minutes": 2},
+            "markets": copy.deepcopy(r1["markets"]),
+        }
+        doc = {"candidates": [c]}
+        append_corroboration_evidence(result, doc, [("text.json", corroboration)],
+                                      [obs], [("r1.json", r1)])
+        attestation = {
+            "schema_version": 1, "event_id": c["event_id"],
+            "attestation": "I personally captured the original AsianOdds Telegram message and copied its text",
+            "asserted_by": "user_who_supplied_source",
+            "attested_date_utc": "2026-10-27",
+            "source_kind": "telegram_screenshot_and_copied_text",
+            "screenshot_sha256": HASH, "corroboration_sha256": HASH,
+            "reviewed_fields": 19, "independent_second_reviewer": False,
+        }
+        append_user_attestations(result, doc, [("firsthand.json", attestation)],
+                                 [("r1.json", r1)])
+        self.assertEqual(result["user_validated_case_count"], 1)
+        self.assertEqual(result["cases"][0]["status"], "USER_SOURCE_VALIDATED")
+        self.assertEqual(result["cases"][0]["firsthand_verified_fields"], 19)
+        self.assertEqual(result["cases"][0]["second_independent_review"], "NOT_RECEIVED")
+        self.assertEqual(result["reviews_received"], 1)
+        self.assertFalse(result["golden_set_verified"])
+
+        forged = dict(attestation, corroboration_sha256="0"*64)
+        second = make_report(c, [r1], obs)
+        append_corroboration_evidence(second, doc, [("text.json", corroboration)],
+                                      [obs], [("r1.json", r1)])
+        append_user_attestations(second, doc, [("bad.json", forged)],
+                                 [("r1.json", r1)])
+        self.assertEqual(second["user_validated_case_count"], 0)
+        self.assertEqual(second["cases"][0]["status"], "AWAITING_REVIEWS")
+        self.assertIn("invalid_firsthand_attestation",
+                      {x["type"] for x in second["issues"]})
 
     def test_source_family_of_stable_1x2_includes_related_tables(self):
         c = test_selection()
