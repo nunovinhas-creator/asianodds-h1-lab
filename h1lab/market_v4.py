@@ -152,6 +152,12 @@ def parse(text,when,message_id,channel_id,legacy_event=None):
             "source":"telegram_explicit_rows",
             "unverified_fields":["btts","full_market_depth","trigger_pct"]}
 
+VOLATILE=("parser_commit","parser_source_sha256")
+
+def substance(record):
+    """Record content excluding run-specific provenance fields."""
+    return {k:v for k,v in record.items() if k not in VOLATILE}
+
 def store(root,records):
     """Write per-month shadow snapshots by event ID. Never touches H1."""
     months={}
@@ -170,7 +176,14 @@ def store(root,records):
                     if isinstance(value,dict) and value.get("event_id"):
                         prior[value["event_id"]]=value
                 except ValueError:continue
-        for item in items:prior[item["event_id"]]=item
+        for item in items:
+            # The collector re-reads the previous checkpoint every poll. An
+            # identical re-observation must not rewrite the first record's
+            # provenance (parser_commit is the checkout HEAD, new each run).
+            old=prior.get(item["event_id"])
+            if old is not None and substance(old)==substance(item):
+                continue
+            prior[item["event_id"]]=item
         temp=dest.with_suffix(".tmp")
         temp.write_text("".join(json.dumps(v,ensure_ascii=False,sort_keys=True)+"\n" for v in
                                 sorted(prior.values(),key=lambda x:(x["observed_at"],x["event_id"]))),
