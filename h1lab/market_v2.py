@@ -80,9 +80,15 @@ def summary(alerts,formats):
     observed_alert_ids=set(observations)&alert_ids
     shapes={}
     other=total_lines=unknown=0
+    other_feature_counts=Counter()
     for x in observations.values():
         classes=x.get("line_classes") or []
         other+=sum(v=="OTHER" for v in classes)
+        for feature in x.get("other_features",[]):
+            if not isinstance(feature,dict): continue
+            for key in ("has_percentage","has_arrow","has_red","has_blue","has_colon","starts_emoji"):
+                if feature.get(key) is True: other_feature_counts[key]+=1
+            other_feature_counts["numbers_"+str(feature.get("numeric_tokens","unknown"))]+=1
         total_lines+=len(classes)
         unknown+=not bool(x.get("legacy_parsed"))
         fid=x.get("format_id","unknown")
@@ -93,6 +99,7 @@ def summary(alerts,formats):
         "format_family_counts":dict(families),
         "format_counts":dict(fmt),"format_shapes":shapes,
         "other_lines":other,"observed_lines":total_lines,
+        "other_feature_counts":dict(other_feature_counts),
         "other_pct":round(100*other/total_lines,2) if total_lines else None,
         "alerts_with_format":len(observed_alert_ids),
         "format_to_alert_coverage_pct":round(100*len(observed_alert_ids)/len(alert_ids),2) if alert_ids else None,
