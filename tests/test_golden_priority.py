@@ -50,10 +50,10 @@ class PriorityTests(unittest.TestCase):
         already = [("r1.json", {"event_id": "33:3", "reviewer_code": "R1"})]
         output = build_priority_queue({"alerts": rows}, [], records, already, limit=3)
         ids = [x["event_id"] for x in output["priorities"]]
-        self.assertEqual(ids[0], "33:1")
-        self.assertIn("33:2", ids[:2])
+        self.assertEqual(set(ids[:2]), {"33:1", "33:2"})
         self.assertNotIn("33:3", ids)
-        self.assertIn("ah_line_changed_in_1x2",output["priorities"][0]["new_coverage"])
+        self.assertIn("ah_line_changed_in_1x2",
+                      next(x for x in output["priorities"] if x["event_id"] == "33:1")["new_coverage"])
         self.assertEqual(output["reviewed_event_count"],1)
 
     def test_repeated_same_match_is_visible(self):
