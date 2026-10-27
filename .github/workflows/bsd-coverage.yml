@@ -49,4 +49,31 @@ jobs:
               counts[outcome]+=1
               print("BSD_FIXTURE",s["home"],"vs",s["away"],date,outcome)
           print("BSD_COVERAGE_SUMMARY",counts)
+          # A broader, date-only search detects fixtures lost by fuzzy
+          # team_name indexing, but still requires exact identities.
+          unknown=[s for s in signals if True]
+          all_by_date={}
+          for day in sorted({datetime.fromisoformat(s["kickoff_utc"]).date().isoformat() for s in unknown}):
+              rows=[]
+              for offset in (0,200,400):
+                  url=ROOT+"?"+urlencode({"date_from":day,"date_to":day,"limit":200,"offset":offset})
+                  try:
+                      payload=request_json(url,token)
+                  except BSDProviderError:
+                      print("BSD_DATE_SEARCH_UNAVAILABLE",day)
+                      break
+                  if not isinstance(payload,dict) or not isinstance(payload.get("results"),list):
+                      break
+                  rows+=payload["results"]
+                  if not payload.get("next"):
+                      break
+              all_by_date[day]=rows
+          found=0
+          for s in signals:
+              day=datetime.fromisoformat(s["kickoff_utc"]).date().isoformat()
+              matches=[e for e in all_by_date.get(day,[]) if matches_identity(s,e)]
+              state="exact" if len(matches)==1 else "ambiguous" if len(matches)>1 else "missing"
+              print("BSD_DATE_FIXTURE",s["home"],"vs",s["away"],state)
+              found+=state=="exact"
+          print("BSD_DATE_COVERAGE_EXACT:",found,"of",len(signals))
           PY
