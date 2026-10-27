@@ -49,7 +49,11 @@ function draw(data){
  const healthy=Number.isFinite(age)&&age>=0&&age<=90;
  $("collector-status").textContent=!poll?"Sem registo":healthy?"OK":"Atrasada";
  $("collector-status").className=healthy?"positive":"negative";
- $("collector-detail").textContent=poll?"Última confirmação: "+poll.replace("T"," ").slice(0,19)+" UTC"+(data.collector.batch_limit_hit?" · fila pendente":""):"Primeira recolha por confirmar";
+ const source=data.collector?.trigger_source;
+ const srcLabel=source==="cloudflare-cron"?" · Cloudflare Cron":
+                source==="github-schedule"?" · GitHub Cron":
+                source?" · "+source:"";
+ $("collector-detail").textContent=poll?"Última confirmação: "+poll.replace("T"," ").slice(0,19)+" UTC"+srcLabel+(data.collector.batch_limit_hit?" · fila pendente":""):"Primeira recolha por confirmar";
  $("alerts").textContent=num(data.alert_count);
  for(const mode of ["singles","triples"]){
   $(mode+"-total").textContent=num(data[mode].total);
