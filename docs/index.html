@@ -1,95 +1,149 @@
 <!doctype html>
-<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AsianOdds H1 Lab — Observatório</title>
-<style>
-:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;background:#0b1220;color:#ecf2ff}
-*{box-sizing:border-box}body{margin:0}main{max-width:1200px;margin:auto;padding:24px}
-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid #25324c;padding:0 0 22px}
-h1{font-size:clamp(23px,4vw,34px);margin:2px 0}h2{font-size:20px}p{color:#a6b6d2}
-small,.muted{color:#899dbe}.badge{font-size:12px;color:#67d6c2;border:1px solid #2e665e;border-radius:100px;padding:5px 11px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin:28px 0}
-.card{background:#152036;border:1px solid #273851;padding:20px;border-radius:14px}
-.card small{display:block;margin-bottom:9px}.card strong{font-size:27px;letter-spacing:-.8px}
-.positive{color:#72e0b0}.negative{color:#ff9f9f}
-nav{display:flex;gap:10px;margin:22px 0}button{background:#18263f;border:1px solid #3d5173;color:#dae8ff;padding:10px 15px;border-radius:9px;cursor:pointer}
-button[aria-selected=true]{background:#2866d0;border-color:#4483ee;color:white}
-.tablewrap{overflow:auto;background:#131e32;border:1px solid #2b3b56;border-radius:13px}
-table{border-collapse:collapse;width:100%;min-width:730px}th,td{text-align:left;padding:13px 12px;vertical-align:top;border-bottom:1px solid #23334d}
-th{color:#91aace;font-size:12px;font-weight:700;text-transform:uppercase}td{font-size:13px}td small{display:block;margin-top:4px}
-a{color:#80b9ff;text-decoration:none}.mono{font-variant-numeric:tabular-nums;white-space:nowrap}.empty{padding:32px;text-align:center;color:#a2b5d1}
-footer{border-top:1px solid #24334c;margin-top:40px;padding-top:16px;color:#7e96b8;font-size:12px;line-height:1.6}
-</style></head><body><main>
-<header><div><div class="badge" style="display:inline-block">Investigação · Sem apostas reais</div><h1>AsianOdds H1 Lab</h1><p>Linhas de golos, Under, triplas simuladas e ROI auditável.</p></div><div><strong id="fresh">Sem recolha</strong><small style="display:block">Última atualização UTC</small></div></header>
-<section class="cards">
- <div class="card"><small>Alertas processados</small><strong id="alerts">0</strong></div>
- <div class="card"><small>Sinais H1 / singles</small><strong id="singles-total">0</strong></div>
- <div class="card"><small>ROI singles liquidadas</small><strong id="singles-roi">—</strong><small id="singles-count"></small></div>
- <div class="card"><small>Triplas emitidas</small><strong id="triples-total">0</strong></div>
- <div class="card"><small>ROI triplas liquidadas</small><strong id="triples-roi">—</strong><small id="triples-count"></small></div>
- <div class="card"><small>Recolha Telegram</small><strong id="collector-status">—</strong><small id="collector-detail">A aguardar dados</small></div>
-</section>
-<nav role="tablist"><button id="tab-single" aria-selected="true" type="button">Singles H1</button><button id="tab-triple" aria-selected="false" type="button">Triplas</button></nav>
-<section id="singles"><h2>Sinais H1 individuais</h2><p>Primeiro alerta válido por jogo. Resultados apenas após confirmação.</p><div class="tablewrap"><table><thead><tr><th>Jogo</th><th>Início UTC</th><th>Under</th><th>Odd</th><th>Resultado FT</th><th>P/L (u.)</th></tr></thead><tbody id="body-single"></tbody></table></div></section>
-<section id="triples" hidden><h2>Triplas H1 — FIFO</h2><p>Bilhetes congelados na recolha do terceiro sinal, sem substituição posterior.</p><div class="tablewrap"><table><thead><tr><th>Bilhete</th><th>Três seleções</th><th>Odd teórica</th><th>Estado</th><th>P/L (u.)</th></tr></thead><tbody id="body-triple"></tbody></table></div></section>
-<footer>Protocolo experimental: linha Total ↑ pelo menos 0,25 e odd Over ↑; selecionar Under na nova linha. Odds observadas não garantem execução. Uma unidade por single e por tripla. Sem seleção retrospetiva e sem multiplicar observações repetidas. O histórico público não contém o texto integral das mensagens nem credenciais do Telegram.</footer>
-</main><script>
-const $=id=>document.getElementById(id);
-const num=x=>x==null?"—":Number(x).toLocaleString("pt-PT",{maximumFractionDigits:2});
-const money=x=>x==null?"Pendente":(x>=0?"+":"")+num(x);
-const node=(tag,txt,css)=>{const e=document.createElement(tag);e.textContent=txt;if(css)e.className=css;return e};
-const cell=(tr,txt,css)=>tr.appendChild(node("td",txt,css));
-function tab(which){for(const type of ["single","triple"]){$("tab-"+type).setAttribute("aria-selected",String(which===type));$(type+"s").hidden=which!==type}}
-$("tab-single").addEventListener("click",()=>tab("single"));
-$("tab-triple").addEventListener("click",()=>tab("triple"));
-function roi(id,v){$(id).textContent=v==null?"—":(v>0?"+":"")+num(v)+"%";$(id).className=v==null?"":v>=0?"positive":"negative"}
-function draw(data){
- $("fresh").textContent=data.generated_at?data.generated_at.replace("T"," ").slice(0,19):"À espera da primeira recolha";
- const poll=data.collector?.last_poll_at;
- const age=poll?(Date.now()-Date.parse(poll))/60000:Infinity;
- const healthy=Number.isFinite(age)&&age>=0&&age<=90;
- $("collector-status").textContent=!poll?"Sem registo":healthy?"OK":"Atrasada";
- $("collector-status").className=healthy?"positive":"negative";
- const source=data.collector?.trigger_source;
- const srcLabel=source==="cloudflare-cron"?" · Cloudflare Cron":
-                source==="github-schedule"?" · GitHub Cron":
-                source?" · "+source:"";
- $("collector-detail").textContent=poll?"Última confirmação: "+poll.replace("T"," ").slice(0,19)+" UTC"+srcLabel+(data.collector.batch_limit_hit?" · fila pendente":""):"Primeira recolha por confirmar";
- $("alerts").textContent=num(data.alert_count);
- for(const mode of ["singles","triples"]){
-  $(mode+"-total").textContent=num(data[mode].total);
-  roi(mode+"-roi",data[mode].roi_pct);
-  $(mode+"-count").textContent=data[mode].settled+" liquidadas · "+data[mode].pending+" pendentes · "+money(data[mode].profit_units)+" u.";
- }
- const sb=$("body-single");sb.replaceChildren();
- for(const s of [...data.signals].sort((a,b)=>a.kickoff_utc.localeCompare(b.kickoff_utc))){
-  const tr=document.createElement("tr");
-  const first=document.createElement("td");
-  first.appendChild(node("span",s.home+" – "+s.away));first.appendChild(node("small",s.competition,"muted"));
-  if(s.source_url){const a=node("a","Ver movimento AsianOdds");a.href=s.source_url;a.target="_blank";a.rel="noopener noreferrer";first.appendChild(a)}
-  tr.appendChild(first);
-  cell(tr,s.kickoff_utc.replace("T"," ").slice(0,16),"mono");
-  cell(tr,num(s.line),"mono");cell(tr,num(s.under_odds),"mono");
-  const resultCell=document.createElement("td");
-  resultCell.className="mono";
-  resultCell.appendChild(node("span",s.result?s.result.home_goals+"–"+s.result.away_goals:"Pendente"));
-  if(s.result?.source && /^https:\/\//i.test(s.result.source)){
-   const source=node("a","Ver fonte FT");source.href=s.result.source;source.target="_blank";
-   source.rel="noopener noreferrer";source.style.display="block";resultCell.appendChild(source);
-  }
-  tr.appendChild(resultCell);
-  cell(tr,money(s.profit),s.profit==null?"muted":s.profit>=0?"positive":"negative");sb.appendChild(tr);
- }
- const tb=$("body-triple");tb.replaceChildren();
- for(const t of data.tickets){
-  const tr=document.createElement("tr");cell(tr,t.ticket_id,"mono");
-  const leg=document.createElement("td");
-  for(const s of t.legs)leg.appendChild(node("div",s.name+" · Under "+num(s.line)+" @ "+num(s.odds)));
-  tr.appendChild(leg);cell(tr,num(t.theoretical_odds),"mono");
-  cell(tr,t.profit==null?"Pendente":t.profit>0?"GREEN":t.profit<0?"RED":"PUSH");
-  cell(tr,money(t.profit),t.profit==null?"muted":t.profit>=0?"positive":"negative");tb.appendChild(tr);
- }
- if(!data.signals.length){const tr=document.createElement("tr");const td=node("td","Ainda não foram recolhidos sinais H1. Configura as credenciais no GitHub.","empty");td.colSpan=6;tr.appendChild(td);sb.appendChild(tr)}
- if(!data.tickets.length){const tr=document.createElement("tr");const td=node("td","As triplas aparecerão quando houver três sinais futuros elegíveis.","empty");td.colSpan=5;tr.appendChild(td);tb.appendChild(tr)}
-}
-fetch("./data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(draw).catch(err=>{$("fresh").textContent="Falha ao carregar dados";console.error(err)});
-</script></body></html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0c1425">
+  <meta name="description" content="UNDER TESTE: centro de acompanhamento do H1 e do laboratório de mercados V4, com cronologias, validações e resultados simulados.">
+  <title>UNDER TESTE — Centro de controlo</title>
+  <link rel="stylesheet" href="./dashboard.css">
+  <script defer src="./dashboard.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#content">Saltar para os dados</a>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Navegação principal">
+    <a href="./index.html" class="brand" aria-label="UNDER TESTE — página inicial">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span><strong>UNDER<span class="brand-light">TESTE</span></strong><small>OBSERVATÓRIO DE MERCADO</small></span>
+    </a>
+    <div class="nav-label">ACOMPANHAMENTO</div>
+    <nav id="nav-primary" aria-label="Áreas do observatório">
+      <button type="button" data-view="overview" class="nav-item active" aria-current="page"><span class="nav-icon">◫</span>Visão geral</button>
+      <button type="button" data-view="h1" class="nav-item"><span class="nav-icon">◎</span>Sinais H1 <span class="nav-num" id="nav-h1">—</span></button>
+      <button type="button" data-view="triples" class="nav-item"><span class="nav-icon">▤</span>Triplas <span class="nav-num" id="nav-triples">—</span></button>
+      <button type="button" data-view="market" class="nav-item"><span class="nav-icon">⌁</span>Mercados e jogos <span class="nav-num" id="nav-matches">—</span></button>
+      <button type="button" data-view="quality" class="nav-item"><span class="nav-icon">◇</span>Qualidade e Golden</button>
+    </nav>
+    <div class="nav-label secondary-label">INVESTIGAÇÃO</div>
+    <div class="side-links">
+      <a href="./lab.html">Análise técnica LAB <span aria-hidden="true">↗</span></a>
+      <a href="./golden-review.html">Rever mensagens <span aria-hidden="true">↗</span></a>
+      <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/actions" target="_blank" rel="noopener noreferrer">Execuções GitHub <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <span class="sidebar-signal" aria-hidden="true"></span>
+      <strong>Dois sistemas, duas funções</strong>
+      <p>H1 simula sinais. O LAB observa mercados e valida dados. Nenhuma aposta real é executada.</p>
+    </div>
+  </aside>
+
+  <main class="main" id="content">
+    <div class="topbar">
+      <div class="crumb"><strong>UNDER TESTE</strong><span>/</span><span id="crumb-name">Visão geral</span></div>
+      <div class="top-actions">
+        <span class="last-refresh" id="global-stamp">A carregar dados…</span>
+        <button type="button" class="icon-btn" id="refresh" aria-label="Atualizar dados agora" title="Atualizar dados">↻</button>
+      </div>
+    </div>
+
+    <div class="system-strip" role="status" aria-live="polite">
+      <div><span class="system-dot" id="h1-dot"></span><strong>H1 · Produção</strong><span id="h1-health">A verificar…</span></div>
+      <span class="strip-divider" aria-hidden="true"></span>
+      <div><span class="system-dot" id="lab-dot"></span><strong>V4 · Observação</strong><span id="lab-health">A verificar…</span></div>
+      <span class="strip-spacer"></span>
+      <small id="system-note">Os indicadores referem-se à última recolha publicada.</small>
+    </div>
+    <div id="error-banner" class="error-banner" role="alert" hidden></div>
+
+    <section class="view" id="view-overview" aria-labelledby="overview-heading">
+      <div class="heading-row">
+        <div>
+          <div class="eyebrow">PAINEL DE ACOMPANHAMENTO</div>
+          <h1 id="overview-heading">O mercado, num só lugar.</h1>
+          <p class="lead">Sinais de Under e triplas de um lado. Movimentos, jogos repetidos e qualidade dos dados do outro.</p>
+        </div>
+        <span class="pill neutral"><span class="pill-dot"></span>Investigação · Sem apostas reais</span>
+      </div>
+
+      <div class="section-head"><h2>H1 · Sinais e resultados</h2><button class="text-link" type="button" data-go="h1">Ver todos os sinais →</button></div>
+      <div class="metric-grid four">
+        <div class="metric"><span class="metric-icon">◎</span><span class="metric-label">Sinais Under</span><strong id="k-h1-signals">—</strong><small id="k-h1-signals-sub">Primeiro sinal por jogo</small></div>
+        <div class="metric"><span class="metric-icon">▤</span><span class="metric-label">Triplas criadas</span><strong id="k-h1-triples">—</strong><small id="k-h1-triples-sub">Bilhetes FIFO</small></div>
+        <div class="metric"><span class="metric-icon">◷</span><span class="metric-label">Resultados pendentes</span><strong id="k-h1-pending">—</strong><small>Singles ainda sem liquidação</small></div>
+        <div class="metric"><span class="metric-icon">↗</span><span class="metric-label">ROI singles liquidadas</span><strong id="k-h1-roi">—</strong><small id="k-h1-roi-sub">Apenas jogos liquidados</small></div>
+      </div>
+
+      <div class="section-head top-section"><h2>LAB · Mercado observado</h2><button class="text-link" type="button" data-go="market">Explorar cronologias →</button></div>
+      <div class="metric-grid four">
+        <div class="metric lab-metric"><span class="metric-icon">▥</span><span class="metric-label">Mensagens</span><strong id="k-lab-messages">—</strong><small>Alertas históricos</small></div>
+        <div class="metric lab-metric"><span class="metric-icon">⬡</span><span class="metric-label">Jogos distintos</span><strong id="k-lab-games">—</strong><small>Identificados por match_key</small></div>
+        <div class="metric lab-metric"><span class="metric-icon">⤨</span><span class="metric-label">Jogos com repetição</span><strong id="k-lab-repeated">—</strong><small id="k-lab-repeated-sub">Vários alertas do mesmo jogo</small></div>
+        <div class="metric lab-metric"><span class="metric-icon">✓</span><span class="metric-label">Cobertura de alertas V4</span><strong id="k-lab-capture">—</strong><small>Janela auditada, não exatidão</small></div>
+      </div>
+
+      <div class="two-column top-section">
+        <section class="panel"><div class="panel-head"><div><h2>Movimentos a acompanhar</h2><p>Jogos com vários alertas e evolução observada da linha Total.</p></div><button class="text-link" type="button" data-go="market">Ver todos →</button></div><div id="overview-movements" class="compact-list"><p class="loading-note">A carregar movimentos…</p></div></section>
+        <section class="panel"><div class="panel-head"><div><h2>Próximos sinais H1</h2><p>Jogos do histórico com início futuro; não são recomendações.</p></div><button class="text-link" type="button" data-go="h1">Ver H1 →</button></div><div id="overview-signals" class="compact-list"><p class="loading-note">A carregar sinais…</p></div></section>
+      </div>
+
+      <div class="two-column top-section">
+        <section class="panel status-panel"><div class="panel-head"><div><h2>Confiança dos dados</h2><p>Regras de validação independentes do desempenho H1.</p></div><button class="text-link" type="button" data-go="quality">Ver auditoria →</button></div><div id="overview-quality" class="quality-preview"></div></section>
+        <section class="panel"><div class="panel-head"><div><h2>Triplas recentes</h2><p>Odds teóricas, sem garantia de execução real.</p></div><button class="text-link" type="button" data-go="triples">Ver triplas →</button></div><div id="overview-triples" class="compact-list"></div></section>
+      </div>
+    </section>
+
+    <section class="view" id="view-h1" aria-labelledby="h1-heading" hidden>
+      <div class="heading-row"><div><div class="eyebrow">H1 · MODELO ORIGINAL</div><h1 id="h1-heading">Sinais Under</h1><p class="lead">O primeiro H1 válido de cada jogo. Os alertas repetidos continuam guardados no LAB.</p></div><span class="pill neutral">Simulação, não apostas reais</span></div>
+      <div class="metric-grid three">
+        <div class="metric"><span class="metric-label">Singles</span><strong id="h1-all">—</strong><small id="h1-all-caption">—</small></div>
+        <div class="metric"><span class="metric-label">ROI liquidadas</span><strong id="h1-roi">—</strong><small id="h1-roi-caption">—</small></div>
+        <div class="metric"><span class="metric-label">Lucro/perda contabilizado</span><strong id="h1-profit">—</strong><small>Unidades simuladas</small></div>
+      </div>
+      <div class="toolbar"><label class="search-label">Procurar jogo<input id="h1-query" type="search" autocomplete="off" placeholder="Equipa ou competição…"></label><label class="filter-label">Estado<select id="h1-filter"><option value="all">Todos</option><option value="pending">Pendentes</option><option value="settled">Liquidados</option><option value="upcoming">Por começar</option></select></label><span class="results-label" id="h1-count">—</span></div>
+      <div id="h1-list" class="card-stack"></div>
+    </section>
+
+    <section class="view" id="view-triples" aria-labelledby="triples-heading" hidden>
+      <div class="heading-row"><div><div class="eyebrow">H1 · ESTRATÉGIA FIFO</div><h1 id="triples-heading">Triplas simuladas</h1><p class="lead">Cada bilhete reúne três sinais na ordem de chegada. As odds combinadas são teóricas.</p></div></div>
+      <div class="metric-grid three">
+        <div class="metric"><span class="metric-label">Triplas emitidas</span><strong id="tri-all">—</strong><small>Sem substituição posterior</small></div>
+        <div class="metric"><span class="metric-label">ROI liquidadas</span><strong id="tri-roi">—</strong><small id="tri-roi-caption">—</small></div>
+        <div class="metric"><span class="metric-label">Ainda pendentes</span><strong id="tri-pending">—</strong><small>Resultado conjunto não apurado</small></div>
+      </div>
+      <div class="toolbar"><label class="filter-label">Estado<select id="triple-filter"><option value="all">Todas</option><option value="pending">Pendentes</option><option value="settled">Liquidadas</option></select></label><span id="triple-count" class="results-label">—</span></div>
+      <div id="triple-list" class="card-stack"></div>
+    </section>
+
+    <section class="view" id="view-market" aria-labelledby="market-heading" hidden>
+      <div class="heading-row"><div><div class="eyebrow">LAB V4 · LEITURA OBSERVACIONAL</div><h1 id="market-heading">A história de cada jogo</h1><p class="lead">Vê quando as linhas mudaram, onde houve repetição e quais os movimentos apenas parcialmente observados.</p></div><span class="pill lab-pill">Não é sinal de aposta</span></div>
+      <div class="metric-grid three">
+        <div class="metric"><span class="metric-label">Jogos com vários alertas</span><strong id="mk-repeat">—</strong><small>Uma trajetória por jogo</small></div>
+        <div class="metric"><span class="metric-label">Pares de mensagens relacionadas</span><strong id="mk-pairs">—</strong><small>Podem refletir o mesmo movimento</small></div>
+        <div class="metric"><span class="metric-label">Snapshots possivelmente repetidos</span><strong id="mk-duplicate">—</strong><small>Não são apagados</small></div>
+      </div>
+      <div class="legend"><span><i class="legend-line solid"></i> Alteração dentro de uma mensagem</span><span><i class="legend-line dashed"></i> Intervalo sem observação</span><span><i class="legend-dot"></i> Valor comunicado</span></div>
+      <div class="toolbar"><label class="search-label">Procurar jogo<input id="market-query" type="search" autocomplete="off" placeholder="Equipa…"></label><label class="filter-label">Mostrar<select id="market-filter"><option value="all">Todos os repetidos</option><option value="related">Movimentos relacionados</option><option value="reversals">Com reversões assinaladas</option><option value="v4">Com observações V4</option></select></label><span id="market-count" class="results-label">—</span></div>
+      <div id="market-list" class="market-grid"></div>
+      <p class="method-note">As linhas ligam observações existentes, não representam preços recolhidos continuamente. Os dados anteriores ao V4 podem ter origem apenas no registo H1 e aparecem identificados.</p>
+    </section>
+
+    <section class="view" id="view-quality" aria-labelledby="quality-heading" hidden>
+      <div class="heading-row"><div><div class="eyebrow">LAB · EVIDÊNCIA E AUDITORIA</div><h1 id="quality-heading">O que está comprovado?</h1><p class="lead">Cobertura, concordância, fonte humana e certificação são medidas diferentes. Não misturamos estas dimensões.</p></div></div>
+      <div class="metric-grid three">
+        <div class="metric"><span class="metric-label">Mensagens Golden com revisão humana</span><strong id="q-reviewed">—</strong><small>Unidade estatística: mensagem</small></div>
+        <div class="metric"><span class="metric-label">Campos transcritos concordantes</span><strong id="q-fields">—</strong><small>Não são ensaios independentes</small></div>
+        <div class="metric"><span class="metric-label">Referências ainda pendentes</span><strong id="q-pending">—</strong><small>Falta texto/captura original</small></div>
+      </div>
+      <div class="two-column top-section">
+        <section class="panel"><div class="panel-head"><div><h2>Critérios V4</h2><p>Portas de aceitação oficiais.</p></div></div><div id="quality-gates" class="gate-list"></div></section>
+        <section class="panel"><div class="panel-head"><div><h2>Golden Set por mercado</h2><p>Referências humanas, não previsões.</p></div></div><div id="quality-families" class="gate-list"></div><a class="panel-action" href="./golden-review.html">Abrir revisão de mensagens →</a></section>
+      </div>
+      <div class="panel top-section"><div class="panel-head"><div><h2>O que ainda falta</h2><p>Transparência antes de qualquer afirmação estatística.</p></div></div><ul class="limitations"><li>Uma amostra com concordância total não demonstra que o parser tem 99% de exatidão.</li><li>Os campos de uma mesma mensagem não são observações independentes.</li><li>A fórmula da percentagem de disparo 1X2 no Telegram ainda não está confirmada.</li><li>Um jogo com vários alertas não cria vários resultados de apostas independentes.</li></ul><a class="panel-action" href="./lab.html">Consultar a auditoria técnica detalhada →</a></div>
+    </section>
+
+    <footer class="footer"><strong>UNDER TESTE</strong> · Observação e simulação, sem apostas reais. Fonte: alertas Telegram observados e relatórios publicados pelo GitHub. Os mercados não são acompanhados continuamente. <a href="./lab.html">Metodologia e limitações</a>.</footer>
+  </main>
+</div>
+</body>
+</html>
