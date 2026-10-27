@@ -93,22 +93,22 @@ class MarketV4Tests(unittest.TestCase):
             self.assertEqual(json.loads(lines[0])["schema_version"],4)
     def test_fourth_numeric_token_never_silently_accepted(self):
         # Synthetic malformed Was row. Previous prefix regex accepted first 3.
-        msg = "Line O U\\nWas 2.25 1.83 2.02 9.99\\nNow 2.50 1.83 1.81"
+        msg = "Line O U\nWas 2.25 1.83 2.02 9.99\nNow 2.50 1.83 1.81"
         self.assertIsNone(parse(msg, WHEN, 201, 33))
 
     def test_split_was_row_must_not_join_lines(self):
         # Synthetic copy/paste truncation: price appears on another line.
-        msg = "Line O U\\nWas 2.25 1.83\\n2.02\\nNow 2.50 1.83 1.81"
+        msg = "Line O U\nWas 2.25 1.83\n2.02\nNow 2.50 1.83 1.81"
         self.assertIsNone(parse(msg, WHEN, 202, 33))
 
     def test_stray_suffix_in_table_row_fails_closed(self):
-        msg = "Line O U\\nWas 2.25 1.83 2.02 EXTRA\\nNow 2.50 1.83 1.81"
+        msg = "Line O U\nWas 2.25 1.83 2.02 EXTRA\nNow 2.50 1.83 1.81"
         self.assertIsNone(parse(msg, WHEN, 203, 33))
 
     def test_colour_emoji_and_variation_selector_spaced_around_prices(self):
         # Synthetic variant of known 3-number rows; accepts legitimate
         # display emoji without treating them as an additional price.
-        msg = ("Line H A\\nWas +0.50 2.04 1.85\\n"
+        msg = ("Line H A\nWas +0.50 2.04 1.85\n"
                "Now +0.50 2.01 🔴️ 1.92 🔵️")
         e = parse(msg, WHEN, 204, 33)
         self.assertEqual(e["markets"]["asian_handicap"]["after"]["home_price"], 2.01)
