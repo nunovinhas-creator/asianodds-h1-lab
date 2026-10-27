@@ -1,0 +1,52 @@
+name: Auditar cobertura BSD nos jogos H1
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/bsd-coverage.yml"
+permissions:
+  contents: read
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Query BSD for exact H1 fixture identity without settling
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          from urllib.parse import urlencode
+          from datetime import datetime, timezone
+          from h1lab.cli import read_state
+          from h1lab.bsd import ROOT, request_json, BSDProviderError, matches_identity
+
+          token=os.environ.get("BSD_API_KEY","").strip()
+          if not token:
+              raise SystemExit("BSD_SECRET_MISSING")
+          signals=read_state().get("signals",[])[:16]
+          counts={"exact":0,"missing":0,"ambiguous":0,"incomplete":0,"provider_error":0}
+          print("BSD_COVERAGE_SIGNALS:",len(signals))
+          for s in signals:
+              date=datetime.fromisoformat(s["kickoff_utc"]).astimezone(timezone.utc).date().isoformat()
+              url=ROOT+"?"+urlencode({"team_name":s["home"],"date_from":date,"date_to":date,"limit":200})
+              try:
+                  data=request_json(url,token)
+                  if not isinstance(data,dict) or not isinstance(data.get("results"),list):
+                      outcome="incomplete"
+                  elif data.get("next"):
+                      outcome="incomplete"
+                  else:
+                      candidates=[e for e in data["results"] if matches_identity(s,e)]
+                      outcome="exact" if len(candidates)==1 else "ambiguous" if len(candidates)>1 else "missing"
+              except BSDProviderError:
+                  outcome="provider_error"
+              counts[outcome]+=1
+              print("BSD_FIXTURE",s["home"],"vs",s["away"],date,outcome)
+          print("BSD_COVERAGE_SUMMARY",counts)
+          PY
