@@ -18,6 +18,20 @@ class FormatShadowTests(unittest.TestCase):
             store(root,[item,item]);store(root,[item])
             lines=(Path(root)/"data/lab/formats-2026-10.jsonl").read_text().splitlines()
             self.assertEqual(len(lines),1)
+    def test_structural_v2(self):
+        raw=("Team A vs Team B\\n🏆 League\\n🕒 28 Oct 18:00 UTC\\n"
+             "Total: 2.5 ↑ 2.75\\nWas 2.5 1.9 1.9\\nNow 2.75 1.8 2.0🔴\\n"
+             "1 → 1.8\\nX 3.1 → 3.2\\n2 4.2 → 4.5\\nhttps://asianodds.com/fixture")
+        item=inspect(raw,datetime(2026,10,27,tzinfo=timezone.utc),8,99,True)
+        self.assertEqual(item["schema_version"],2)
+        self.assertEqual(item["line_classes"],["VS","TROPHY","CLOCK",
+            "HDR_TOTAL_UP","WAS:3","NOW:3","ARROW_ROW","ARROW_ROW","ARROW_ROW","URL"])
+        self.assertNotIn("League",str(item))
+        self.assertNotIn("Team A",str(item))
+    def test_direction_and_emoji_shape(self):
+        item=inspect("Total: 3.0 ↓ 2.75\\n🔴 🔵",datetime(2026,10,27,tzinfo=timezone.utc),9,99,False)
+        self.assertEqual(item["line_classes"],["HDR_TOTAL_DOWN","EMOJI"])
+
     def test_unknown_preserved_as_shape(self):
         x=inspect("Unrecognized market",datetime.now(timezone.utc),1,2,False)
         self.assertEqual(x["markets_mentioned"],[])
