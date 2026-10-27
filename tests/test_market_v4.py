@@ -77,6 +77,14 @@ class MarketV4Tests(unittest.TestCase):
         self.assertEqual(e["field_source"],"telegram_explicit_rows")
         self.assertIn("trigger_pct",e["unverified_fields"])
 
+    def test_parser_source_digest_identifies_parser_code(self):
+        import hashlib
+        from pathlib import Path
+        import h1lab.market_v4 as mod
+        e=parse(TOTAL_UP,WHEN,51,33)
+        self.assertEqual(e["parser_source_sha256"],
+                         hashlib.sha256(Path(mod.__file__).read_bytes()).hexdigest())
+
     def test_fallback_is_explicitly_marked_not_independent(self):
         e=parse("Line O U\nWas 2.25 1.9 2.0\nNow 2.25 1.8 1.9",
                 WHEN,51,33,legacy_event={"match_key":"legacy:1","kickoff_utc":"2026-10-28T18:00:00+00:00"})

@@ -376,6 +376,7 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         "issue_counts": dict(Counter(p["type"] for p in issues)),
         "issue_counts_by_phase": issue_counts_by_phase,
         "log_evidence": log_evidence, "acceptance_gates": gates,
+        "quality_dimensions": quality_dimensions(state, markets, now=now, phases=phases),
         "limitations": [
             "Only Telegram alert observations are measured, not all market moves",
             "Historical formats before V4 deployment are excluded from live coverage denominator",
@@ -386,6 +387,167 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
             "Field agreement excludes invalid or absent values; complete_pct includes those failures",
             "A manual golden set of original Telegram messages is required before any statistical certification",
         ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Separate quality dimensions (informational; official gates are unchanged).
+
+# Main merge of the parser change that anchored Was/Now and 1X2 rows (#16).
+# parser_commit records the collector checkout HEAD, not the parser code, so
+# periods are assigned by observation time (approximate by one collect cycle).
+PARSER_PERIODS = (
+    ("v4_initial_no_provenance", CUTOVER),
+    ("v4_provenance_1", "2026-10-27T17:34:46+00:00"),
+    ("v4_provenance_1_anchored_rows", "2026-10-27T19:56:41+00:00"),
+)
+SIMPLE_PCT_TOLERANCE = 0.2
+
+
+def parser_period(row):
+    when = instant((row or {}).get("observed_at"))
+    if when is None:
+        return "unknown_time"
+    digest = (row or {}).get("parser_source_sha256")
+    if isinstance(digest, str) and len(digest) == 64:
+        return "v4_source_" + digest[:12]
+    if not (row or {}).get("parser_revision"):
+        return "v4_initial_no_provenance" if when >= instant(CUTOVER) else "pre_cutover"
+    # A record carrying a revision is at least v4_provenance_1, whatever the
+    # commit clock says; later code changes are split by main merge time.
+    label = "v4_provenance_1"
+    for name, start in PARSER_PERIODS[2:]:
+        if when >= instant(start):
+            label = name
+    return label
+
+
+def message_agreement(old, new):
+    """Per-message value agreement for the tables that the H1 record has."""
+    compared = agreed = 0
+    complete = True
+    for market in expected_markets(old):
+        for field in FIELDS[market]:
+            for side in SIDES:
+                ov = numeric(legacy_value(old, market, field, side),
+                             "line" if field == "line" else "price")
+                if ov is None:
+                    continue
+                nv = numeric(v4_value(new, market, field, side) if new else None,
+                             "line" if field == "line" else "price")
+                if nv is None:
+                    complete = False
+                    continue
+                compared += 1
+                agreed += math.isclose(ov, nv, abs_tol=1e-8, rel_tol=0)
+    return compared, agreed, complete and compared > 0 and agreed == compared
+
+
+def bound(k, n):
+    return round(clopper_pearson_lower(k, n), 6) if n else None
+
+
+def quality_dimensions(state, markets, *, now, phases):
+    legacy = {a.get("event_id"): a for a in state.get("alerts", []) if isinstance(a, dict)}
+    v4 = {m.get("event_id"): m for m in markets if isinstance(m, dict)}
+    window = phases["first_24h"]
+    family = lambda eid: (legacy.get(eid) or {}).get("market") or "unclassified"
+
+    agreement = {}
+    for eid in window:
+        old, new = legacy.get(eid), v4.get(eid)
+        if not old or not new:
+            continue
+        compared, agreed, ok = message_agreement(old, new)
+        for key in (("family", family(eid)), ("period", parser_period(new) + ":" + family(eid))):
+            row = agreement.setdefault(key, {"messages": 0, "messages_all_fields_agree": 0,
+                                             "fields_compared": 0, "fields_agree": 0})
+            row["messages"] += 1
+            row["messages_all_fields_agree"] += ok
+            row["fields_compared"] += compared
+            row["fields_agree"] += agreed
+    for row in agreement.values():
+        row["lower_95_by_message"] = bound(row["messages_all_fields_agree"], row["messages"])
+
+    independent, missing_prov = [], []
+    for eid in window:
+        src = (v4.get(eid) or {}).get("identity_source")
+        if (isinstance(src, dict) and src.get("match_key") in ("url_match", "telegram_teams_kickoff")
+                and src.get("kickoff_utc") == "telegram_clock"):
+            independent.append(eid)
+        else:
+            missing_prov.append(eid)
+
+    prov_times = sorted(instant(v4[e]["observed_at"]) for e in window
+                        if e in v4 and v4[e].get("parser_revision") == PROVENANCE_REVISION
+                        and instant(v4[e].get("observed_at")))
+    start = prov_times[0] if prov_times else None
+    prov_ids = [e for e in phases["first_24h"] + phases["after_24h"]
+                if start and instant((legacy.get(e) or {}).get("observed_at")) and
+                start <= instant(legacy[e]["observed_at"]) < start + timedelta(hours=24)]
+    prov_ok = [e for e in prov_ids if e in v4 and message_agreement(legacy[e], v4[e])[2]]
+    prov_ident = [e for e in prov_ids if e in independent or (
+        e in v4 and (v4[e].get("identity_source") or {}).get("kickoff_utc") == "telegram_clock"
+        and (v4[e].get("identity_source") or {}).get("match_key") in ("url_match", "telegram_teams_kickoff"))]
+
+    pct_rows = []
+    for m in v4.values():
+        t = m.get("trigger") or {}
+        b, a, p = t.get("before"), t.get("after"), t.get("pct")
+        if t.get("market") == "1x2" and all(isinstance(x, (int, float)) and not isinstance(x, bool)
+                                             for x in (b, a, p)) and b:
+            pct_rows.append((p, 100 * (a - b) / b))
+    simple = sum(abs(p - s) <= SIMPLE_PCT_TOLERANCE for p, s in pct_rows)
+
+    def table(kind):
+        return {k[1]: v for k, v in sorted(agreement.items()) if k[0] == kind}
+    return {
+        "note": "Informational dimensions. They do not change acceptance_gates or status.",
+        "collection_coverage": {
+            "meaning": "Telegram alert messages in the window that have a V4 record",
+            "messages": len(window), "captured": sum(e in v4 for e in window),
+            "lower_95_by_message": bound(sum(e in v4 for e in window), len(window))},
+        "extraction_exactness": {
+            "status": "NOT_MEASURED_BY_PARSER_COMPARISON",
+            "evidence_source": "docs/lab/golden-report.json (human transcriptions)",
+            "reason": "Agreement between two parsers of the same text is not exactness"},
+        "identity_independence": {
+            "messages": len(window), "independent": len(independent),
+            "unrecorded_or_inherited": len(missing_prov),
+            "unrecorded_event_ids": missing_prov[:50],
+            "lower_95_by_message": bound(len(independent), len(window))},
+        "parser_agreement": {
+            "meaning": "V4 explicit values equal to the H1 record, per message, on available fields",
+            "by_family": table("family"), "by_parser_period_and_family": table("period"),
+            "parser_period_assignment": "observed_at vs main merge time of parser changes; approximate",
+            "caveat": "100% on available fields is not global accuracy; both parsers read the same text"},
+        "human_validation": {"status": "SEE_GOLDEN_REPORT", "golden_set_verified": False},
+        "movement_independence": {
+            "status": "SEE_MATCH_TRAJECTORIES",
+            "evidence_source": "docs/lab/match-trajectories.json",
+            "reason": "1X2 and Total messages of one move are correlated; unit is the match"},
+        "statistical_certification": {
+            "status": "NOT_CERTIFIED",
+            "requires": ["24h window elapsed", "about 299 independent messages per family with 0 failures",
+                         "complete log evidence", "verified human Golden Set", "out-of-sample validation"]},
+        "provenance_window": {
+            "status": "INFORMATIONAL_NOT_A_GATE",
+            "reason": "First 24h after the first V4 record with parser provenance; separates the "
+                      "transitional records without provenance. Records are never rewritten.",
+            "start_utc": start.isoformat(timespec="seconds") if start else None,
+            "end_utc": (start + timedelta(hours=24)).isoformat(timespec="seconds") if start else None,
+            "elapsed": bool(start and now >= start + timedelta(hours=24)),
+            "transitional_messages_without_provenance": len(missing_prov),
+            "messages": len(prov_ids), "captured": sum(e in v4 for e in prov_ids),
+            "messages_all_fields_agree": len(prov_ok),
+            "independent_identity": len(prov_ident),
+            "lower_95_agreement_by_message": bound(len(prov_ok), len(prov_ids))},
+        "trigger_displayed_pct": {
+            "status": "FORMULA_UNVALIDATED", "use_as_predictor": False,
+            "messages_with_pct": len(pct_rows),
+            "matches_simple_price_change_within_0_2pp": simple,
+            "min_abs_displayed_pct": min((abs(p) for p, _ in pct_rows), default=None),
+            "reason": "Displayed % does not follow (after-before)/before; keep as shown only"},
     }
 
 
