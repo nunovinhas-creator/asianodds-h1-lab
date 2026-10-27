@@ -2,11 +2,10 @@
 import hashlib
 import json
 import re
-from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION=1
+VERSION=2
 PATTERNS=(
  ("total",re.compile(r"(?i)\bTotal\s*:")),
  ("1x2",re.compile(r"(?i)\b1x2\b")),
@@ -15,20 +14,53 @@ PATTERNS=(
 )
 ROWS=re.compile(r"(?i)^\s*(Was|Now)\s+(.+)$")
 NUM=re.compile(r"[+-]?\d+(?:[.,]\d+)?")
+def line_class(line):
+    """Classify syntax only; never save arbitrary channel text."""
+    value=line.strip()
+    if not value:
+        return None
+    if re.search(r"https?://|asianodds\\.com", value, re.I):
+        return "URL"
+    if re.search(r"\\bvs\\b",value,re.I):
+        return "VS"
+    if "🏆" in value:
+        return "TROPHY"
+    if "🕒" in value:
+        return "CLOCK"
+    row=ROWS.match(value)
+    if row:
+        count=min(len(NUM.findall(row.group(2))),20)
+        return row.group(1).upper()+":"+str(count)
+    if re.match(r"^[12Xx]\\s+[^\\r\\n]*[→➡]",value):
+        return "ARROW_ROW"
+    if re.search(r"\\bTotal\\s*:",value,re.I):
+        arrow="UP" if "↑" in value else "DOWN" if "↓" in value else "OTHER"
+        return "HDR_TOTAL_"+arrow
+    if re.search(r"\\b1x2\\b",value,re.I):
+        return "HDR_1X2"
+    if re.search(r"\\b(?:Asian Handicap|Handicap|AH)\\b",value,re.I):
+        return "HDR_AH"
+    if re.search(r"\\b(?:BTTS|both teams to score)\\b",value,re.I):
+        return "HDR_BTTS"
+    if "🔴" in value or "🔵" in value:
+        return "EMOJI"
+    return "OTHER"
+
 def inspect(text,when,message_id,channel_id,legacy_parsed):
-    """Fingerprint structure only. Never persist source text, teams or links."""
+    """Persist only a restricted structural signature, never original content."""
     labels=[]
     for line in text.splitlines():
-        m=ROWS.match(line)
-        if m:
-            count=len(NUM.findall(m.group(2)))
-            labels.append(m.group(1).lower()+":"+str(min(count,20)))
+        kind=line_class(line)
+        if kind:
+            labels.append(kind)
+    # Cap shape size without silently discarding that truncation occurred.
+    shape_labels=labels[:80]+(["TRUNCATED"] if len(labels)>80 else [])
     found=[key for key,pattern in PATTERNS if pattern.search(text)]
-    shape="|".join(sorted(found))+"#"+",".join(labels[:20])
-    fingerprint=hashlib.sha256(shape.encode("utf-8")).hexdigest()[:16]
+    fingerprint=hashlib.sha256("|".join(shape_labels).encode("utf-8")).hexdigest()[:16]
     return {"schema_version":VERSION,"event_id":str(channel_id)+":"+str(message_id),
         "observed_at":when.astimezone(timezone.utc).isoformat(timespec="seconds"),
-        "format_id":fingerprint,"markets_mentioned":found,"table_shapes":labels[:20],
+        "format_id":fingerprint,"markets_mentioned":found,
+        "line_classes":shape_labels,"table_shapes":[x.lower() for x in shape_labels if x.startswith(("WAS:","NOW:"))],
         "legacy_parsed":bool(legacy_parsed)}
 
 def store(root,records):
