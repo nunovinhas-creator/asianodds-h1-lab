@@ -13,7 +13,7 @@ Observatório experimental de odds asiáticas: **recolha de um canal Telegram ao
 - ✅ Envio das triplas para as **Mensagens Guardadas** da tua própria conta Telegram com `python -m h1lab.notify`.
 - ✅ Recolha real com Telethon e workflow de cinco em cinco minutos publicado; execução manual em produção e extração de H1 confirmadas. A **regularidade das execuções cron** ainda precisa de validação independente e o GitHub pode atrasar/omitir ticks.
 - ⚠️ Envio de triplas configurado para *Mensagens Guardadas* via Telegram; ainda sem primeira entrega real comprovada. Mensagens Guardadas não garantem notificação push.
-- ✅ Reconciliação automática horária de resultados com a API V1 gratuita da TheSportsDB, verificação de equipas, hora, estado FT e marcadores de prolongamento/penáltis. Cobertura **parcial**: ausências ou incertezas permanecem pendentes (sem inventar resultados), com motivo em `data/result_audit.json`.
+- ✅ Reconciliação automática horária de resultados com a **BSD Football v2**, caso `BSD_API_KEY` esteja configurado, em conjunto com a API V1 gratuita TheSportsDB. Confere ambas as fontes e bloqueia discrepâncias de marcador; sem chave BSD funciona apenas a TheSportsDB. Cobertura parcial: jogos sem identificação inequívoca permanecem pendentes, com motivo em `data/result_audit.json`.
 
 ## Como funciona
 
@@ -42,6 +42,15 @@ Em paralelo, `h1lab/results.py` tenta verificar resultados oficiais de FT na The
 - `h1lab/cli.py`: leitor Telegram e atualização do dashboard.
 - `h1lab/notify.py`: mensagens com as triplas simuladas.
 - `scripts/authorize.py`: criação interativa da sessão na tua máquina.
+
+### Configurar a BSD
+
+1. Em [BSD — Account](https://sports.bzzoiro.com/), copia a chave de API da tua conta, sem a publicar.
+2. No repositório, abre **Settings → Secrets and variables → Actions → New repository secret**.
+3. Cria o secret `BSD_API_KEY` com o valor da chave **sem o prefixo `Token`**.
+4. Executa **Actions → Atualizar ROI H1 → Run workflow** para confirmar se o fornecedor responde. Em `data/result_audit.json` verás `bsd_no_exact_match`, `confirmed_bsd_only`, `confirmed_bsd_and_thesportsdb` ou outros motivos técnicos, sempre sem a chave.
+
+A BSD usa `Authorization: Token …` e `GET /api/v2/events/` (filtro por nome da equipa, data e `status=finished`). Depois verifica `GET /api/v2/events/{id}/`, equipas, hora e marcador do período regulamentar. Só admite uma correspondência inequívoca, sem sinais de prolongamento ou penáltis; discrepâncias entre BSD e TheSportsDB **não são liquidadas automaticamente**. A pesquisa é iniciada a partir de três horas após o início, com tentativas espaçadas quatro horas e durante trinta dias. Documentação oficial: https://sports.bzzoiro.com/docs/football/events/
 
 ### Resultados finais
 
