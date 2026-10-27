@@ -136,6 +136,11 @@ def all_window_runs(token):
 
 
 def log_evidence(root, token, run_id, now):
+    """Judge V4 markers, not overall Telegram/collector success.
+
+    Cancelled runs are reported as not executed (not errors, not clean logs).
+    Completed runs with unreadable logs remain unverified, never PASS.
+    """
     journal = read_journal(root)
     runs, listing_error = {}, None
     if token:
@@ -143,16 +148,23 @@ def log_evidence(root, token, run_id, now):
             runs = all_window_runs(token)
         except (ValueError, KeyError, TimeoutError, OSError, urllib.error.URLError) as exc:
             listing_error = type(exc).__name__
-    todo = []
-    if token and run_id:
-        todo.append(int(run_id))
+
     if token and not listing_error:
-        # Backfill collector runs that predate the audit deployment; otherwise
-        # a 24h log-clean verdict could NEVER be demonstrated.
+        for rid, run in runs.items():
+            if run["status"] == "completed" and run["conclusion"] in ("cancelled", "skipped"):
+                journal[rid] = {"run_id": rid, "status": "not_executed",
+                                "reason": run["conclusion"]}
+    todo = []
+    if token and run_id and runs.get(int(run_id), {}).get("status") == "completed":
+        if runs[int(run_id)]["conclusion"] not in ("cancelled", "skipped"):
+            if journal.get(int(run_id), {}).get("status") not in ("clean", "fail"):
+                todo.append(int(run_id))
+    if token and not listing_error:
         todo.extend(rid for rid, run in sorted(runs.items()) if
                     run["status"] == "completed" and
-                    journal.get(rid, {}).get("status") != "clean")
-    # Prevent a backlog from delaying five-minute H1 collections.
+                    run["conclusion"] not in ("cancelled", "skipped") and
+                    journal.get(rid, {}).get("status") not in ("clean", "fail"))
+
     inspected = set()
     for rid in todo:
         if rid in inspected:
@@ -163,41 +175,52 @@ def log_evidence(root, token, run_id, now):
         item = scan_run(rid, token)
         item["checked_at"] = now.astimezone(timezone.utc).isoformat(timespec="seconds")
         journal[rid] = item
-    if inspected:
+
+    if inspected or any(x.get("status") == "not_executed" for x in journal.values()):
         destination = root / "data" / "lab" / RUN_FILE
         destination.parent.mkdir(parents=True, exist_ok=True)
         valid = {k: v for k, v in journal.items() if isinstance(k, int)}
         destination.write_text("".join(json.dumps(v, sort_keys=True) + "\n"
                                        for k, v in sorted(valid.items())), encoding="utf-8")
-    counts = {"checked": sum(isinstance(k, int) for k in journal),
-              "errors_detected": sum(v.get("status") == "fail" for v in journal.values()),
-              "unverified_runs": sum(v.get("status") == "unverified" for v in journal.values())}
+
+    counts = {"checked": sum(v.get("status") in ("clean", "fail") for v in journal.values()),
+              "v4_errors_detected": sum(v.get("status") == "fail" for v in journal.values()),
+              "unverified_runs": sum(v.get("status") == "unverified" for v in journal.values()),
+              "not_executed": sum(v.get("status") == "not_executed" for v in journal.values())}
     info = {"status": "unverified", "summary": counts,
-            "reason": "Full first-24h Actions run listing and logs not yet verified"}
+            "reason": "Complete collection log evidence still pending"}
     if not token:
         info["reason"] = "GITHUB_TOKEN/actions:read unavailable"
         return info
     if listing_error:
         info["reason"] = "Could not enumerate complete run history: " + listing_error
         return info
-    missing = sorted(rid for rid in runs if rid not in journal)
-    bad = sorted(rid for rid, item in runs.items()
-                 if journal.get(rid, {}).get("status") == "fail" or item["conclusion"] == "failure")
-    incomplete = sorted(rid for rid, item in runs.items()
-                        if item["status"] != "completed" or
-                        journal.get(rid, {}).get("status") != "clean")
-    info.update({"runs_in_window": len(runs), "unscanned_run_ids": missing,
-                 "failed_run_ids": bad, "unclean_or_pending_run_ids": incomplete})
+
+    cancelled = sorted(rid for rid, run in runs.items()
+                       if run["conclusion"] in ("cancelled", "skipped"))
+    unrelated = sorted(rid for rid, run in runs.items()
+                       if run["conclusion"] in ("failure", "timed_out") and
+                       journal.get(rid, {}).get("status") == "clean")
+    v4_bad = sorted(rid for rid in runs if journal.get(rid, {}).get("status") == "fail")
+    pending = sorted(rid for rid, run in runs.items() if
+                     run["status"] != "completed" or
+                     (run["conclusion"] not in ("cancelled", "skipped") and
+                      journal.get(rid, {}).get("status") not in ("clean", "fail")))
+    info.update({"runs_in_window": len(runs), "v4_failed_run_ids": v4_bad,
+                 "collector_non_v4_failed_run_ids": unrelated,
+                 "not_executed_run_ids": cancelled,
+                 "unclean_or_pending_run_ids": pending,
+                 "unscanned_run_ids": sorted(rid for rid in runs if rid not in journal)})
     from datetime import timedelta
     end = instant(CUTOVER) + timedelta(hours=24)
-    if now >= end and runs and not incomplete and not missing:
+    if v4_bad:
+        info["status"] = "v4_errors_detected"
+        info["reason"] = "At least one collection run logged LAB_MARKET_V4_*_FAILED"
+    elif now >= end and runs and not pending:
         info["status"] = "verified_24h_clean"
-        info["reason"] = "All collection runs in first 24h checked without V4 errors"
-    elif bad:
-        info["status"] = "errors_detected"
-        info["reason"] = "At least one collection run failed or logged a V4 exception"
+        info["reason"] = "All executed collect runs inspected; cancelled runs excluded and listed"
     else:
-        info["reason"] = "24h window unfinished or runs/logs not all checked"
+        info["reason"] = "24h window unfinished or executed runs not all verified"
     return info
 
 
