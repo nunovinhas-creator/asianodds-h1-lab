@@ -20,6 +20,22 @@ def save(state):
     dump_json(STATE,state)
     dump_json(ROOT/"docs/data.json",public_data(state,load_results(ROOT/"data/results.csv"),datetime.now(timezone.utc)))
 
+def observe_shadow(text, when, message_id, channel_id, legacy_parsed, rows):
+    """Nonfatal observer; never changes H1 decisions."""
+    try:
+        from .shadow_formats import inspect
+        rows.append(inspect(text, when, message_id, channel_id, legacy_parsed))
+    except Exception as exc:
+        print("LAB_SHADOW_INSPECT_FAILED:", type(exc).__name__)
+
+def persist_shadow(rows):
+    """Nonfatal persistence; failures cannot interrupt Telegram collection."""
+    try:
+        from .shadow_formats import store
+        store(ROOT, rows)
+    except Exception as exc:
+        print("LAB_SHADOW_STORE_FAILED:", type(exc).__name__)
+
 async def poll(state):
     from telethon import TelegramClient
     from .session import load_telegram_session
@@ -54,6 +70,7 @@ async def poll(state):
         diagnostics=state.setdefault("diagnostics",[])
         diagnosed={d["message_id"] for d in diagnostics}
         parsed=[]
+        shadow_rows=[]
         inspected=0
         new_messages=0
         fresh_diagnostics=[]
@@ -71,6 +88,7 @@ async def poll(state):
             links=[url for url in links if url and "asianodds.com" in url]
             combined=raw_text+"\n"+"\n".join(links)
             event=parse_alert(combined,msg.date,msg.id,str(entity.id))
+            observe_shadow(combined,msg.date,msg.id,str(entity.id),event is not None,shadow_rows)
             if event:
                 parsed.append(event)
             elif msg.id not in diagnosed:
@@ -79,6 +97,8 @@ async def poll(state):
                 diagnostics.append(diagnostic)
                 fresh_diagnostics.append(diagnostic)
                 diagnosed.add(msg.id)
+        # Shadow persistence is best effort and never affects H1 state/checkpoints.
+        persist_shadow(shadow_rows)
         # Remove obsolete parse errors for messages now successfully recovered.
         recovered_ids={event["message_id"] for event in parsed}
         if recovered_ids:
