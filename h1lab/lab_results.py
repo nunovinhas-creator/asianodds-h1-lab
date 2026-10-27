@@ -167,7 +167,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     attempts = 0
     for _, _, key in candidates[:max_checks]:
         row = entries[key]
-        signal = {field: row[field] for field in ("match_key", "home", "away", "kickoff_utc")}
+        signal = {"match_key": key, **{field: row[field] for field in ("home", "away", "kickoff_utc")}}
         found = {}
         reasons = {}
         for provider, lookup in (("bsd", bsd_lookup), ("thesportsdb", tsdb_lookup)):
