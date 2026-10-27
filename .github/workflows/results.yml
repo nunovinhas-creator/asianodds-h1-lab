@@ -4,26 +4,38 @@ on:
     paths:
       - "data/results.csv"
   workflow_dispatch:
+  schedule:
+    # Consulta resultados finais de hora a hora, fora dos picos do minuto zero.
+    - cron: "41 * * * *"
 
 permissions:
   contents: write
+concurrency:
+  group: asianodds-h1-write
+  cancel-in-progress: false
 
 jobs:
-  rebuild:
+  results:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Recalcular singles e triplas com resultados confirmados
+      - name: Reconcile latest collector state
+        run: git pull --rebase origin main
+      - name: Check free public results API with strict FT validation
+        run: python -m h1lab.results
+      - name: Rebuild ROI for singles and triples
         run: python -m h1lab.cli render
-      - name: Atualizar dashboard
+      - name: Publish confirmed finals and audit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data.json
+          git add data/results.csv data/result_audit.json docs/data.json
           if ! git diff --cached --quiet; then
-            git commit -m "data: refresh H1 ROI [skip ci]"
-            git push
+            git commit -m "data: reconcile verified H1 finals [skip ci]"
+            git pull --rebase origin main
+            git push origin main
           fi
