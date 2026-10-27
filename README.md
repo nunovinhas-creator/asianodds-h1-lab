@@ -42,12 +42,12 @@ Em paralelo, \`data/results.csv\` alimenta o dashboard com retorno bruto por apo
 
 ### Resultados finais
 
-No CSV, escreve \`match_key,status,home_goals,away_goals,source\`, com \`status=final\` apenas após confirmação de resultado **90 minutos + compensação, sem prolongamento/penáltis para os mercados normais de 90 min**. A chave \`match_key\` é mostrada no JSON de sinais e normalmente corresponde ao parâmetro de jogo AsianOdds.
+No CSV, escreve \`match_key,status,home_goals,away_goals,source\`, com \`status=final\` apenas após confirmação de resultado **90 minutos + compensação, sem prolongamento/penáltis para os mercados normais de 90 min**. Se a chave contiver vírgulas, coloca-a entre aspas CSV. A chave \`match_key\` é mostrada no JSON de sinais e normalmente corresponde ao parâmetro de jogo AsianOdds.
 
 Exemplo sintético (não um jogo real):
 \`\`\`csv
 match_key,status,home_goals,away_goals,source
-2026-10-28,123,456,final,1,1,https://example.org/match/123
+"2026-10-28,123,456",final,1,1,https://example.org/match/123
 \`\`\`
 Após editar o CSV, executar \`python -m h1lab.cli render\`. Sem resultado \`final\`, nenhuma aposta é classificada GREEN ou RED. Jogos anulados/adiados ficam pendentes até haver regra explícita de liquidação.
 
