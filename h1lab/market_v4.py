@@ -4,6 +4,7 @@ Never produces picks. Parses only explicit rows and verified headings; does not
 assume all Telegram visual decoration is present in msg.raw_text.
 """
 import json
+import os
 import re
 from datetime import timezone, datetime
 from urllib.parse import urlparse, parse_qs
@@ -41,7 +42,14 @@ def identity(text,when,legacy_event):
         if len(teams)==2 and all(teams):
             key=ko.strftime("%Y-%m-%d")+"|"+teams[0].casefold()+"|"+teams[1].casefold()
     fallback=legacy_event if isinstance(legacy_event,dict) else {}
-    return key or fallback.get("match_key"),ko.isoformat(timespec="seconds") if ko else fallback.get("kickoff_utc")
+    independent_key=key is not None
+    independent_kickoff=ko is not None
+    return (key or fallback.get("match_key"),
+            ko.isoformat(timespec="seconds") if ko else fallback.get("kickoff_utc"),
+            {"match_key": "url_match" if match else "telegram_teams_kickoff" if independent_key
+             else "legacy_fallback" if fallback.get("match_key") else "missing",
+             "kickoff_utc": "telegram_clock" if independent_kickoff else
+             "legacy_fallback" if fallback.get("kickoff_utc") else "missing"})
 
 
 def number(s):
@@ -104,7 +112,7 @@ def parse(text,when,message_id,channel_id,legacy_event=None):
     if len(selections)==3: markets["one_x_two"]=selections
     if not markets: return None
     observed=when.astimezone(timezone.utc).isoformat(timespec="seconds")
-    match_key,kickoff_utc=identity(text,when,legacy_event)
+    match_key,kickoff_utc,identity_source=identity(text,when,legacy_event)
     trigger=None
     if header:
         trigger={"market":"total","selection":None,"before":number(header.group(1)),
@@ -123,7 +131,12 @@ def parse(text,when,message_id,channel_id,legacy_event=None):
             "markets":markets,
             "match_key":match_key,
             "kickoff_utc":kickoff_utc,
-            "source":"telegram_explicit_rows","unverified_fields":["btts","full_market_depth"]}
+            "identity_source":identity_source,
+            "field_source": "telegram_explicit_rows",
+            "parser_revision": "v4-provenance-1",
+            "parser_commit": os.environ.get("GITHUB_SHA") or None,
+            "source":"telegram_explicit_rows",
+            "unverified_fields":["btts","full_market_depth","trigger_pct"]}
 
 def store(root,records):
     """Write per-month shadow snapshots by event ID. Never touches H1."""
