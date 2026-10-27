@@ -34,7 +34,7 @@ class V4LogScanTests(unittest.TestCase):
         runs = {1: {"status": "completed", "conclusion": "success"},
                 2: {"status": "completed", "conclusion": "success"}}
         with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(mod, "all_window_runs", return_value=runs), \\
+            with patch.object(mod, "all_window_runs", return_value=runs), \
                  patch.object(mod, "scan_run", side_effect=lambda rid, token: {
                      "run_id": rid, "status": "clean", "error_count": 0}) as mock:
                 info = mod.log_evidence(Path(tmp), "token", 2, END)
@@ -48,7 +48,7 @@ class V4LogScanTests(unittest.TestCase):
         runs = {i: {"status": "completed", "conclusion": "success"}
                 for i in range(1, 12)}
         with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(mod, "all_window_runs", return_value=runs), \\
+            with patch.object(mod, "all_window_runs", return_value=runs), \
                  patch.object(mod, "scan_run", side_effect=lambda rid, token: {
                      "run_id": rid, "status": "clean", "error_count": 0}):
                 info = mod.log_evidence(Path(tmp), "token", None, END)
@@ -58,7 +58,7 @@ class V4LogScanTests(unittest.TestCase):
     def test_failure_in_any_run_blocks_acceptance(self):
         runs = {1: {"status": "completed", "conclusion": "failure"}}
         with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(mod, "all_window_runs", return_value=runs), \\
+            with patch.object(mod, "all_window_runs", return_value=runs), \
                  patch.object(mod, "scan_run", return_value={
                      "run_id": 1, "status": "fail", "error_count": 1}):
                 info = mod.log_evidence(Path(tmp), "token", 1, END)
