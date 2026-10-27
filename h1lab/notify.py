@@ -22,6 +22,17 @@ async def run():
                               int(os.environ["TG_API_ID"]),os.environ["TG_API_HASH"]) as client:
         for t in pending:
             ss=[signals[x] for x in t["signal_ids"]]
+            # GitHub may crash after sending but before committing the receipt.
+            # Search the target for the stable ticket ID before trying again.
+            async for prior in client.iter_messages(target,search=t["ticket_id"],limit=10):
+                if t["ticket_id"] in (prior.raw_text or ""):
+                    t["notified_at"]=datetime.now(timezone.utc).isoformat(timespec="seconds")
+                    t["notification_status"]="found_existing_message"
+                    save(state)
+                    print("Existing delivery recovered",t["ticket_id"])
+                    break
+            if t.get("notified_at"):
+                continue
             # Never send a late "new triple" after one of its matches has started.
             if min(datetime.fromisoformat(s["kickoff_utc"]) for s in ss)<=datetime.now(timezone.utc):
                 t["notified_at"]="EXPIRED"
@@ -38,6 +49,7 @@ async def run():
                            "Simulação, não é uma aposta executada. Odds não confirmadas em tempo real."])
             await client.send_message(target,"\n".join(lines),link_preview=False)
             t["notified_at"]=datetime.now(timezone.utc).isoformat(timespec="seconds")
+            t["notification_status"]="sent"
             save(state)
             print("Sent",t["ticket_id"])
 
