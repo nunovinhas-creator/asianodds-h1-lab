@@ -47,4 +47,27 @@ jobs:
                     ", ".join(k+"="+str(k in events[0]) for k in expected))
           else:
               print("BSD_NO_SAMPLE_FINISHED_EVENT: access valid; structure of event untested")
+          if events and isinstance(events[0], dict):
+              from h1lab.bsd import event_name, regulation_result
+              ev=events[0]
+              eid=ev.get("id")
+              if type(eid) is int:
+                  detail=request_json(ROOT+str(eid)+"/",token)
+                  if isinstance(detail,dict):
+                      fixture={
+                          "match_key":"BSD_SMOKE_ONLY",
+                          "home":event_name(detail,"home_team"),
+                          "away":event_name(detail,"away_team"),
+                          "kickoff_utc":detail.get("event_date",""),
+                      }
+                      try:
+                          final,reason=regulation_result(fixture,detail)
+                      except (ValueError,TypeError,KeyError):
+                          final,reason=None,"invalid_live_event_schema"
+                      print("BSD_REAL_FT_VALIDATION:",reason)
+                      print("BSD_REAL_FT_SCORE_FIELDS_OK:",final is not None)
+                  else:
+                      print("BSD_REAL_FT_DETAIL_INVALID")
+              else:
+                  print("BSD_REAL_FT_EVENT_ID_INVALID")
           PY
