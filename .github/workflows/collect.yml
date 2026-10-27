@@ -31,6 +31,7 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
+      # Real delivery is enabled only with the two dedicated Bot API secrets.
       - name: Notify new H1 triples to configured bot chat
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
