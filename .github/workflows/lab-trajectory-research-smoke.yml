@@ -1,0 +1,50 @@
+name: Lab - Repeated odds empirical study smoke
+on:
+  pull_request:
+    paths:
+      - "h1lab/trajectory_research.py"
+      - "scripts/lab_trajectory_research.py"
+      - "tests/test_trajectory_research.py"
+      - ".github/workflows/lab-trajectory-research-smoke.yml"
+      - ".github/workflows/lab-v4-audit.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exploratory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check source and tests (synthetic and tracked real)
+        run: |
+          python -m compileall -q h1lab/trajectory_research.py scripts/lab_trajectory_research.py
+          python -m unittest discover -s tests -p 'test_trajectory_research.py' -v
+      - name: Produce read-only empirical study
+        run: python -m scripts.lab_trajectory_research
+      - name: Validate study does not claim betting, certification or population coverage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("docs/lab/trajectory-research.json")
+          d=json.loads(p.read_text())
+          t=json.loads(Path("docs/lab/match-trajectories.json").read_text())
+          assert d["status"]=="EXPLORATORY_NO_OUTCOME_TEST"
+          assert d["scope"]["repeated_matches_analysed"]+d["scope"]["repeated_matches_omitted"]==t["summary"]["repeated_matches"]
+          assert d["scope"]["events_analysed"]==t["summary"]["messages_on_repeated_matches"]
+          assert d["transitions"]["related_pairs"]==t["summary"]["related_message_pairs"]
+          assert d["transitions"]["identical_total_pairs"]==t["summary"]["possibly_redundant_snapshots"]
+          assert all(h["status"]!="TESTED" for h in d["hypotheses_for_future_oos_only"])
+          assert not any(k in d for k in ("roi","profit","bets","prediction","betting_picks"))
+          assert len(p.read_bytes()) < 200_000
+          print("LAB_EMPIRICAL_REAL_VERIFIED",d["scope"],d["total_line_within_alert"])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab-trajectory-research-preview
+          path: docs/lab/trajectory-research.json
+          retention-days: 7

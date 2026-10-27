@@ -51,6 +51,14 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_timeline.py'
           python -m scripts.lab_match_trajectories
+      # A separate descriptive study of repeated messages. It uses the
+      # already-built timeline and refuses to consume a stale source commit.
+      # Never changes H1, ROI, picks, FIFO or Telegram notifications.
+      - name: Analyse repeated alert trajectories (exploratory only)
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_trajectory_research.py' -v
+          python -m scripts.lab_trajectory_research
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -58,6 +66,7 @@ jobs:
           git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json docs/lab/golden-priority.json
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
+          if [ -f docs/lab/trajectory-research.json ]; then git add docs/lab/trajectory-research.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
             for attempt in 1 2 3 4 5; do
