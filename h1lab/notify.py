@@ -6,7 +6,7 @@ from .cli import read_state,save
 
 async def run():
     from telethon import TelegramClient
-    from telethon.sessions import StringSession
+    from .session import load_telegram_session
     state=read_state()
     pending=[t for t in state["tickets"] if not t.get("notified_at")]
     if not pending:
@@ -18,7 +18,7 @@ async def run():
         return
     signals={s["signal_id"]:s for s in state["signals"]}
     target=os.getenv("TG_OUTPUT_CHAT","me")
-    async with TelegramClient(StringSession(os.environ["TG_SESSION"]),
+    async with TelegramClient(load_telegram_session(),
                               int(os.environ["TG_API_ID"]),os.environ["TG_API_HASH"]) as client:
         for t in pending:
             ss=[signals[x] for x in t["signal_ids"]]
