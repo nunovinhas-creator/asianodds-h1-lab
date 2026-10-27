@@ -47,8 +47,17 @@ class FormatShadowTests(unittest.TestCase):
         feature=item["other_features"][0]
         self.assertTrue(feature["has_percentage"])
         self.assertFalse(feature["has_red"])
+        self.assertEqual(feature["numeric_values"],[17.0])
+        self.assertFalse(feature["numeric_values_truncated"])
+        self.assertFalse(feature["starts_symbol"])
         self.assertNotIn("private",str(item))
         self.assertNotIn("Alpha",str(item))
+    def test_unknown_values_are_bounded(self):
+        item=inspect("Values 1 2 3 4 5 6 7 8",datetime(2026,10,27,tzinfo=timezone.utc),15,99,False)
+        feature=item["other_features"][0]
+        self.assertEqual(feature["numeric_values"],[1,2,3,4,5,6])
+        self.assertTrue(feature["numeric_values_truncated"])
+
     def test_unknown_preserved_as_shape(self):
         x=inspect("Unrecognized market",datetime.now(timezone.utc),1,2,False)
         self.assertEqual(x["markets_mentioned"],[])
