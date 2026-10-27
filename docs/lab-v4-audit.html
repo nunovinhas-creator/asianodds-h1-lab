@@ -23,7 +23,11 @@ th{color:#ccdfff}.scroll{overflow:auto}code{overflow-wrap:anywhere}summary{curso
 <section class="section"><h2>Concordância por mercado · primeiras 24h</h2><div class="scroll"><table><thead><tr><th>Mercado</th><th>Elegíveis por campo</th><th>Comparados</th><th>Concordantes</th><th>Divergências</th><th>Ausentes</th><th>Inválidos</th><th>Concordância</th><th>Completude</th></tr></thead><tbody id="market-totals"></tbody></table></div>
 <details><summary>Ver todos os campos Was / Now</summary><div class="scroll"><table><thead><tr><th>Mercado</th><th>Campo</th><th>Legado disponível</th><th>Comparados</th><th>Igual</th><th>Diferente</th><th>Em falta</th><th>Inválido V4</th><th>Indisponível legado</th></tr></thead><tbody id="fields"></tbody></table></div></details>
 <details><summary>Comparação histórica (anterior à integração)</summary><div class="scroll"><table><thead><tr><th>Mercado</th><th>Campos disponíveis</th><th>Comparados</th><th>Concordantes</th><th>Em falta</th></tr></thead><tbody id="historical"></tbody></table></div></details></section>
-<section class="section"><h2>Falhas e divergências</h2><p id="issue-count"></p><details open><summary>Ocorrências individuais</summary><div class="scroll" id="issues"><table><thead><tr><th>Evento</th><th>Fase</th><th>Tipo</th><th>Mercado</th><th>Campo</th><th>Legado / V4</th></tr></thead><tbody id="issue-rows"></tbody></table></div></details></section>
+<section class="section"><h2>Falhas e divergências</h2><p id="issue-count"></p>
+<details open><summary>Ocorrências nas primeiras 24 horas e posteriores</summary>
+<div class="scroll" id="issues"><table><thead><tr><th>Evento</th><th>Fase</th><th>Tipo</th><th>Mercado</th><th>Campo</th><th>Legado / V4</th></tr></thead><tbody id="issue-rows"></tbody></table></div></details>
+<details><summary>Ausências históricas anteriores ao V4 (não são falhas de produção)</summary>
+<div class="scroll"><table><thead><tr><th>Evento</th><th>Fase</th><th>Tipo</th><th>Mercado</th><th>Campo</th><th>Legado / V4</th></tr></thead><tbody id="history-issue-rows"></tbody></table></div></details></section>
 <section class="section"><h2>Inspeção dos logs da recolha</h2><p id="logs" class="muted"></p><h2>Limitações</h2><ul id="limits"></ul></section>
 <script>
 "use strict";
@@ -40,15 +44,20 @@ metric("Alertas H1 históricos",d.legacy_alerts);metric("Formatos observados",d.
 metric("Observações V4",d.v4_observations);metric("Elegíveis primeiras 24h",w.eligible);
 metric("Cobertos primeiras 24h",w.captured);metric("Cobertura primeiras 24h",percent(w.pct));
 metric("Ausentes primeiras 24h",w.missing);metric("Históricos anteriores",h.eligible);
-metric("Cobertura desde a integração",percent(p.pct));metric("Problemas registados",d.issues.length);
+metric("Cobertura desde a integração",percent(p.pct));
+metric("Problemas nas primeiras 24h",Object.values(d.issue_counts_by_phase?.first_24h||{}).reduce((a,b)=>a+b,0));
+metric("Limitações históricas",Object.values(d.issue_counts_by_phase?.historical||{}).reduce((a,b)=>a+b,0));
 for(const [k,v] of Object.entries(d.acceptance_gates||{}))row("gates",[k,v?"VERIFICADO":"PENDENTE / NÃO DEMONSTRADO"]);
 for(const [m,o] of Object.entries(d.markets||{})){const t=o.totals;
 row("market-totals",[names[m]||m,t.legacy_available||0,t.compared||0,t.matched||0,t.mismatch||0,t.missing_v4||0,t.invalid_v4||0,percent(o.agreement_pct),percent(o.complete_pct)]);
 for(const [f,s] of Object.entries(o.fields||{}))row("fields",[names[m]||m,f,s.legacy_available,s.compared,s.matched,s.mismatch,s.missing_v4,s.invalid_v4,s.legacy_missing_or_invalid])}
 for(const [m,o] of Object.entries(d.markets_by_phase?.historical||{})){const t=o.totals;row("historical",[names[m]||m,t.legacy_available||0,t.compared||0,t.matched||0,t.missing_v4||0])}
-$("issue-count").textContent=JSON.stringify(d.issue_counts||{});
-for(const x of d.issues||[])row("issue-rows",[x.event_id,x.phase,x.type,names[x.market]||x.market,x.field,
-x.legacy!==undefined||x.v4!==undefined?JSON.stringify({legacy:x.legacy,v4:x.v4}):x.reason]);
+$("issue-count").textContent="Primeiras 24h: "+JSON.stringify(d.issue_counts_by_phase?.first_24h||{})+
+" · Histórico: "+JSON.stringify(d.issue_counts_by_phase?.historical||{})+
+" · Leitura de fontes: "+JSON.stringify(d.issue_counts_by_phase?.source||{});
+for(const x of d.issues||[]){const dest=x.phase==="historical"?"history-issue-rows":"issue-rows";
+row(dest,[x.event_id,x.phase,x.type,names[x.market]||x.market,x.field,
+x.legacy!==undefined||x.v4!==undefined?JSON.stringify({legacy:x.legacy,v4:x.v4}):x.reason]);}
 const log=d.log_evidence||{};$("logs").textContent="Estado: "+(log.status||"—")+" · "+(log.reason||"")+" · "+JSON.stringify(log.summary||{})+" · Runs no período: "+(log.runs_in_window??"não verificados");
 for(const s of d.limitations||[]){const li=document.createElement("li");li.textContent=s;$("limits").append(li)}
 }).catch(e=>{$("status").textContent="Erro ao ler relatório: "+e.message;$("status").className="state fail"});
