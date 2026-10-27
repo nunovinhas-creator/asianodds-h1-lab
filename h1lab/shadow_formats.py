@@ -52,7 +52,7 @@ def other_signature(line):
     n=len(NUM.findall(value))
     return {
         "numeric_tokens":min(n,20),
-        "has_percentage":bool(re.search(r"\\d\\s*%",value)),
+        "has_percentage":bool(re.search(r"\d\s*%",value)),
         "has_arrow":any(ch in value for ch in "↑↓→➡"),
         "has_red": "🔴" in value,
         "has_blue": "🔵" in value,
