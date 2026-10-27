@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from .core import empty_state,parse_alert,classify_message,incorporate,public_data,load_results,dump_json
+from .intelligence import build as build_market_intelligence
 
 ROOT=Path(__file__).resolve().parents[1]
 STATE=ROOT/"data/state.json"
@@ -19,6 +20,7 @@ def read_state():
 def save(state):
     dump_json(STATE,state)
     dump_json(ROOT/"docs/data.json",public_data(state,load_results(ROOT/"data/results.csv"),datetime.now(timezone.utc)))
+    dump_json(ROOT/"docs/market-intelligence.json",build_market_intelligence(state,load_results(ROOT/"data/results.csv")))
 
 async def poll(state):
     from telethon import TelegramClient
