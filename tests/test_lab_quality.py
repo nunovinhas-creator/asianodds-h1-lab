@@ -31,6 +31,18 @@ class LabQualityTests(unittest.TestCase):
             self.assertIn("generated_at",d)
             self.assertIn("source_commit",d)
 
+    def test_blank_line_not_invalid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            (root/"data/lab").mkdir(parents=True)
+            (root/"data/state.json").write_text('{"alerts":[]}')
+            (root/"data/lab/formats-2026-10.jsonl").write_text('\\n \\n{"event_id":"x","format_id":"f"}\\n')
+            with patch.object(lab_quality,"ROOT",root):
+                lab_quality.main()
+            d=json.loads((root/"docs/lab/quality.json").read_text())
+            self.assertEqual(d["invalid_jsonl_lines"],0)
+            self.assertEqual(d["format_observations"],1)
+
     def test_report_monthly_dedupe(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
