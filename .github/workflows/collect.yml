@@ -2,7 +2,8 @@ name: H1 - Collect Telegram
 on:
   workflow_dispatch:
   schedule:
-    - cron: '3,8,13,18,23,28,33,38,43,48,53,58 * * * *'
+    # Avoid the first minute of each hour. Cron is best-effort on GitHub.
+    - cron: '2-57/5 * * * *'
 permissions:
   contents: write
 concurrency:
