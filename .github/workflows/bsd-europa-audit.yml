@@ -10,7 +10,7 @@ on:
       - "config/oruseye_europe30.json"
       - "tests/test_bsd_europa_audit.py"
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: bsd-europa-audit
   cancel-in-progress: false
@@ -28,7 +28,9 @@ jobs:
       - name: Read-only BSD coverage audit (token never printed)
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-        run: python -m tools.bsd_europa_audit bsd-europa-audit.json
+        run: |
+          set -o pipefail
+          python -m tools.bsd_europa_audit bsd-europa-audit.json 2>&1 | tee bsd-europa-audit.log
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
@@ -37,3 +39,16 @@ jobs:
           path: bsd-europa-audit.json
           if-no-files-found: warn
           retention-days: 30
+      - name: Keep report on this feature branch only (never main)
+        if: always() && github.ref == 'refs/heads/feature/bsd-europa-audit'
+        run: |
+          mkdir -p reports
+          cp bsd-europa-audit.json reports/ 2>/dev/null || true
+          cp bsd-europa-audit.log reports/ 2>/dev/null || true
+          echo "${{ github.run_id }}" > reports/bsd-europa-audit.run_id
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports
+          git diff --cached --quiet && exit 0
+          git commit -m "reports: bsd europa audit run ${{ github.run_id }} [skip ci]"
+          git push origin HEAD:feature/bsd-europa-audit
