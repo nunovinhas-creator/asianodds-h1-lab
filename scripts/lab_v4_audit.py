@@ -28,18 +28,62 @@ def api(path, token, *, binary=False):
     return raw if binary else json.loads(raw)
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Expose GitHub's signed log-download redirect without forwarding auth."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def download_job_logs(job_id, token):
+    """Fetch GitHub job logs without forwarding the GitHub token off-site.
+
+    The Jobs Logs REST endpoint returns HTTP 302 to a temporary signed storage
+    URL. urllib's default redirect handler forwards Authorization to that host,
+    which can produce HTTP 401. Handle the redirect explicitly and strip all
+    credential headers. No URL or raw log contents are persisted.
+    """
+    req = urllib.request.Request(
+        ENDPOINT + "/actions/jobs/" + str(int(job_id)) + "/logs",
+        headers={"Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28",
+                 "User-Agent": "asianodds-h1-v4-audit"})
+    opener = urllib.request.build_opener(_NoRedirect)
+    try:
+        with opener.open(req, timeout=20) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code not in (301, 302, 303, 307, 308):
+            raise
+        location = exc.headers.get("Location")
+        if not location:
+            raise ValueError("log_redirect_missing")
+        url = urllib.parse.urlsplit(location)
+        host = (url.hostname or "").lower()
+        # Signed GitHub Actions storage; never send a GitHub credential here.
+        allowed = (".actions.githubusercontent.com", ".blob.core.windows.net",
+                   ".githubusercontent.com")
+        if url.scheme != "https" or not any(host.endswith(suffix) for suffix in allowed):
+            raise ValueError("log_redirect_untrusted_host")
+        redirect_req = urllib.request.Request(
+            location, headers={"User-Agent": "asianodds-h1-v4-audit"})
+        with urllib.request.urlopen(redirect_req, timeout=20) as response:
+            return response.read()
+
+
 def scan_run(run_id, token):
     """Verify complete collected-job logs. Never publish downloaded log text."""
     stage = "list_jobs"
     try:
         jobs = api("/actions/runs/" + str(int(run_id)) + "/jobs?per_page=100", token)
         job_items = jobs.get("jobs", [])
-        if not job_items or len(job_items) >= 100 or jobs.get("total_count") != len(job_items):
+        if not job_items or len(job_items) >= 100 or jobs.get("total_count", len(job_items)) != len(job_items):
             raise ValueError("job_count_uncertain")
         failures = 0
         for job in job_items:
             stage = "download_job_logs"
-            raw = api("/actions/jobs/" + str(job["id"]) + "/logs", token, binary=True)
+            raw = download_job_logs(job["id"], token)
             failures += len(FAILURE.findall(raw.decode("utf-8", errors="replace")))
         return {"run_id": int(run_id), "status": "clean" if failures == 0 else "fail",
                 "error_count": failures}
