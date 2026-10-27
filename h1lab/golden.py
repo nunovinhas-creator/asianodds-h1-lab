@@ -377,6 +377,7 @@ def append_corroboration_evidence(report, candidate_document, rows, observations
         diffs_r1 = compare_reference(record, r1) if r1 else None
         entry = {
             "event_id": eid, "source_kind": record["source_kind"],
+            "source_sha256": record["source_sha256"],
             "independent_reviewer": False,
             "telegram_authenticity_verified": False,
             "v4_matching_fields": len(review_values(record)) - len(diffs_v4),
@@ -458,12 +459,11 @@ def append_user_attestations(report, candidates, attestations, reviews):
                 r1.get("source_sha256") != item["screenshot_sha256"] or
                 not supplement or
                 supplement.get("status") != "MATCHES_R1_AND_V4_NOT_INDEPENDENT" or
+                supplement.get("source_sha256") != item["corroboration_sha256"] or
                 supplement.get("total_fields") != item["reviewed_fields"] or
                 supplement.get("v4_matching_fields") != item["reviewed_fields"] or
                 supplement.get("r1_matching_fields") != item["reviewed_fields"]):
                 raise ValueError("attestation_evidence_not_matched")
-            # The supplemental report intentionally excludes the source digest,
-            # so cross-check the separately stored original record below.
             case = by_id[eid]
             case["firsthand_user_validation"] = "CONFIRMED_BY_SOURCE_VIEWER"
             case["firsthand_verified_fields"] = item["reviewed_fields"]
