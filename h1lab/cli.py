@@ -5,7 +5,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from .core import empty_state,parse_alert,incorporate,public_data,load_results,dump_json
+from .core import empty_state,parse_alert,classify_message,incorporate,public_data,load_results,dump_json
 
 ROOT=Path(__file__).resolve().parents[1]
 STATE=ROOT/"data/state.json"
@@ -44,24 +44,45 @@ async def poll(state):
             return
         original_last=last
         previous_tickets=len(state["tickets"])
-        parsed=[];seen=0
-        async for msg in client.iter_messages(entity,min_id=last,reverse=True,limit=500):
-            seen+=1
+        diagnostics=state.setdefault("diagnostics",[])
+        diagnosed={d["message_id"] for d in diagnostics}
+        parsed=[]
+        inspected=0
+        new_messages=0
+        fresh_diagnostics=[]
+        # Revisit exactly the previous checkpoint, which may have been
+        # skipped by an older parser. Keep duplicate protection in incorporate.
+        async for msg in client.iter_messages(entity,min_id=max(0,last-1),reverse=True,limit=500):
+            inspected+=1
+            if msg.id>original_last:
+                new_messages+=1
             last=max(last,msg.id)
-            if msg.raw_text:
-                # Telegram's "View on AsianOdds" may hide its actual URL in entities.
-                links=[getattr(item,"url","") for item in (msg.entities or [])]
-                links=[url for url in links if url and "asianodds.com" in url]
-                combined=msg.raw_text+"\n"+"\n".join(links)
-                event=parse_alert(combined,msg.date,msg.id,str(entity.id))
-                if event:
-                    parsed.append(event)
+            raw_text=msg.raw_text or ""
+            # AsianOdds links are often Telegram text-url entities, not visible text.
+            links=[getattr(item,"url","") for item in (msg.entities or [])]
+            links=[url for url in links if url and "asianodds.com" in url]
+            combined=raw_text+"\n"+"\n".join(links)
+            event=parse_alert(combined,msg.date,msg.id,str(entity.id))
+            if event:
+                parsed.append(event)
+            elif msg.id not in diagnosed:
+                reason=classify_message(combined)
+                diagnostic={"message_id":msg.id,"seen_at":msg.date.isoformat(),"reason":reason}
+                diagnostics.append(diagnostic)
+                fresh_diagnostics.append(diagnostic)
+                diagnosed.add(msg.id)
+        state["diagnostics"]=diagnostics[-200:]
         added=incorporate(state,parsed,datetime.now(timezone.utc))
         state["last_id"]=last
-        if last!=original_last or len(state["tickets"])!=previous_tickets:
+        if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or added:
             save(state)
-        print("Read:",seen,"new structured alerts:",added,
+        print("Inspected:",inspected,"new Telegram messages:",new_messages,
+              "new structured alerts:",added,
+              "new unparsed diagnostics:",len(fresh_diagnostics),
               "H1 signals:",len(state["signals"]),"triples:",len(state["tickets"]))
+        for diagnostic in fresh_diagnostics:
+            print("UNPARSED id=",diagnostic["message_id"],
+                  "reason=",diagnostic["reason"])
 
 def main():
     p=argparse.ArgumentParser()
