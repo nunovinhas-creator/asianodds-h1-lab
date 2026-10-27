@@ -28,7 +28,7 @@ p{max-width:68ch}
 .step{display:block;font-size:14px;color:var(--soft)}.what{display:block}.chain .state{display:block}
 .chain b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;margin:6px 0 4px}
 .chain .what{font-weight:700}
-.chain .state{font-size:14px;margin-top:6px}
+.chain .state{font-size:14px;margin-top:6px}.chain .tag{white-space:normal}
 @media (max-width:720px){.chain{grid-template-columns:1fr}.chain li,.chain li+li{border-left:0;padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:5.5rem 1fr;grid-template-areas:"num step" "num what" "num state";column-gap:12px}.chain b{grid-area:num;align-self:center;font-size:28px;margin:0}.step{grid-area:step}.what{grid-area:what}.chain .state{grid-area:state;margin-top:4px}}
 nav.toc{margin:30px 0 8px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:16px}
 section{margin-top:44px;padding-top:18px;border-top:1px solid var(--line)}
@@ -168,6 +168,10 @@ Promise.all([get("./lab/v4-audit.json"),get("./lab/golden-report.json"),get("./l
 
  // V4 health
  stamp("v4-stamp",v4?.generated_at,"O relatório V4",2);
+ const nProv=v4?.quality_dimensions?.identity_independence?.unrecorded_or_inherited;
+ if(nProv!=null){GATE.field_agreement_100[1]="Valores coincidem; "+nProv+" registos iniciais sem proveniência contam como problema.";
+  GATE.independent_identity[1]=nProv+" registos anteriores à proveniência."}
+ else{GATE.field_agreement_100[1]="Ver problemas listados na auditoria V4.";GATE.independent_identity[1]="Ver auditoria V4."}
  for(const [k,[name,why]] of Object.entries(GATE)){const ok=v4?.acceptance_gates?.[k];
   row("gates",[name,ok==null?tag("sem dados","bad"):ok?tag("cumprido","ok"):tag("pendente","wait"),
    k==="window_elapsed"&&v4?why+new Date(v4.first_24h_end_utc).toLocaleString("pt-PT",{timeZone:"UTC",dateStyle:"short",timeStyle:"short"})+" UTC":ok?"":why])}
