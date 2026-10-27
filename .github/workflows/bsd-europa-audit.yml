@@ -1,0 +1,39 @@
+name: Auditar cobertura BSD das 30 ligas europeias ORUSEYE
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/bsd-europa-audit
+    paths:
+      - ".github/workflows/bsd-europa-audit.yml"
+      - "tools/bsd_europa_audit.py"
+      - "config/oruseye_europe30.json"
+      - "tests/test_bsd_europa_audit.py"
+permissions:
+  contents: read
+concurrency:
+  group: bsd-europa-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Synthetic tests (no network)
+        run: python -m unittest tests.test_bsd_europa_audit -v
+      - name: Read-only BSD coverage audit (token never printed)
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+        run: python -m tools.bsd_europa_audit bsd-europa-audit.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsd-europa-audit
+          path: bsd-europa-audit.json
+          if-no-files-found: warn
+          retention-days: 30
