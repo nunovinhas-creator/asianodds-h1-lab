@@ -8,13 +8,13 @@ import re
 from datetime import timezone
 from pathlib import Path
 
-NUM=r"[+-]?\\d+(?:[.,]\\d+)?"
-PAIR=re.compile(r"(?im)^\\s*(Was|Now)\\s+("+NUM+r")\\s+("+NUM+r")\\s+("+NUM+r")(?=\\s|[🔴🔵]|$)")
-PICK=re.compile(r"(?im)^\\s*([1X2])\\s+("+NUM+r")\\s*(?:→|➡|->)\\s*("+NUM+r")")
-TOTAL=re.compile(r"(?i)\\bTotal\\s*:\\s*("+NUM+r")\\s*([↑↓])\\s*("+NUM+r")")
-ONE=re.compile(r"(?i)\\b1x2\\s*\\(([1X2])\\)\\s*:\\s*("+NUM+r")\\s*[↓↑]\\s*("+NUM+r")\\s*\\(([+-]?\\d+(?:[.,]\\d+)?)%\\)")
-HDR_AH=re.compile(r"(?i)\\bLine\\s+H\\s+A\\b")
-HDR_TOTAL=re.compile(r"(?i)\\bLine\\s+O\\s+U\\b")
+NUM=r"[+-]?\d+(?:[.,]\d+)?"
+PAIR=re.compile(r"(?im)^\s*(Was|Now)\s+("+NUM+r")\s+("+NUM+r")\s+("+NUM+r")(?=\s|[🔴🔵]|$)")
+PICK=re.compile(r"(?im)^\s*([1X2])\s+("+NUM+r")\s*(?:→|➡|->)\s*("+NUM+r")")
+TOTAL=re.compile(r"(?i)\bTotal\s*:\s*("+NUM+r")\s*([↑↓])\s*("+NUM+r")")
+ONE=re.compile(r"(?i)\b1x2\s*\(([1X2])\)\s*:\s*("+NUM+r")\s*[↓↑]\s*("+NUM+r")\s*\(([+-]?\d+(?:[.,]\d+)?)%\)")
+HDR_AH=re.compile(r"(?i)\bLine\s+H\s+A\b")
+HDR_TOTAL=re.compile(r"(?i)\bLine\s+O\s+U\b")
 ODDS_THRESHOLD=1.0
 
 def number(s):
@@ -92,7 +92,7 @@ def store(root,records):
         if not item:continue
         months.setdefault(item["observed_at"][:7],[]).append(item)
     for month,items in months.items():
-        if not re.fullmatch(r"\\d{4}-\\d{2}",month):continue
+        if not re.fullmatch(r"\d{4}-\d{2}",month):continue
         dest=Path(root)/"data"/"lab"/("markets-"+month+".jsonl")
         dest.parent.mkdir(parents=True,exist_ok=True)
         prior={}
@@ -105,7 +105,7 @@ def store(root,records):
                 except ValueError:continue
         for item in items:prior[item["event_id"]]=item
         temp=dest.with_suffix(".tmp")
-        temp.write_text("".join(json.dumps(v,ensure_ascii=False,sort_keys=True)+"\\n" for v in
+        temp.write_text("".join(json.dumps(v,ensure_ascii=False,sort_keys=True)+"\n" for v in
                                 sorted(prior.values(),key=lambda x:(x["observed_at"],x["event_id"]))),
                         encoding="utf-8")
         temp.replace(dest)
