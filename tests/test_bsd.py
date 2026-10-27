@@ -27,12 +27,14 @@ class BSDTests(unittest.TestCase):
     def test_not_finished(self):
         self.assertIsNone(regulation_result(SIGNAL,{**EVENT,"status":"live"})[0])
 
-    def test_no_extra_time_or_penalties_auto_settlement(self):
+    def test_regulation_result_unaffected_by_extra_time_or_penalties(self):
+        # BSD explicitly documents the normal-time score separately from ET.
         for field, payload in (("extra_time_score",{"home":1,"away":0}),
                                ("penalty_shootout",{"home":5,"away":4})):
             with self.subTest(field=field):
-                self.assertEqual(regulation_result(SIGNAL,{**EVENT,field:payload})[1],
-                                 "extra_time_requires_review")
+                result, reason = regulation_result(SIGNAL, {**EVENT,field:payload})
+                self.assertEqual(reason,"verified_bsd_ft")
+                self.assertEqual((result["home_goals"],result["away_goals"]),(2,1))
 
     def test_wrong_team_and_date(self):
         for candidate in (
