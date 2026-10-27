@@ -19,9 +19,9 @@ def line_class(line):
     value=line.strip()
     if not value:
         return None
-    if re.search(r"https?://|asianodds\\.com", value, re.I):
+    if re.search(r"https?://|asianodds\.com", value, re.I):
         return "URL"
-    if re.search(r"\\bvs\\b",value,re.I):
+    if re.search(r"\bvs\b",value,re.I):
         return "VS"
     if "🏆" in value:
         return "TROPHY"
@@ -31,16 +31,16 @@ def line_class(line):
     if row:
         count=min(len(NUM.findall(row.group(2))),20)
         return row.group(1).upper()+":"+str(count)
-    if re.match(r"^[12Xx]\\s+[^\\r\\n]*[→➡]",value):
+    if re.match(r"^[12Xx]\s+[^\r\n]*[→➡]",value):
         return "ARROW_ROW"
-    if re.search(r"\\bTotal\\s*:",value,re.I):
+    if re.search(r"\bTotal\s*:",value,re.I):
         arrow="UP" if "↑" in value else "DOWN" if "↓" in value else "OTHER"
         return "HDR_TOTAL_"+arrow
-    if re.search(r"\\b1x2\\b",value,re.I):
+    if re.search(r"\b1x2\b",value,re.I):
         return "HDR_1X2"
-    if re.search(r"\\b(?:Asian Handicap|Handicap|AH)\\b",value,re.I):
+    if re.search(r"\b(?:Asian Handicap|Handicap|AH)\b",value,re.I):
         return "HDR_AH"
-    if re.search(r"\\b(?:BTTS|both teams to score)\\b",value,re.I):
+    if re.search(r"\b(?:BTTS|both teams to score)\b",value,re.I):
         return "HDR_BTTS"
     if "🔴" in value or "🔵" in value:
         return "EMOJI"
