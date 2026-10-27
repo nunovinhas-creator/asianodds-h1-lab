@@ -26,6 +26,7 @@ jobs:
           python-version: "3.11"
       - name: Reconcile latest collector state
         run: git pull --rebase origin main
+      # BSD_API_KEY is read only within this step; never written to repository.
       - name: Check BSD and TheSportsDB results with strict FT validation
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
