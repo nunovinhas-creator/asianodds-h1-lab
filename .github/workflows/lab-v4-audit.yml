@@ -44,12 +44,20 @@ jobs:
         run: python -m scripts.lab_golden
       - name: Select high-information source events for Golden review
         run: python -m scripts.lab_golden_priority
+      # Descriptive per-match chronology. A failure here must not block the
+      # V4/Golden publication above; the previous JSON simply stays in place.
+      - name: Build per-match chronology of repeated alerts
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_timeline.py'
+          python -m scripts.lab_match_trajectories
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json docs/lab/golden-priority.json
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
+          if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
             for attempt in 1 2 3 4 5; do
