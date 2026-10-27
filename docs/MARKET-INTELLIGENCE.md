@@ -1,3 +1,5 @@
+> **Documento histórico.** Descreve os protótipos V1 (`intelligence.py`) e V2 (`market_v2.py`). A arquitetura atual (V4, Golden Set, cronologia por jogo) está em [`docs/lab/ARCHITECTURE.md`](lab/ARCHITECTURE.md).
+
 # Market Intelligence V1 — investigação separada
 Esta área é **observacional**. Não altera o H1, a FIFO de triplas, a liquidação, nem as notificações.
 O módulo `h1lab/intelligence.py` transforma alertas *já estruturados* em eventos deduplicados,
