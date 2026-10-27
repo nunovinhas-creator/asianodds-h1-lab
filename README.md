@@ -11,16 +11,20 @@ Observatório experimental de odds asiáticas: **recolha de um canal Telegram ao
 - ✅ Liquidação asiática: vitória, derrota, meia vitória, meia derrota, devolução.
 - ✅ Dashboard estático em `docs/index.html`, com ROI das singles e das triplas, calculado apenas sobre bilhetes já liquidados.
 - ✅ Envio das triplas para as **Mensagens Guardadas** da tua própria conta Telegram com `python -m h1lab.notify`.
-- ✅ Recolha real com Telethon e workflow de cinco em cinco minutos publicado; execução manual em produção e extração de H1 confirmadas. A **regularidade das execuções cron** ainda precisa de validação independente e o GitHub pode atrasar/omitir ticks.
+- ✅ Recolha real com Telethon de cinco em cinco minutos, disparada pelo Cloudflare Workers Cron (ver secção seguinte). O GitHub pode atrasar/omitir os seus próprios ticks.
 - ⚠️ Envio de triplas configurado para *Mensagens Guardadas* via Telegram; ainda sem primeira entrega real comprovada. Mensagens Guardadas não garantem notificação push.
 - ✅ Reconciliação automática horária de resultados com a **BSD Football v2**, caso `BSD_API_KEY` esteja configurado, em conjunto com a API V1 gratuita TheSportsDB. Confere ambas as fontes e bloqueia discrepâncias de marcador; sem chave BSD funciona apenas a TheSportsDB. Cobertura parcial: jogos sem identificação inequívoca permanecem pendentes, com motivo em `data/result_audit.json`.
 
 ## Agendamento de 5 minutos — estado verificado (27/10/2026)
 
-- O GitHub mantém `schedule: 2-57/5 * * * *` em `main`, mas **não se observou ainda nenhum run com `event=schedule`**. As execuções manuais/`push` comprovam o processamento, não o funcionamento do relógio.
-- Está incluído um agendador alternativo gratuito de **Cloudflare Workers Cron** em [`scheduler/`](scheduler/README.md). O Worker usa `*/5 * * * *`, confirma a última execução no GitHub e, se necessário, dispara `collect.yml` através de `workflow_dispatch`.
-- **Este backup ainda precisa de ser ativado na tua conta Cloudflare** e da criação de um token *fine-grained* do GitHub com Actions Read and write **apenas neste repositório**. Sem isso, não é possível certificar a recolha contínua.
-- O log `COLLECT_TRIGGER: github-schedule` comprova a origem nativa; `COLLECT_TRIGGER: cloudflare-cron` comprova a origem externa. Verificar pelo menos **duas execuções sucessivas** com aproximadamente cinco minutos de intervalo e `success`, sem reenvio de triplas.
+- O **Cloudflare Workers Cron** ([`scheduler/`](scheduler/README.md)) está ativo: entre 14:36 e 20:31 UTC de 27/10, 48 commits de recolha registam `collector.trigger_source = cloudflare-cron` em `data/state.json`, com intervalos de cinco minutos. O documento de passagem regista `COLLECT_TRIGGER: cloudflare-cron` no log do run `40578712731`.
+- O cron nativo do GitHub (`schedule: 2-57/5 * * * *`) também disparou pelo menos uma vez (`github-schedule` às 18:12 UTC), mas continua sem garantia de regularidade.
+- Isto comprova as execuções observadas, não uma garantia de funcionamento 24/7. Evidência e método de verificação em [`docs/lab/ARCHITECTURE.md`](docs/lab/ARCHITECTURE.md#5-agendamento--evidência-verificável-no-histórico-git).
+- O token fine-grained do Worker deve continuar limitado a **Actions Read and write** apenas neste repositório.
+
+## Laboratório (modo sombra)
+
+O laboratório **não altera o H1** e não cria apostas. Mapa de componentes, relatórios e riscos: [`docs/lab/ARCHITECTURE.md`](docs/lab/ARCHITECTURE.md).
 
 ## Como funciona
 
@@ -34,7 +38,7 @@ Em paralelo, `h1lab/results.py` tenta verificar resultados oficiais de FT na The
 2. Na tua máquina/Android com Python (por exemplo Termux), instala dependências com `pip install -r requirements.txt`. Executa `python scripts/authorize.py`. Faz login com o código Telegram e, caso seja pedido, a verificação em dois passos. O script imprime a sessão de cliente e a lista de canais acessíveis. **Não partilhes essa sessão comigo, nem a coloques em ficheiros do repositório público.**
 3. No GitHub: **Settings → Secrets and variables → Actions → New repository secret**. Configura exatamente `TG_API_ID`, `TG_API_HASH`, `TG_SESSION`, `TG_CHANNEL`. O último corresponde ao **nome exato** `AsianOdds Dropping Odds`, ao ID da conversa ou ao @username público, caso exista.
 4. Ativa no repositório, em **Settings → Pages**, o deployment a partir de **Deploy from a branch → main → /docs** para disponibilizar o dashboard.
-5. O workflow [H1 - Collect Telegram](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/collect.yml) está programado a intervalos de cinco minutos; os dados ficam em `data/state.json` e `docs/data.json`. O workflow [Atualizar ROI H1](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/results.yml) consulta o fornecedor de resultados de hora a hora (minuto 41 UTC). Ambos permitem `Run workflow` manual. O cron do GitHub **não é garantido**; não considerar a automação como 24/7 sem observar execuções com `event=schedule`.
+5. O workflow [H1 - Collect Telegram](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/collect.yml) está programado a intervalos de cinco minutos; os dados ficam em `data/state.json` e `docs/data.json`. O workflow [Atualizar ROI H1](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/results.yml) consulta o fornecedor de resultados de hora a hora (minuto 41 UTC). Ambos permitem `Run workflow` manual. O cron do GitHub **não é garantido**; o disparo regular vem do Cloudflare Workers Cron.
 
 **Segurança:** a variável `TG_SESSION` confere acesso à tua conta pelo cliente Telegram. Nunca a guardes no histórico de commits, logs, Issues, PRs nem no dashboard. Se ficar exposta, revoga a sessão nas definições de dispositivos do Telegram e gera outra.
 
