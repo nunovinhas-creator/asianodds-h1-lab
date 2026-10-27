@@ -36,6 +36,20 @@ def running_parser_commit():
         return None
 
 
+@functools.lru_cache(maxsize=1)
+def parser_source_digest():
+    """SHA-256 of this parser's own source: identifies the parser *code*.
+
+    parser_commit is the collector checkout HEAD, which changes with every data
+    commit; this digest changes only when the parser file changes.
+    """
+    try:
+        import hashlib
+        return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
 def identity(text,when,legacy_event):
     link=URL.search(text)
     match=parse_qs(urlparse(link.group(0)).query).get("match",[None])[0] if link else None
@@ -149,6 +163,7 @@ def parse(text,when,message_id,channel_id,legacy_event=None):
             "field_source": "telegram_explicit_rows",
             "parser_revision": "v4-provenance-1",
             "parser_commit": running_parser_commit(),
+            "parser_source_sha256": parser_source_digest(),
             "source":"telegram_explicit_rows",
             "unverified_fields":["btts","full_market_depth","trigger_pct"]}
 
