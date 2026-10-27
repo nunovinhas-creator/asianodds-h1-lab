@@ -49,14 +49,18 @@ def line_class(line):
 def other_signature(line):
     """Closed vocabulary of non-identifying syntactic features."""
     value=line.strip()
-    n=len(NUM.findall(value))
+    tokens=NUM.findall(value)
+    n=len(tokens)
+    numbers=[float(token.replace(",",".")) for token in tokens[:6]]
     return {
         "numeric_tokens":min(n,20),
+        "numeric_values":numbers,
+        "numeric_values_truncated":n>6,
         "has_percentage":bool(re.search(r"\d\s*%",value)),
         "has_arrow":any(ch in value for ch in "↑↓→➡"),
         "has_red": "🔴" in value,
         "has_blue": "🔵" in value,
-        "starts_emoji": bool(value) and not (value[0].isalnum() or value[0] in "+-."),
+        "starts_symbol": bool(value) and not (value[0].isalnum() or value[0] in "+-."),
         "has_colon": ":" in value,
         "short_length_bucket": "short" if len(value)<20 else "medium" if len(value)<80 else "long",
     }
