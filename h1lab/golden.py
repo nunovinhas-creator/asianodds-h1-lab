@@ -247,6 +247,20 @@ def assemble_report(candidate_document, review_rows, observations, *, source_err
                 "reviews_received": len(group)}
         if len(group) != 2:
             item["status"] = "AWAITING_REVIEWS"
+            if len(group) == 1:
+                # A single user-supplied original text is a meaningful
+                # reference check, but MUST NOT be counted as an independent
+                # second review or global Golden certification.
+                source = next(iter(group.values()))
+                differences = compare_reference(source, by_id.get(eid))
+                item["single_review_source_kind"] = source["source_kind"]
+                item["single_review_compared_fields"] = len(review_values(source))
+                item["single_review_matched_fields"] = (
+                    len(review_values(source)) - len(differences))
+                item["single_review_agreement"] = (
+                    "MATCHES_V4" if not differences else "DIFFERS_FROM_V4")
+                if differences:
+                    item["single_review_differences"] = differences
         else:
             a, b = group["R1"], group["R2"]
             if a["source_kind"] != b["source_kind"] or a["source_sha256"] != b["source_sha256"]:
