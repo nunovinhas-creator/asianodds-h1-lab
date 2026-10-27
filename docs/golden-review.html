@@ -26,6 +26,11 @@ code{overflow-wrap:anywhere}#output{height:240px;font:12px/1.5 monospace}details
 <section><h2>Estado atual</h2><div id="metrics" class="info"></div>
 <p id="status" class="hint">A carregar candidatos e progresso…</p>
 <p id="corroboration-status" class="hint"></p><details><summary>Progresso por evento</summary><div style="overflow-x:auto"><table><thead><tr><th>Evento</th><th>Família</th><th>Revisões</th><th>Estado</th></tr></thead><tbody id="cases"></tbody></table></div></details></section>
+<section><h2>Próximas mensagens prioritárias</h2>
+<p>Escolhidas automaticamente entre os alertas reais ainda sem revisão. A prioridade reflete diferenças de estrutura e mercados pouco testados; não é uma previsão, nem prova de que as odds foram corretamente recolhidas.</p>
+<div id="risk-priorities" class="info"></div>
+<p id="risk-missing" class="caution hint"></p>
+</section>
 <section><h2>1. Escolhe uma mensagem real</h2>
 <label for="candidate">Evento do canal AsianOdds</label><select id="candidate"></select>
 <p id="case-desc" class="hint"></p>
@@ -132,8 +137,9 @@ $("copy").addEventListener("click",async()=>{
 });
 Promise.all([
  fetch("./lab/golden-candidates.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Fila Golden não publicada");return r.json()}),
- fetch("./lab/golden-report.json",{cache:"no-store"}).then(r=>r.ok?r.json():null)
-]).then(([c,d])=>{
+ fetch("./lab/golden-report.json",{cache:"no-store"}).then(r=>r.ok?r.json():null),
+ fetch("./lab/golden-priority.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)
+]).then(([c,d,priority])=>{
  candidates=c.candidates||[];
  kpi("Eventos candidatos",candidates.length);
  kpi("Revisões registadas",d?.reviews_received||0);
@@ -150,6 +156,25 @@ Promise.all([
  " · Não são utilizados os preços V4 para preencher a transcrição.";
  for(const item of candidates){const opt=document.createElement("option");opt.value=item.event_id;
  opt.textContent=item.event_id+" · "+item.family+" · "+item.home+" vs "+item.away;$("candidate").append(opt)}
+ for(const item of priority?.priorities?.slice(0,7)||[]){
+   const box=document.createElement("div");box.className="panel";
+   const title=document.createElement("strong");
+   title.textContent=item.event_id+" · "+item.home+" vs "+item.away;
+   const why=document.createElement("p");
+   why.textContent=item.why_review?.join("; ")||"Revisão de formato";
+   const choose=document.createElement("button");
+   choose.type="button";choose.textContent="Selecionar mensagem";
+   choose.addEventListener("click",()=>{
+     const index=candidates.find(c=>c.event_id===item.event_id);
+     if(!index){say("Mensagem fora da fila disponível; consulta o ID no Telegram.",true);return;}
+     $("candidate").value=item.event_id;render();$("candidate").scrollIntoView({block:"center"});
+   });
+   box.append(title,why,choose);$("risk-priorities").append(box);
+ }
+ const notObserved=priority?.not_observed_in_source||[];
+ $("risk-missing").textContent=notObserved.includes("1x2_selection_X")
+   ?"Sem alertas reais de disparo no X (empate) nos registos observados; nenhum exemplo foi inventado."
+   :"As categorias ainda não observadas permanecem pendentes de fonte original.";
  for(const item of d?.cases||[]){const tr=document.createElement("tr");
  for(const v of [item.event_id,item.family,item.reviews_received,
   item.single_review_compared_fields
