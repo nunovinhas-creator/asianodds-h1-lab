@@ -498,6 +498,110 @@ def append_user_attestations(report, candidates, attestations, reviews):
     return report
 
 
+PENDING_STATUSES = ("TRANSCRIPTION_NOT_IN_REPOSITORY",)
+
+
+def read_pending_registry(root):
+    path = root / "data" / "lab" / "golden" / "pending" / "registry.json"
+    if not path.exists():
+        return {"pending_references": [], "unattributed_tables": []}, []
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict) or value.get("schema_version") != 1:
+            raise ValueError("schema")
+        return value, []
+    except (OSError, ValueError, UnicodeDecodeError):
+        return {"pending_references": [], "unattributed_tables": []}, [
+            {"type": "pending_registry_read_error"}]
+
+
+def append_pending(report, candidate_document, registry, reviews):
+    """Declared-but-absent human references stay visibly pending.
+
+    A pending entry is never converted into a review, never filled from V4 and
+    never counted as validation.
+    """
+    candidates = {c["event_id"]: c for c in candidate_document["candidates"]}
+    reviewed = {r.get("event_id") for _, r in reviews if isinstance(r, dict)}
+    allowed = {"event_id", "family", "expected_fields", "label", "status",
+               "reported_by", "required_action"}
+    pending = []
+    for item in registry.get("pending_references") or []:
+        if (not isinstance(item, dict) or set(item) != allowed or
+                not isinstance(item.get("event_id"), str) or not EVENT.fullmatch(item["event_id"]) or
+                item.get("status") not in PENDING_STATUSES or
+                item.get("family") not in FAMILIES or
+                type(item.get("expected_fields")) is not int or item["expected_fields"] < 1):
+            report["issues"].append({"type": "invalid_pending_reference"})
+            continue
+        eid = item["event_id"]
+        cand = candidates.get(eid)
+        expected = (1 + sum(6 for m in EXPECTED_MARKETS[item["family"]]))
+        pending.append({
+            **{k: item[k] for k in ("event_id", "family", "label", "reported_by", "required_action")},
+            "expected_fields": item["expected_fields"],
+            "expected_fields_consistent": item["expected_fields"] == expected,
+            "in_candidate_pool": cand is not None,
+            "candidate_family_matches": bool(cand) and cand["family"] == item["family"],
+            "status": "REVIEW_FILE_PRESENT_SEE_CASE" if eid in reviewed else item["status"],
+            "counts_as_validation": False,
+        })
+    tables = []
+    for item in registry.get("unattributed_tables") or []:
+        if not isinstance(item, dict) or item.get("identity") != "NOT_PROVEN" or \
+                item.get("usable_as_reference") is not False:
+            report["issues"].append({"type": "invalid_unattributed_table_entry"})
+            continue
+        tables.append({k: item.get(k) for k in ("description", "numerically_compatible_event_ids",
+                                                "identity", "usable_as_reference", "reason")})
+    report["pending_references"] = pending
+    report["pending_reference_count"] = sum(p["status"] in PENDING_STATUSES for p in pending)
+    report["unattributed_tables"] = tables
+    return report
+
+
+def evidence_level(case):
+    if case.get("reviews_received", 0) >= 2:
+        return "TWO_REVIEWS"
+    if case.get("firsthand_user_validation") == "CONFIRMED_BY_SOURCE_VIEWER":
+        return "R1_PLUS_USER_SOURCE_CONFIRMATION"
+    if case.get("reviews_received") == 1:
+        return "R1_ONLY"
+    return "NONE"
+
+
+def append_summary(report):
+    """Message- and family-level view of what humans have actually checked."""
+    zero = {"candidates": 0, "messages_with_human_review": 0, "user_source_confirmed": 0,
+            "two_reviews": 0, "fields_compared": 0, "fields_matching_v4": 0,
+            "messages_with_differences": 0}
+    fam = {f: dict(zero) for f in FAMILIES}
+    for case in report["cases"]:
+        row = fam.setdefault(case["family"], dict(zero))
+        row["candidates"] += 1
+        case["evidence_level"] = evidence_level(case)
+        if case["reviews_received"]:
+            row["messages_with_human_review"] += 1
+        row["user_source_confirmed"] += case["evidence_level"] == "R1_PLUS_USER_SOURCE_CONFIRMATION"
+        row["two_reviews"] += case["evidence_level"] == "TWO_REVIEWS"
+        compared = case.get("single_review_compared_fields") or case.get("checked_fields") or 0
+        matched = case.get("single_review_matched_fields")
+        if matched is None:
+            matched = compared if case["status"] == "TWO_REVIEWS_AGREE_WITH_V4" else \
+                compared - len(case.get("differences") or [])
+        row["fields_compared"] += compared
+        row["fields_matching_v4"] += matched
+        row["messages_with_differences"] += bool(case.get("single_review_differences") or
+                                                 case.get("differences"))
+    total = {k: sum(r[k] for r in fam.values()) for k in zero}
+    report["coverage_by_family"] = fam
+    report["human_review_totals"] = total
+    report["evidence_levels"] = dict(Counter(c["evidence_level"] for c in report["cases"]))
+    report["limitations"].append(
+        "Field totals count fields inside reviewed messages; the statistical unit remains the message")
+    return report
+
+
 def read_reviews(root):
     directory = root / "data" / "lab" / "golden" / "reviews"
     rows, errors = [], []
@@ -525,4 +629,8 @@ def build(root):
     attestations, attestation_errors = read_firsthand_attestations(root)
     report["issues"].extend(attestation_errors)
     append_user_attestations(report, candidates, attestations, reviews)
+    registry, registry_errors = read_pending_registry(root)
+    report["issues"].extend(registry_errors)
+    append_pending(report, candidates, registry, reviews)
+    append_summary(report)
     return candidates, report

@@ -26,6 +26,17 @@ code{overflow-wrap:anywhere}#output{height:240px;font:12px/1.5 monospace}details
 <section><h2>Estado atual</h2><div id="metrics" class="info"></div>
 <p id="status" class="hint">A carregar candidatos e progresso…</p>
 <p id="corroboration-status" class="hint"></p><details><summary>Progresso por evento</summary><div style="overflow-x:auto"><table><thead><tr><th>Evento</th><th>Família</th><th>Revisões</th><th>Estado</th></tr></thead><tbody id="cases"></tbody></table></div></details></section>
+<section><h2>Painel de verificação</h2>
+<p class="hint">Uma linha por mensagem revista. A unidade estatística é a mensagem; os campos mostram apenas o que foi conferido dentro dela. Concordância com o V4 não é certificação.</p>
+<div style="overflow-x:auto"><table><thead><tr><th>Evento</th><th>Família</th><th>Nível de evidência</th><th>Campos concordantes</th><th>Divergências</th></tr></thead><tbody id="verified"></tbody></table></div>
+<h3>Cobertura por família</h3>
+<div style="overflow-x:auto"><table><thead><tr><th>Família</th><th>Candidatas</th><th>Revistas</th><th>Confirmadas pelo utilizador</th><th>Duas revisões</th><th>Campos concordantes</th><th>Com divergências</th></tr></thead><tbody id="families"></tbody></table></div>
+<h3>Casos raros já presentes em mensagens revistas</h3><ul id="rare"></ul>
+<h3>Referências pendentes</h3>
+<p class="hint">Transcrições referidas na documentação mas cujo texto/captura original não está no repositório. Não são reconstruídas a partir do V4 e não contam como validação.</p>
+<ul id="pending"></ul>
+<h3>Tabelas sem cabeçalho</h3><ul id="unattributed"></ul>
+</section>
 <section><h2>Próximas mensagens prioritárias</h2>
 <p>Escolhidas automaticamente entre os alertas reais ainda sem revisão. A prioridade reflete diferenças de estrutura e mercados pouco testados; não é uma previsão, nem prova de que as odds foram corretamente recolhidas.</p>
 <div id="risk-priorities" class="info"></div>
@@ -181,6 +192,30 @@ Promise.all([
     ? item.status+" · texto "+item.single_review_matched_fields+"/"+item.single_review_compared_fields+" campos coincidentes"
     : item.status])cell(tr,v);
  $("cases").append(tr)}
+ const LEVEL={NONE:"sem revisão",R1_ONLY:"R1 (uma transcrição)",
+  R1_PLUS_USER_SOURCE_CONFIRMATION:"R1 + confirmação da fonte pelo utilizador",TWO_REVIEWS:"duas revisões"};
+ const li=(id,text)=>{const x=document.createElement("li");x.textContent=text;$(id).append(x)};
+ for(const item of (d?.cases||[]).filter(c=>c.reviews_received>0)){
+  const tr=document.createElement("tr");
+  const diffs=(item.single_review_differences||item.differences||[]).map(x=>x.field).join(", ")||"—";
+  const n=item.single_review_compared_fields||item.checked_fields||0;
+  const m=item.single_review_matched_fields??(n-(item.differences||[]).length);
+  for(const v of [item.event_id,item.family,LEVEL[item.evidence_level]||item.evidence_level,m+"/"+n,diffs])cell(tr,v);
+  $("verified").append(tr)}
+ for(const [fam,row] of Object.entries(d?.coverage_by_family||{})){
+  const tr=document.createElement("tr");
+  for(const v of [fam,row.candidates,row.messages_with_human_review,row.user_source_confirmed,row.two_reviews,
+   row.fields_matching_v4+"/"+row.fields_compared,row.messages_with_differences])cell(tr,v);
+  $("families").append(tr)}
+ const cov=priority?.feature_coverage||{};
+ const rare=Object.values(cov).filter(x=>x.present_in_reviewed_events).map(x=>x.label);
+ const notYet=Object.values(cov).filter(x=>!x.present_in_reviewed_events&&x.observed_events>0).map(x=>x.label);
+ rare.forEach(x=>li("rare","✓ "+x));notYet.forEach(x=>li("rare","pendente: "+x));
+ if(!rare.length&&!notYet.length)li("rare","Sem dados de prioridade publicados.");
+ for(const p of d?.pending_references||[])li("pending",p.event_id+" · "+p.label+" · "+p.expected_fields+" campos · "+p.status);
+ if(!(d?.pending_references||[]).length)li("pending","Nenhuma pendência registada.");
+ for(const t of d?.unattributed_tables||[])li("unattributed",t.description+" — compatível com "+
+  (t.numerically_compatible_event_ids||[]).join(", ")+" · identidade "+t.identity+" · não usada como referência");
  render();
 }).catch(e=>{$("status").textContent="Não foi possível abrir a fila: "+e.message;say(e.message,true)});
 </script>
