@@ -1,0 +1,24 @@
+name: Testar destino Telegram Bot
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/bot-smoke.yml"
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send one Telegram destination test
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          from h1lab.bot import send_message
+          send_message("✅ AsianOdds H1 Lab — teste de ligação ao bot concluído. As futuras triplas H1 serão enviadas para este chat.")
+          print("BOT_SMOKE_SUCCESS: Telegram confirmed message delivery to configured chat")
+          PY
