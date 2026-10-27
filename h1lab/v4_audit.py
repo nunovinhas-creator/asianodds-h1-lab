@@ -15,6 +15,41 @@ FIELDS = {
     "one_x_two": ("1", "X", "2"),
 }
 SIDES = ("before", "after")
+PROVENANCE_REVISION = "v4-provenance-1"
+FAMILIES = ("total", "1x2")
+
+
+def clopper_pearson_lower(successes, trials, alpha=0.05):
+    """Exact one-sided lower confidence bound, binomial observations (not fields).
+
+    For k=n, P(X=n|p)=p**n and the lower bound is alpha**(1/n).
+    The general k<n case uses a stable log-binomial survival tail.
+    """
+    if not isinstance(trials, int) or not isinstance(successes, int) or not 0 <= successes <= trials:
+        raise ValueError("invalid binomial counts")
+    if not 0 < alpha < 1:
+        raise ValueError("invalid alpha")
+    if not trials or not successes:
+        return None if not trials else 0.0
+    if successes == trials:
+        return alpha ** (1.0 / trials)
+
+    def tail(p):
+        if p <= 0: return 0.0
+        if p >= 1: return 1.0
+        values = [(math.lgamma(trials+1)-math.lgamma(j+1)-math.lgamma(trials-j+1)
+                   + j*math.log(p) + (trials-j)*math.log1p(-p))
+                  for j in range(successes,trials+1)]
+        greatest = max(values)
+        return math.exp(greatest) * sum(math.exp(v-greatest) for v in values)
+
+    low,high=0.0,successes/trials
+    for _ in range(44):
+        mid=(low+high)/2
+        if tail(mid) >= alpha: high=mid
+        else: low=mid
+    return (low+high)/2
+
 
 
 def instant(value):
@@ -154,6 +189,22 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
             flag("missing_legacy_match_key")
         if new and not new.get("match_key"):
             flag("missing_v4_match_key")
+        if new and phase in ("first_24h", "after_24h"):
+            sources = new.get("identity_source")
+            if not isinstance(sources, dict):
+                flag("identity_provenance_unverified")
+            else:
+                for k in ("match_key", "kickoff_utc"):
+                    if sources.get(k) in ("legacy_fallback", "missing"):
+                        flag("identity_inherited_or_missing", field=k, source=sources.get(k))
+                    elif sources.get(k) not in (("url_match", "telegram_teams_kickoff") if k == "match_key" else ("telegram_clock",)):
+                        flag("identity_provenance_unverified", field=k)
+            if new.get("parser_revision") != PROVENANCE_REVISION:
+                flag("parser_revision_unverified")
+            if not new.get("parser_commit"):
+                flag("parser_commit_unverified")
+            if new.get("field_source") != "telegram_explicit_rows":
+                flag("field_provenance_unverified")
         if old and new:
             if old.get("match_key") and new.get("match_key") != old["match_key"]:
                 flag("match_key_mismatch", legacy=old["match_key"], v4=new.get("match_key"))
@@ -240,22 +291,60 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         x["mismatch"] == x["missing_v4"] == x["invalid_v4"] == 0
         for market in by_market.values() for x in market["fields"].values()
     )
-    # Even clean latest-run logs do not establish absence of all failures over 24h.
     log_evidence = log_evidence or {"status": "unverified", "reason": "No complete 24h collection-log evidence"}
     elapsed = now >= end
-    data_sufficient = window["eligible"] >= 100 and all(
-        by_market[x]["totals"].get("compared", 0) > 0 for x in FIELDS
-    )
+
+    # Each message is ONE independent observation; AH and Total within an
+    # 1x2 notification must never count as two extra samples.
+    window_problems = {p.get("event_id") for p in errors_window if p.get("event_id")}
+    family_members = {x: [] for x in FAMILIES}
+    family_members["unclassified"] = []
+    for eid in phases["first_24h"]:
+        old = legacy.get(eid)
+        fmt = format_index.get(eid) or {}
+        mentioned = fmt.get("markets_mentioned") or []
+        family = old.get("market") if old else (
+            "1x2" if "1x2" in mentioned else "total" if "total" in mentioned else "unclassified")
+        family_members[family if family in family_members else "unclassified"].append(eid)
+    statistical = {}
+    for family, ids in family_members.items():
+        captured = sum(eid in v4 for eid in ids)
+        independently_complete = sum(eid in v4 and eid not in window_problems for eid in ids)
+        statistical[family] = {
+            "messages": len(ids), "captured": captured,
+            "independently_complete": independently_complete,
+            "capture_lower_95": round(clopper_pearson_lower(captured, len(ids)), 6)
+                                if ids else None,
+            "strict_lower_95": round(clopper_pearson_lower(independently_complete, len(ids)), 6)
+                               if ids else None,
+        }
+    required = all(statistical[x]["messages"] and statistical[x]["strict_lower_95"] >= 0.99
+                   for x in FAMILIES) and statistical["unclassified"]["messages"] == 0
+    integrity_errors = [p for p in issues if p.get("type") in
+                        ("invalid_observed_at", "invalid_jsonl", "jsonl_read_error", "missing_event_id")
+                        or (p.get("type") == "duplicate_event_id" and p.get("conflicting"))]
+    # Golden source messages must be verified independently by a human against
+    # original Telegram messages. No such approval can be inferred from H1/V4.
+    golden = {"status": "NOT_VERIFIED", "manually_verified": 0,
+              "reason": "No independently signed and checked golden corpus"}
     gates = {
         "window_elapsed": elapsed,
-        "minimum_evidence": data_sufficient,
+        "minimum_evidence": bool(required),
         "coverage_99": window["pct"] is not None and window["pct"] >= 99,
         "field_agreement_100": clean_compare and not errors_window,
+        "independent_identity": all(
+            eid in v4 and (v4[eid].get("identity_source") or {}).get("match_key")
+            in ("url_match", "telegram_teams_kickoff") and
+            (v4[eid].get("identity_source") or {}).get("kickoff_utc") == "telegram_clock"
+            for eid in phases["first_24h"]),
+        "data_integrity": not integrity_errors,
+        "golden_set_verified": False,
         "logs_clean_24h": log_evidence.get("status") == "verified_24h_clean",
     }
-    report_status = "PASS" if all(gates.values()) and not (source_errors or []) else (
-        "FAIL" if log_evidence.get("status") == "errors_detected" or (
-            elapsed and window["eligible"] >= 100 and
+    report_status = "PASS" if all(gates.values()) else (
+        "FAIL" if log_evidence.get("status") in ("v4_errors_detected", "errors_detected")
+        or bool(integrity_errors)
+        or (elapsed and required and
             (not gates["coverage_99"] or not gates["field_agreement_100"]))
         else "PENDING")
     return {
@@ -264,6 +353,10 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         "cutover_utc": CUTOVER, "first_24h_end_utc": end.isoformat(timespec="seconds"),
         "phase_coverage": {k: coverage(v) for k, v in phases.items()},
         "post_cutover_coverage": active, "markets": by_market,
+        "statistical_evidence": {"method":"one-sided exact Clopper-Pearson 95%",
+                                 "unit":"Telegram message", "families":statistical,
+                                 "threshold":0.99},
+        "golden_set": golden,
         "markets_by_phase": markets_by_phase,
         "legacy_alerts": len(legacy), "format_events": len(format_index),
         "v4_observations": len(v4), "active_missing_v4_ids": missing,
@@ -275,9 +368,11 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
             "Only Telegram alert observations are measured, not all market moves",
             "Historical formats before V4 deployment are excluded from live coverage denominator",
             "One 1x2 message contains correlated 1x2, AH and Total tables, not three independent alerts",
-            "The 99% threshold with fewer than 100 real alerts is insufficient evidence",
+            "At least approximately 299 independently complete messages per family are needed for 99% lower 95% confidence with zero failures",
+            "The source of identity and parser revision may be unverified for records captured before provenance support",
             "No 24h clean-log claim without evidence from all collection runs",
             "Field agreement excludes invalid or absent values; complete_pct includes those failures",
+            "A manual golden set of original Telegram messages is required before any statistical certification",
         ],
     }
 
