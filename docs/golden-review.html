@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Golden Set | AsianOdds Market Lab</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{font:15px/1.55 system-ui,sans-serif;background:#0c1423;color:#ebf1fc;max-width:1070px;margin:auto;padding:18px}
+a{color:#99c1ff}h1{font-size:clamp(24px,4vw,34px)}h2{font-size:21px}h3{font-size:17px}
+p,small,.hint{color:#b6c9df}section,.panel{background:#15243b;border:1px solid #364964;padding:15px;border-radius:12px;margin:12px 0}
+input,select,textarea,button{font:inherit;color:#fff;background:#101c2f;border:1px solid #57708d;padding:10px;border-radius:8px;max-width:100%}
+input,select{width:100%}textarea{width:100%;min-height:115px}button{cursor:pointer;background:#255dad;font-weight:700;margin:8px 0}
+button:disabled{opacity:.6;cursor:not-allowed}
+label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.kpi{font-size:24px;font-weight:700}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.group{border-top:1px solid #405672;margin-top:16px;padding-top:10px}
+.group h3{margin-bottom:5px}.rowlabel{grid-column:1/-1;color:#b9cce6;font-weight:600;padding-top:8px}
+.caution{border-left:4px solid #eeb86f;padding-left:12px}
+.good{color:#9de5c2}.warning{color:#ffca86}
+table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #344258;text-align:left;vertical-align:top}
+code{overflow-wrap:anywhere}#output{height:240px;font:12px/1.5 monospace}details{margin:14px 0}summary{cursor:pointer;font-weight:600}
+</style></head><body>
+<a href="./lab-v4-audit.html">← Auditoria V4</a> · <a href="./index.html">H1 original</a>
+<h1>Golden Set — verificação humana do Telegram</h1>
+<p>Esta página ajuda a transcrever uma mensagem original, sem copiar preços do V4. Um segundo revisor deve repetir a transcrição sem consultar a primeira. Os resultados são comparados automaticamente só depois da submissão.</p>
+<div class="panel caution"><strong>Ainda não existe um Golden Set certificado.</strong>
+<p>Sem duas observações humanas concordantes, fonte original verificável e aprovação independente, os resultados permanecem não certificados. Não introduzas chaves, sessões Telegram, conteúdo privado ou URLs assinados nos ficheiros públicos.</p></div>
+<section><h2>Estado atual</h2><div id="metrics" class="info"></div>
+<p id="status" class="hint">A carregar candidatos e progresso…</p><details><summary>Progresso por evento</summary><div style="overflow-x:auto"><table><thead><tr><th>Evento</th><th>Família</th><th>Revisões</th><th>Estado</th></tr></thead><tbody id="cases"></tbody></table></div></details></section>
+<section><h2>1. Escolhe uma mensagem real</h2>
+<label for="candidate">Evento do canal AsianOdds</label><select id="candidate"></select>
+<p id="case-desc" class="hint"></p>
+<label for="reviewer">Revisor / passagem independente</label><select id="reviewer"><option value="R1">R1 — primeira transcrição</option><option value="R2">R2 — segunda transcrição independente</option></select>
+<p class="hint">Os códigos R1/R2 não provam por si só que duas pessoas diferentes verificaram a origem. Esse controlo é feito na aprovação manual.</p>
+</section>
+<form id="review-form">
+<section><h2>2. Observa diretamente a fonte</h2>
+<p>Abre o evento correspondente no Telegram, compara a data e o jogo. Cola o texto integral copiado da mensagem <strong>apenas nesta página</strong>, ou escolhe uma captura feita por ti. A página calcula localmente SHA‑256. O conteúdo original não será incluído no JSON nem enviado para um servidor por este formulário.</p>
+<label for="source-kind">Tipo de prova</label><select id="source-kind"><option value="telegram_copied_text">Texto copiado diretamente do Telegram</option><option value="telegram_screenshot">Captura de ecrã da mensagem original</option></select>
+<div id="text-evidence"><label for="source-text">Texto original (temporário, só para calcular SHA‑256)</label><textarea id="source-text" autocomplete="off" spellcheck="false" placeholder="Cola aqui a mensagem original do Telegram. Não será exportada."></textarea></div>
+<div id="image-evidence" hidden><label for="source-file">Captura de ecrã original (processada localmente)</label><input id="source-file" type="file" accept="image/png,image/jpeg,image/webp"></div>
+<label for="kickoff">Hora de início vista na mensagem, em UTC (ISO 8601)</label><input id="kickoff" required placeholder="2026-10-29T18:45:00+00:00">
+<label><input type="checkbox" id="source-confirm" required style="width:auto;margin-right:7px">Confirmei o evento e os dados diretamente na mensagem original, não no V4 nem no H1.</label>
+</section>
+<section><h2>3. Transcreve os preços Was / Now</h2><p>Preenche manualmente todos os valores tal como aparecem na mensagem. As odds do V4 não são apresentadas para evitar viés.</p><div id="form-markets"></div></section>
+<section><h2>4. Exporta a transcrição</h2>
+<p>O JSON abaixo inclui apenas os valores verificados, identificador, pseudónimo do revisor, momento de revisão e hash da fonte. Nunca contém o texto nem a imagem original.</p>
+<button type="submit" id="prepare">Gerar JSON para revisão</button>
+<label for="output">JSON para criar um ficheiro no GitHub</label><textarea id="output" readonly spellcheck="false" placeholder="O JSON será gerado aqui…"></textarea>
+<button type="button" id="copy" disabled>Copiar JSON</button>
+<p id="filename" class="hint"></p>
+<p id="message" aria-live="polite"></p>
+<details><summary>Como entregar pelo Android</summary>
+<p>No GitHub abre o repositório <code>nunovinhas-creator/asianodds-h1-lab</code>, navega até <code>data/lab/golden/reviews/</code>, cria um novo ficheiro com o nome indicado, cola o JSON e propõe a alteração por PR. Se preferires, cola o JSON nesta conversa para eu criar a PR. Nunca partilhes o texto original, a captura com dados privados ou credenciais.</p>
+</details></section></form>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const FIELDS={total:["line","over_price","under_price"],asian_handicap:["line","home_price","away_price"],one_x_two:["1","X","2"]};
+const LABELS={total:"Total (Over / Under)",asian_handicap:"Handicap asiático",one_x_two:"1X2",
+line:"Linha",over_price:"Over",under_price:"Under",home_price:"Casa",away_price:"Fora",
+"1":"1 – Casa",X:"X – Empate","2":"2 – Fora"};
+let candidates=[];
+const say=(message,bad=false)=>{$("message").textContent=message;$("message").className=bad?"warning":"good"};
+const stamp=()=>new Date().toISOString().replace(".000Z","+00:00");
+function cell(tr,text){const td=document.createElement("td");td.textContent=String(text);tr.append(td)}
+function kpi(k,v){const d=document.createElement("div");d.className="panel";const a=document.createElement("small");a.textContent=k;const b=document.createElement("div");b.className="kpi";b.textContent=v;d.append(a,b);$("metrics").append(d)}
+function selected(){return candidates.find(x=>x.event_id===$("candidate").value)}
+function render(){
+ const item=selected();$("form-markets").replaceChildren();$("output").value="";$("copy").disabled=true;
+ if(!item)return;
+ $("case-desc").textContent=[item.home+" vs "+item.away,item.competition,
+ "Evento: "+item.event_id,"Observado: "+item.observed_at,"Família: "+item.family,
+ item.historical_before_cutover?"Registo histórico":"Registo pós-integração V4"].join(" · ");
+ for(const name of item.expected_markets){
+   const fieldset=document.createElement("div");fieldset.className="group";
+   const h=document.createElement("h3");h.textContent=LABELS[name]||name;fieldset.append(h);
+   const grid=document.createElement("div");grid.className="grid";
+   const labels=["Antes (Was)","Depois (Now)"];for(const label of labels){
+     const n=document.createElement("div");n.className="rowlabel";n.textContent=label;grid.append(n);
+     for(const field of FIELDS[name]){
+       const id="n-"+name+"-"+(label.startsWith("Antes")?"before":"after")+"-"+field;
+       const wrap=document.createElement("div"), lab=document.createElement("label"),input=document.createElement("input");
+       lab.setAttribute("for",id);lab.textContent=LABELS[field]||field;input.id=id;
+       input.required=true;input.type="number";input.step=field==="line"?"0.25":"0.01";
+       input.placeholder=field==="line"?"±0,25":"1,85";input.autocomplete="off";
+       wrap.append(lab,input);grid.append(wrap);
+     }
+   }
+   fieldset.append(grid);$("form-markets").append(fieldset);
+ }
+}
+function iso(value){const d=new Date(value);if(!value || !Number.isFinite(d.getTime()) || !/[zZ]|[+-]\d\d:\d\d$/.test(value))throw Error("Indica a hora com fuso UTC.");return d.toISOString().replace(".000Z","+00:00")}
+function num(id,field){const x=$(id);if(!x || !x.value.trim())throw Error("Campo em falta: "+id);const v=Number(x.value);if(!Number.isFinite(v)|| (field==="line" ? Math.abs(v*4-Math.round(v*4))>1e-8:v<=1||v>=1000))throw Error("Número inválido: "+id);return v}
+async function digest(data){const hashed=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(hashed)).map(x=>x.toString(16).padStart(2,"0")).join("")}
+$("source-kind").addEventListener("change",()=>{
+ const copied=$("source-kind").value==="telegram_copied_text";
+ $("text-evidence").hidden=!copied;$("image-evidence").hidden=copied;
+});
+$("candidate").addEventListener("change",render);
+$("review-form").addEventListener("submit",async event=>{
+ event.preventDefault();say("");const item=selected();if(!item)return;
+ const button=$("prepare");button.disabled=true;
+ try{
+  if(!$("source-confirm").checked)throw Error("É obrigatório consultar a mensagem original.");
+  let raw;const kind=$("source-kind").value;
+  if(kind==="telegram_copied_text"){const source=$("source-text").value;if(!source.trim())throw Error("Cola o texto original para calcular o hash.");raw=new TextEncoder().encode(source)}
+  else {const file=$("source-file").files?.[0];if(!file)throw Error("Seleciona uma captura de ecrã.");raw=await file.arrayBuffer()}
+  const sha=await digest(raw);const markets={};
+  for(const name of item.expected_markets){
+    if(name==="one_x_two"){markets[name]={};for(const field of FIELDS[name])markets[name][field]={
+       before:num("n-"+name+"-before-"+field,field),
+       after:num("n-"+name+"-after-"+field,field)}}
+    else{markets[name]={before:{},after:{}};for(const side of ["before","after"])
+         for(const field of FIELDS[name])
+           markets[name][side][field]=num("n-"+name+"-"+side+"-"+field,field)}
+  }
+  const value={schema_version:1,event_id:item.event_id,family:item.family,
+  reviewer_code:$("reviewer").value,source_kind:kind,source_checked:true,source_sha256:sha,
+  checked_at:stamp(),kickoff_utc:iso($("kickoff").value.trim()),markets};
+  $("output").value=JSON.stringify(value,null,2)+"\n";
+  const filename=item.event_id.replace(":","_")+"__"+$("reviewer").value+".json";
+  $("filename").textContent="Nome: data/lab/golden/reviews/"+filename;
+  $("copy").disabled=false;
+  $("source-text").value=""; // do not retain private source text after hashing
+  $("source-file").value="";
+  say("Transcrição preparada. O conteúdo original foi limpo dos campos temporários. Revê o JSON antes de submeter.");
+ }catch(err){say(err.message,true)}finally{button.disabled=false}
+});
+$("copy").addEventListener("click",async()=>{
+ try{await navigator.clipboard.writeText($("output").value);say("JSON copiado para a área de transferência.")}catch{
+ $("output").focus();$("output").select();say("Não foi possível copiar automaticamente. Seleciona e copia o JSON.",true)}
+});
+Promise.all([
+ fetch("./lab/golden-candidates.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Fila Golden não publicada");return r.json()}),
+ fetch("./lab/golden-report.json",{cache:"no-store"}).then(r=>r.ok?r.json():null)
+]).then(([c,d])=>{
+ candidates=c.candidates||[];
+ kpi("Eventos candidatos",candidates.length);
+ kpi("Revisões registadas",d?.reviews_received||0);
+ kpi("Duas revisões concordantes",d?.two_review_agreements||0);
+ kpi("Divergências do V4",d?.v4_mismatch_cases||0);
+ $("status").textContent="Golden Set: "+(d?.status||"SEM RELATÓRIO")+
+ " · Não são utilizados os preços V4 para preencher a transcrição.";
+ for(const item of candidates){const opt=document.createElement("option");opt.value=item.event_id;
+ opt.textContent=item.event_id+" · "+item.family+" · "+item.home+" vs "+item.away;$("candidate").append(opt)}
+ for(const item of d?.cases||[]){const tr=document.createElement("tr");
+ for(const v of [item.event_id,item.family,item.reviews_received,item.status])cell(tr,v);
+ $("cases").append(tr)}
+ render();
+}).catch(e=>{$("status").textContent="Não foi possível abrir a fila: "+e.message;say(e.message,true)});
+</script>
+</body></html>
