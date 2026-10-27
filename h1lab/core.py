@@ -10,7 +10,19 @@ from urllib.parse import urlparse, parse_qs
 
 UTC=timezone.utc
 NUM=r"[+-]?\d+(?:[.,]\d+)?"
-ROW=re.compile(r"\b(Was|Now)\s+("+NUM+r")\s+("+NUM+r")\s+("+NUM+r")",re.I)
+# Source posts may attach move indicators directly to a number (e.g. 1.79🔴).
+# Match Was/Now on whole lines, then extract exactly 3 numeric columns.
+ROW=re.compile(r"(?m)^\\s*(Was|Now)\\s+([^\\r\\n]+)",re.I)
+
+def odds_rows(text):
+    values=[]
+    for label, tail in ROW.findall(text):
+        tokens=re.findall(NUM,tail)
+        if len(tokens)!=3:
+            continue
+        nums=[float(token.replace(",",".")) for token in tokens]
+        values.append((label.lower(),*nums))
+    return values
 KICK=re.compile(r"🕒\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2}:\d{2})\s+UTC",re.I)
 MONTHS={m:i+1 for i,m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split())}
 
@@ -45,7 +57,7 @@ def parse_alert(text,when,msg_id,channel_id="asianodds"):
     fixture=parse_qs(urlparse(url).query).get("match",[None])[0] if url else None
     key=fixture or ko.strftime("%Y-%m-%d")+"|"+home.casefold()+"|"+away.casefold()
     market="total" if re.search(r"\bTotal:\s*"+NUM+r"\s*[↑↓]\s*"+NUM,text) else "1x2" if "1x2" in text else "unknown"
-    rows=[(k.lower(),*[float(v.replace(",",".")) for v in (a,b,c)]) for k,a,b,c in ROW.findall(text)]
+    rows=odds_rows(text)
     # The last table is always Total, also in 1x2 channel messages.
     w=next((x for x in reversed(rows) if x[0]=="was"),None)
     n=next((x for x in reversed(rows) if x[0]=="now"),None)
@@ -78,10 +90,10 @@ def classify_message(text):
         return "other_channel_message"
     if not KICK.search(text):
         return "missing_kickoff"
-    rows=ROW.findall(text)
-    if not any(k.lower()=="was" for k,*_ in rows):
+    rows=odds_rows(text)
+    if not any(k=="was" for k,*_ in rows):
         return "missing_was_row"
-    if not any(k.lower()=="now" for k,*_ in rows):
+    if not any(k=="now" for k,*_ in rows):
         return "missing_now_row"
     return "unrecognized_alert_format"
 
