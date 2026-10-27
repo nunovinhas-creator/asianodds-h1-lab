@@ -30,6 +30,33 @@ class ParseTest(unittest.TestCase):
         a=parse_alert(message(typ="1x2 (1): 2.40 ↓ 2.20"),OBS,1)
         self.assertFalse(a["h1"])
 
+    def test_odds_movement_emojis_in_now_row(self):
+        # Real AsianOdds formatting: move indicators immediately follow the odds.
+        actual=message(
+            name="FK Transinvest II vs FK Siauliai Reserves",
+            was="3.75   1.96    1.89",
+            now="3.50   1.79🔴   1.92🔵",
+            typ="Total: 3.75 ↓ 3.50")
+        a=parse_alert(actual,OBS,50581)
+        self.assertIsNotNone(a)
+        self.assertEqual(a["total_before"],3.75)
+        self.assertEqual(a["over_after"],1.79)
+        self.assertEqual(a["under_after"],1.92)
+        self.assertFalse(a["h1"])
+        self.assertEqual(classify_message(actual),"unrecognized_alert_format")
+
+    def test_emoji_now_row_with_rising_line_H1(self):
+        actual=message(now="2.75 1.81🔴 1.89🔵")
+        a=parse_alert(actual,OBS,50582)
+        self.assertIsNotNone(a)
+        self.assertTrue(a["h1"])
+        self.assertEqual(a["under_after"],1.89)
+
+    def test_diagnostic_on_malformed_now_row(self):
+        actual=message(now="2.75 missing 1.89🔵")
+        self.assertIsNone(parse_alert(actual,OBS,50583))
+        self.assertEqual(classify_message(actual),"missing_now_row")
+
     def test_no_match_returns_none(self):
         self.assertIsNone(parse_alert("spam",OBS,1))
 
