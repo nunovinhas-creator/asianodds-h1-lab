@@ -22,6 +22,13 @@ async def run():
                               int(os.environ["TG_API_ID"]),os.environ["TG_API_HASH"]) as client:
         for t in pending:
             ss=[signals[x] for x in t["signal_ids"]]
+            # Never send a late "new triple" after one of its matches has started.
+            if min(datetime.fromisoformat(s["kickoff_utc"]) for s in ss)<=datetime.now(timezone.utc):
+                t["notified_at"]="EXPIRED"
+                t["notification_status"]="missed_before_delivery"
+                save(state)
+                print("Expired without alert",t["ticket_id"])
+                continue
             lines=["🧪 ASIANODDS H1 — TRIPLA SIMULADA",t["ticket_id"]]
             for i,s in enumerate(ss,1):
                 lines.extend([str(i)+". "+s["home"]+" – "+s["away"],
