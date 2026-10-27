@@ -26,7 +26,9 @@ jobs:
           python-version: "3.11"
       - name: Reconcile latest collector state
         run: git pull --rebase origin main
-      - name: Check free public results API with strict FT validation
+      - name: Check BSD and TheSportsDB results with strict FT validation
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: python -m h1lab.results
       - name: Rebuild ROI for singles and triples
         run: python -m h1lab.cli render
