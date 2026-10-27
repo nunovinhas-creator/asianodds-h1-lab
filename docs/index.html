@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AsianOdds H1 Lab — Observatório</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;background:#0b1220;color:#ecf2ff}
+*{box-sizing:border-box}body{margin:0}main{max-width:1200px;margin:auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid #25324c;padding:0 0 22px}
+h1{font-size:clamp(23px,4vw,34px);margin:2px 0}h2{font-size:20px}p{color:#a6b6d2}
+small,.muted{color:#899dbe}.badge{font-size:12px;color:#67d6c2;border:1px solid #2e665e;border-radius:100px;padding:5px 11px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin:28px 0}
+.card{background:#152036;border:1px solid #273851;padding:20px;border-radius:14px}
+.card small{display:block;margin-bottom:9px}.card strong{font-size:27px;letter-spacing:-.8px}
+.positive{color:#72e0b0}.negative{color:#ff9f9f}
+nav{display:flex;gap:10px;margin:22px 0}button{background:#18263f;border:1px solid #3d5173;color:#dae8ff;padding:10px 15px;border-radius:9px;cursor:pointer}
+button[aria-selected=true]{background:#2866d0;border-color:#4483ee;color:white}
+.tablewrap{overflow:auto;background:#131e32;border:1px solid #2b3b56;border-radius:13px}
+table{border-collapse:collapse;width:100%;min-width:730px}th,td{text-align:left;padding:13px 12px;vertical-align:top;border-bottom:1px solid #23334d}
+th{color:#91aace;font-size:12px;font-weight:700;text-transform:uppercase}td{font-size:13px}td small{display:block;margin-top:4px}
+a{color:#80b9ff;text-decoration:none}.mono{font-variant-numeric:tabular-nums;white-space:nowrap}.empty{padding:32px;text-align:center;color:#a2b5d1}
+footer{border-top:1px solid #24334c;margin-top:40px;padding-top:16px;color:#7e96b8;font-size:12px;line-height:1.6}
+</style></head><body><main>
+<header><div><div class="badge" style="display:inline-block">Investigação · Sem apostas reais</div><h1>AsianOdds H1 Lab</h1><p>Linhas de golos, Under, triplas simuladas e ROI auditável.</p></div><div><strong id="fresh">Sem recolha</strong><small style="display:block">Última atualização UTC</small></div></header>
+<section class="cards">
+ <div class="card"><small>Alertas processados</small><strong id="alerts">0</strong></div>
+ <div class="card"><small>Sinais H1 / singles</small><strong id="singles-total">0</strong></div>
+ <div class="card"><small>ROI singles liquidadas</small><strong id="singles-roi">—</strong><small id="singles-count"></small></div>
+ <div class="card"><small>Triplas emitidas</small><strong id="triples-total">0</strong></div>
+ <div class="card"><small>ROI triplas liquidadas</small><strong id="triples-roi">—</strong><small id="triples-count"></small></div>
+</section>
+<nav role="tablist"><button id="tab-single" aria-selected="true" type="button">Singles H1</button><button id="tab-triple" aria-selected="false" type="button">Triplas</button></nav>
+<section id="singles"><h2>Sinais H1 individuais</h2><p>Primeiro alerta válido por jogo. Resultados apenas após confirmação.</p><div class="tablewrap"><table><thead><tr><th>Jogo</th><th>Início UTC</th><th>Under</th><th>Odd</th><th>Resultado FT</th><th>P/L (u.)</th></tr></thead><tbody id="body-single"></tbody></table></div></section>
+<section id="triples" hidden><h2>Triplas H1 — FIFO</h2><p>Bilhetes congelados na recolha do terceiro sinal, sem substituição posterior.</p><div class="tablewrap"><table><thead><tr><th>Bilhete</th><th>Três seleções</th><th>Odd teórica</th><th>Estado</th><th>P/L (u.)</th></tr></thead><tbody id="body-triple"></tbody></table></div></section>
+<footer>Protocolo experimental: linha Total ↑ pelo menos 0,25 e odd Over ↑; selecionar Under na nova linha. Odds observadas não garantem execução. Uma unidade por single e por tripla. Sem seleção retrospetiva e sem multiplicar observações repetidas. O histórico público não contém o texto integral das mensagens nem credenciais do Telegram.</footer>
+</main><script>
+const $=id=>document.getElementById(id);
+const num=x=>x==null?"—":Number(x).toLocaleString("pt-PT",{maximumFractionDigits:2});
+const money=x=>x==null?"Pendente":(x>=0?"+":"")+num(x);
+const node=(tag,txt,css)=>{const e=document.createElement(tag);e.textContent=txt;if(css)e.className=css;return e};
+const cell=(tr,txt,css)=>tr.appendChild(node("td",txt,css));
+function tab(which){for(const type of ["single","triple"]){$("tab-"+type).setAttribute("aria-selected",String(which===type));$(type+"s").hidden=which!==type}}
+$("tab-single").addEventListener("click",()=>tab("single"));
+$("tab-triple").addEventListener("click",()=>tab("triple"));
+function roi(id,v){$(id).textContent=v==null?"—":(v>0?"+":"")+num(v)+"%";$(id).className=v==null?"":v>=0?"positive":"negative"}
+function draw(data){
+ $("fresh").textContent=data.generated_at?data.generated_at.replace("T"," ").slice(0,19):"À espera da primeira recolha";
+ $("alerts").textContent=num(data.alert_count);
+ for(const mode of ["singles","triples"]){
+  $(mode+"-total").textContent=num(data[mode].total);
+  roi(mode+"-roi",data[mode].roi_pct);
+  $(mode+"-count").textContent=data[mode].settled+" liquidadas · "+data[mode].pending+" pendentes · "+money(data[mode].profit_units)+" u.";
+ }
+ const sb=$("body-single");sb.replaceChildren();
+ for(const s of [...data.signals].sort((a,b)=>a.kickoff_utc.localeCompare(b.kickoff_utc))){
+  const tr=document.createElement("tr");
+  const first=document.createElement("td");
+  first.appendChild(node("span",s.home+" – "+s.away));first.appendChild(node("small",s.competition,"muted"));
+  if(s.source_url){const a=node("a","Ver movimento AsianOdds");a.href=s.source_url;a.target="_blank";a.rel="noopener noreferrer";first.appendChild(a)}
+  tr.appendChild(first);
+  cell(tr,s.kickoff_utc.replace("T"," ").slice(0,16),"mono");
+  cell(tr,num(s.line),"mono");cell(tr,num(s.under_odds),"mono");
+  cell(tr,s.result?s.result.home_goals+"–"+s.result.away_goals:"Pendente","mono");
+  cell(tr,money(s.profit),s.profit==null?"muted":s.profit>=0?"positive":"negative");sb.appendChild(tr);
+ }
+ const tb=$("body-triple");tb.replaceChildren();
+ for(const t of data.tickets){
+  const tr=document.createElement("tr");cell(tr,t.ticket_id,"mono");
+  const leg=document.createElement("td");
+  for(const s of t.legs)leg.appendChild(node("div",s.name+" · Under "+num(s.line)+" @ "+num(s.odds)));
+  tr.appendChild(leg);cell(tr,num(t.theoretical_odds),"mono");
+  cell(tr,t.profit==null?"Pendente":t.profit>0?"GREEN":t.profit<0?"RED":"PUSH");
+  cell(tr,money(t.profit),t.profit==null?"muted":t.profit>=0?"positive":"negative");tb.appendChild(tr);
+ }
+ if(!data.signals.length){const tr=document.createElement("tr");const td=node("td","Ainda não foram recolhidos sinais H1. Configura as credenciais no GitHub.","empty");td.colSpan=6;tr.appendChild(td);sb.appendChild(tr)}
+ if(!data.tickets.length){const tr=document.createElement("tr");const td=node("td","As triplas aparecerão quando houver três sinais futuros elegíveis.","empty");td.colSpan=5;tr.appendChild(td);tb.appendChild(tr)}
+}
+fetch("./data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(draw).catch(err=>{$("fresh").textContent="Falha ao carregar dados";console.error(err)});
+</script></body></html>
