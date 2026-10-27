@@ -15,6 +15,13 @@ Observatório experimental de odds asiáticas: **recolha de um canal Telegram ao
 - ⚠️ Envio de triplas configurado para *Mensagens Guardadas* via Telegram; ainda sem primeira entrega real comprovada. Mensagens Guardadas não garantem notificação push.
 - ✅ Reconciliação automática horária de resultados com a **BSD Football v2**, caso `BSD_API_KEY` esteja configurado, em conjunto com a API V1 gratuita TheSportsDB. Confere ambas as fontes e bloqueia discrepâncias de marcador; sem chave BSD funciona apenas a TheSportsDB. Cobertura parcial: jogos sem identificação inequívoca permanecem pendentes, com motivo em `data/result_audit.json`.
 
+## Agendamento de 5 minutos — estado verificado (27/10/2026)
+
+- O GitHub mantém `schedule: 2-57/5 * * * *` em `main`, mas **não se observou ainda nenhum run com `event=schedule`**. As execuções manuais/`push` comprovam o processamento, não o funcionamento do relógio.
+- Está incluído um agendador alternativo gratuito de **Cloudflare Workers Cron** em [`scheduler/`](scheduler/README.md). O Worker usa `*/5 * * * *`, confirma a última execução no GitHub e, se necessário, dispara `collect.yml` através de `workflow_dispatch`.
+- **Este backup ainda precisa de ser ativado na tua conta Cloudflare** e da criação de um token *fine-grained* do GitHub com Actions Read and write **apenas neste repositório**. Sem isso, não é possível certificar a recolha contínua.
+- O log `COLLECT_TRIGGER: github-schedule` comprova a origem nativa; `COLLECT_TRIGGER: cloudflare-cron` comprova a origem externa. Verificar pelo menos **duas execuções sucessivas** com aproximadamente cinco minutos de intervalo e `success`, sem reenvio de triplas.
+
 ## Como funciona
 
 `canal AsianOdds → Telethon (conta subscritora) → alertas numéricos → primeiro H1 por jogo → fila cronológica de 3 jogos futuros → Saved Messages`
