@@ -1,6 +1,12 @@
 name: H1 - Collect Telegram
 on:
   workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: "Origem do disparo (manual ou cloudflare-cron)"
+        required: false
+        type: string
+        default: manual
   push:
     paths:
       - ".github/workflows/collect.yml"
@@ -26,6 +32,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Read authorised Telegram channel
         env:
+          COLLECT_TRIGGER: ${{ github.event_name == 'schedule' && 'github-schedule' || inputs.trigger_source || github.event_name }}
           TG_API_ID: ${{ secrets.TG_API_ID }}
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
           TG_SESSION: ${{ secrets.TG_SESSION }}
