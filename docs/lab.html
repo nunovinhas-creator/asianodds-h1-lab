@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratório UNDER TESTE</title>
+<meta name="description" content="Entrada única do laboratório em modo sombra: saúde V4, qualidade, Golden Set, cronologias e limitações. Não altera o H1.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#eef2f0;--sheet:#f8faf9;--ink:#14212b;--soft:#4c5d66;--line:#c3cfcb;--ok:#0e6a5b;--wait:#9a5b00;--old:#625c7c;--bad:#a12c2c;--focus:#1d5fd1;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#121a1f;--sheet:#18232a;--ink:#e3ebe8;--soft:#9fb0b4;--line:#2f3f45;--ok:#5ac2ad;--wait:#e3a548;--old:#ada6cc;--bad:#ef8a8a;--focus:#8fb4ff;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#121a1f;--sheet:#18232a;--ink:#e3ebe8;--soft:#9fb0b4;--line:#2f3f45;--ok:#5ac2ad;--wait:#e3a548;--old:#ada6cc;--bad:#ef8a8a;--focus:#8fb4ff;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.55 "Atkinson Hyperlegible",system-ui,sans-serif}
+a{color:inherit;text-decoration-color:var(--soft);text-underline-offset:3px}a:hover{text-decoration-color:var(--ink)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:2px}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 64px}
+header{padding:28px 0 8px}
+.top{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px;color:var(--soft)}
+h1{font-size:clamp(34px,7vw,58px);line-height:1.02;font-weight:700;letter-spacing:-.02em;margin:26px 0 12px;max-width:16ch}
+.lede{font-size:19px;max-width:60ch;color:var(--soft);margin:0}
+h2{font-size:25px;line-height:1.2;margin:0 0 6px}
+h3{font-size:18px;margin:22px 0 6px}
+p{max-width:68ch}
+.muted{color:var(--soft)}
+/* Evidence chain: the one bold element */
+.chain{list-style:none;margin:34px 0 10px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:3px solid var(--ink)}
+.chain li{padding:14px 12px 16px 0;position:relative}
+.chain li+li{padding-left:14px;border-left:1px solid var(--line)}
+.step{font-size:14px;color:var(--soft)}
+.chain b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;margin:6px 0 4px}
+.chain .what{font-weight:700}
+.chain .state{font-size:14px;margin-top:6px}
+@media (max-width:720px){.chain{grid-template-columns:1fr}.chain li,.chain li+li{border-left:0;padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;column-gap:12px}.chain b{grid-row:span 3;align-self:center;font-size:26px}}
+nav.toc{margin:30px 0 8px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:16px}
+section{margin-top:44px;padding-top:18px;border-top:1px solid var(--line)}
+.tag{display:inline-block;font-size:14px;font-weight:700;padding:1px 8px;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.tag.ok{color:var(--ok)}.tag.wait{color:var(--wait)}.tag.old{color:var(--old)}.tag.bad{color:var(--bad)}
+.stamp{font-size:15px;color:var(--soft);margin:2px 0 14px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:15.5px;background:var(--sheet)}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:700}td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{border-left:4px solid var(--old);padding:6px 0 6px 14px;margin:14px 0;max-width:68ch}
+.note.wait{border-color:var(--wait)}
+ol.prio{padding-left:22px;max-width:70ch}ol.prio li{margin:8px 0}
+ul.plain{padding-left:20px;max-width:70ch}ul.plain li{margin:5px 0}
+.pair{font-variant-numeric:tabular-nums}
+details{margin:10px 0}summary{cursor:pointer;font-weight:700}
+footer{margin-top:56px;font-size:15px;color:var(--soft)}
+@media (prefers-reduced-motion:no-preference){.chain b{transition:opacity .4s}.loading .chain b{opacity:.25}}
+</style></head>
+<body class="loading"><div class="wrap">
+<header>
+<div class="top"><a href="./index.html">Dashboard H1 (produção)</a><a href="./lab-v4-audit.html">Auditoria V4</a><a href="./golden-review.html">Golden Set — revisão</a></div>
+<h1 id="headline">Nada está certificado ainda.</h1>
+<p class="lede">Este laboratório observa os alertas AsianOdds em modo sombra. Mede se os dados são fiáveis antes de qualquer estudo de vantagem. Não altera o H1 e não cria apostas.</p>
+<ol class="chain" aria-label="Cadeia de evidência, da mensagem ao resultado">
+ <li><span class="step">1</span><span class="what">Mensagens</span><b id="c-msg">—</b><span class="state" id="s-msg">a carregar</span></li>
+ <li><span class="step">2</span><span class="what">Snapshots V4</span><b id="c-snap">—</b><span class="state" id="s-snap">a carregar</span></li>
+ <li><span class="step">3</span><span class="what">Movimentos</span><b id="c-mov">—</b><span class="state" id="s-mov">a carregar</span></li>
+ <li><span class="step">4</span><span class="what">Jogos</span><b id="c-game">—</b><span class="state" id="s-game">a carregar</span></li>
+ <li><span class="step">5</span><span class="what">Resultados</span><b id="c-res">—</b><span class="state" id="s-res">a carregar</span></li>
+</ol>
+<p class="muted" id="chain-note">A unidade de avaliação de uma aposta é o jogo, não cada notificação.</p>
+</header>
+<nav class="toc" aria-label="Secções"><a href="#saude">Saúde e cobertura V4</a><a href="#qualidade">Qualidade e confiança</a><a href="#golden">Golden Set</a><a href="#cronologias">Cronologias</a><a href="#prioridades">Prioridades</a><a href="#limites">Limitações e documentação</a></nav>
+
+<section id="saude" aria-labelledby="h-saude"><h2 id="h-saude">Saúde e cobertura V4</h2>
+<p class="stamp" id="v4-stamp"></p>
+<div class="scroll"><table><thead><tr><th>Critério oficial (primeiras 24 h)</th><th>Estado</th><th>Porquê</th></tr></thead><tbody id="gates"></tbody></table></div>
+<h3>Concordância V4 com o registo H1</h3>
+<div class="scroll"><table><thead><tr><th>Mercado</th><th>Campos comparados</th><th>Concordantes</th><th>Divergências</th><th>Ausentes</th></tr></thead><tbody id="markets"></tbody></table></div>
+</section>
+
+<section id="qualidade" aria-labelledby="h-qual"><h2 id="h-qual">Qualidade e confiança estatística</h2>
+<p>Cada dimensão responde a uma pergunta diferente. Concordância entre parsers não é exatidão: os dois leem o mesmo texto. A unidade é a mensagem; um alerta 1X2 com 18 campos conta uma vez.</p>
+<div class="scroll"><table><thead><tr><th>Dimensão</th><th>Medida</th><th>Limite inferior 95%</th></tr></thead><tbody id="dims"></tbody></table></div>
+<h3>Por família e período do parser</h3>
+<div class="scroll"><table><thead><tr><th>Estrato</th><th>Mensagens</th><th>Todas as células concordam</th><th>Limite inferior 95%</th></tr></thead><tbody id="strata"></tbody></table></div>
+<p class="note wait" id="pw"></p>
+<p class="note" id="pct"></p>
+<h3>Relatório de qualidade V2</h3>
+<p class="stamp" id="q-stamp"></p>
+<p class="muted">Agregado do protótipo V2, executado só manualmente. Fica como registo; a cobertura atual vem da auditoria V4.</p>
+</section>
+
+<section id="golden" aria-labelledby="h-golden"><h2 id="h-golden">Golden Set</h2>
+<p class="stamp" id="g-stamp"></p>
+<p id="g-summary"></p>
+<div class="scroll"><table><thead><tr><th>Família</th><th>Revistas</th><th>Confirmadas pelo utilizador</th><th>Duas revisões</th><th>Campos concordantes</th><th>Com divergências</th></tr></thead><tbody id="g-fam"></tbody></table></div>
+<h3>Mensagens verificadas</h3>
+<div class="scroll"><table><thead><tr><th>Evento</th><th>Família</th><th>Evidência</th><th>Campos</th></tr></thead><tbody id="g-cases"></tbody></table></div>
+<h3>Pendentes</h3><ul class="plain" id="g-pending"></ul>
+<p><a href="./golden-review.html">Abrir a página de revisão</a> para transcrever uma mensagem original.</p>
+</section>
+
+<section id="cronologias" aria-labelledby="h-tl"><h2 id="h-tl">Cronologias e alertas repetidos</h2>
+<p class="stamp" id="t-stamp"></p>
+<p id="t-summary"></p>
+<h3>Mensagens possivelmente do mesmo movimento</h3>
+<p class="muted">Anotação para análise. Nenhum alerta é apagado.</p>
+<div class="scroll"><table><thead><tr><th>Jogo</th><th>Mensagens</th><th>Separação</th><th>Evidência</th><th>Origem</th></tr></thead><tbody id="t-pairs"></tbody></table></div>
+<h3>Jogos com mais alertas</h3>
+<div id="t-games"></div>
+</section>
+
+<section id="prioridades" aria-labelledby="h-prio"><h2 id="h-prio">Prioridades de investigação</h2>
+<ol class="prio" id="prio"></ol>
+</section>
+
+<section id="limites" aria-labelledby="h-lim"><h2 id="h-lim">Limitações e documentação</h2>
+<ul class="plain">
+<li>O canal só publica alguns movimentos; não existe série contínua de preços.</li>
+<li>Uma diferença de linha entre dois alertas é uma mudança não observada, nunca interpolada.</li>
+<li>Valores só do registo H1 não validam o parser V4.</li>
+<li>A percentagem 1X2 mostrada pelo Telegram tem fórmula não validada e não é variável preditiva.</li>
+<li>Sem ROI, valor esperado ou rentabilidade até existir desenho experimental, amostragem por jogo e validação fora da amostra.</li>
+</ul>
+<h3>Documentos</h3>
+<ul class="plain">
+<li><a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/ARCHITECTURE.md">Mapa de arquitetura</a></li>
+<li><a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/QUALITY-DIMENSIONS.md">Dimensões de qualidade e critérios estatísticos</a></li>
+<li><a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/TIMELINE.md">Cronologia por jogo</a></li>
+<li><a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/GOLDEN-REVIEW.md">Procedimento Golden Set</a></li>
+<li><a href="./lab-quality.html">Qualidade V2</a> (histórico) · <a href="./market-intelligence.html">Market Intelligence V1</a> (obsoleto)</li>
+</ul>
+</section>
+<footer>Os dados vêm dos ficheiros JSON publicados em <code>docs/lab/</code>. Cada secção mostra a hora em que foi gerada.</footer>
+</div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const get=p=>fetch(p,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null);
+const el=(tag,text,cls)=>{const x=document.createElement(tag);if(text!=null)x.textContent=String(text);if(cls)x.className=cls;return x};
+const tag=(text,kind)=>el("span",text,"tag "+kind);
+function row(id,cells){const tr=document.createElement("tr");for(const c of cells){const td=document.createElement("td");
+ if(c instanceof Node)td.append(c);else{td.textContent=c==null?"—":String(c);if(typeof c==="number")td.className="n"}tr.append(td)}$(id).append(tr)}
+const pct=x=>x==null?"—":(100*x).toFixed(1).replace(".",",")+"%";
+const fmt=n=>n==null?"—":String(n);
+function age(iso){if(!iso)return null;const h=(Date.now()-Date.parse(iso))/36e5;return Number.isFinite(h)?h:null}
+function stamp(id,iso,label,maxHours){const h=age(iso);const p=$(id);p.replaceChildren();
+ if(!iso){p.append(tag("não publicado","bad")," ",label+" ainda não existe na main.");return}
+ const when=new Date(iso).toLocaleString("pt-PT",{timeZone:"UTC",dateStyle:"short",timeStyle:"short"})+" UTC";
+ if(h!=null&&h>maxHours)p.append(tag("histórico","old")," Gerado em "+when+", há "+Math.round(h)+" h. Não representa o estado atual.");
+ else p.append(tag("atual","ok")," Gerado em "+when+".")}
+const GATE={window_elapsed:["Janela de 24 h terminada","Fecha em "],minimum_evidence:["Amostra mínima por família","São precisas ~299 mensagens por família com 0 falhas."],
+ coverage_99:["Cobertura ≥ 99%",""],field_agreement_100:["Concordância 100% sem problemas na janela","Valores coincidem; 12 registos iniciais sem proveniência contam como problema."],
+ independent_identity:["Identidade independente","12 registos anteriores à proveniência."],data_integrity:["Integridade dos ficheiros",""],
+ golden_set_verified:["Golden Set verificado","Exige revisão humana independente."],logs_clean_24h:["Logs limpos 24 h","Só certificável no fim da janela."]};
+const LEVEL={R1_ONLY:"R1",R1_PLUS_USER_SOURCE_CONFIRMATION:"R1 + confirmação do utilizador",TWO_REVIEWS:"duas revisões"};
+Promise.all([get("./lab/v4-audit.json"),get("./lab/golden-report.json"),get("./lab/match-trajectories.json"),get("./lab/quality.json"),get("./data.json")])
+.then(([v4,g,t,q,h1])=>{
+ document.body.classList.remove("loading");
+ // Evidence chain
+ const s=t?.summary;
+ $("c-msg").textContent=fmt(s?.messages??v4?.legacy_alerts);
+ $("s-msg").replaceChildren(tag("observadas","ok"));
+ const fc=v4?.phase_coverage?.first_24h;
+ $("c-snap").textContent=fmt(v4?.v4_observations);
+ $("s-snap").replaceChildren(tag(fc?fc.captured+"/"+fc.eligible+" na janela":"sem relatório",fc?"ok":"bad"));
+ $("c-mov").textContent=s?"≤ "+s.movement_episodes_upper_bound:"—";
+ $("s-mov").replaceChildren(tag(s?"independência por provar":"cronologia não publicada",s?"wait":"bad"));
+ $("c-game").textContent=fmt(s?.matches);
+ $("s-game").replaceChildren(tag(s?s.repeated_matches+" com vários alertas":"—","wait"));
+ const settled=h1?.singles?.settled;
+ $("c-res").textContent=fmt(settled);
+ $("s-res").replaceChildren(tag("só sinais H1 liquidados","old"));
+ $("headline").textContent=v4?.status==="PASS"?"Gates V4 aprovados; Golden Set ainda por certificar.":"Nada está certificado ainda.";
+
+ // V4 health
+ stamp("v4-stamp",v4?.generated_at,"O relatório V4",2);
+ for(const [k,[name,why]] of Object.entries(GATE)){const ok=v4?.acceptance_gates?.[k];
+  row("gates",[name,ok==null?tag("sem dados","bad"):ok?tag("cumprido","ok"):tag("pendente","wait"),
+   k==="window_elapsed"&&v4?why+new Date(v4.first_24h_end_utc).toLocaleString("pt-PT",{timeZone:"UTC",dateStyle:"short",timeStyle:"short"})+" UTC":ok?"":why])}
+ const MK={total:"Total",asian_handicap:"Handicap asiático",one_x_two:"1X2"};
+ for(const [k,m] of Object.entries(v4?.markets||{})){const x=m.totals||{};row("markets",[MK[k]||k,x.compared,x.matched,x.mismatch||0,x.missing_v4||0])}
+
+ // Quality dimensions
+ const d=v4?.quality_dimensions;
+ if(!d){row("dims",["Dimensões separadas","Ainda não publicadas na main",null])}
+ else{
+  row("dims",["Cobertura de recolha",d.collection_coverage.captured+"/"+d.collection_coverage.messages+" mensagens",pct(d.collection_coverage.lower_95_by_message)]);
+  row("dims",["Identidade independente",d.identity_independence.independent+"/"+d.identity_independence.messages,pct(d.identity_independence.lower_95_by_message)]);
+  for(const [f,r] of Object.entries(d.parser_agreement.by_family))row("dims",["Concordância entre parsers · "+f,r.messages_all_fields_agree+"/"+r.messages+" mensagens",pct(r.lower_95_by_message)]);
+  row("dims",["Exatidão da extração",tag("medida só pelo Golden Set","wait"),null]);
+  row("dims",["Independência entre movimentos",tag("ver cronologias","wait"),null]);
+  row("dims",["Certificação estatística",tag(d.statistical_certification.status==="NOT_CERTIFIED"?"não certificada":d.statistical_certification.status,"wait"),null]);
+  for(const [k,r] of Object.entries(d.parser_agreement.by_parser_period_and_family))row("strata",[k.replace(":"," · "),r.messages,r.messages_all_fields_agree,pct(r.lower_95_by_message)]);
+  const w=d.provenance_window;
+  $("pw").textContent="Janela com proveniência (informativa, não substitui o gate): desde "+(w.start_utc||"—")+", "+w.messages_all_fields_agree+"/"+w.messages+" mensagens concordantes, "+w.independent_identity+" com identidade independente. Os "+w.transitional_messages_without_provenance+" registos de transição não foram reescritos.";
+  const p=d.trigger_displayed_pct;
+  $("pct").textContent="Percentagem 1X2 mostrada pelo Telegram: em "+p.messages_with_pct+" mensagens, "+p.matches_simple_price_change_within_0_2pp+" coincidem com a variação simples da odd. Fórmula não validada; não é usada como variável preditiva.";
+ }
+ stamp("q-stamp",q?.generated_at,"O relatório V2",2);
+
+ // Golden
+ stamp("g-stamp",g?.generated_at,"O relatório Golden",2);
+ const tot=g?.human_review_totals;
+ $("g-summary").textContent=g?(tot?tot.messages_with_human_review+" mensagens revistas, "+tot.fields_matching_v4+"/"+tot.fields_compared+" campos concordantes com o V4, "+tot.two_reviews+" com segunda revisão independente. ":"")+"Estado global: "+(g.golden_set_verified?"verificado":"não certificado")+".":"Relatório Golden não publicado.";
+ for(const [f,r] of Object.entries(g?.coverage_by_family||{}))row("g-fam",[f,r.messages_with_human_review+"/"+r.candidates,r.user_source_confirmed,r.two_reviews,r.fields_matching_v4+"/"+r.fields_compared,r.messages_with_differences]);
+ for(const c of (g?.cases||[]).filter(c=>c.reviews_received>0)){const n=c.single_review_compared_fields||c.checked_fields||0;
+  row("g-cases",[c.event_id.split(":").pop(),c.family,LEVEL[c.evidence_level]||c.status,(c.single_review_matched_fields??n)+"/"+n])}
+ for(const p of g?.pending_references||[]){const li=el("li");li.append(tag(p.status==="TRANSCRIPTION_NOT_IN_REPOSITORY"?"sem texto original":"ficheiro recebido","wait")," "+p.event_id.split(":").pop()+" · "+p.label+" · "+p.expected_fields+" campos");$("g-pending").append(li)}
+ for(const u of g?.unattributed_tables||[])$("g-pending").append(el("li","Tabela Total sem cabeçalho, compatível com "+u.numerically_compatible_event_ids.map(x=>x.split(":").pop()).join(" e ")+": identidade não comprovada, não usada como referência."));
+ if(!$("g-pending").children.length)$("g-pending").append(el("li","Sem pendências registadas."));
+
+ // Timelines
+ stamp("t-stamp",t?.generated_at,"A cronologia por jogo",2);
+ if(s){$("t-summary").textContent=s.messages+" mensagens em "+s.matches+" jogos; "+s.repeated_matches+" jogos têm mais do que um alerta ("+s.messages_on_repeated_matches+" mensagens). "+s.related_message_pairs+" pares parecem descrever o mesmo movimento, "+s.possibly_redundant_snapshots+" com o Total exatamente igual. Origem dos snapshots: "+(s.snapshots_by_origin.V4_EXPLICIT||0)+" V4 explícitos, "+(s.snapshots_by_origin.H1_LEGACY_ONLY||0)+" só do registo H1.";
+  const EV={IDENTICAL_TOTAL_SNAPSHOT:"Total idêntico",SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES:"mesmas linhas, preços diferentes"};
+  for(const tl of t.timelines)for(const r of tl.related_messages)
+   row("t-pairs",[tl.match_label,r.events.map(e=>e.split(":").pop()).join(" / "),r.separation_seconds+" s",EV[r.evidence]||r.evidence,r.mixed_origin?tag("V4 + H1","old"):"V4 ou H1"]);
+  const top=[...t.timelines].sort((a,b)=>b.event_count-a.event_count||a.match_label.localeCompare(b.match_label)).slice(0,8);
+  for(const tl of top){const det=el("details");const sum=el("summary",tl.match_label+" · "+tl.event_count+" alertas");det.append(sum);
+   const tr=tl.trajectory.total;if(tr){const ul=el("ul",null,"plain");
+    tr.points.forEach((p,i)=>{const li=el("li",null,"pair");li.textContent="Mensagem "+p.event_id.split(":").pop()+": Total "+p.before+" → "+p.after+" ("+(p.origin==="V4_EXPLICIT"?"V4":"só H1")+")";
+     const x=tr.transitions[i-1];if(x)li.textContent=({CONTINUOUS:"Linha contínua. ",UNOBSERVED_CHANGE:"Mudança não observada entre alertas. ",SAME_MOVEMENT_REPEAT:"Mesmo movimento repetido. ",AMBIGUOUS_REPEAT_OR_REVERSAL:"Repetição ou ida-e-volta, indecidível. "}[x.line]||"")+li.textContent;ul.append(li)});det.append(ul)}
+   $("t-games").append(det)}
+ }else{$("t-summary").textContent="A cronologia ainda não foi publicada na main.";}
+
+ // Priorities (derived from published evidence)
+ const P=[];
+ if((g?.pending_reference_count||0)>0)P.push("Voltar a fornecer o texto ou a captura original de "+g.pending_references.map(p=>p.event_id.split(":").pop()).join(", ")+" para gerar revisões R1 com hash real.");
+ if(v4&&!v4.acceptance_gates?.window_elapsed)P.push("Esperar o fim da janela V4 ("+v4.first_24h_end_utc+") e certificar os logs das recolhas.");
+ P.push("Obter uma segunda revisão independente (R2) de pelo menos uma mensagem por família.");
+ if(d)P.push("Decidir se a janela com proveniência ("+d.provenance_window.start_utc+") passa a ser a janela oficial; exige PR própria e documentada.");
+ P.push("Aumentar a amostra para ~299 mensagens por família antes de qualquer afirmação de fiabilidade a 99%.");
+ P.push("Investigar a fórmula da percentagem 1X2 do Telegram separadamente.");
+ P.push("Decidir, no H1 e com autorização, como particionar data/state.json antes de se aproximar do limite de 100 MB.");
+ for(const x of P)$("prio").append(el("li",x));
+});
+</script>
+</body></html>
