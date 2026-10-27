@@ -174,3 +174,17 @@ class AuditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SchemaTests(unittest.TestCase):
+    def test_team_ids_from_flat_and_side_fields_only(self):
+        self.assertEqual(audit.ref_id({"home_team": "X", "home_team_id": 7}, "home_team"), 7)
+        self.assertEqual(audit.ref_id({"home": {"id": 8, "name": "X"}}, "home_team"), 8)
+        self.assertEqual(audit.ref_id({"teams": {"away": {"id": 9}}}, "away_team"), 9)
+        self.assertIsNone(audit.ref_id({"home_team": "X"}, "home_team"))
+        self.assertIsNone(audit.ref_id({"home_team": {"id": "7"}}, "home_team"))
+
+    def test_shape_has_no_values(self):
+        sh = audit.shape({"id": 1, "home_team": {"id": 2, "name": "Secret FC"}})
+        self.assertEqual(sh, {"home_team": {"id": "int", "name": "str"}, "id": "int"})
+        self.assertNotIn("Secret", json.dumps(sh))

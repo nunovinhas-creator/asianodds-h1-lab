@@ -112,14 +112,41 @@ def list_all(fetch, path, params, page=100, max_pages=40):
 
 # ------------------------------------------------------------ fields
 
-def ref_id(obj, key):
-    """Id of a related object given either nested dict or *_id field."""
-    val = obj.get(key)
-    if isinstance(val, dict):
-        val = val.get("id")
-    if val is None:
-        val = obj.get(key + "_id")
+def _pos_int(val):
     return val if type(val) is int and val > 0 else None
+
+
+def ref_id(obj, key):
+    """Id of a related object; only explicit id fields are accepted.
+
+    key is "league", "home_team" or "away_team". Looks at, in order:
+    obj[key]["id"], obj[key+"_id"], and for teams obj[side]["id"],
+    obj[side+"_id"], obj["teams"][side]["id"]. Never derives ids from names.
+    """
+    val = obj.get(key)
+    if isinstance(val, dict) and _pos_int(val.get("id")):
+        return val["id"]
+    if _pos_int(obj.get(key + "_id")):
+        return obj[key + "_id"]
+    if key in ("home_team", "away_team"):
+        side = key.split("_")[0]
+        for cand in (obj.get(side), obj.get(side + "_team_obj"),
+                     (obj.get("teams") or {}).get(side) if isinstance(obj.get("teams"), dict) else None):
+            if isinstance(cand, dict) and _pos_int(cand.get("id")):
+                return cand["id"]
+        if _pos_int(obj.get(side + "_id")):
+            return obj[side + "_id"]
+    return None
+
+
+def shape(obj, depth=1):
+    """Field names and types only (no values) for schema evidence."""
+    if isinstance(obj, dict):
+        return {k: (shape(v, depth - 1) if depth > 0 and isinstance(v, (dict, list))
+                    else type(v).__name__) for k, v in sorted(obj.items())}
+    if isinstance(obj, list):
+        return [shape(obj[0], depth)] if obj else []
+    return type(obj).__name__
 
 
 def ref_name(obj, key):
@@ -197,6 +224,8 @@ def check_event(fetch, league_id, ev):
     if not isinstance(detail, dict):
         r["problems"].append("detail_not_object")
         return r
+    r["list_shape"] = shape(ev)
+    r["detail_shape"] = shape(detail)
     if detail.get("id") != eid:
         r["problems"].append("detail_id_mismatch")
     lid = ref_id(detail, "league")
@@ -255,11 +284,15 @@ def audit_league(fetch, comp, lg, today):
     except BSDError as exc:
         out["current_season"] = {"error": str(exc)}
 
+    if isinstance(season, dict):
+        out["current_season_shape"] = shape(season)
     fut = fetch("events/", {"league_id": lid, "status": "upcoming",
                             "date_from": today.isoformat(),
                             "date_to": (today + timedelta(days=FUTURE_DAYS)).isoformat(),
                             "limit": 200})
     frows, fnext, fcount = rows_of(fut)
+    if frows and isinstance(frows[0], dict):
+        out["future_event_shape"] = shape(frows[0])
     now = datetime.now(UTC)
     future_ok = [e for e in frows if isinstance(e, dict) and kickoff(e)
                  and kickoff(e) >= now - timedelta(hours=3)
@@ -348,6 +381,15 @@ def run(fetch, comps, today=None, log=print):
                 row["error"] = str(exc)
         else:
             row["mapping"] = "ambiguous" if kept else "missing"
+        if row.get("samples") and not report.get("event_schema"):
+            sm = row["samples"][0]
+            report["event_schema"] = {"list": sm.get("list_shape"),
+                                      "detail": sm.get("detail_shape"),
+                                      "season": row.get("current_season_shape"),
+                                      "future": row.get("future_event_shape")}
+            log("BSD_EU_EVENT_LIST_SHAPE:", json.dumps(sm.get("list_shape"), sort_keys=True))
+            log("BSD_EU_EVENT_DETAIL_SHAPE:", json.dumps(sm.get("detail_shape"), sort_keys=True))
+            log("BSD_EU_SEASON_SHAPE:", json.dumps(row.get("current_season_shape"), sort_keys=True))
         f = row.get("flags", {})
         row["covered"] = row["mapping"] == "exact" and all(f.values()) and bool(f)
         results.append(row)
