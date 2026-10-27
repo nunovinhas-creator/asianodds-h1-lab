@@ -1,56 +1,57 @@
-"""Send each new triple to the account's own Saved Messages; no bot required."""
-import asyncio
+"""Notify H1 triples to an explicitly configured Telegram bot chat.
+
+Receiving channel uses a separate read account (TG_SESSION); delivery is via
+TG_BOT_TOKEN and TG_CHAT_ID only. No automatic Saved Messages fallback.
+"""
 import os
 from datetime import datetime, timezone
-from .cli import read_state,save
 
-async def run():
-    from telethon import TelegramClient
-    from .session import load_telegram_session
-    state=read_state()
-    pending=[t for t in state["tickets"] if not t.get("notified_at")]
+from .bot import configured, send_message
+from .cli import read_state, save
+
+
+def message_for_ticket(ticket, signals):
+    lines = ["🧪 ASIANODDS H1 — TRIPLA SIMULADA", ticket["ticket_id"]]
+    for i, signal in enumerate(signals, 1):
+        lines.extend([
+            str(i) + ". " + signal["home"] + " – " + signal["away"],
+            "Under " + str(signal["line"]) + " | odd " + str(signal["under_odds"])
+            + " | início " + signal["kickoff_utc"][:16].replace("T", " ") + " UTC",
+        ])
+    lines += [
+        "Odd teórica da tripla: " + str(ticket["theoretical_odds"]),
+        "Simulação, não é uma aposta executada. Odds não confirmadas em tempo real.",
+    ]
+    return "\n".join(lines)
+
+
+def run():
+    state = read_state()
+    # A legacy receipt for Telegram Saved Messages is not a bot-chat receipt.
+    pending = [t for t in state["tickets"] if not t.get("bot_notified_at")]
     if not pending:
-        print("No pending triple notifications")
+        print("No pending bot-chat triple notifications")
         return
-    keys=("TG_API_ID","TG_API_HASH","TG_SESSION")
-    if any(not os.environ.get(k) for k in keys):
-        print("SETUP_REQUIRED: Telegram account not configured")
+    if not configured():
+        print("NOTIFY_SETUP_REQUIRED: configure TG_BOT_TOKEN and TG_CHAT_ID "
+              "for bot-chat notifications; existing tickets remain pending.")
         return
-    signals={s["signal_id"]:s for s in state["signals"]}
-    target=os.getenv("TG_OUTPUT_CHAT","me")
-    async with TelegramClient(load_telegram_session(),
-                              int(os.environ["TG_API_ID"]),os.environ["TG_API_HASH"]) as client:
-        for t in pending:
-            ss=[signals[x] for x in t["signal_ids"]]
-            # GitHub may crash after sending but before committing the receipt.
-            # Search the target for the stable ticket ID before trying again.
-            async for prior in client.iter_messages(target,search=t["ticket_id"],limit=10):
-                if t["ticket_id"] in (prior.raw_text or ""):
-                    t["notified_at"]=datetime.now(timezone.utc).isoformat(timespec="seconds")
-                    t["notification_status"]="found_existing_message"
-                    save(state)
-                    print("Existing delivery recovered",t["ticket_id"])
-                    break
-            if t.get("notified_at"):
-                continue
-            # Never send a late "new triple" after one of its matches has started.
-            if min(datetime.fromisoformat(s["kickoff_utc"]) for s in ss)<=datetime.now(timezone.utc):
-                t["notified_at"]="EXPIRED"
-                t["notification_status"]="missed_before_delivery"
-                save(state)
-                print("Expired without alert",t["ticket_id"])
-                continue
-            lines=["🧪 ASIANODDS H1 — TRIPLA SIMULADA",t["ticket_id"]]
-            for i,s in enumerate(ss,1):
-                lines.extend([str(i)+". "+s["home"]+" – "+s["away"],
-                     "Under "+str(s["line"])+" | odd "+str(s["under_odds"])+
-                     " | início "+s["kickoff_utc"][:16].replace("T"," ")+" UTC"])
-            lines.extend(["Odd teórica da tripla: "+str(t["theoretical_odds"]),
-                           "Simulação, não é uma aposta executada. Odds não confirmadas em tempo real."])
-            await client.send_message(target,"\n".join(lines),link_preview=False)
-            t["notified_at"]=datetime.now(timezone.utc).isoformat(timespec="seconds")
-            t["notification_status"]="sent"
+    signals = {s["signal_id"]: s for s in state["signals"]}
+    for ticket in pending:
+        legs = [signals[sid] for sid in ticket["signal_ids"]]
+        if min(datetime.fromisoformat(s["kickoff_utc"]) for s in legs) <= datetime.now(timezone.utc):
+            ticket["bot_notified_at"] = "EXPIRED"
+            ticket["bot_notification_status"] = "expired_before_delivery"
             save(state)
-            print("Sent",t["ticket_id"])
+            print("Expired bot-chat triple before delivery", ticket["ticket_id"])
+            continue
+        message_id = send_message(message_for_ticket(ticket, legs))
+        ticket["bot_message_id"] = message_id
+        ticket["bot_notified_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        ticket["bot_notification_status"] = "sent"
+        save(state)
+        print("BOT_SENT", ticket["ticket_id"])
 
-if __name__=="__main__": asyncio.run(run())
+
+if __name__ == "__main__":
+    run()
