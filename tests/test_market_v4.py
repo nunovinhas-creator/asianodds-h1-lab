@@ -69,6 +69,20 @@ class MarketV4Tests(unittest.TestCase):
         self.assertEqual(parse(TOTAL_UP,WHEN,10,33)["trigger"]["before"],2.25)
         self.assertEqual(parse(TOTAL_UP,WHEN,10,33)["match_key"],"2026-10-27|kaizer chiefs fc|ts galaxy fc")
 
+    def test_identity_provenance_from_telegram(self):
+        e=parse(TOTAL_UP,WHEN,50,33)
+        self.assertEqual(e["identity_source"]["match_key"],"telegram_teams_kickoff")
+        self.assertEqual(e["identity_source"]["kickoff_utc"],"telegram_clock")
+        self.assertEqual(e["parser_revision"],"v4-provenance-1")
+        self.assertEqual(e["field_source"],"telegram_explicit_rows")
+        self.assertIn("trigger_pct",e["unverified_fields"])
+
+    def test_fallback_is_explicitly_marked_not_independent(self):
+        e=parse("Line O U\nWas 2.25 1.9 2.0\nNow 2.25 1.8 1.9",
+                WHEN,51,33,legacy_event={"match_key":"legacy:1","kickoff_utc":"2026-10-28T18:00:00+00:00"})
+        self.assertEqual(e["match_key"],"legacy:1")
+        self.assertEqual(e["identity_source"]["match_key"],"legacy_fallback")
+        self.assertEqual(e["identity_source"]["kickoff_utc"],"legacy_fallback")
     def test_monthly_idempotence(self):
         with tempfile.TemporaryDirectory() as d:
             e=parse(MIXED,WHEN,12,33)

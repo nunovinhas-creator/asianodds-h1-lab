@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from h1lab.v4_audit import CUTOVER, audit, generate, numeric, read_jsonl
+from h1lab.v4_audit import CUTOVER, audit, generate, numeric, read_jsonl, clopper_pearson_lower
 
 BASE = datetime.fromisoformat(CUTOVER) + timedelta(minutes=3)
 EVENT_ID = "3571094759:900"
@@ -25,6 +25,10 @@ def total_v4(event_id=EVENT_ID, observed=None):
     return {"event_id": event_id, "schema_version": 4,
             "observed_at": old["observed_at"], "match_key": KEY,
             "kickoff_utc": old["kickoff_utc"], "trigger_market": "total",
+            "identity_source": {"match_key": "url_match", "kickoff_utc": "telegram_clock"},
+            "parser_revision": "v4-provenance-1",
+            "parser_commit": "0123456789abcdef0123456789abcdef01234567",
+            "field_source": "telegram_explicit_rows",
             "markets": {"total": {
                 "before": {"line": 2.25, "over_price": 1.83, "under_price": 2.02},
                 "after": {"line": 2.5, "over_price": 1.83, "under_price": 1.81}}}}
@@ -67,6 +71,41 @@ class V4AuditTests(unittest.TestCase):
         self.assertEqual(d["phase_coverage"]["first_24h"]["pct"], 100)
         self.assertEqual(d["markets"]["total"]["totals"]["matched"], 6)
         self.assertEqual(d["markets_by_phase"]["historical"]["total"]["totals"]["missing_v4"], 6)
+
+    def test_binomial_bound_by_messages_not_18_fields(self):
+        self.assertAlmostEqual(clopper_pearson_lower(10, 10), 0.05**(1/10))
+        self.assertLess(clopper_pearson_lower(99, 100), 0.99)
+        self.assertLess(clopper_pearson_lower(298, 298), 0.99)
+        self.assertGreaterEqual(clopper_pearson_lower(299, 299), 0.99)
+
+    def test_fallback_identity_never_passes_independent_gate(self):
+        v = total_v4()
+        v["identity_source"]["match_key"] = "legacy_fallback"
+        d = report(markets=[v])
+        self.assertEqual(d["statistical_evidence"]["families"]["total"]["independently_complete"], 0)
+        self.assertIn("identity_inherited_or_missing", d["issue_counts_by_phase"]["first_24h"])
+        self.assertFalse(d["acceptance_gates"]["independent_identity"])
+
+    def test_missing_revision_is_explicit_unverified(self):
+        v = total_v4()
+        v.pop("parser_commit")
+        d = report(markets=[v])
+        self.assertIn("parser_commit_unverified", d["issue_counts"])
+        self.assertEqual(d["status"], "PENDING")
+
+    def test_conflicting_duplicate_and_invalid_timestamp_block_integrity(self):
+        first = total_event()
+        other = dict(first, over_before=1.93)
+        d = report(alerts=[first, other])
+        self.assertFalse(d["acceptance_gates"]["data_integrity"])
+        d = report(alerts=[dict(first, observed_at="garbage")])
+        self.assertFalse(d["acceptance_gates"]["data_integrity"])
+
+    def test_h1_failure_without_v4_marker_not_a_v4_failure(self):
+        d = report(log_evidence={"status": "unverified",
+                 "collector_non_v4_failed_run_ids": [123]},
+                 now=BASE + timedelta(days=2))
+        self.assertEqual(d["status"], "PENDING")
 
     def test_total_all_six_fields_equal_and_changed_line(self):
         d = report()

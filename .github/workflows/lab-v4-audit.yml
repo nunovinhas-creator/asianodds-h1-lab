@@ -9,9 +9,9 @@ permissions:
   contents: write
   actions: read
 
-# Same write mutex as collector; never change collector or its five-minute trigger.
+# Independent lab mutex: never block or delay the five-minute H1 collector.
 concurrency:
-  group: asianodds-h1-write
+  group: asianodds-lab-v4-audit
   cancel-in-progress: false
 
 jobs:
@@ -32,7 +32,9 @@ jobs:
           git pull --rebase origin main
           echo "LAB_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Validate V4 audit tests before publication
-        run: python -m unittest discover -s tests -p 'test_v4_audit.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_v4_audit.py' -v
+          python -m unittest discover -s tests -p 'test_v4_logscan.py' -v
       - name: Build audit and inspect triggering collector logs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,6 +48,15 @@ jobs:
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
-            git pull --rebase origin main
-            git push origin main
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                echo "LAB_AUDIT_PUBLISHED"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "LAB_AUDIT_PUBLISH_FAILED"
+            exit 1
           fi

@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "h1lab/v4_audit.py"
+      - "h1lab/market_v4.py"
       - "scripts/lab_v4_audit.py"
       - "tests/test_v4_audit.py"
       - ".github/workflows/lab-v4-*.yml"
@@ -29,6 +30,12 @@ jobs:
           from pathlib import Path
           d = json.loads(Path("docs/lab/v4-audit.json").read_text())
           assert d["schema_version"] == 1
+          assert d["golden_set"]["status"] == "NOT_VERIFIED"
+          assert not d["acceptance_gates"]["golden_set_verified"]
+          assert d["statistical_evidence"]["unit"] == "Telegram message"
+          assert "total" in d["statistical_evidence"]["families"]
+          assert "1x2" in d["statistical_evidence"]["families"]
+          assert d["total_issue_count"] >= len(d["issues"])
           assert d["status"] in ("PENDING","FAIL","PASS")
           assert d["phase_coverage"]["first_24h"]["eligible"] >= 1
           assert d["markets"]["total"]["totals"]["matched"] >= 6
