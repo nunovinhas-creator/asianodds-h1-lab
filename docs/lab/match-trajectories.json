@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-27T22:01:21+00:00",
+ "generated_at": "2026-10-27T22:06:25+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 32
  },
  "schema_version": 1,
- "source_commit": "aa1a646968eba072c99f61a3c5a057116e2b67c3",
+ "source_commit": "9cc1acd034f928c589976a129456bdc9a916a069",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 109,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 3,
-  "messages": 146,
+  "messages": 147,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 69,
+  "messages_on_repeated_matches": 70,
   "messages_v4_only": 0,
-  "messages_with_v4": 72,
-  "movement_episodes_upper_bound": 139,
+  "messages_with_v4": 73,
+  "movement_episodes_upper_bound": 140,
   "possibly_redundant_snapshots": 4,
   "post_kickoff_messages": 6,
   "related_message_pairs": 7,
@@ -53,22 +53,228 @@
   "repeated_matches": 32,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 114
+   "V4_EXPLICIT": 115
   },
-  "total_line_reversals_on_repeated": 8,
+  "total_line_reversals_on_repeated": 9,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 4,
    "CONTINUOUS": 22,
    "SAME_MOVEMENT_REPEAT": 7,
-   "UNOBSERVED_CHANGE": 4
+   "UNOBSERVED_CHANGE": 5
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 21,
    "one_x_two:AGREE": 21,
-   "total:AGREE": 72
+   "total:AGREE": 73
   }
  },
  "timelines": [
+  {
+   "event_count": 3,
+   "event_ids": [
+    "3571094759:50601",
+    "3571094759:50713",
+    "3571094759:50727"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50601",
+     "message_id": 50601,
+     "minutes_to_kickoff": 1362.1,
+     "observed_at": "2026-10-27T12:47:53+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.83,
+        "under_price": 1.91
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 1.97,
+        "under_price": 1.77
+       },
+       "origin": "H1_LEGACY_ONLY"
+      }
+     },
+     "sources": [
+      "H1_RECORD"
+     ],
+     "trigger_market": "total"
+    },
+    {
+     "event_id": "3571094759:50713",
+     "message_id": 50713,
+     "minutes_to_kickoff": 920.1,
+     "observed_at": "2026-10-27T20:09:56+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.77,
+        "under_price": 1.76
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 1.96,
+        "under_price": 1.81
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50727",
+     "message_id": 50727,
+     "minutes_to_kickoff": 806.2,
+     "observed_at": "2026-10-27T22:03:48+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.82,
+        "under_price": 1.86
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.81,
+        "under_price": 1.99
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-27T12:47:53+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T11:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-27T22:03:48+00:00",
+   "match_key": "2026-10-28,36197,825",
+   "match_label": "Siarka Tarnobrzeg vs Lech Poznan",
+   "movement_episodes": [
+    [
+     "3571094759:50601"
+    ],
+    [
+     "3571094759:50713"
+    ],
+    [
+     "3571094759:50727"
+    ]
+   ],
+   "movement_episodes_upper_bound": 3,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    26523.0,
+    6832.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.5,
+     "last_observed_line": 3.25,
+     "net_observed_change": -0.25,
+     "observations": 3,
+     "origins": {
+      "H1_LEGACY_ONLY": 1,
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.25,
+       "before": 3.5,
+       "event_id": "3571094759:50601",
+       "move": "DOWN",
+       "origin": "H1_LEGACY_ONLY"
+      },
+      {
+       "after": 2.75,
+       "before": 3.5,
+       "event_id": "3571094759:50713",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:50727",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50601",
+       "at_event": "3571094759:50713",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      },
+      {
+       "after_event": "3571094759:50713",
+       "at_event": "3571094759:50713",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      },
+      {
+       "after_event": "3571094759:50713",
+       "at_event": "3571094759:50727",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50601",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.5,
+       "previous_after_line": 3.25,
+       "to": "3571094759:50713",
+       "unobserved_direction": "UP"
+      },
+      {
+       "from": "3571094759:50713",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.0,
+       "previous_after_line": 2.75,
+       "to": "3571094759:50727",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -1017,153 +1223,6 @@
        "next_before_line": 3.75,
        "previous_after_line": 3.5,
        "to": "3571094759:50714"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:50601",
-    "3571094759:50713"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50601",
-     "message_id": 50601,
-     "minutes_to_kickoff": 1362.1,
-     "observed_at": "2026-10-27T12:47:53+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.25,
-        "over_price": 1.83,
-        "under_price": 1.91
-       },
-       "before": {
-        "line": 3.5,
-        "over_price": 1.97,
-        "under_price": 1.77
-       },
-       "origin": "H1_LEGACY_ONLY"
-      }
-     },
-     "sources": [
-      "H1_RECORD"
-     ],
-     "trigger_market": "total"
-    },
-    {
-     "event_id": "3571094759:50713",
-     "message_id": 50713,
-     "minutes_to_kickoff": 920.1,
-     "observed_at": "2026-10-27T20:09:56+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 2.75,
-        "over_price": 1.77,
-        "under_price": 1.76
-       },
-       "before": {
-        "line": 3.5,
-        "over_price": 1.96,
-        "under_price": 1.81
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-27T12:47:53+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-28T11:30:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-27T20:09:56+00:00",
-   "match_key": "2026-10-28,36197,825",
-   "match_label": "Siarka Tarnobrzeg vs Lech Poznan",
-   "movement_episodes": [
-    [
-     "3571094759:50601"
-    ],
-    [
-     "3571094759:50713"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    26523.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 3.5,
-     "last_observed_line": 2.75,
-     "net_observed_change": -0.75,
-     "observations": 2,
-     "origins": {
-      "H1_LEGACY_ONLY": 1,
-      "V4_EXPLICIT": 1
-     },
-     "points": [
-      {
-       "after": 3.25,
-       "before": 3.5,
-       "event_id": "3571094759:50601",
-       "move": "DOWN",
-       "origin": "H1_LEGACY_ONLY"
-      },
-      {
-       "after": 2.75,
-       "before": 3.5,
-       "event_id": "3571094759:50713",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [
-      {
-       "after_event": "3571094759:50601",
-       "at_event": "3571094759:50713",
-       "evidence": "gap",
-       "from": "DOWN",
-       "to": "UP"
-      },
-      {
-       "after_event": "3571094759:50713",
-       "at_event": "3571094759:50713",
-       "evidence": "intra",
-       "from": "UP",
-       "to": "DOWN"
-      }
-     ],
-     "transitions": [
-      {
-       "from": "3571094759:50601",
-       "line": "UNOBSERVED_CHANGE",
-       "next_before_line": 3.5,
-       "previous_after_line": 3.25,
-       "to": "3571094759:50713",
-       "unobserved_direction": "UP"
       }
      ]
     }

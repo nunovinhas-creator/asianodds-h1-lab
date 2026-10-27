@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-27T22:01:21+00:00",
+  "generated_at": "2026-10-27T22:06:25+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -42,9 +42,9 @@
       "percentage_descriptive": 71.9
     },
     "opposing_intra_alert_directions": {
-      "matches": 4,
+      "matches": 5,
       "of_repeated_matches_analysed": 32,
-      "percentage_descriptive": 12.5
+      "percentage_descriptive": 15.6
     },
     "with_ambiguous_repeats": {
       "matches": 4,
@@ -141,22 +141,37 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-27,32555,24870",
       "match_label": "Shabab Al Ahli Dubai FC vs Esteghlal Tehran FC"
+    },
+    {
+      "directions": [
+        "DOWN",
+        "DOWN",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:50601",
+        "3571094759:50713",
+        "3571094759:50727"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-28,36197,825",
+      "match_label": "Siarka Tarnobrzeg vs Lech Poznan"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 109,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 69,
-    "messages_in_source": 146,
+    "events_analysed": 70,
+    "messages_in_source": 147,
     "repeated_matches_analysed": 32,
     "repeated_matches_in_source": 32,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "aa1a646968eba072c99f61a3c5a057116e2b67c3",
-  "source_generated_at": "2026-10-27T22:01:21+00:00",
+  "source_commit": "9cc1acd034f928c589976a129456bdc9a916a069",
+  "source_generated_at": "2026-10-27T22:06:25+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
@@ -171,7 +186,7 @@
     "messages_by_bucket": {
       "AFTER_KICKOFF": 3,
       "T_0_TO_60": 25,
-      "T_360_TO_1440": 12,
+      "T_360_TO_1440": 13,
       "T_60_TO_360": 23,
       "T_OVER_1440": 6,
       "UNKNOWN": 0
@@ -181,17 +196,17 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 34,
-      "V4_EXPLICIT": 35
+      "V4_EXPLICIT": 36
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 42.0,
-      "FLAT": 23.2,
-      "UP": 34.8
+      "DOWN": 41.4,
+      "FLAT": 22.9,
+      "UP": 35.7
     },
     "down": 29,
     "flat": 16,
-    "messages_with_total": 69,
-    "up": 24,
+    "messages_with_total": 70,
+    "up": 25,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
@@ -202,6 +217,6 @@
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 3,
     "same_movement_repeat": 7,
-    "unobserved_change": 4
+    "unobserved_change": 5
   }
 }
