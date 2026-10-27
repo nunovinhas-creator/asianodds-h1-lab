@@ -285,6 +285,121 @@ def assemble_report(candidate_document, review_rows, observations, *, source_err
     }
 
 
+def read_corroborations(root):
+    """Read structured additional evidence, not eligible as an independent R2."""
+    directory = root / "data" / "lab" / "golden" / "corroborations"
+    rows, errors = [], []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError("corroboration is not an object")
+            rows.append((path.name, value))
+        except (OSError, ValueError, UnicodeDecodeError):
+            errors.append({"type": "corroboration_read_error", "file": path.name})
+    return rows, errors
+
+
+def validate_corroboration(row, candidate):
+    """Schema-closed validation prevents source text, screenshots and private data leaks."""
+    allowed = {"schema_version", "event_id", "family", "source_kind",
+               "source_sha256", "source_custody", "transcribed_by",
+               "independent_reviewer", "kickoff_utc", "trigger", "markets"}
+    if not isinstance(row, dict) or set(row) != allowed or row.get("schema_version") != 1:
+        raise ValueError("invalid_or_unsafe_corroboration_schema")
+    if row.get("event_id") != candidate["event_id"] or row.get("family") != candidate["family"]:
+        raise ValueError("corroboration_identity_mismatch")
+    if (row.get("source_kind") != "user_pasted_telegram_text" or
+        row.get("source_custody") != "pasted_in_conversation_not_authenticated_with_telegram" or
+        row.get("transcribed_by") != "assistant" or
+        row.get("independent_reviewer") is not False):
+        raise ValueError("corroboration_must_be_nonindependent")
+    if not isinstance(row.get("source_sha256"), str) or not SHA.fullmatch(row["source_sha256"]):
+        raise ValueError("invalid_source_digest")
+    if instant(row.get("kickoff_utc")) is None:
+        raise ValueError("invalid_kickoff")
+    markets = row.get("markets")
+    if not isinstance(markets, dict) or set(markets) != set(candidate["expected_markets"]):
+        raise ValueError("unexpected_or_missing_market")
+    clean = {name: clean_market(markets[name], name) for name in candidate["expected_markets"]}
+    trigger = row.get("trigger")
+    if (not isinstance(trigger, dict) or
+        set(trigger) != {"market", "selection", "before", "after", "displayed_pct", "window_minutes"} or
+        trigger["market"] != "1x2" or trigger["selection"] not in ("1", "X", "2") or
+        numeric(trigger["before"], "price") is None or
+        numeric(trigger["after"], "price") is None or
+        type(trigger["window_minutes"]) is not int or
+        not 1 <= trigger["window_minutes"] <= 180 or
+        type(trigger["displayed_pct"]) not in (int, float) or
+        not -10000 < trigger["displayed_pct"] < 10000):
+        raise ValueError("invalid_corroboration_trigger")
+    return {"event_id": row["event_id"], "kickoff_utc": row["kickoff_utc"],
+            "markets": clean, "source_sha256": row["source_sha256"],
+            "source_kind": row["source_kind"],
+            "trigger": trigger}
+
+
+def append_corroboration_evidence(report, candidate_document, rows, observations, reviews):
+    """Record independent-of-parser *source form* evidence, not an independent reviewer.
+
+    R1 and a user text paste are different media; their file hashes need not match.
+    Matching values may be reported, but R2 and Golden certification remain pending.
+    """
+    references = {x["event_id"]: x for x in candidate_document["candidates"]}
+    observed = {x.get("event_id"): x for x in observations if isinstance(x, dict)}
+    first_reviews = {}
+    for _, review in reviews:
+        if isinstance(review, dict) and review.get("reviewer_code") == "R1":
+            eid = review.get("event_id")
+            if eid in references:
+                try:
+                    first_reviews[eid] = validate_review(review, references[eid])
+                except (TypeError, ValueError, OverflowError):
+                    continue
+    seen, entries = set(), []
+    for filename, raw in rows:
+        eid = raw.get("event_id") if isinstance(raw, dict) else None
+        if eid not in references:
+            report["issues"].append({"type": "unknown_corroboration_event", "file": filename})
+            continue
+        if eid in seen:
+            report["issues"].append({"type": "duplicate_corroboration_event", "event_id": eid})
+            continue
+        seen.add(eid)
+        try:
+            record = validate_corroboration(raw, references[eid])
+        except (TypeError, ValueError, OverflowError) as exc:
+            report["issues"].append({"type": "invalid_corroboration", "event_id": eid,
+                                      "reason": str(exc)})
+            continue
+        r1 = first_reviews.get(eid)
+        diffs_v4 = compare_reference(record, observed.get(eid))
+        diffs_r1 = compare_reference(record, r1) if r1 else None
+        entry = {
+            "event_id": eid, "source_kind": record["source_kind"],
+            "independent_reviewer": False,
+            "telegram_authenticity_verified": False,
+            "v4_matching_fields": len(review_values(record)) - len(diffs_v4),
+            "total_fields": len(review_values(record)),
+            "r1_matching_fields": (len(review_values(record)) - len(diffs_r1))
+                                  if diffs_r1 is not None else None,
+            "status": ("MATCHES_R1_AND_V4_NOT_INDEPENDENT"
+                       if diffs_r1 is not None and not diffs_r1 and not diffs_v4
+                       else "DIFFERENCE_OR_R1_MISSING"),
+            "v4_differences": diffs_v4,
+            "r1_differences": diffs_r1,
+            "trigger_displayed_pct": record["trigger"]["displayed_pct"],
+            "trigger_pct_formula_verified": False,
+        }
+        entries.append(entry)
+    report["supplemental_corroborations"] = entries
+    report["supplemental_corroboration_count"] = len(entries)
+    report["limitations"].append(
+        "User-pasted text checked against screenshot R1 and V4 is not an independent R2 "
+        "or proof of Telegram authenticity; quoted trigger % remains unvalidated")
+    return report
+
+
 def read_reviews(root):
     directory = root / "data" / "lab" / "golden" / "reviews"
     rows, errors = [], []
@@ -304,5 +419,9 @@ def build(root):
     markets, merrors = read_jsonl(root, "markets")
     candidates = select_candidates(state, formats, markets)
     reviews, errors = read_reviews(root)
-    report = assemble_report(candidates, reviews, markets, source_errors=ferrors + merrors + errors)
+    corroborations, corroboration_errors = read_corroborations(root)
+    report = assemble_report(
+        candidates, reviews, markets,
+        source_errors=ferrors + merrors + errors + corroboration_errors)
+    append_corroboration_evidence(report, candidates, corroborations, markets, reviews)
     return candidates, report

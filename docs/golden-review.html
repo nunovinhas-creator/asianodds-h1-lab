@@ -24,7 +24,8 @@ code{overflow-wrap:anywhere}#output{height:240px;font:12px/1.5 monospace}details
 <div class="panel caution"><strong>Ainda não existe um Golden Set certificado.</strong>
 <p>Sem duas observações humanas concordantes, fonte original verificável e aprovação independente, os resultados permanecem não certificados. Não introduzas chaves, sessões Telegram, conteúdo privado ou URLs assinados nos ficheiros públicos.</p></div>
 <section><h2>Estado atual</h2><div id="metrics" class="info"></div>
-<p id="status" class="hint">A carregar candidatos e progresso…</p><details><summary>Progresso por evento</summary><div style="overflow-x:auto"><table><thead><tr><th>Evento</th><th>Família</th><th>Revisões</th><th>Estado</th></tr></thead><tbody id="cases"></tbody></table></div></details></section>
+<p id="status" class="hint">A carregar candidatos e progresso…</p>
+<p id="corroboration-status" class="hint"></p><details><summary>Progresso por evento</summary><div style="overflow-x:auto"><table><thead><tr><th>Evento</th><th>Família</th><th>Revisões</th><th>Estado</th></tr></thead><tbody id="cases"></tbody></table></div></details></section>
 <section><h2>1. Escolhe uma mensagem real</h2>
 <label for="candidate">Evento do canal AsianOdds</label><select id="candidate"></select>
 <p id="case-desc" class="hint"></p>
@@ -138,6 +139,12 @@ Promise.all([
  kpi("Revisões registadas",d?.reviews_received||0);
  kpi("Duas revisões concordantes",d?.two_review_agreements||0);
  kpi("Divergências do V4",d?.v4_mismatch_cases||0);
+ kpi("Textos complementares (não são R2)",d?.supplemental_corroboration_count||0);
+ $("corroboration-status").textContent=(d?.supplemental_corroborations||[]).map(x=>
+  "Evento "+x.event_id+": "+x.v4_matching_fields+"/"+x.total_fields+
+  " campos coincidentes com o V4; "+(x.r1_matching_fields??"—")+"/"+x.total_fields+
+  " com R1. Autenticidade do Telegram não verificada; revisão R2 independente pendente."
+ ).join(" · ");
  $("status").textContent="Golden Set: "+(d?.status||"SEM RELATÓRIO")+
  " · Não são utilizados os preços V4 para preencher a transcrição.";
  for(const item of candidates){const opt=document.createElement("option");opt.value=item.event_id;

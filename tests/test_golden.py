@@ -7,7 +7,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from h1lab.golden import (select_candidates, validate_review, assemble_report,
-                          build, source_family, compare_reference)
+                          build, source_family, compare_reference,
+                          validate_corroboration, append_corroboration_evidence)
 
 EID = "3571094759:50671"
 OBSERVED = "2026-10-27T17:41:40+00:00"
@@ -185,6 +186,83 @@ class GoldenSetTests(unittest.TestCase):
             self.assertEqual(pool["candidates"], [])
             self.assertFalse(report["golden_set_verified"])
             self.assertIn("review_read_error", {x["type"] for x in report["issues"]})
+
+    def test_user_text_matches_r1_and_v4_but_not_a_second_review(self):
+        candidate = test_selection()
+        _, observed = fixture()
+        r1 = review(candidate, "R1")
+        report = make_report(candidate, [r1], observed)
+        source = {
+            "schema_version": 1, "event_id": candidate["event_id"],
+            "family": candidate["family"],
+            "source_kind": "user_pasted_telegram_text",
+            "source_sha256": HASH,
+            "source_custody": "pasted_in_conversation_not_authenticated_with_telegram",
+            "transcribed_by": "assistant", "independent_reviewer": False,
+            "kickoff_utc": KICKOFF,
+            "trigger": {"market": "1x2", "selection": "2", "before": 1.64,
+                        "after": 1.55, "displayed_pct": -14.2, "window_minutes": 2},
+            "markets": r1["markets"],
+        }
+        doc = {"candidates": [candidate]}
+        append_corroboration_evidence(report, doc,
+                                     [("pasted.json", source)], [observed],
+                                     [("R1.json", r1)])
+        record = report["supplemental_corroborations"][0]
+        self.assertEqual(record["status"], "MATCHES_R1_AND_V4_NOT_INDEPENDENT")
+        self.assertEqual(record["v4_matching_fields"], 19)
+        self.assertEqual(record["r1_matching_fields"], 19)
+        self.assertFalse(record["trigger_pct_formula_verified"])
+        self.assertEqual(report["reviews_received"], 1)
+        self.assertEqual(report["cases"][0]["status"], "AWAITING_REVIEWS")
+        self.assertFalse(report["golden_set_verified"])
+
+    def test_user_text_mismatch_is_reported_without_certifying(self):
+        candidate = test_selection()
+        _, observed = fixture()
+        r1 = review(candidate, "R1")
+        source = {
+            "schema_version": 1, "event_id": candidate["event_id"],
+            "family": candidate["family"], "source_kind": "user_pasted_telegram_text",
+            "source_sha256": HASH,
+            "source_custody": "pasted_in_conversation_not_authenticated_with_telegram",
+            "transcribed_by": "assistant", "independent_reviewer": False,
+            "kickoff_utc": KICKOFF,
+            "trigger": {"market": "1x2", "selection": "2", "before": 1.64,
+                        "after": 1.55, "displayed_pct": -14.2, "window_minutes": 2},
+            "markets": copy.deepcopy(r1["markets"]),
+        }
+        source["markets"]["one_x_two"]["2"]["after"] = 1.60
+        report = make_report(candidate, [r1], observed)
+        append_corroboration_evidence(report, {"candidates": [candidate]},
+                                     [("pasted.json", source)], [observed],
+                                     [("R1.json", r1)])
+        record = report["supplemental_corroborations"][0]
+        self.assertEqual(record["status"], "DIFFERENCE_OR_R1_MISSING")
+        self.assertEqual(record["r1_matching_fields"], 18)
+        self.assertEqual(record["v4_matching_fields"], 18)
+        self.assertFalse(report["golden_set_verified"])
+
+    def test_corroboration_rejects_claimed_independent_reviewer_and_raw_text(self):
+        candidate = test_selection()
+        r1 = review(candidate, "R1")
+        good = {
+            "schema_version": 1, "event_id": candidate["event_id"],
+            "family": candidate["family"], "source_kind": "user_pasted_telegram_text",
+            "source_sha256": HASH,
+            "source_custody": "pasted_in_conversation_not_authenticated_with_telegram",
+            "transcribed_by": "assistant", "independent_reviewer": False,
+            "kickoff_utc": KICKOFF,
+            "trigger": {"market": "1x2", "selection": "2", "before": 1.64,
+                        "after": 1.55, "displayed_pct": -14.2, "window_minutes": 2},
+            "markets": r1["markets"],
+        }
+        self.assertEqual(validate_corroboration(good, candidate)["event_id"], EID)
+        counterfeit = dict(good, independent_reviewer=True)
+        with self.assertRaisesRegex(ValueError, "nonindependent"):
+            validate_corroboration(counterfeit, candidate)
+        with self.assertRaisesRegex(ValueError, "unsafe"):
+            validate_corroboration(dict(good, raw_text="sensitive message"), candidate)
 
     def test_source_family_of_stable_1x2_includes_related_tables(self):
         c = test_selection()
