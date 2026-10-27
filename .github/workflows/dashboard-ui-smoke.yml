@@ -1,0 +1,39 @@
+name: UI - Unified dashboard smoke
+on:
+  pull_request:
+    paths:
+      - "docs/index.html"
+      - "docs/dashboard.js"
+      - "docs/dashboard.css"
+      - "docs/lab.html"
+      - "tests/dashboard-ui.test.cjs"
+      - ".github/workflows/dashboard-ui-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/index.html"
+      - "docs/dashboard.js"
+      - "docs/dashboard.css"
+      - "docs/lab.html"
+      - "tests/dashboard-ui.test.cjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ui-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax and deterministic dashboard tests
+        run: |
+          node --check docs/dashboard.js
+          node --test tests/dashboard-ui.test.cjs
+      - name: Confirm protected production logic was not modified
+        run: |
+          git status --porcelain
+          test -f docs/index.html
+          test -f docs/lab.html
