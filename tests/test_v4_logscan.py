@@ -102,7 +102,40 @@ class V4LogScanTests(unittest.TestCase):
                  patch.object(mod, "scan_run", return_value={
                      "run_id": 1, "status": "fail", "error_count": 1}):
                 info = mod.log_evidence(Path(tmp), "token", 1, END)
-            self.assertEqual(info["status"], "errors_detected")
+            self.assertEqual(info["status"], "v4_errors_detected")
+
+    def test_cancelled_run_does_not_block_log_certification(self):
+        runs = {1: {"status": "completed", "conclusion": "cancelled"},
+                2: {"status": "completed", "conclusion": "success"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(mod, "all_window_runs", return_value=runs), \
+                 patch.object(mod, "scan_run", return_value={
+                     "run_id": 2, "status": "clean", "error_count": 0}) as scan:
+                info = mod.log_evidence(Path(tmp), "token", 2, END)
+            self.assertEqual(info["status"], "verified_24h_clean")
+            self.assertEqual(info["not_executed_run_ids"], [1])
+            scan.assert_called_once_with(2, "token")
+
+    def test_h1_network_failure_with_clean_v4_logs_not_v4_fail(self):
+        runs = {1: {"status": "completed", "conclusion": "failure"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(mod, "all_window_runs", return_value=runs), \
+                 patch.object(mod, "scan_run", return_value={
+                     "run_id": 1, "status": "clean", "error_count": 0}):
+                info = mod.log_evidence(Path(tmp), "token", 1, END)
+            self.assertEqual(info["status"], "verified_24h_clean")
+            self.assertEqual(info["collector_non_v4_failed_run_ids"], [1])
+            self.assertEqual(info["v4_failed_run_ids"], [])
+
+    def test_unreadable_executed_run_remains_unverified(self):
+        runs = {1: {"status": "completed", "conclusion": "failure"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(mod, "all_window_runs", return_value=runs), \
+                 patch.object(mod, "scan_run", return_value={
+                     "run_id": 1, "status": "unverified", "reason": "http_403"}):
+                info = mod.log_evidence(Path(tmp), "token", 1, END)
+            self.assertEqual(info["status"], "unverified")
+            self.assertEqual(info["unclean_or_pending_run_ids"], [1])
 
     def test_bad_jsonl_journal_explicitly_unverified(self):
         with tempfile.TemporaryDirectory() as tmp:
