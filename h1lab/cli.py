@@ -71,10 +71,15 @@ async def poll(state):
                 diagnostics.append(diagnostic)
                 fresh_diagnostics.append(diagnostic)
                 diagnosed.add(msg.id)
+        # Remove obsolete parse errors for messages now successfully recovered.
+        recovered_ids={event["message_id"] for event in parsed}
+        if recovered_ids:
+            diagnostics[:]=[d for d in diagnostics if d["message_id"] not in recovered_ids]
+            diagnosed.difference_update(recovered_ids)
         state["diagnostics"]=diagnostics[-200:]
         added=incorporate(state,parsed,datetime.now(timezone.utc))
         state["last_id"]=last
-        if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or added:
+        if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added:
             save(state)
         print("Inspected:",inspected,"new Telegram messages:",new_messages,
               "new structured alerts:",added,
