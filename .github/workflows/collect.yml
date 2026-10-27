@@ -31,11 +31,10 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
-      - name: Notify new H1 triples
+      - name: Notify new H1 triples to configured bot chat
         env:
-          TG_API_ID: ${{ secrets.TG_API_ID }}
-          TG_API_HASH: ${{ secrets.TG_API_HASH }}
-          TG_SESSION: ${{ secrets.TG_SESSION }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python -m h1lab.notify
       - name: Store data for dashboard
         run: |
