@@ -11,6 +11,8 @@ on:
       - "docs/golden-review.html"
       - "data/lab/golden/reviews/**"
       - "data/lab/golden/corroborations/**"
+      - "data/lab/golden/pending/**"
+      - "tests/test_golden_pending.py"
       - ".github/workflows/lab-golden-smoke.yml"
   workflow_dispatch:
 permissions:
@@ -26,6 +28,8 @@ jobs:
           python-version: '3.11'
       - name: Test Golden reference and source validation
         run: python -m unittest discover -s tests -p 'test_golden.py' -v
+      - name: Test pending references and family summary
+        run: python -m unittest discover -s tests -p 'test_golden_pending.py' -v
       - name: Test rare-case selection rules
         run: python -m unittest discover -s tests -p 'test_golden_priority.py' -v
       - name: Generate first queue from real tracked Telegram observations
@@ -77,6 +81,9 @@ jobs:
                      for item in report["supplemental_corroborations"])
           assert 0 <= report["two_review_agreements"] <= report["candidate_count"]
           assert report["two_review_agreements"] + report["v4_mismatch_cases"] <= report["candidate_count"]
+          assert report["human_review_totals"]["fields_compared"] >= 52
+          assert all(p["counts_as_validation"] is False for p in report["pending_references"])
+          assert all(t["identity"] == "NOT_PROVEN" for t in report["unattributed_tables"])
           assert pool["eligible_per_family"]["1x2"] >= 1
           assert pool["eligible_per_family"]["total_up"] >= 1
           assert pool["eligible_per_family"]["total_down"] >= 1
