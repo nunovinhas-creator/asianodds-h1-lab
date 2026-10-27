@@ -3,6 +3,10 @@ on:
   pull_request:
     paths:
       - "h1lab/trajectory_research.py"
+      - "h1lab/outcome_readiness.py"
+      - "scripts/lab_outcome_readiness.py"
+      - "tests/test_outcome_readiness.py"
+      - "docs/lab/OUTCOME-READINESS.md"
       - "scripts/lab_trajectory_research.py"
       - "tests/test_trajectory_research.py"
       - ".github/workflows/lab-trajectory-research-smoke.yml"
@@ -43,8 +47,28 @@ jobs:
           assert len(p.read_bytes()) < 200_000
           print("LAB_EMPIRICAL_REAL_VERIFIED",d["scope"],d["total_line_within_alert"])
           PY
+      - name: Verify coverage report against tracked real H1 settlement files
+        run: |
+          python -m unittest discover -s tests -p 'test_outcome_readiness.py' -v
+          python -m scripts.lab_outcome_readiness
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("docs/lab/outcome-readiness.json").read_text())
+          t=json.loads(Path("docs/lab/match-trajectories.json").read_text())
+          s=d["scope"]
+          assert d["status"]=="READINESS_ONLY_NO_OUTCOME_TEST"
+          assert d["inference_gate"]["approved"] is False
+          assert s["published_repeated_matches"]+s["repeated_matches_omitted"]==t["summary"]["repeated_matches"]
+          assert sum(d["repeated_match_outcomes"]["statuses"].values())==s["published_repeated_matches"]
+          assert d["source_commit"]==t["source_commit"]
+          assert len(Path("docs/lab/outcome-readiness.json").read_bytes()) < 100_000
+          print("LAB_FT_READINESS_REAL_VERIFIED",s,d["repeated_match_outcomes"])
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: lab-trajectory-research-preview
-          path: docs/lab/trajectory-research.json
+          path: |
+            docs/lab/trajectory-research.json
+            docs/lab/outcome-readiness.json
           retention-days: 7
