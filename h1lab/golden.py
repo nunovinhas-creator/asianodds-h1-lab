@@ -444,7 +444,7 @@ def append_user_attestations(report, candidates, attestations, reviews):
                 item.get("attestation") !=
                   "I personally captured the original AsianOdds Telegram message and copied its text" or
                 item.get("asserted_by") != "user_who_supplied_source" or
-                not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", item.get("attested_date_utc") or "") or
+                not re.fullmatch(r"\d{4}-\d{2}-\d{2}", item.get("attested_date_utc") or "") or
                 item.get("source_kind") != "telegram_screenshot_and_copied_text" or
                 item.get("independent_second_reviewer") is not False or
                 type(item.get("reviewed_fields")) is not int or item["reviewed_fields"] < 1 or
