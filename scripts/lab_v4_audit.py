@@ -5,6 +5,7 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,20 +29,27 @@ def api(path, token, *, binary=False):
 
 
 def scan_run(run_id, token):
-    """Return an explicitly verifiable result, never raw or private logs."""
+    """Verify complete collected-job logs. Never publish downloaded log text."""
+    stage = "list_jobs"
     try:
         jobs = api("/actions/runs/" + str(int(run_id)) + "/jobs?per_page=100", token)
         job_items = jobs.get("jobs", [])
-        if not job_items or len(job_items) >= 100:
-            raise ValueError("job count uncertain")
+        if not job_items or len(job_items) >= 100 or jobs.get("total_count") != len(job_items):
+            raise ValueError("job_count_uncertain")
         failures = 0
         for job in job_items:
+            stage = "download_job_logs"
             raw = api("/actions/jobs/" + str(job["id"]) + "/logs", token, binary=True)
             failures += len(FAILURE.findall(raw.decode("utf-8", errors="replace")))
         return {"run_id": int(run_id), "status": "clean" if failures == 0 else "fail",
                 "error_count": failures}
+    except urllib.error.HTTPError as exc:
+        # Only publish HTTP status and stage, never URLs, headers, tokens or log text.
+        return {"run_id": int(run_id), "status": "unverified",
+                "reason": "http_" + str(exc.code), "stage": stage}
     except (ValueError, KeyError, TimeoutError, OSError, urllib.error.URLError) as exc:
-        return {"run_id": int(run_id), "status": "unverified", "reason": type(exc).__name__}
+        return {"run_id": int(run_id), "status": "unverified",
+                "reason": type(exc).__name__, "stage": stage}
 
 
 def read_journal(root):
