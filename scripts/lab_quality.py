@@ -12,6 +12,7 @@ def main():
     malformed=0
     for file in sorted((ROOT/"data/lab").glob("formats-????-??.jsonl")) if (ROOT/"data/lab").exists() else []:
         for line in file.read_text(encoding="utf-8",errors="replace").splitlines():
+            if not line.strip(): continue
             try:
                 value=json.loads(line)
                 if not isinstance(value,dict): raise ValueError("not an object")
