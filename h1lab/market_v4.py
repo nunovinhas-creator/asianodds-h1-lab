@@ -9,7 +9,7 @@ from datetime import timezone
 from pathlib import Path
 
 NUM=r"[+-]?\d+(?:[.,]\d+)?"
-PAIR=re.compile(r"(?im)^\s*(Was|Now)\s+("+NUM+r")\s+("+NUM+r")\s+("+NUM+r")(?=\s|[🔴🔵]|$)")
+PAIR=re.compile(r"(?im)^\s*(Was|Now)\s+("+NUM+r")\s+("+NUM+r")(?:[🔴🔵])?\s+("+NUM+r")(?=\s|[🔴🔵]|$)")
 PICK=re.compile(r"(?im)^\s*([1X2])\s+("+NUM+r")\s*(?:→|➡|->)\s*("+NUM+r")")
 TOTAL=re.compile(r"(?i)\bTotal\s*:\s*("+NUM+r")\s*([↑↓])\s*("+NUM+r")")
 ONE=re.compile(r"(?i)\b1x2\s*\(([1X2])\)\s*:\s*("+NUM+r")\s*[↓↑]\s*("+NUM+r")\s*\(([+-]?\d+(?:[.,]\d+)?)%\)")
