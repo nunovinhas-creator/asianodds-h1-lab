@@ -34,15 +34,28 @@ async def poll(state):
             matches=[d.entity for d in dialogs if str(d.id)==wanted or d.name==wanted]
             if len(matches)!=1: raise RuntimeError("TG_CHANNEL is not an unambiguous subscribed channel")
             entity=matches[0]
-        last=state["last_id"]
+        last=int(state["last_id"])
+        if last==0 and not state["alerts"]:
+            # At deployment do NOT replay historical messages into prospective bets.
+            newest=await client.get_messages(entity,limit=1)
+            state["last_id"]=newest[0].id if newest else 0
+            save(state)
+            print("BOOTSTRAPPED: monitoring new messages after ID",state["last_id"])
+            return
         original_last=last
         previous_tickets=len(state["tickets"])
         parsed=[];seen=0
         async for msg in client.iter_messages(entity,min_id=last,reverse=True,limit=500):
-            seen+=1;last=max(last,msg.id)
+            seen+=1
+            last=max(last,msg.id)
             if msg.raw_text:
-                ev=parse_alert(msg.raw_text,msg.date,msg.id,str(entity.id))
-                if ev: parsed.append(ev)
+                # Telegram's "View on AsianOdds" may hide its actual URL in entities.
+                links=[getattr(item,"url","") for item in (msg.entities or [])]
+                links=[url for url in links if url and "asianodds.com" in url]
+                combined=msg.raw_text+"\n"+"\n".join(links)
+                event=parse_alert(combined,msg.date,msg.id,str(entity.id))
+                if event:
+                    parsed.append(event)
         added=incorporate(state,parsed,datetime.now(timezone.utc))
         state["last_id"]=last
         if last!=original_last or len(state["tickets"])!=previous_tickets:
