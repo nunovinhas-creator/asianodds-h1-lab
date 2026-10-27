@@ -32,6 +32,13 @@ class FormatShadowTests(unittest.TestCase):
         item=inspect("Total: 3.0 ↓ 2.75\n🔴 🔵",datetime(2026,10,27,tzinfo=timezone.utc),9,99,False)
         self.assertEqual(item["line_classes"],["HDR_TOTAL_DOWN","EMOJI"])
 
+    def test_family_ignores_total_arrow(self):
+        t=datetime(2026,10,27,tzinfo=timezone.utc)
+        up=inspect("Total: 2.5 ↑ 2.75",t,41,99,True)
+        down=inspect("Total: 2.5 ↓ 2.25",t,42,99,True)
+        self.assertNotEqual(up["format_id"],down["format_id"])
+        self.assertEqual(up["format_family_id"],down["format_family_id"])
+
     def test_unknown_preserved_as_shape(self):
         x=inspect("Unrecognized market",datetime.now(timezone.utc),1,2,False)
         self.assertEqual(x["markets_mentioned"],[])
