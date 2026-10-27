@@ -91,6 +91,22 @@ class MarketV4Tests(unittest.TestCase):
             lines=dest.read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(lines),1)
             self.assertEqual(json.loads(lines[0])["schema_version"],4)
+    def test_identical_reobservation_keeps_first_provenance(self):
+        with tempfile.TemporaryDirectory() as d:
+            first=parse(MIXED,WHEN,12,33); first["parser_commit"]="a"*40
+            again=dict(first); again["parser_commit"]="b"*40
+            store(d,[first]); dest=Path(d)/"data/lab/markets-2026-10.jsonl"
+            before=dest.read_bytes()
+            store(d,[again])
+            self.assertEqual(dest.read_bytes(),before)
+            self.assertEqual(json.loads(dest.read_text())["parser_commit"],"a"*40)
+    def test_changed_reobservation_still_replaces(self):
+        with tempfile.TemporaryDirectory() as d:
+            first=parse(MIXED,WHEN,12,33)
+            changed=json.loads(json.dumps(first)); changed["window_minutes"]=5
+            store(d,[first]); store(d,[changed])
+            dest=Path(d)/"data/lab/markets-2026-10.jsonl"
+            self.assertEqual(json.loads(dest.read_text())["window_minutes"],5)
     def test_fourth_numeric_token_never_silently_accepted(self):
         # Synthetic malformed Was row. Previous prefix regex accepted first 3.
         msg = "Line O U\nWas 2.25 1.83 2.02 9.99\nNow 2.50 1.83 1.81"
