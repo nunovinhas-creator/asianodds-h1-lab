@@ -34,13 +34,18 @@ async def poll(state):
             matches=[d.entity for d in dialogs if str(d.id)==wanted or d.name==wanted]
             if len(matches)!=1: raise RuntimeError("TG_CHANNEL is not an unambiguous subscribed channel")
             entity=matches[0]
+        allowed_triggers={"manual","push","github-schedule","cloudflare-cron","workflow_dispatch"}
+        trigger=os.environ.get("COLLECT_TRIGGER","unknown")
+        if trigger not in allowed_triggers:
+            trigger="unknown"
+        print("COLLECT_TRIGGER:",trigger)
         last=int(state["last_id"])
         if last==0 and not state["alerts"]:
             # At deployment do NOT replay historical messages into prospective bets.
             newest=await client.get_messages(entity,limit=1)
             state["last_id"]=newest[0].id if newest else 0
             state["collector"]={"last_poll_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                "last_batch_new_messages":0,"batch_limit_hit":False}
+                "last_batch_new_messages":0,"batch_limit_hit":False,"trigger_source":trigger}
             save(state)
             print("BOOTSTRAPPED: monitoring new messages after ID",state["last_id"])
             return
@@ -92,6 +97,7 @@ async def poll(state):
                 "last_poll_at":now.isoformat(timespec="seconds"),
                 "last_batch_new_messages":new_messages,
                 "last_batch_parsed":added,
+                "trigger_source":trigger,
                 "batch_limit_hit":batch_limit_hit,
                 "telegram_last_id":last}
         if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added or heartbeat_due:
