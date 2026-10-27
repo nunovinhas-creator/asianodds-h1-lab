@@ -26,6 +26,7 @@ footer{border-top:1px solid #24334c;margin-top:40px;padding-top:16px;color:#7e96
  <div class="card"><small>ROI singles liquidadas</small><strong id="singles-roi">—</strong><small id="singles-count"></small></div>
  <div class="card"><small>Triplas emitidas</small><strong id="triples-total">0</strong></div>
  <div class="card"><small>ROI triplas liquidadas</small><strong id="triples-roi">—</strong><small id="triples-count"></small></div>
+ <div class="card"><small>Recolha Telegram</small><strong id="collector-status">—</strong><small id="collector-detail">A aguardar dados</small></div>
 </section>
 <nav role="tablist"><button id="tab-single" aria-selected="true" type="button">Singles H1</button><button id="tab-triple" aria-selected="false" type="button">Triplas</button></nav>
 <section id="singles"><h2>Sinais H1 individuais</h2><p>Primeiro alerta válido por jogo. Resultados apenas após confirmação.</p><div class="tablewrap"><table><thead><tr><th>Jogo</th><th>Início UTC</th><th>Under</th><th>Odd</th><th>Resultado FT</th><th>P/L (u.)</th></tr></thead><tbody id="body-single"></tbody></table></div></section>
@@ -43,6 +44,12 @@ $("tab-triple").addEventListener("click",()=>tab("triple"));
 function roi(id,v){$(id).textContent=v==null?"—":(v>0?"+":"")+num(v)+"%";$(id).className=v==null?"":v>=0?"positive":"negative"}
 function draw(data){
  $("fresh").textContent=data.generated_at?data.generated_at.replace("T"," ").slice(0,19):"À espera da primeira recolha";
+ const poll=data.collector?.last_poll_at;
+ const age=poll?(Date.now()-Date.parse(poll))/60000:Infinity;
+ const healthy=Number.isFinite(age)&&age>=0&&age<=90;
+ $("collector-status").textContent=!poll?"Sem registo":healthy?"OK":"Atrasada";
+ $("collector-status").className=healthy?"positive":"negative";
+ $("collector-detail").textContent=poll?"Última confirmação: "+poll.replace("T"," ").slice(0,19)+" UTC"+(data.collector.batch_limit_hit?" · fila pendente":""):"Primeira recolha por confirmar";
  $("alerts").textContent=num(data.alert_count);
  for(const mode of ["singles","triples"]){
   $(mode+"-total").textContent=num(data[mode].total);
