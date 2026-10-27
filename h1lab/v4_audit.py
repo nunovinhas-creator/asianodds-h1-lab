@@ -347,6 +347,15 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         or (elapsed and required and
             (not gates["coverage_99"] or not gates["field_agreement_100"]))
         else "PENDING")
+    # Historical V4 absence is expected before deployment. Keep FULL counters,
+    # but publish only a bounded historical detail sample to avoid repeatedly
+    # committing hundreds of redundant legacy-only issues every five minutes.
+    historic_issues = [p for p in issues if p.get("phase") == "historical"]
+    live_issues = [p for p in issues if p.get("phase") != "historical"]
+    visible_issues = live_issues + historic_issues[:24]
+    historic_cases = [p for p in cases if p.get("phase") == "historical"]
+    live_cases = [p for p in cases if p.get("phase") != "historical"]
+    visible_cases = live_cases + historic_cases[:8]
     return {
         "schema_version": 1, "status": report_status, "source_commit": source_commit,
         "generated_at": now.astimezone(timezone.utc).isoformat(timespec="seconds"),
@@ -360,7 +369,10 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         "markets_by_phase": markets_by_phase,
         "legacy_alerts": len(legacy), "format_events": len(format_index),
         "v4_observations": len(v4), "active_missing_v4_ids": missing,
-        "problem_events": cases, "issues": issues,
+        "problem_events": visible_cases, "issues": visible_issues,
+        "total_issue_count": len(issues),
+        "historical_issue_details_omitted": max(0, len(historic_issues) - 24),
+        "historical_event_details_omitted": max(0, len(historic_cases) - 8),
         "issue_counts": dict(Counter(p["type"] for p in issues)),
         "issue_counts_by_phase": issue_counts_by_phase,
         "log_evidence": log_evidence, "acceptance_gates": gates,
