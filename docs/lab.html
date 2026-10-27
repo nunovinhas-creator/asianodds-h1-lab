@@ -25,11 +25,11 @@ p{max-width:68ch}
 .chain{list-style:none;margin:34px 0 10px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:3px solid var(--ink)}
 .chain li{padding:14px 12px 16px 0;position:relative}
 .chain li+li{padding-left:14px;border-left:1px solid var(--line)}
-.step{font-size:14px;color:var(--soft)}
+.step{display:block;font-size:14px;color:var(--soft)}.what{display:block}.chain .state{display:block}
 .chain b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;margin:6px 0 4px}
 .chain .what{font-weight:700}
 .chain .state{font-size:14px;margin-top:6px}
-@media (max-width:720px){.chain{grid-template-columns:1fr}.chain li,.chain li+li{border-left:0;padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;column-gap:12px}.chain b{grid-row:span 3;align-self:center;font-size:26px}}
+@media (max-width:720px){.chain{grid-template-columns:1fr}.chain li,.chain li+li{border-left:0;padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:5.5rem 1fr;grid-template-areas:"num step" "num what" "num state";column-gap:12px}.chain b{grid-area:num;align-self:center;font-size:28px;margin:0}.step{grid-area:step}.what{grid-area:what}.chain .state{grid-area:state;margin-top:4px}}
 nav.toc{margin:30px 0 8px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:16px}
 section{margin-top:44px;padding-top:18px;border-top:1px solid var(--line)}
 .tag{display:inline-block;font-size:14px;font-weight:700;padding:1px 8px;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
@@ -208,7 +208,7 @@ Promise.all([get("./lab/v4-audit.json"),get("./lab/golden-report.json"),get("./l
  if(s){$("t-summary").textContent=s.messages+" mensagens em "+s.matches+" jogos; "+s.repeated_matches+" jogos têm mais do que um alerta ("+s.messages_on_repeated_matches+" mensagens). "+s.related_message_pairs+" pares parecem descrever o mesmo movimento, "+s.possibly_redundant_snapshots+" com o Total exatamente igual. Origem dos snapshots: "+(s.snapshots_by_origin.V4_EXPLICIT||0)+" V4 explícitos, "+(s.snapshots_by_origin.H1_LEGACY_ONLY||0)+" só do registo H1.";
   const EV={IDENTICAL_TOTAL_SNAPSHOT:"Total idêntico",SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES:"mesmas linhas, preços diferentes"};
   for(const tl of t.timelines)for(const r of tl.related_messages)
-   row("t-pairs",[tl.match_label,r.events.map(e=>e.split(":").pop()).join(" / "),r.separation_seconds+" s",EV[r.evidence]||r.evidence,r.mixed_origin?tag("V4 + H1","old"):"V4 ou H1"]);
+   row("t-pairs",[tl.match_label,r.events.map(e=>e.split(":").pop()).join(" / "),r.separation_seconds+" s",EV[r.evidence]||r.evidence,r.mixed_origin?tag("V4 + só H1","old"):"mesma origem"]);
   const top=[...t.timelines].sort((a,b)=>b.event_count-a.event_count||a.match_label.localeCompare(b.match_label)).slice(0,8);
   for(const tl of top){const det=el("details");const sum=el("summary",tl.match_label+" · "+tl.event_count+" alertas");det.append(sum);
    const tr=tl.trajectory.total;if(tr){const ul=el("ul",null,"plain");
