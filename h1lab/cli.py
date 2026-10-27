@@ -22,8 +22,8 @@ def save(state):
 
 async def poll(state):
     from telethon import TelegramClient
-    from telethon.sessions import StringSession
-    async with TelegramClient(StringSession(os.environ["TG_SESSION"]),
+    from .session import load_telegram_session
+    async with TelegramClient(load_telegram_session(),
                                int(os.environ["TG_API_ID"]),os.environ["TG_API_HASH"],
                                receive_updates=False) as client:
         wanted=os.environ["TG_CHANNEL"].strip()
