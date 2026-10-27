@@ -119,9 +119,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row = entries[key]
         identity = {k: game[k] for k in ("home", "away", "kickoff_utc")}
         old_identity = {k: row.get(k) for k in identity}
-        if row.get("status") == "FINAL" and any(old_identity[k] != identity[k] for k in identity):
+        identity_changed_final = (row.get("status") == "FINAL"
+                                  and any(old_identity[k] != identity[k] for k in identity))
+        if identity_changed_final:
             row["status"] = "IDENTITY_CONFLICT"  # quarantine prior result
             row.pop("result", None)
+            row["reason"] = "identity_changed_since_ft"
         row.update(identity)
         row["sources"] = sorted(game["sources"])
         row["observed_alerts"] = game["alerts"]
@@ -133,12 +136,11 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["status"] = "INSUFFICIENT_IDENTITY"
             row.pop("result", None)
             row["reason"] = "missing_team_or_kickoff"
-        elif row["status"] in ("NEW", "INSUFFICIENT_IDENTITY", "IDENTITY_CONFLICT"):
+        elif row["status"] in ("NEW", "INSUFFICIENT_IDENTITY"):
             # A formerly incomplete V4 fixture may now have complete H1 identity.
-            if row["status"] == "IDENTITY_CONFLICT" and old_identity == identity:
-                continue
             row["status"] = "PENDING"
             row["reason"] = "awaiting_ft"
+        # Existing identity conflicts remain quarantined until human review.
 
     candidates = []
     for key in games:
