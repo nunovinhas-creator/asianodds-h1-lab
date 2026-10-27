@@ -59,6 +59,13 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_trajectory_research.py' -v
           python -m scripts.lab_trajectory_research
+      # A purely aggregate readiness check: may fail without affecting V4, Golden,
+      # or the production H1 collector and its result reconciliation.
+      - name: Join repeated games with available H1 FT records (coverage only)
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_outcome_readiness.py' -v
+          python -m scripts.lab_outcome_readiness
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -67,6 +74,7 @@ jobs:
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
           if [ -f docs/lab/trajectory-research.json ]; then git add docs/lab/trajectory-research.json; fi
+          if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
             for attempt in 1 2 3 4 5; do
