@@ -23,6 +23,10 @@ th{color:#ccdfff}.scroll{overflow:auto}code{overflow-wrap:anywhere}summary{curso
 <section class="section"><h2>Concordância por mercado · primeiras 24h</h2><div class="scroll"><table><thead><tr><th>Mercado</th><th>Elegíveis por campo</th><th>Comparados</th><th>Concordantes</th><th>Divergências</th><th>Ausentes</th><th>Inválidos</th><th>Concordância</th><th>Completude</th></tr></thead><tbody id="market-totals"></tbody></table></div>
 <details><summary>Ver todos os campos Was / Now</summary><div class="scroll"><table><thead><tr><th>Mercado</th><th>Campo</th><th>Legado disponível</th><th>Comparados</th><th>Igual</th><th>Diferente</th><th>Em falta</th><th>Inválido V4</th><th>Indisponível legado</th></tr></thead><tbody id="fields"></tbody></table></div></details>
 <details><summary>Comparação histórica (anterior à integração)</summary><div class="scroll"><table><thead><tr><th>Mercado</th><th>Campos disponíveis</th><th>Comparados</th><th>Concordantes</th><th>Em falta</th></tr></thead><tbody id="historical"></tbody></table></div></details></section>
+<section class="section"><h2>Confiança estatística por mensagem</h2>
+<p>A comparação de 18 campos num alerta 1X2 não constitui 18 observações independentes. Os intervalos são calculados por mensagem, separadamente para Total e 1X2 (incluindo AH e Total associados).</p>
+<div class="scroll"><table><thead><tr><th>Família</th><th>Mensagens</th><th>Capturadas</th><th>Completas com proveniência independente</th><th>Limite inferior exato 95% (cobertura)</th><th>Limite inferior exato 95% (completude)</th></tr></thead><tbody id="confidence-rows"></tbody></table></div>
+<p id="golden" class="muted"></p><p class="muted">Para provar pelo menos 99% com 95% de confiança, são necessárias aproximadamente 299 mensagens sem falhas por família. Um conjunto de referência, verificado manualmente face ao Telegram original, continua obrigatório.</p></section>
 <section class="section"><h2>Falhas e divergências</h2><p id="issue-count"></p>
 <details open><summary>Ocorrências nas primeiras 24 horas e posteriores</summary>
 <div class="scroll" id="issues"><table><thead><tr><th>Evento</th><th>Fase</th><th>Tipo</th><th>Mercado</th><th>Campo</th><th>Legado / V4</th></tr></thead><tbody id="issue-rows"></tbody></table></div></details>
@@ -48,6 +52,11 @@ metric("Cobertura desde a integração",percent(p.pct));
 metric("Problemas nas primeiras 24h",Object.values(d.issue_counts_by_phase?.first_24h||{}).reduce((a,b)=>a+b,0));
 metric("Limitações históricas",Object.values(d.issue_counts_by_phase?.historical||{}).reduce((a,b)=>a+b,0));
 for(const [k,v] of Object.entries(d.acceptance_gates||{}))row("gates",[k,v?"VERIFICADO":"PENDENTE / NÃO DEMONSTRADO"]);
+const stat=d.statistical_evidence?.families||{};
+for(const [family,v] of Object.entries(stat))row("confidence-rows",[family,v.messages,v.captured,v.independently_complete,
+v.capture_lower_95===null?"—":percent((100*v.capture_lower_95).toFixed(2)),
+v.strict_lower_95===null?"—":percent((100*v.strict_lower_95).toFixed(2))]);
+$("golden").textContent="Golden set: "+(d.golden_set?.status||"NÃO VERIFICADO")+" · "+(d.golden_set?.reason||"Sem comprovação manual");
 for(const [m,o] of Object.entries(d.markets||{})){const t=o.totals;
 row("market-totals",[names[m]||m,t.legacy_available||0,t.compared||0,t.matched||0,t.mismatch||0,t.missing_v4||0,t.invalid_v4||0,percent(o.agreement_pct),percent(o.complete_pct)]);
 for(const [f,s] of Object.entries(o.fields||{}))row("fields",[names[m]||m,f,s.legacy_available,s.compared,s.matched,s.mismatch,s.missing_v4,s.invalid_v4,s.legacy_missing_or_invalid])}
