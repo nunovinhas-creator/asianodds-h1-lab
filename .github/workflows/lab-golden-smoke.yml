@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - "h1lab/golden.py"
+      - "h1lab/golden_priority.py"
+      - "scripts/lab_golden_priority.py"
+      - "tests/test_golden_priority.py"
       - "scripts/lab_golden.py"
       - "tests/test_golden.py"
       - "docs/golden-review.html"
@@ -23,8 +26,12 @@ jobs:
           python-version: '3.11'
       - name: Test Golden reference and source validation
         run: python -m unittest discover -s tests -p 'test_golden.py' -v
+      - name: Test rare-case selection rules
+        run: python -m unittest discover -s tests -p 'test_golden_priority.py' -v
       - name: Generate first queue from real tracked Telegram observations
         run: python -m scripts.lab_golden
+      - name: Generate source-priority queue from real observations
+        run: python -m scripts.lab_golden_priority
       - name: Validate no model odds are prefilled and source is not certified
         run: |
           python - <<'PY'
@@ -32,6 +39,15 @@ jobs:
           from pathlib import Path
           pool=json.loads(Path("docs/lab/golden-candidates.json").read_text())
           report=json.loads(Path("docs/lab/golden-report.json").read_text())
+          priority=json.loads(Path("docs/lab/golden-priority.json").read_text())
+          assert priority["status"] == "SELECTION_ONLY_NOT_VERIFIED"
+          assert priority["no_reference_values_prefilled"] is True
+          assert priority["source_event_count"] >= 4
+          assert "1x2_selection_X" in priority["not_observed_in_source"] or priority["feature_coverage"]["1x2_selection_X"]["observed_events"] > 0
+          assert all("markets" not in p and "source_url" not in p for p in priority["priorities"])
+          assert len({p["event_id"] for p in priority["priorities"]}) == len(priority["priorities"])
+          assert any("ah_line_changed_in_1x2" in p["features"] for p in priority["priorities"])
+          assert any("total_line_changed_in_1x2" in p["features"] for p in priority["priorities"])
           assert pool["no_reference_values_prefilled"] is True
           assert report["status"] == "NOT_CERTIFIED"
           assert report["golden_set_verified"] is False
@@ -78,4 +94,5 @@ jobs:
           path: |
             docs/lab/golden-candidates.json
             docs/lab/golden-report.json
+            docs/lab/golden-priority.json
           retention-days: 7

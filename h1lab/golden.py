@@ -43,7 +43,7 @@ def source_family(alert, fmt):
     return None
 
 
-def select_candidates(state, formats, market_rows, *, per_family=8):
+def select_candidates(state, formats, market_rows, *, per_family=40):
     """Stable oldest-first stratum selection. Never prefill reference odds."""
     if per_family < 1:
         raise ValueError("per_family must be positive")
