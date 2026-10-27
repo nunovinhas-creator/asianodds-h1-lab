@@ -78,7 +78,7 @@ class MarketV4Tests(unittest.TestCase):
         self.assertIn("trigger_pct",e["unverified_fields"])
 
     def test_fallback_is_explicitly_marked_not_independent(self):
-        e=parse("Line O U\\nWas 2.25 1.9 2.0\\nNow 2.25 1.8 1.9",
+        e=parse("Line O U\nWas 2.25 1.9 2.0\nNow 2.25 1.8 1.9",
                 WHEN,51,33,legacy_event={"match_key":"legacy:1","kickoff_utc":"2026-10-28T18:00:00+00:00"})
         self.assertEqual(e["match_key"],"legacy:1")
         self.assertEqual(e["identity_source"]["match_key"],"legacy_fallback")
