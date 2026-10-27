@@ -63,7 +63,9 @@ for(const [f,s] of Object.entries(o.fields||{}))row("fields",[names[m]||m,f,s.le
 for(const [m,o] of Object.entries(d.markets_by_phase?.historical||{})){const t=o.totals;row("historical",[names[m]||m,t.legacy_available||0,t.compared||0,t.matched||0,t.missing_v4||0])}
 $("issue-count").textContent="Primeiras 24h: "+JSON.stringify(d.issue_counts_by_phase?.first_24h||{})+
 " · Histórico: "+JSON.stringify(d.issue_counts_by_phase?.historical||{})+
-" · Leitura de fontes: "+JSON.stringify(d.issue_counts_by_phase?.source||{});
+" · Leitura de fontes: "+JSON.stringify(d.issue_counts_by_phase?.source||{})+
+" · Detalhes históricos omitidos: "+(d.historical_issue_details_omitted||0)+
+" (contagens integrais preservadas)";
 for(const x of d.issues||[]){const dest=x.phase==="historical"?"history-issue-rows":"issue-rows";
 row(dest,[x.event_id,x.phase,x.type,names[x.market]||x.market,x.field,
 x.legacy!==undefined||x.v4!==undefined?JSON.stringify({legacy:x.legacy,v4:x.v4}):x.reason]);}
