@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION=2
+VERSION=3
 PATTERNS=(
  ("total",re.compile(r"(?i)\bTotal\s*:")),
  ("1x2",re.compile(r"(?i)\b1x2\b")),
@@ -46,13 +46,31 @@ def line_class(line):
         return "EMOJI"
     return "OTHER"
 
+def other_signature(line):
+    """Closed vocabulary of non-identifying syntactic features."""
+    value=line.strip()
+    n=len(NUM.findall(value))
+    return {
+        "numeric_tokens":min(n,20),
+        "has_percentage":bool(re.search(r"\\d\\s*%",value)),
+        "has_arrow":any(ch in value for ch in "↑↓→➡"),
+        "has_red": "🔴" in value,
+        "has_blue": "🔵" in value,
+        "starts_emoji": bool(value) and not (value[0].isalnum() or value[0] in "+-."),
+        "has_colon": ":" in value,
+        "short_length_bucket": "short" if len(value)<20 else "medium" if len(value)<80 else "long",
+    }
+
 def inspect(text,when,message_id,channel_id,legacy_parsed):
     """Persist only a restricted structural signature, never original content."""
     labels=[]
+    other_features=[]
     for line in text.splitlines():
         kind=line_class(line)
         if kind:
             labels.append(kind)
+            if kind=="OTHER" and len(labels)<=80:
+                other_features.append({"line_position":len(labels)-1,**other_signature(line)})
     # Cap shape size without silently discarding that truncation occurred.
     shape_labels=labels[:80]+(["TRUNCATED"] if len(labels)>80 else [])
     found=[key for key,pattern in PATTERNS if pattern.search(text)]
@@ -62,7 +80,7 @@ def inspect(text,when,message_id,channel_id,legacy_parsed):
     return {"schema_version":VERSION,"event_id":str(channel_id)+":"+str(message_id),
         "observed_at":when.astimezone(timezone.utc).isoformat(timespec="seconds"),
         "format_id":fingerprint,"format_family_id":family_id,"markets_mentioned":found,
-        "line_classes":shape_labels,"table_shapes":[x.lower() for x in shape_labels if x.startswith(("WAS:","NOW:"))],
+        "line_classes":shape_labels,"other_features":other_features,"table_shapes":[x.lower() for x in shape_labels if x.startswith(("WAS:","NOW:"))],
         "legacy_parsed":bool(legacy_parsed)}
 
 def store(root,records):
