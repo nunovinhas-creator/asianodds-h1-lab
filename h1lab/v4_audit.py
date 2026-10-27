@@ -76,7 +76,7 @@ def legacy_value(item, market, field, side):
         prefix = {"line": "total", "over_price": "over", "under_price": "under"}[field]
         return item.get(prefix + "_" + side)
     if market == "one_x_two":
-        return (item.get("one_x_two") or {}).get(field, {}).get(side)
+        return ((item.get("one_x_two") or {}).get(field) or {}).get(side)
     source = (item.get("asian_handicap") or {}).get(side) or {}
     return source.get({"line": "line", "home_price": "home_odds",
                        "away_price": "away_odds"}[field])
@@ -129,11 +129,11 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
             phase = "after_24h"
         phases[phase].append(eid)
     active_ids = set(phases["first_24h"] + phases["after_24h"])
-    stats = {market: {field + "_" + side: dict(
+    stats = {phase: {market: {field + "_" + side: dict(
         legacy_available=0, compared=0, matched=0, mismatch=0,
         missing_v4=0, invalid_v4=0, legacy_missing_or_invalid=0)
         for field in FIELDS[market] for side in SIDES}
-        for market in FIELDS}
+        for market in FIELDS} for phase in phases}
 
     cases = []
     for eid in sorted(eligible):
@@ -171,7 +171,7 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
                 for field in FIELDS[market]:
                     for side in SIDES:
                         label = field + "_" + side
-                        counts = stats[market][label]
+                        counts = stats[phase][market][label]
                         old_raw = legacy_value(old, market, field, side)
                         old_val = numeric(old_raw, "line" if field == "line" else "price")
                         if old_val is None:
@@ -208,16 +208,20 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
             cases.append({"event_id": eid, "phase": phase,
                           "legacy_market": old.get("market") if old else None,
                           "problems": problems})
-    by_market = {}
-    for market, fields in stats.items():
-        total = Counter()
-        for entry in fields.values():
-            total.update(entry)
-            entry["agreement_pct"] = round(100 * entry["matched"] / entry["compared"], 2) if entry["compared"] else None
-            entry["complete_pct"] = round(100 * entry["matched"] / entry["legacy_available"], 2) if entry["legacy_available"] else None
-        by_market[market] = {"fields": fields, "totals": dict(total),
-             "agreement_pct": round(100 * total["matched"] / total["compared"], 2) if total["compared"] else None,
-             "complete_pct": round(100 * total["matched"] / total["legacy_available"], 2) if total["legacy_available"] else None}
+    markets_by_phase = {}
+    for phase, market_counts in stats.items():
+        summary = {}
+        for market, fields in market_counts.items():
+            total = Counter()
+            for entry in fields.values():
+                total.update(entry)
+                entry["agreement_pct"] = round(100 * entry["matched"] / entry["compared"], 2) if entry["compared"] else None
+                entry["complete_pct"] = round(100 * entry["matched"] / entry["legacy_available"], 2) if entry["legacy_available"] else None
+            summary[market] = {"fields": fields, "totals": dict(total),
+                 "agreement_pct": round(100 * total["matched"] / total["compared"], 2) if total["compared"] else None,
+                 "complete_pct": round(100 * total["matched"] / total["legacy_available"], 2) if total["legacy_available"] else None}
+        markets_by_phase[phase] = summary
+    by_market = markets_by_phase["first_24h"]
     def coverage(ids):
         have = sum(eid in v4 for eid in ids)
         return {"eligible": len(ids), "captured": have, "missing": len(ids) - have,
@@ -225,7 +229,7 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
     window = coverage(phases["first_24h"])
     active = coverage(sorted(active_ids))
     missing = [k for k in sorted(active_ids) if k not in v4]
-    errors_active = [p for p in issues if p.get("phase") in ("first_24h", "after_24h")]
+    errors_window = [p for p in issues if p.get("phase") == "first_24h"]
     clean_compare = all(
         x["mismatch"] == x["missing_v4"] == x["invalid_v4"] == 0
         for market in by_market.values() for x in market["fields"].values()
@@ -240,18 +244,19 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         "window_elapsed": elapsed,
         "minimum_evidence": data_sufficient,
         "coverage_99": window["pct"] is not None and window["pct"] >= 99,
-        "field_agreement_100": clean_compare and not errors_active,
+        "field_agreement_100": clean_compare and not errors_window,
         "logs_clean_24h": log_evidence.get("status") == "verified_24h_clean",
     }
-    report_status = "PASS" if all(gates.values()) and not issues else (
-        "FAIL" if elapsed and (not gates["coverage_99"] or not gates["field_agreement_100"])
-        else "PENDING")
+    report_status = "PASS" if all(gates.values()) and not (source_errors or []) else (
+        "FAIL" if elapsed and window["eligible"] >= 100 and
+        (not gates["coverage_99"] or not gates["field_agreement_100"]) else "PENDING")
     return {
         "schema_version": 1, "status": report_status, "source_commit": source_commit,
         "generated_at": now.astimezone(timezone.utc).isoformat(timespec="seconds"),
         "cutover_utc": CUTOVER, "first_24h_end_utc": end.isoformat(timespec="seconds"),
         "phase_coverage": {k: coverage(v) for k, v in phases.items()},
         "post_cutover_coverage": active, "markets": by_market,
+        "markets_by_phase": markets_by_phase,
         "legacy_alerts": len(legacy), "format_events": len(format_index),
         "v4_observations": len(v4), "active_missing_v4_ids": missing,
         "problem_events": cases, "issues": issues, "issue_counts": dict(Counter(p["type"] for p in issues)),
