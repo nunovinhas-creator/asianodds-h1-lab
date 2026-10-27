@@ -108,7 +108,13 @@ def incorporate(state,events,now,min_lead=10):
     for a in sorted(events,key=lambda x:(x["observed_at"],x["message_id"])):
         if a["event_id"] in seen: continue
         seen.add(a["event_id"]); state["alerts"].append(a); count+=1
-        if a["h1"] and a["match_key"] not in matched:
+        # Signals observed only after the polling delay are not prospective bets.
+        # Keep the raw structured alert for audit, but exclude it from ROI.
+        kickoff_time=datetime.fromisoformat(a["kickoff_utc"])
+        observed_time=datetime.fromisoformat(a["observed_at"])
+        eligible=kickoff_time > now.astimezone(UTC)+timedelta(minutes=min_lead) and (
+            observed_time <= now.astimezone(UTC))
+        if a["h1"] and eligible and a["match_key"] not in matched:
             state["signals"].append({"signal_id":a["event_id"],"match_key":a["match_key"],
               "home":a["home"],"away":a["away"],"competition":a["competition"],
               "observed_at":a["observed_at"],"kickoff_utc":a["kickoff_utc"],
@@ -181,6 +187,7 @@ def public_data(state,results,now):
             "green":sum(x>1e-7 for x in p),"red":sum(x< -1e-7 for x in p),
             "push":sum(abs(x)<=1e-7 for x in p)}
     return {"generated_at":iso(now),"alert_count":len(state["alerts"]),
+      "collector":state.get("collector",{}),
       "singles":summary(singles),"triples":summary(triples),
       "signals":singles,"tickets":triples}
 
