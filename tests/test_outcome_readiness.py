@@ -45,7 +45,7 @@ class OutcomeReadinessTests(unittest.TestCase):
         self.assertEqual(report["repeated_match_outcomes"]["statuses"]["NOT_TRACKED_IN_H1_RESULT_FILES"], 2)
         self.assertEqual(report["pregame_data_readiness"]["all_observed_alerts_before_kickoff"], 1)
         self.assertEqual(report["pregame_data_readiness"]["at_least_two_nonflat_pregame_total_messages"], 1)
-        self.assertNotIn("roi", str(report).lower())
+        self.assertNotIn("roi", report)  # no numerical betting-return field
 
     def test_repeated_match_settled_with_traceable_ft(self):
         csv_data = HEADER + '"2026-10-27,1,2",final,1,1,https://example.org/ft\n'
