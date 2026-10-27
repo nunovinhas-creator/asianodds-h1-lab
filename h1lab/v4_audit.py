@@ -229,6 +229,12 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
     window = coverage(phases["first_24h"])
     active = coverage(sorted(active_ids))
     missing = [k for k in sorted(active_ids) if k not in v4]
+    issue_counts_by_phase = {
+        p: dict(Counter(x["type"] for x in issues if x.get("phase") == p))
+        for p in phases
+    }
+    issue_counts_by_phase["source"] = dict(
+        Counter(x["type"] for x in issues if x.get("phase") is None))
     errors_window = [p for p in issues if p.get("phase") == "first_24h"]
     clean_compare = all(
         x["mismatch"] == x["missing_v4"] == x["invalid_v4"] == 0
@@ -248,8 +254,10 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         "logs_clean_24h": log_evidence.get("status") == "verified_24h_clean",
     }
     report_status = "PASS" if all(gates.values()) and not (source_errors or []) else (
-        "FAIL" if elapsed and window["eligible"] >= 100 and
-        (not gates["coverage_99"] or not gates["field_agreement_100"]) else "PENDING")
+        "FAIL" if log_evidence.get("status") == "errors_detected" or (
+            elapsed and window["eligible"] >= 100 and
+            (not gates["coverage_99"] or not gates["field_agreement_100"]))
+        else "PENDING")
     return {
         "schema_version": 1, "status": report_status, "source_commit": source_commit,
         "generated_at": now.astimezone(timezone.utc).isoformat(timespec="seconds"),
@@ -259,7 +267,9 @@ def audit(state, formats, markets, *, now=None, source_commit="unknown",
         "markets_by_phase": markets_by_phase,
         "legacy_alerts": len(legacy), "format_events": len(format_index),
         "v4_observations": len(v4), "active_missing_v4_ids": missing,
-        "problem_events": cases, "issues": issues, "issue_counts": dict(Counter(p["type"] for p in issues)),
+        "problem_events": cases, "issues": issues,
+        "issue_counts": dict(Counter(p["type"] for p in issues)),
+        "issue_counts_by_phase": issue_counts_by_phase,
         "log_evidence": log_evidence, "acceptance_gates": gates,
         "limitations": [
             "Only Telegram alert observations are measured, not all market moves",
