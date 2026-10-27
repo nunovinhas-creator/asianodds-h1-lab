@@ -12,7 +12,7 @@ UTC=timezone.utc
 NUM=r"[+-]?\d+(?:[.,]\d+)?"
 # Source posts may attach move indicators directly to a number (e.g. 1.79🔴).
 # Match Was/Now on whole lines, then extract exactly 3 numeric columns.
-ROW=re.compile(r"(?m)^\\s*(Was|Now)\\s+([^\\r\\n]+)",re.I)
+ROW=re.compile(r"(?m)^[ \t]*(Was|Now)[ \t]+([^\r\n]+)",re.I)
 
 def odds_rows(text):
     values=[]
