@@ -99,7 +99,9 @@ class TriplesTest(unittest.TestCase):
         state=empty_state()
         events=[parse_alert(message(),OBS,1)]
         incorporate(state,events,OBS+timedelta(days=3))
-        self.assertEqual(len(state["signals"]),1)
+        # A collection received after kickoff cannot count as a prospective signal.
+        self.assertEqual(len(state["alerts"]),1)
+        self.assertEqual(len(state["signals"]),0)
         self.assertEqual(len(state["tickets"]),0)
 
     def test_result_still_pending_without_verified_final(self):
