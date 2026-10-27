@@ -35,6 +35,16 @@ jobs:
           assert pool["no_reference_values_prefilled"] is True
           assert report["status"] == "NOT_CERTIFIED"
           assert report["golden_set_verified"] is False
+          target = {case["event_id"]: case for case in report["cases"]}
+          for number, expected in (("50655", 7), ("50656", 7), ("50658", 19)):
+              eid = "3571094759:" + number
+              item = target[eid]
+              assert item["single_review_source_kind"] == "telegram_copied_text", eid
+              assert item["single_review_compared_fields"] == expected, eid
+              assert item["single_review_matched_fields"] == expected, eid
+              assert item["status"] == "AWAITING_REVIEWS", eid
+              assert item["reviews_received"] == 1, eid
+          print("GOLDEN_REAL_TEXT_REVIEWS_MATCH_V4", {x: target["3571094759:"+x]["single_review_matched_fields"] for x in ("50655","50656","50658")})
           assert 0 <= report["user_validated_case_count"] <= report["candidate_count"]
           assert report["user_validated_case_count"] >= 1
           target = next(item for item in report["cases"]

@@ -151,7 +151,10 @@ Promise.all([
  for(const item of candidates){const opt=document.createElement("option");opt.value=item.event_id;
  opt.textContent=item.event_id+" · "+item.family+" · "+item.home+" vs "+item.away;$("candidate").append(opt)}
  for(const item of d?.cases||[]){const tr=document.createElement("tr");
- for(const v of [item.event_id,item.family,item.reviews_received,item.status])cell(tr,v);
+ for(const v of [item.event_id,item.family,item.reviews_received,
+  item.single_review_compared_fields
+    ? item.status+" · texto "+item.single_review_matched_fields+"/"+item.single_review_compared_fields+" campos coincidentes"
+    : item.status])cell(tr,v);
  $("cases").append(tr)}
  render();
 }).catch(e=>{$("status").textContent="Não foi possível abrir a fila: "+e.message;say(e.message,true)});

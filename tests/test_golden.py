@@ -113,6 +113,36 @@ class GoldenSetTests(unittest.TestCase):
         self.assertEqual(d["cases"][0]["reviews_received"], 1)
         self.assertEqual(d["cases"][0]["status"], "AWAITING_REVIEWS")
 
+    def test_one_user_transcription_comparison_is_visible_without_certification(self):
+        for family, eid, field_count in (
+            ("total_up", "33:1", 7),
+            ("total_down", "33:2", 7),
+            ("1x2", "33:3", 19),
+        ):
+            with self.subTest(family=family):
+                candidate = test_selection(family, eid)
+                single = review(candidate, "R1")
+                d = make_report(candidate, [single])
+                case = d["cases"][0]
+                self.assertEqual(case["status"], "AWAITING_REVIEWS")
+                self.assertEqual(case["single_review_compared_fields"], field_count)
+                self.assertEqual(case["single_review_matched_fields"], field_count)
+                self.assertEqual(case["single_review_agreement"], "MATCHES_V4")
+                self.assertEqual(d["two_review_agreements"], 0)
+                self.assertFalse(d["golden_set_verified"])
+
+    def test_single_user_transcription_mismatch_does_not_disappear(self):
+        candidate = test_selection("total_up", "33:1")
+        single = review(candidate, "R1")
+        single["markets"]["total"]["after"]["under_price"] = 2.99
+        d = make_report(candidate, [single])
+        case = d["cases"][0]
+        self.assertEqual(case["single_review_agreement"], "DIFFERS_FROM_V4")
+        self.assertEqual(case["single_review_matched_fields"], 6)
+        self.assertEqual(case["single_review_differences"][0]["field"],
+                         "total.after.under_price")
+        self.assertFalse(d["golden_set_verified"])
+
     def test_two_reviewer_value_disagreement_not_silenced(self):
         c = test_selection()
         second = review(c, "R2")
