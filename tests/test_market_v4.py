@@ -60,6 +60,15 @@ class MarketV4Tests(unittest.TestCase):
         e=parse("Line O U\nWas 2.25 1.9 2.0\nNow 2.25 1.8 1.9",WHEN,2,33)
         self.assertNotIn("one_x_two",e["markets"])
         self.assertEqual(e["trigger_market"],"unknown")
+    def test_trigger_and_own_identity(self):
+        e=parse(MIXED+"\nhttps://asianodds.com/example?match=fixture42",WHEN,12,33)
+        self.assertEqual(e["trigger"],{"market":"1x2","selection":"2","before":2.46,"after":2.28,"pct":-12.3})
+        self.assertEqual(e["window_minutes"],2)
+        self.assertEqual(e["match_key"],"fixture42")
+        self.assertEqual(e["kickoff_utc"],"2026-10-27T15:00:00+00:00")
+        self.assertEqual(parse(TOTAL_UP,WHEN,10,33)["trigger"]["before"],2.25)
+        self.assertEqual(parse(TOTAL_UP,WHEN,10,33)["match_key"],"2026-10-27|kaizer chiefs fc|ts galaxy fc")
+
     def test_monthly_idempotence(self):
         with tempfile.TemporaryDirectory() as d:
             e=parse(MIXED,WHEN,12,33)
