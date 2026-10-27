@@ -34,6 +34,15 @@ class MarketV2Tests(unittest.TestCase):
         self.assertTrue(before["pre_kickoff"])
         self.assertFalse(after["pre_kickoff"])
 
+    def test_matched_coverage_never_exceeds_100(self):
+        s=summary([{"event_id":"a","match_key":"g","market":"total"}],
+                  [{"event_id":"a","format_id":"x"},{"event_id":"b","format_id":"y"}])
+        self.assertEqual(s["alerts_with_format"],1)
+        self.assertEqual(s["format_to_alert_coverage_pct"],100.0)
+        s2=summary([{"event_id":"a","match_key":"g","market":"total"}],
+                   [{"event_id":"b","format_id":"y"}])
+        self.assertEqual(s2["format_to_alert_coverage_pct"],0.0)
+
     def test_dedup_and_unique_games(self):
         s=summary([{"event_id":"a","match_key":"g","market":"total"},
                    {"event_id":"b","match_key":"g","market":"1x2"}],
