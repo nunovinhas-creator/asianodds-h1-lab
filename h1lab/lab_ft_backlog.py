@@ -14,7 +14,7 @@ PROVIDERS=("bsd","thesportsdb","espn","sportscore","api_football","goal","openfo
 STATUS="FT_BACKLOG_AUDIT_OBSERVATION_ONLY"
 
 
-def audit(ledger, now, *, provider_summary=None, queue_plan=None):
+def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry=False):
     if now.tzinfo is None:
         raise ValueError("Timezone-aware UTC now required")
     now=now.astimezone(timezone.utc)
@@ -50,7 +50,7 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None):
             continue
         groups["past_due_unverified"]+=1
         day=ko.date().isoformat()
-        checked=utc(item.get("checked_at"))
+        checked=utc(item.get("evidence_checked_at" if evidence_retry else "checked_at"))
         provider_reasons=item.get("provider_reasons") or {}
         if not isinstance(provider_reasons,dict):
             provider_reasons={}
@@ -69,7 +69,9 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None):
         if item.get("status") == "EXPIRED_UNVERIFIED":
             queue_state = "OUTSIDE_30_DAY_API_WINDOW"
         elif key in chosen:
-            queue_state = "CONSULTED_THIS_RUN"
+            queue_state = ("NEW_EVIDENCE_THIS_RUN" if evidence_retry and
+                           checked == now else "VISITED_NO_NEW_EVIDENCE"
+                           if evidence_retry else "CONSULTED_THIS_RUN")
         elif key in deferred:
             queue_state = "DEFERRED_BY_30_GAME_CAP"
         elif next_eligible > now:
@@ -79,7 +81,10 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None):
         overdue.append({
             "match_key":key,"home":item.get("home"),"away":item.get("away"),
             "kickoff_utc":item.get("kickoff_utc"),
-            "last_checked_at":item.get("checked_at"),
+            "last_checked_at":(item.get("evidence_checked_at") if evidence_retry
+                               else item.get("checked_at")),
+            "legacy_last_checked_at": item.get("checked_at") if evidence_retry else None,
+            "evidence_attempts": item.get("evidence_attempts", 0),
             "next_eligible_at": (next_eligible.isoformat(timespec="seconds")
                                  if item.get("status") != "EXPIRED_UNVERIFIED" else None),
             "queue_state": queue_state,
@@ -116,6 +121,7 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None):
             "FUTURE and IN_3H_GRACE games are NOT overdue.",
             "last_attempt_provider_reasons are NOT lifetime provider-attempt counters.",
             "provider_attempts counts adapter invocations, including cache hits; not HTTP requests.",
+            "V7 evidence_attempts and last_checked_at exclude repeated or failed authenticated snapshots when evidence_retry is enabled.",
             "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",
             "Providers are never assumed to cover every competition.",
             "No missing FT becomes a loss, an invented score, or an H1 settlement.",
