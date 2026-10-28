@@ -98,3 +98,19 @@ Módulo `h1lab/v6_falsification.py`, CLI `python -m scripts.lab_v6_falsification
 As **novas** capturas V6 passam a guardar `falsification_context` com contagens dos mercados observados, episódios, direções, antecedência, coerência AH/1X2 e classificação indicativa de competição. Os registos anteriores permanecem intactos, sem preencher contextos retroativamente.
 
 Todos os `PASS` são **apenas verificações descritivas**, não resultados estatísticos confirmatórios. A única decisão global permitida continua `INCONCLUSIVO`; nenhuma mudança ao H1, V5, ROI, Telegram, Pattern Watch ou mecanismos de liquidação. O relatório é uma vista derivada, reexecutável com `--verify-only`; os factos permanecem nos cinco diários da memória. Esta fase **não** supera os gates `WARMUP` de 7/14 dias.
+
+## V6.1 P1 #8 — Catálogo de variáveis de contexto V6F2
+
+**Implementado em modo experimental, sem substituir o motor V5.** O módulo `h1lab/v6_features_v2.py` cria uma versão *V6F2* `FEATURE_VERSION = 2` independente. O V5 mantém `pattern_features.FEATURE_VERSION = 1` e os identificadores/hashes antigos das hipóteses permanecem inalterados.
+
+No instante `known_at` real da recolha e **apenas para novos snapshots de jogos futuros**, o diário congela `feature_context_v2`, com SHA-256 verificado e ligação ao fluxo imutável de padrões. O contexto inclui:
+
+- **Asian Handicap:** linha com sinal (incluindo valores negativos), variação da linha, direção casa/fora, mudanças de preços, margens before/after e proveniência V4/H1. Preços inválidos e margens negativas ou acima de 12% ficam desconhecidos/quarentenados, não são classificados como movimentos.
+- **Competição:** designação realmente presente na fonte até `known_at`, sem inventar país ou divisão. Agrupamento heurístico `CUP`, `YOUTH_RESERVE`, `LEAGUE_OTHER` ou `UNKNOWN`, com ressalva de classificação não validada.
+- **Total↔1X2:** probabilidade Over 2,5 extraída dos Totals válidos (Poisson, **não odd transacionável**) e probabilidades 1X2 normalizadas, com deltas intramensagem. Só assinala `CO_OBSERVED_SAME_MESSAGE` quando ambos os mercados constam da **mesma mensagem**. Cotação de Total numa mensagem e 1X2 noutra recebe `SEPARATE_MESSAGES_ONLY`: não se deduz simultaneidade ou causalidade.
+- **Movimentos observados vs desconhecidos:** `Was→Now` de cada mercado na mesma mensagem é observado; todos os intervalos **entre mensagens** são classificados como `UNOBSERVED_LINE_GAP`, `SAME_BOUNDARY_LINE_PRICES_NOT_CONTINUOUSLY_OBSERVED` ou `MISSING_TOTAL_AT_BOUNDARY`. O movimento intermediário é **sempre nulo/desconhecido**, nunca interpolado.
+- **Auditoria de proveniência:** `source_event_ids`, instante da captura, cada snapshot de mercado conhecido, categoria do jogo, número de mensagens e SHA do bloco V2.
+
+**Compatibilidade:** a memória de padrões associa o hash V2 somente a eventos cujos diários congelados o contém. Capturas anteriores não são enriquecidas retroativamente. Qualquer divergência entre o hash V2 e o diário de origem impede a reconstrução da memória científica. O relatório `docs/lab/v6-feature-coverage.json` mostra quantas novas capturas têm dados V2 e a distribuição por mercados, contexto e intervalos sem observação — não é um simulador nem validação de uma estratégia.
+
+Este catálogo é *descritivo*. Não passa automaticamente a ser um conjunto de hipóteses estatísticas, não altera os dez testes de falsificação previamente fixados e não faz qualquer escolha de apostas. A análise fora da amostra permanece bloqueada pelos gates 7/14 dias e 1000 FT da hipótese. P1 #9 e #10 continuam por executar.
