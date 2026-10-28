@@ -33,5 +33,10 @@
 
 **Sem EV, ROI, GREEN/RED, apostas ou verificação de estratégias nesta fase.** A análise de reversões vs resultados requer pré-registo, cobertura suficiente, identidade robusta, limites de confiança e amostra fora do período de descoberta. A recolha do canal é seletiva (não contínua).
 
-## Ficheiros H1 protegidos — inalterados
-`h1lab/core.py`, `h1lab/cli.py`, `h1lab/bot.py`, `h1lab/notify.py`, `h1lab/results.py`, `h1lab/bsd.py`, `h1lab/session.py`, `.github/workflows/collect.yml`, `.github/workflows/results.yml`, `scheduler/**`, `data/state.json`, `data/results.csv`, `data/result_audit.json`, `docs/index.html`. Não mexe em secret, cron H1, triplas ou Telegram.
+## Separação do H1 e exceção controlada — atualização 28/10/2026
+
+Os módulos de **seleção H1** (`core.py`, `cli.py`, `bot.py`, `notify.py`, `session.py`), os alertas existentes e o cron continuam independentes do laboratório. **A integração de FT não é uma alteração de estratégias**.
+
+A partir da PR #53, `results.yml` executa `h1lab/lab_promotion.py` após a sua procura direta de FT. Este adaptador importa para `data/results.csv` **apenas** resultados `FINAL` do LAB que coincidam rigorosamente com um sinal H1 (identidade, hora, marcador e fonte válida), preservando sem alterações quaisquer resultados previamente confirmados pelo H1. `data/result_audit.json` recebe a proveniência; `docs/data.json` volta a calcular o ROI H1 original. Portanto, os documentos de versões antigas que dizem que `results.yml` e `data/results.csv` «não são tocados» descrevem uma fase anterior e não o estado atual.
+
+Consultar [arquitetura](ARCHITECTURE.md), [motor V5](CEREBRO-ODDS.md) e [relatório FT](ft-results.json); os resultados e as hipóteses de padrões têm níveis de validação distintos.
