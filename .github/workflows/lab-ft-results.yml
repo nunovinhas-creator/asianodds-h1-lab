@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - 'h1lab/lab_results.py'
+      - 'h1lab/lab_fotmob.py'
+      - 'tests/test_lab_fotmob.py'
       - 'h1lab/lab_ft_diagnostics.py'
       - 'tests/test_lab_ft_diagnostics.py'
       - 'scripts/lab_results.py'
@@ -60,6 +62,7 @@ jobs:
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_diagnostics.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_search.py' -v
           python -m unittest discover -s tests -p 'test_lab_espn.py' -v
@@ -94,6 +97,8 @@ jobs:
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
+          assert d['fotmob_search']['requests'] <= 3
+          assert d['fotmob_search']['verified_in_run'] <= 30
           assert d['monte_carlos_bsd']['verified_core_name_in_run'] <= d['monte_carlos_bsd']['core_name_event_id_candidates']
           assert d['reviewed_bsd_id_catalog_matches'] <= 3
           assert d["sportscore_search"]["requests"] <= 45
