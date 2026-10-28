@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jogos futuros — observatório V5 | UNDER TESTE</title>
+<meta name="description" content="Jogos futuros com alertas repetidos: golos implícitos a subir, estáveis ou em sentidos opostos. Observação, não prognósticos.">
+<style>
+:root{color-scheme:light;--bg:#eef2f0;--paper:#fff;--ink:#14212b;--muted:#4a5b63;--line:#c2d2ce;--ok:#08715b;--bad:#983b3b;--indigo:#526394}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#131c22;--paper:#1b282f;--ink:#e6f1ee;--muted:#acbfc2;--line:#3e5158;--ok:#7ee0c6;--bad:#f2a3a3;--indigo:#b0bffa}}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;margin:0}.wrap{max-width:1080px;margin:auto;padding:20px 16px 70px}
+a{color:inherit}nav{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--muted)}h1{font-size:clamp(28px,5vw,44px);line-height:1.1;max-width:19ch;margin:28px 0 12px}h2{margin-top:28px;font-size:24px}
+p{max-width:78ch} .sub{color:var(--muted)}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:25px}.stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px}.stat b{font-size:28px;display:block}.stat span{font-size:13px;color:var(--muted)}@media(max-width:650px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;background:var(--paper);font-size:14px}th,td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{white-space:nowrap}td.score{font-variant-numeric:tabular-nums;white-space:nowrap}select{font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);min-height:44px;padding:6px;border-radius:5px}label{display:block;font-weight:650;margin:14px 0 6px}
+.flag{font-size:12px;font-weight:700;display:inline-block;border-radius:5px;border:1px solid var(--line);padding:2px 7px;white-space:nowrap}.flag.up{color:var(--ok)}.flag.flat{color:var(--indigo)}.flag.bad{color:var(--bad)}.flag.other{color:var(--muted)}
+.note{border-left:3px solid var(--indigo);padding:3px 0 3px 12px;color:var(--muted)}footer{font-size:13px;color:var(--muted);margin-top:36px} :focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
+</style></head><body><div class="wrap">
+<nav><a href="./lab-research.html">Cérebro V5</a><a href="./lab.html">Laboratório</a><a href="./index.html">Dashboard H1</a></nav>
+<h1>Movimentos das odds em jogos futuros</h1>
+<p class="sub">Observatório prospectivo V5: <strong>dois ou mais alertas pré-jogo</strong> sem descida relevante de golos implícitos. Separação entre movimentos independentes, mensagens duplicadas, mercado a subir, estável e contraditório. <strong>Não são prognósticos nem apostas recomendadas.</strong></p>
+<p id="stamp" aria-live="polite" class="sub">A carregar última fotografia publicada…</p>
+<div class="cards">
+ <div class="stat"><b id="n-base">—</b><span>Condição original</span></div>
+ <div class="stat"><b id="n-strict">—</b><span>Com episódios independentes e Total válido</span></div>
+ <div class="stat"><b id="n-excluded">—</b><span>Duplicação / Total incompleto</span></div>
+ <div class="stat"><b id="n-opp">—</b><span>Direções opostas (fora da condição original)</span></div>
+</div>
+<h2>Jogos futuros</h2>
+<label for="grp">Selecionar grupo</label>
+<select id="grp">
+<option value="strict">Cumprem a condição rigorosa</option>
+<option value="all">Todos os jogos com a condição original</option>
+<option value="dup">Mensagens repetidas ou dados incompletos</option>
+<option value="opp">Subidas e descidas significativas — comparação</option>
+</select>
+<p id="n-view" class="sub"></p>
+<div class="scroll"><table><thead><tr><th>Jogo</th><th>Início (Lisboa)</th><th>Categoria</th><th>Alertas / episódios</th><th>Variações λ por mensagem</th><th>Origem Total</th></tr></thead><tbody id="rows"><tr><td colspan="6">A carregar…</td></tr></tbody></table></div>
+<p class="note">O limiar é <strong>±0,05 golos implícitos</strong> por movimento observado. Uma variação −0,049 é classificada como praticamente estável; −0,050 é uma descida relevante. λ é uma estimativa derivada da linha Total, Over e Under após ajuste de margem, não o resultado previsto nem uma cotação executável.</p>
+<h2>Como interpretar</h2>
+<p><span class="flag up">SUBIDAS EM TODOS</span> Todos os episódios independentes mostram aumento de λ ≥0,05. <span class="flag flat">SUBIDAS + ESTÁVEL</span> Há subidas relevantes e pequenas oscilações. <span class="flag flat">PRATICAMENTE ESTÁVEL</span> Nenhuma variação atinge ±0,05. <span class="flag bad">SENTIDOS OPOSTOS</span> Há subida ≥0,05 e descida ≤−0,05, pelo que o jogo <strong>não cumpre</strong> a condição original.</p>
+<p>A observação é congelada quando uma partida cumpre a condição rigorosa pela primeira vez, antes do início. Novos alertas podem alterar o grupo mostrado enquanto o encontro for futuro, mas não reescrevem a primeira deteção. <strong>O Golden Set V4 ainda não está certificado.</strong></p>
+<footer>Fonte: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/pattern-watch.json">pattern-watch.json</a> · Regras: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/h1lab/pattern_watch.py">pattern_watch.py</a>. Atualização no workflow de resultados do LAB, sem pedidos extra às APIs. Sem ROI, EV ou geração de picks.</footer>
+</div>
+<script>
+"use strict";
+const $=x=>document.getElementById(x);
+const LABEL={
+ RISING_EACH_EPISODE:["Subidas em todos","up"],RISING_WITH_FLAT:["Subidas + estável","flat"],
+ FLAT_EACH_EPISODE:["Praticamente estável","flat"],POSSIBLE_DUPLICATE:["Possível repetição","other"],
+ INCOMPLETE_TOTAL:["Total incompleto","bad"],OPPOSING_DIRECTIONS:["Sentidos opostos","bad"],
+ FALLING:["Descida significativa","bad"]};
+let D=null;
+const stamp=d=>new Date(d).toLocaleString("pt-PT",{timeZone:"UTC",dateStyle:"short",timeStyle:"short"})+" UTC";
+function fmtDate(d){return new Date(d).toLocaleString("pt-PT",{timeZone:"Europe/Lisbon",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+function fill(){
+ if(!D)return;
+ const mode=$("grp").value;
+ const base=D.future_strict.concat(D.future_other_original),all={
+  strict:D.future_strict,all:base,dup:D.future_other_original,opp:D.future_opposing};
+ const now=Date.now();const rows=(all[mode]||[]).filter(x=>Date.parse(x.kickoff_utc)>now)
+  .sort((a,b)=>a.kickoff_utc.localeCompare(b.kickoff_utc));
+ $("n-view").textContent=rows.length+" jogos ainda futuros com base na última fotografia do LAB.";
+ const table=$("rows");table.replaceChildren();
+ if(!rows.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=6;td.textContent="Sem jogos futuros neste grupo na fotografia disponível.";tr.append(td);table.append(tr)}
+ for(const x of rows){
+  const tr=document.createElement("tr");
+  function td(v,clazz){const el=document.createElement("td");el.textContent=v;if(clazz)el.className=clazz;tr.append(el);return el}
+  td(x.match_label);td(fmtDate(x.kickoff_utc),"score");
+  const label=LABEL[x.category]||[x.category,"other"],t=td("");const flag=document.createElement("span");flag.className="flag "+label[1];flag.textContent=label[0];t.append(flag);
+  td(x.messages+" / "+x.episodes,"score");
+  td(x.observations.map(y=>y.delta_lambda==null?"sem Total":(y.delta_lambda>=0?"+":"")+Number(y.delta_lambda).toFixed(4)).join(" · "),"score");
+  td(x.v4_total_count+" V4 / "+x.h1_legacy_total_count+" H1");
+  table.append(tr);
+ }
+}
+fetch("./lab/pattern-watch.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("not published");return r.json()}).then(d=>{
+ D=d;
+ if(d.status!=="PROSPECTIVE_OBSERVATION_NOT_VALIDATED_NOT_BETTING")throw Error("invalid data status");
+ $("n-base").textContent=d.summary.original_condition;
+ $("n-strict").textContent=d.summary.strict_eligible;
+ $("n-excluded").textContent=d.summary.possible_duplicate_or_incomplete;
+ $("n-opp").textContent=d.summary.contradictory_excluded_from_original;
+ const age=(Date.now()-Date.parse(d.generated_at))/3600000;
+ $("stamp").textContent="Dados publicados: "+stamp(d.generated_at)+(age>1?" · fotografia desatualizada: confirmar novas mensagens":" · atualização recente")+". Jogos já iniciados são ocultados automaticamente.";
+ $("grp").addEventListener("change",fill);
+ fill();
+}).catch(e=>{$("stamp").textContent="O relatório prospectivo ainda não foi publicado ou não foi possível carregá-lo."; $("rows").replaceChildren();});
+</script>
+</body></html>
