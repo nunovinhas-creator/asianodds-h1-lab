@@ -138,6 +138,7 @@ class PriorityTests(unittest.TestCase):
     def test_cooldown_and_grace_cannot_be_bypassed(self):
         recent=game(status="PENDING")
         recent["checked_at"]="2026-10-28T15:59:00+00:00"
+        recent["lookup_source_version"]=11
         st={"alerts":[{"match_key":"a","home":"Home","away":"Away","kickoff_utc":KO}],
             "signals":[]}
         calls=[]
@@ -147,10 +148,8 @@ class PriorityTests(unittest.TestCase):
         _,_,n=reconcile(st,[],ledger(a=recent),now=NOW,bsd_lookup=lookup,
                         tsdb_lookup=lookup,max_checks=1,priority_hints={"a":3},
                         lookup_source_version=11)
-        # A newly upgraded source may run immediately by design. Keep the
-        # source version current to exercise ordinary 4h cooldown.
-        self.assertLessEqual(n,1)
-        self.assertLessEqual(len(calls),2)
+        self.assertEqual(n,0)
+        self.assertEqual(calls,[])
 
 
 if __name__=="__main__":
