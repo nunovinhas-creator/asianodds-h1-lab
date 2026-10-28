@@ -226,7 +226,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         if last and now < last + retry_wait(entry) and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
-        priority = (-4 if last is None else
+        priority = (-4 if last is None and not force_recheck else
                     -3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
                     -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
