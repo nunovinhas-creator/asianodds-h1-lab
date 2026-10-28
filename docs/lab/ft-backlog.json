@@ -1,48 +1,49 @@
 {
   "classification": {
-    "future": 131,
-    "in_3h_grace": 76,
-    "past_due_unverified": 59,
-    "verified_ft": 101
+    "future": 125,
+    "in_3h_grace": 61,
+    "past_due_never_checked": 1,
+    "past_due_unverified": 68,
+    "verified_ft": 113
   },
   "last_attempt_obstacles": [
     {
-      "games": 59,
+      "games": 67,
       "provider": "bsd",
       "reason": "monte_no_exact_archive_match"
     },
     {
-      "games": 59,
+      "games": 65,
       "provider": "espn",
       "reason": "espn_unsupported_competition"
     },
     {
-      "games": 59,
-      "provider": "openfoot",
-      "reason": "openfoot_identity_no_core_match"
-    },
-    {
-      "games": 58,
-      "provider": "goal",
-      "reason": "goal_identity_no_core_match"
-    },
-    {
-      "games": 55,
+      "games": 64,
       "provider": "sportscore",
       "reason": "sportscore_no_exact_match"
     },
     {
-      "games": 38,
-      "provider": "api_football",
-      "reason": "api_football_identity_no_core_match"
+      "games": 49,
+      "provider": "openfoot",
+      "reason": "openfoot_identity_no_core_match"
     },
     {
-      "games": 29,
+      "games": 48,
+      "provider": "goal",
+      "reason": "goal_identity_no_core_match"
+    },
+    {
+      "games": 40,
       "provider": "thesportsdb",
       "reason": "no_event"
     },
     {
-      "games": 29,
+      "games": 32,
+      "provider": "api_football",
+      "reason": "api_football_identity_no_core_match"
+    },
+    {
+      "games": 27,
       "provider": "thesportsdb",
       "reason": "tsdb_limited_this_run"
     },
@@ -58,18 +59,18 @@
     },
     {
       "games": 1,
+      "provider": "espn",
+      "reason": "espn_no_exact_match"
+    },
+    {
+      "games": 1,
+      "provider": "espn",
+      "reason": "not_finished"
+    },
+    {
+      "games": 1,
       "provider": "goal",
       "reason": "goal_ambiguous_fixture"
-    },
-    {
-      "games": 1,
-      "provider": "sportscore",
-      "reason": "source_home_away_conflict"
-    },
-    {
-      "games": 1,
-      "provider": "thesportsdb",
-      "reason": "home_team_mismatch"
     }
   ],
   "last_run_providers": {
@@ -91,43 +92,42 @@
       "date_list_requests": 1,
       "fallback_results_recovered": 0,
       "lookup_reason_counts": {
-        "bsd_no_exact_match_in_date": 3
+        "bsd_no_exact_match_in_date": 28,
+        "verified_bsd_ft": 2
       }
     },
     "goal": {
-      "cached_days": 1,
+      "cached_days": 0,
       "configured": true,
-      "poll_enabled": true,
-      "reason_counts": {
-        "goal_identity_no_core_match": 3
-      },
-      "requests": 1,
+      "poll_enabled": false,
+      "reason_counts": {},
+      "requests": 0,
       "verified_in_run": 0
     },
     "openfoot": {
-      "cached_days": 1,
+      "cached_days": 0,
       "configured": true,
-      "poll_enabled": true,
-      "reason_counts": {
-        "openfoot_identity_no_core_match": 3
-      },
-      "requests": 1,
+      "poll_enabled": false,
+      "reason_counts": {},
+      "requests": 0,
       "verified_in_run": 0
     },
     "sportscore": {
-      "cached_date_team_queries": 2,
+      "cached_date_team_queries": 7,
       "confirmed_in_run": 0,
       "reason_counts": {
-        "sportscore_no_exact_match": 3
+        "cup_regulation_unverified": 1,
+        "source_home_away_conflict": 1,
+        "sportscore_no_exact_match": 28
       },
-      "requests": 5,
+      "requests": 27,
       "reviewed_alias_ft_in_run": 0,
-      "targeted_searches": 3
+      "targeted_searches": 20
     },
     "thesportsdb": {
       "home_team_mismatch": 1,
-      "no_event": 2,
-      "requested": 3
+      "no_event": 29,
+      "requested": 30
     }
   },
   "limitations": [
@@ -137,7 +137,7 @@
     "No missing FT becomes a loss, an invented score, or an H1 settlement.",
     "A single observed result is not an independently corroborated source."
   ],
-  "measured_at": "2026-10-28T19:50:21+00:00",
+  "measured_at": "2026-10-28T20:04:53+00:00",
   "overdue_by_kickoff_utc_day": {
     "2026-10-27": {
       "last_check_without_provider": {
@@ -148,14 +148,30 @@
     },
     "2026-10-28": {
       "last_check_without_provider": {
-        "api_football": 20,
-        "fotmob": 51
+        "api_football": 35,
+        "bsd": 1,
+        "espn": 1,
+        "fotmob": 60,
+        "goal": 19,
+        "openfoot": 19,
+        "sportscore": 1,
+        "thesportsdb": 1
       },
-      "never_checked": 0,
-      "overdue": 51
+      "never_checked": 1,
+      "overdue": 60
     }
   },
   "overdue_games": [
+    {
+      "attempts": 0,
+      "away": "Hammarby IF DFF Women",
+      "home": "Spartak Myjava Women",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "match_key": "2026-10-28,72758,29209",
+      "status": "PENDING"
+    },
     {
       "attempts": 12,
       "away": "Watford Reserves",
@@ -374,24 +390,6 @@
     },
     {
       "attempts": 3,
-      "away": "SK Benešov",
-      "home": "FK Viagem Pribram B",
-      "kickoff_utc": "2026-10-28T09:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "api_football": "api_football_identity_no_core_match",
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T17:33:10+00:00",
-      "match_key": "2026-10-28,28717,61795",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
       "away": "FC Metalist 1925 Kharkiv",
       "home": "Mayak Sarny",
       "kickoff_utc": "2026-10-28T10:00:00+00:00",
@@ -410,24 +408,6 @@
     },
     {
       "attempts": 3,
-      "away": "FC Zenit Caslav",
-      "home": "FC Slovan Liberec II",
-      "kickoff_utc": "2026-10-28T10:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "api_football": "api_football_identity_no_core_match",
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "source_home_away_conflict",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T17:33:10+00:00",
-      "match_key": "2026-10-28,28720,24581",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
       "away": "Antalyaspor",
       "home": "Karsspor",
       "kickoff_utc": "2026-10-28T10:00:00+00:00",
@@ -442,24 +422,6 @@
       },
       "last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-28,29823,1748",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Urawa Red Diamonds",
-      "home": "Nagoya Grampus Eight",
-      "kickoff_utc": "2026-10-28T10:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "api_football": "api_football_identity_no_core_match",
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T17:33:10+00:00",
-      "match_key": "2026-10-28,799,631",
       "status": "PENDING"
     },
     {
@@ -586,60 +548,6 @@
       },
       "last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-28,10084669,27483",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
-      "away": "Paksi SE",
-      "home": "Cigánd SE",
-      "kickoff_utc": "2026-10-28T11:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "api_football": "api_football_identity_no_core_match",
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "tsdb_limited_this_run"
-      },
-      "last_checked_at": "2026-10-28T17:33:10+00:00",
-      "match_key": "2026-10-28,55219,22939",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
-      "away": "Nairobi United",
-      "home": "Muranga Seal",
-      "kickoff_utc": "2026-10-28T12:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "api_football": "api_football_identity_no_core_match",
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T18:21:23+00:00",
-      "match_key": "2026-10-28,10012613,10074748",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
-      "away": "Omladinski FK Beograd",
-      "home": "OFK Vrsac",
-      "kickoff_utc": "2026-10-28T12:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "api_football": "api_football_identity_no_core_match",
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T18:21:23+00:00",
-      "match_key": "2026-10-28,10038000,1142",
       "status": "PENDING"
     },
     {
@@ -894,23 +802,6 @@
     },
     {
       "attempts": 2,
-      "away": "Olympiakos",
-      "home": "Marko",
-      "kickoff_utc": "2026-10-28T13:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T19:01:24+00:00",
-      "match_key": "2026-10-28,95299,1092",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
       "away": "NK Slovenska Bistrica",
       "home": "NK Jesenice",
       "kickoff_utc": "2026-10-28T13:00:00+00:00",
@@ -958,23 +849,6 @@
       },
       "last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,10033957,40507",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
-      "away": "FC Septemvri Sofia U19",
-      "home": "ACF Fiorentina U19",
-      "kickoff_utc": "2026-10-28T13:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "tsdb_limited_this_run"
-      },
-      "last_checked_at": "2026-10-28T19:01:24+00:00",
-      "match_key": "2026-10-28,35198,74459",
       "status": "PENDING"
     },
     {
@@ -1149,23 +1023,6 @@
     },
     {
       "attempts": 2,
-      "away": "Ruch Chorzow",
-      "home": "MKS Znicz Pruszków",
-      "kickoff_utc": "2026-10-28T16:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "no_event"
-      },
-      "last_checked_at": "2026-10-28T19:50:21+00:00",
-      "match_key": "2026-10-28,28354,23552",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
       "away": "Soroksár SK KF",
       "home": "Kozármisleny SE",
       "kickoff_utc": "2026-10-28T16:30:00+00:00",
@@ -1182,20 +1039,273 @@
       "status": "PENDING"
     },
     {
-      "attempts": 2,
-      "away": "Wisła Płock",
-      "home": "Puszcza Niepolomice",
-      "kickoff_utc": "2026-10-28T16:30:00+00:00",
+      "attempts": 1,
+      "away": "Hertha Berlin",
+      "home": "SSV Jeddeloh II",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "not_finished",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,10030686,196",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "KKS Czarni Sosnowiec Women",
+      "home": "SK Brann Women",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
       "last_attempt_provider_reasons": {
         "bsd": "monte_no_exact_archive_match",
         "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
         "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "home_team_mismatch"
+        "thesportsdb": "no_event"
       },
-      "last_checked_at": "2026-10-28T19:50:21+00:00",
-      "match_key": "2026-10-28,36192,993",
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,10048297,44160",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "VfB Stuttgart 1893",
+      "home": "Paderborn",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_no_exact_match",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,1069,200",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "CF Chindia Târgovişte",
+      "home": "FC Dinamo Bucureşti",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,1136,24479",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "IL Hødd",
+      "home": "Åsane Fotball",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,1325,630",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Vålerenga IF",
+      "home": "Sarpsborg 08 FF",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,1388,156",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "AS Livorno Calcio",
+      "home": "AC Spezia Calcio 1906",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,1509,239",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Puskás Ferenc Akadémia FC",
+      "home": "Diósgyőri VTK",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,1670,48955",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Al Mokawloon Al Arab",
+      "home": "Zamalek SC",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,26233,26232",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "MSK Zilina U19",
+      "home": "HJK Helsinki U19",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,29474,38367",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Bryne FK",
+      "home": "Egersund IK",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,30577,587",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Kairat Almaty U19",
+      "home": "MTK Hungaria FC U19",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,36622,84845",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Sandefjord Fotball",
+      "home": "Odd Grenland",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,508,715",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Strømsgodset IF",
+      "home": "Molde FK",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,509,667",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Ham-Kam",
+      "home": "Rosenborg",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,510,511",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Sogndal IL",
+      "home": "Lillestrøm SK",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,515,658",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "FK Crvena Zvezda U19",
+      "home": "NK Bravo U19",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,67154,51135",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Cordoba CF U19",
+      "home": "UD Tomares U19",
+      "kickoff_utc": "2026-10-28T17:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T20:04:53+00:00",
+      "match_key": "2026-10-28,88730,89130",
       "status": "PENDING"
     }
   ],
