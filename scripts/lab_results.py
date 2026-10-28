@@ -20,6 +20,7 @@ from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
 from h1lab.lab_ft_evidence import day_fingerprint
+from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_fotmob import FotMobResults
@@ -35,6 +36,7 @@ API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
 REVIEWED_API_IDS = ROOT / "data/lab/ft-api-football-reviewed.json"
+API_FOOTBALL_DAY_INDEX = ROOT / "data/lab/ft-api-football-day-index.json"
 DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
 PROVIDER_IDENTITY = ROOT / "data/lab/ft-provider-identity.json"
 PROVIDER_IDENTITY_PUBLIC = ROOT / "docs/lab/ft-provider-identity.json"
@@ -248,8 +250,15 @@ def main():
                 else {"schema_version": 1, "pairs": {}})
     api_today = historical_days.get("usage", {}).get("api_football", {}).get(
         now.date().isoformat(), 0)
+    previous_day_index = (json.loads(API_FOOTBALL_DAY_INDEX.read_text(encoding="utf-8"))
+                          if API_FOOTBALL_DAY_INDEX.exists()
+                          else {"schema_version": 1, "days": {}})
+    confirmed_ids = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
+                     if PROVIDER_IDENTITY.exists()
+                     else {"schema_version": 1, "entries": {}})
     approved_targets = (plan_reviewed_ids(
-        preview_keys, _preview_ledger["matches"], previous_review, approved, now)
+        preview_keys, _preview_ledger["matches"], previous_review, approved, now,
+        day_index=previous_day_index, confirmed_registry=confirmed_ids)
         if api_football_poll and api_today < 90 else {})
     if approved_targets:
         api_football.reviewed_targets = approved_targets
@@ -303,6 +312,13 @@ def main():
                    if (digest := day_fingerprint(provider, rows)) is not None}
         for provider in provider_day_rows
     }
+    next_day_index = build_index(previous_day_index, api_football.days, now)
+    # No raw API payloads or scores are persisted: only complete fixture
+    # identities for future collision checks and reviewed IDs.
+    write_if_changed(API_FOOTBALL_DAY_INDEX, next_day_index)
+    report["ft_queue"]["api_football_complete_index_days"] = sum(
+        day.get("status") == "COMPLETE"
+        for day in next_day_index["days"].values())
     next_rotation = advance(historical_days, rotation, used_days, now,
                             extra_requests={"goal":goal.id_requests,
                                             "api_football":api_football.id_requests},
