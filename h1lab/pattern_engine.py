@@ -72,13 +72,17 @@ def canonical(defn):
     return json.dumps(defn, sort_keys=True, separators=(",", ":"))
 
 
-def hypothesis_id(defn):
-    raw = canonical(defn) + "|f%d" % FEATURE_VERSION
+def hypothesis_id(defn, *, feature_version=None):
+    """Stable across later feature schema upgrades for already frozen entries."""
+    version = FEATURE_VERSION if feature_version is None else feature_version
+    raw = canonical(defn) + "|f%d" % version
     return "P5-" + hashlib.sha256(raw.encode()).hexdigest()[:10]
 
 
-def definition_sha(defn):
-    return hashlib.sha256((canonical(defn) + "|f%d" % FEATURE_VERSION).encode()).hexdigest()
+def definition_sha(defn, *, feature_version=None):
+    """Hash a frozen definition using the feature version of that entry."""
+    version = FEATURE_VERSION if feature_version is None else feature_version
+    return hashlib.sha256((canonical(defn) + "|f%d" % version).encode()).hexdigest()
 
 
 def holds(defn, f):
@@ -287,7 +291,9 @@ def load_registry(raw):
         raise ValueError("Incompatible pattern registry")
     ids = set()
     for e in reg["entries"]:
-        if e.get("definition_sha256") != definition_sha(e["definition"]) or e["id"] != hypothesis_id(e["definition"]):
+        frozen_version = e.get("feature_version", 1)
+        if (e.get("definition_sha256") != definition_sha(e["definition"], feature_version=frozen_version)
+                or e["id"] != hypothesis_id(e["definition"], feature_version=frozen_version)):
             raise ValueError("Frozen hypothesis definition altered: " + str(e.get("id")))
         if e["id"] in ids:
             raise ValueError("Duplicate frozen hypothesis")
