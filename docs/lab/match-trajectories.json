@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T10:51:30+00:00",
+ "generated_at": "2026-10-28T10:56:30+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 61
+  "timelines_published": 62
  },
  "schema_version": 1,
- "source_commit": "656a93bc546c535ae6f1a6f5cc81d06f43942f2b",
+ "source_commit": "c67062edb423679ed05513e0f6c8cbf26960f825",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 263,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 343,
+  "messages": 344,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 141,
+  "messages_on_repeated_matches": 143,
   "messages_v4_only": 0,
-  "messages_with_v4": 269,
-  "movement_episodes_upper_bound": 330,
+  "messages_with_v4": 270,
+  "movement_episodes_upper_bound": 331,
   "possibly_redundant_snapshots": 8,
   "post_kickoff_messages": 9,
   "related_message_pairs": 13,
@@ -50,25 +50,163 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 5
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 61,
+  "repeated_matches": 62,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 395
+   "V4_EXPLICIT": 396
   },
   "total_line_reversals_on_repeated": 25,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 8,
-   "CONTINUOUS": 44,
+   "CONTINUOUS": 45,
    "SAME_MOVEMENT_REPEAT": 13,
    "UNOBSERVED_CHANGE": 15
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 64,
    "one_x_two:AGREE": 62,
-   "total:AGREE": 269
+   "total:AGREE": 270
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50770",
+    "3571094759:50924"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50770",
+     "message_id": 50770,
+     "minutes_to_kickoff": 766.7,
+     "observed_at": "2026-10-28T06:58:17+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.75,
+        "over_price": 2.03,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 4.5,
+        "over_price": 1.91,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50924",
+     "message_id": 50924,
+     "minutes_to_kickoff": 532.2,
+     "observed_at": "2026-10-28T10:52:49+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 5.0,
+        "over_price": 1.99,
+        "under_price": 1.92
+       },
+       "before": {
+        "line": 4.75,
+        "over_price": 1.92,
+        "under_price": 2.05
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T06:58:17+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T19:45:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T10:52:49+00:00",
+   "match_key": "2026-10-28,198,1738",
+   "match_label": "Bayern München vs 1. FC Magdeburg",
+   "movement_episodes": [
+    [
+     "3571094759:50770"
+    ],
+    [
+     "3571094759:50924"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    14072.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 4.5,
+     "last_observed_line": 5.0,
+     "net_observed_change": 0.5,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 4.75,
+       "before": 4.5,
+       "event_id": "3571094759:50770",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 5.0,
+       "before": 4.75,
+       "event_id": "3571094759:50924",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50770",
+       "line": "CONTINUOUS",
+       "next_before_line": 4.75,
+       "previous_after_line": 4.75,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:50924"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
