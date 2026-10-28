@@ -58,6 +58,8 @@ def _extract(provider, event):
     reference = ""
     source = ""
     when = None
+    team_ids = None
+    competition_id = None
     if provider == "api_football":
         home, away = api_name(event, "home"), api_name(event, "away")
         when = api_time(event)
@@ -65,6 +67,15 @@ def _extract(provider, event):
         league = event.get("league") or {}
         reference = str(fixture.get("id")) if type(fixture.get("id")) is int and fixture["id"] > 0 else ""
         name = _text(league.get("name")) if isinstance(league, dict) else ""
+        competition_id = league.get("id") if isinstance(league, dict) else None
+        teams = event.get("teams") or {}
+        if isinstance(teams, dict):
+            h, a = teams.get("home"), teams.get("away")
+            if isinstance(h, dict) and isinstance(a, dict):
+                h_id, a_id = h.get("id"), a.get("id")
+                if (type(h_id) is int and h_id > 0 and type(a_id) is int
+                        and a_id > 0 and h_id != a_id):
+                    team_ids = (h_id, a_id)
         if reference:
             source = "https://v3.football.api-sports.io/fixtures?id=" + reference
     elif provider == "goal":
@@ -107,7 +118,8 @@ def _extract(provider, event):
     if not home.strip() or not away.strip() or not when.tzinfo:
         return None
     return (_text(home), _text(away), when.astimezone(timezone.utc),
-            _text(name), _text(reference, 180), source)
+            _text(name), _text(reference, 180), source, team_ids,
+            competition_id if type(competition_id) is int and competition_id > 0 else None)
 
 
 def _cached(provider, day, caches):
@@ -139,7 +151,7 @@ def _candidates(signal, provider, rows, now):
         item = _extract(provider, event)
         if item is None:
             continue
-        home, away, when, comp, identifier, source = item
+        home, away, when, comp, identifier, source, team_ids, competition_id = item
         gap = abs((ko - when).total_seconds())
         if gap > WINDOW_SECONDS:
             continue
@@ -162,6 +174,11 @@ def _candidates(signal, provider, rows, now):
             "provider_kickoff_utc": when.isoformat(timespec="seconds"),
             "provider_competition": comp,
             "reference_url": source,
+            **({"provider_home_team_id": team_ids[0],
+                "provider_away_team_id": team_ids[1],
+                "provider_competition_id": competition_id}
+               if provider == "api_football" and team_ids and competition_id
+               else {}),
             "orientation": orient,
             "name_similarity_diagnostic": round(sum(scores) / 2, 3),
             "match_strength": "STRONG" if strong else "WEAK_REVIEW_ONLY",
