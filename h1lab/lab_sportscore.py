@@ -16,8 +16,8 @@ from .lab_reviewed_aliases import reviewed_provider_pair
 
 ROOT="https://sportscore.com"
 API=ROOT+"/api/v1/"
-MAX_REQUESTS=35
-MAX_TEAM_SEARCHES=12
+MAX_REQUESTS=60
+MAX_TEAM_SEARCHES=30
 NO_ET=re.compile(r"extra.?time|aet|after.extra|penalt|shoot.?out|spot.kick|\bET\b",re.I)
 FULL=re.compile(r"\bft\b|full.?time|finish|\bfinal\b",re.I)
 CUP=re.compile(r"\bcup\b|\bcupa\b|coppa|coupe|ta[cç]a|pokal|copa|trophy|knockout",re.I)
@@ -143,7 +143,7 @@ def fetch(endpoint,params):
 
 
 class SportScoreResults:
-    def __init__(self,competitions,*,getter=fetch,max_requests=24,max_team_searches=8):
+    def __init__(self,competitions,*,getter=fetch,max_requests=45,max_team_searches=20):
         if not (0<=max_requests<=MAX_REQUESTS and
                 0<=max_team_searches<=MAX_TEAM_SEARCHES):
             raise ValueError("Unsafe SportScore budget")
