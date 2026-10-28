@@ -10,6 +10,8 @@ on:
       - 'scripts/lab_results.py'
       - 'tests/test_lab_results.py'
       - 'h1lab/lab_espn.py'
+      - 'h1lab/lab_sportscore.py'
+      - 'tests/test_lab_sportscore.py'
       - 'tests/test_lab_espn.py'
       - 'h1lab/lab_bsd_search.py'
       - 'tests/test_lab_bsd_search.py'
@@ -42,6 +44,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_search.py' -v
           python -m unittest discover -s tests -p 'test_lab_espn.py' -v
+          python -m unittest discover -s tests -p 'test_lab_sportscore.py' -v
       - name: Reconcile all observed fixture identities (bounded, no betting)
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
@@ -64,6 +67,8 @@ jobs:
           assert d['matches_omitted_from_display']+d['displayed_matches']==d['matches']
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
+          assert d["sportscore_search"]["requests"] <= 24
+          assert d["sportscore_search"]["targeted_searches"] <= 8
           assert d["thesportsdb_search"].get("requested",0) <= 30
           assert d['bsd_date_search']['date_days_examined'] <= 4
           assert d['bsd_date_search']['date_list_requests'] <= 16
