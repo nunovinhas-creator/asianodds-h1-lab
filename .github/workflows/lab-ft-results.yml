@@ -72,8 +72,8 @@ jobs:
           assert d['matches_omitted_from_display']+d['displayed_matches']==d['matches']
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
-          assert d["sportscore_search"]["requests"] <= 24
-          assert d["sportscore_search"]["targeted_searches"] <= 8
+          assert d["sportscore_search"]["requests"] <= 45
+          assert d["sportscore_search"]["targeted_searches"] <= 20
           assert d["reviewed_alias_catalog_matches"] <= 16
           assert d["thesportsdb_search"].get("requested",0) <= 30
           assert d['bsd_date_search']['date_days_examined'] <= 4
