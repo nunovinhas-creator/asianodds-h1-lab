@@ -146,7 +146,56 @@ def append_journal(root, now, additions):
     return count
 
 
-def captures(timelines, now):
+def _competition_type(value):
+    """A heuristic label, never a proven division classification."""
+    import re
+    value = (value or "").lower()
+    if any(x in value for x in ("u17", "u18", "u19", "u20", "u21", "youth",
+                                 "juvenil", "reserve", "reserves", "sub-19", "sub-21")):
+        return "YOUTH_RESERVE"
+    if any(x in value for x in ("cup", "taça", "copa", "pokal", "coupe")):
+        return "CUP"
+    return "LEAGUE_OTHER" if value.strip() else "UNKNOWN"
+
+
+def _falsification_context(timeline, events, watch, competition):
+    """Future-proof frozen context; never reconstruct these fields for past predictions."""
+    from .market_math import one_x_two_probs
+    categories = {k: 0 for k in ("total", "one_x_two", "asian_handicap")}
+    market_agreement = []
+    for e in events:
+        snap = e.get("snapshots") or {}
+        for kind in categories:
+            if kind in snap:
+                categories[kind] += 1
+        ah, one = snap.get("asian_handicap"), snap.get("one_x_two")
+        if ah and one:
+            before = one_x_two_probs({sel: one[sel]["before"] for sel in ("1", "X", "2")})
+            after = one_x_two_probs({sel: one[sel]["after"] for sel in ("1", "X", "2")})
+            ab = (ah.get("before") or {}).get("line")
+            aa = (ah.get("after") or {}).get("line")
+            if before and after and isinstance(ab, (int, float)) and isinstance(aa, (int, float)):
+                home = after["1"] - before["1"]
+                towards_home = ab - aa
+                if abs(home) >= 0.01 and abs(towards_home) >= 0.25:
+                    market_agreement.append((home > 0) == (towards_home > 0))
+    return {
+        "schema": "V6-FALSIFICATION-CONTEXT-1",
+        "source_event_ids": [e["event_id"] for e in events],
+        "watch_category": (watch or {}).get("category"),
+        "episode_directions": (watch or {}).get("episode_directions"),
+        "episodes": (watch or {}).get("episodes"),
+        "first_lead_minutes": events[0].get("minutes_to_kickoff"),
+        "last_lead_minutes": events[-1].get("minutes_to_kickoff"),
+        "market_message_counts": categories,
+        "cross_market_agreements": market_agreement,
+        "competition_at_capture": competition,
+        "competition_group_heuristic": _competition_type(competition),
+        "observation_limit": "Telegram observed_at <= actual collector known_at; individual delivery times unknown",
+    }
+
+
+def captures(timelines, now, competitions=None):
     """Latest message per still-future game, never a reconstructed FT feature."""
     out = []
     for timeline in timelines:
@@ -171,7 +220,16 @@ def captures(timelines, now):
             continue
         last = events[-1]
         q = quality((last.get("snapshots") or {}).get("total"))
-        watch = inspect(timeline, now)
+        # Reconstruct episode components only from events present at capture.
+        # A future message must never join two earlier episodes transitively.
+        from .timeline import episodes as isolated_episodes
+        allowed = {e["event_id"] for e in events}
+        past_relations = [r for r in timeline.get("related_messages", [])
+                          if set(r.get("events") or ()) <= allowed]
+        past_timeline = dict(timeline, events=events,
+                             movement_episodes=isolated_episodes(events, past_relations))
+        watch = inspect(past_timeline, now)
+        competition = (competitions or {}).get(timeline["match_key"])
         out.append({
             "match_key": timeline["match_key"], "match_label": timeline.get("match_label"),
             "kickoff_utc": kos[0], "event_id": last["event_id"],
@@ -179,6 +237,7 @@ def captures(timelines, now):
             "message_count_at_capture": len(events),
             "total_origin": ((last.get("snapshots") or {}).get("total") or {}).get("origin"),
             "price_quality": q, "quality_policy_version": QUALITY_POLICY,
+            "falsification_context": _falsification_context(timeline, events, watch, competition),
             "market_probability_over_2_5": q["p_over_2_5"],
             "pattern_original_posthoc": bool(watch and watch["original_condition"]),
             "pattern_strict_posthoc": bool(watch and watch["strict_condition"]),
@@ -334,7 +393,11 @@ def run(root, now):
     root = Path(root)
     alerts, v4, errors = read_sources(root)
     timelines, _, _ = collect_timelines(alerts, v4, source_errors=errors)
-    additions = captures(timelines, now)
+    competitions = {a.get("match_key"): a.get("competition") for a in alerts
+                    if isinstance(a, dict) and a.get("match_key") and a.get("competition")
+                    and utc(a.get("observed_at")) is not None
+                    and utc(a["observed_at"]) <= now}
+    additions = captures(timelines, now, competitions)
     n = append_journal(root, now, additions)
     records = read_journal(root)
     return report(root, records, now), n

@@ -70,5 +70,20 @@ jobs:
           assert d==rebuild('.')
           print('V6_FIVE_MEMORIES_REPLAY_OK',d['source_forecasts'])
           PY
+      - name: V6 falsification smoke with real frozen journal and scientific memory
+        run: |
+          python -m scripts.lab_v6_falsification
+          python -m scripts.lab_v6_falsification --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('docs/lab/v6-falsification.json').read_text(encoding='utf-8'))
+          assert d['status']=='V6_FALSIFICATION_SHADOW_NO_PROMOTION'
+          assert len(d['checks'])==10
+          assert len(set(x['code'] for x in d['checks']))==10
+          assert set(x['result'] for x in d['checks'])<= {'PASS','FAIL','INSUFFICIENT_N'}
+          assert d['overall']=='INCONCLUSIVO'
+          print('V6_FALSIFICATION_REAL_SOURCE_OK',d['sample'])
+          PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs

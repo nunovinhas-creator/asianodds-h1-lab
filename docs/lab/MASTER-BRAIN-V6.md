@@ -77,3 +77,24 @@ Ficheiros: `data/lab/v6-memory-{observations,patterns,hypotheses,evidence,decisi
 A migração do que **já estava congelado** usa os `known_at` originais apenas como referência, mas os novos eventos de memória recebem a hora real `written_at`: nunca são retrodatados. Quando um FT desaparece ou muda, o fluxo de evidência acrescenta um evento de quarentena ou revisão; o anterior fica intacto. Esta operação **não altera** nem manda corrigir a liquidação de produção.
 
 **Limite explícito da fase:** neste momento a memória de padrões só cobre as condições Pattern Watch já congeladas, **não** as 800 hipóteses exploratórias nem as 49 variáveis V5 em todas as suas versões. A memória não é ainda o Radar completo e não certifica 99% de ingestão. P0 requer sete dias observados e V6.1 exige o gate de estabilidade de 14 dias; enquanto isso, `V6_SCIENCE_MEMORY_SHADOW_WARMUP_NOT_VALIDATED`. P1 #7–#10 continuam pendentes.
+
+## V6.1 P1 #7 — Falsificação determinista (experimental, sem promoção)
+
+Módulo `h1lab/v6_falsification.py`, CLI `python -m scripts.lab_v6_falsification` e relatório público derivado `docs/lab/v6-falsification.json`. Executa dez desafios **fixados na versão `V6-FALSIFICATION-1`** à única hipótese formalmente registada (`V6-POSTHOC-20261028-NO-DOWN`), com estados `PASS`, `FAIL` ou `INSUFFICIENT_N`, n, limiar previamente definido, diagnósticos e jogos de origem:
+
+1. **F01 — Independência**: distingue alertas de episódios realmente distintos.
+2. **F02 — Composição**: subida em todos os episódios vs subida com estabilidade vs estabilidade apenas.
+3. **F03 — Coerência entre mercados**: testa a direção conjunta de 1X2 e handicap quando disponíveis; **não** trata essa coerência como previsão de golos.
+4. **F04 — Antecedência**: separa menos de 1 h, 1–6 h, 6–24 h e mais de 24 h.
+5. **F05 — Competição**: usa categorias heurísticas (taça, jovens/reservas, restantes), sem afirmar classificação infalível.
+6. **F06 — Robustez**: retira um dia de cada vez e os 5% de resíduos absolutos mais extremos.
+7. **F07 — Mercado**: mede `Over observado − p_mercado` e não permite PASS antes de 1 000 FT realmente prospetivos em 3 semanas.
+8. **F08 — Concorrentes**: compara contra jogos com linhas Total semelhantes em estratos predefinidos.
+9. **F09 — Semelhantes**: pareia jogos com λ próximo (até 0,25) e antecedência próxima (até 6 h) sem repetir os controlos.
+10. **F10 — Confirmação temporal**: exige registo formal, início posterior ao `known_at`, FT verificado, 1 000 jogos prospetivos, 3 semanas e gate de 14 dias.
+
+**Rastreabilidade e ausência de fuga temporal:** o motor lê exclusivamente `v6-forecasts-*.jsonl`, `v6-hypotheses.jsonl` e o fluxo **append-only** `v6-memory-evidence-*.jsonl`; só considera FT com `ft_checked_at` comprovado entre o início e o instante da avaliação. Conservadoramente, as previsões **anteriores ao registo formal** da hipótese não servem para validação. Não reconstrói informação em falta usando dados observados mais tarde.
+
+As **novas** capturas V6 passam a guardar `falsification_context` com contagens dos mercados observados, episódios, direções, antecedência, coerência AH/1X2 e classificação indicativa de competição. Os registos anteriores permanecem intactos, sem preencher contextos retroativamente.
+
+Todos os `PASS` são **apenas verificações descritivas**, não resultados estatísticos confirmatórios. A única decisão global permitida continua `INCONCLUSIVO`; nenhuma mudança ao H1, V5, ROI, Telegram, Pattern Watch ou mecanismos de liquidação. O relatório é uma vista derivada, reexecutável com `--verify-only`; os factos permanecem nos cinco diários da memória. Esta fase **não** supera os gates `WARMUP` de 7/14 dias.
