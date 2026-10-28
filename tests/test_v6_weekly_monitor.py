@@ -92,7 +92,9 @@ class WeeklyMonitorTests(unittest.TestCase):
         b[0]["source_last_checked_at"]=(old+timedelta(days=1)).isoformat()
         a[1]["known_at"]="2026-09-28T12:00:00+00:00"
         r=analyze(a,b,c,REG,now=datetime(2026,10,22,tzinfo=UTC))
-        w=r["weeks"][0]["calibration"]
+        # A pre-registration observation can create an EARLIER source week;
+        # the scored FT belongs to its actual kickoff week, not weeks[0].
+        w=next(x["calibration"] for x in r["weeks"] if x["week"]==date_week(old))
         self.assertEqual(w["n"],1)
         self.assertEqual(w["status"],"INSUFFICIENT_N")
 
