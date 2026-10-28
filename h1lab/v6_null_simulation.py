@@ -57,6 +57,7 @@ def _paths(trials, effect, seed):
     counters = {i: 0 for i in cutoffs}
     terminal = {i: 0 for i in cutoffs}
     wins = 0
+    full_rule_final = 0
     # Precompute step log likelihoods for each p and fixed alternative.
     weights = {}
     for p in PROBABILITIES:
@@ -69,10 +70,13 @@ def _paths(trials, effect, seed):
     for _ in range(trials):
         l0 = l1 = l2 = 0.0
         hit = False
+        residual_sum = 0.0
+        last_terminal = False
         for index in range(1, cutoffs[-1]+1):
             p = PROBABILITIES[(index-1) % len(PROBABILITIES)]
             truth = min(0.999, p + effect)
             draw = rng.random() < truth
+            residual_sum += int(draw)-p
             a,b,c = weights[p][0 if draw else 1]
             l0 += a
             l1 += b
@@ -90,8 +94,13 @@ def _paths(trials, effect, seed):
                 hi = max(l0,l1,l2)
                 e_log = hi + math.log((math.exp(l0-hi)+math.exp(l1-hi)+math.exp(l2-hi))/3.0)
                 terminal[index] += int(e_log >= LOG_THRESHOLD)
+                if index == MIN_OOS_FT:
+                    last_terminal = e_log >= LOG_THRESHOLD
         wins += int(hit)
+        full_rule_final += int(last_terminal and residual_sum/MIN_OOS_FT >= MIN_EDGE)
     return {"paths": trials, "ever_hit_at_any_look": wins,
+            "full_v6_rule_at_final_1000": full_rule_final,
+            "full_v6_rule_rate_at_final_1000": round(full_rule_final/trials, 6),
             "anytime_by_checkpoint": [
                 {"n": c, "crossings": counters[c], "rate": round(counters[c]/trials, 6),
                  "terminal_crossings": terminal[c],
@@ -132,6 +141,8 @@ def run():
             "Exactly 10000 synthetic null paths; repeated monitoring at every observation.",
             "Power paths are synthetic with a fixed p cycle, NOT out-of-sample football observations.",
             "Assumes the Poisson-derived market p is correctly calibrated conditionally; untested in data.",
+            "Anytime hits before 1000 FT are monitoring diagnostics, not operational hypothesis validation.",
+            "The full V6 rule at 1000 additionally requires terminal e>=200 and residual >=5 percentage points.",
             "The one-hypothesis alpha bound does NOT account for V5 post-hoc search among thousands of candidates.",
             "No inferred edge, model success, bankroll or betting alert is authorized.",
             "A crossing in simulation is never a prospective hypothesis-validation event.",
