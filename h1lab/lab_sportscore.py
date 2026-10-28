@@ -165,7 +165,7 @@ class SportScoreResults:
                 if targeted_rows is not None:
                     plausible=self._plausible(signal,targeted_rows)
         if len(plausible)!=1:
-            reason="sportscore_no_exact_match" if not plausible else "sportscore_ambiguous"
+            reason=("sportscore_unavailable" if rows is None else "sportscore_no_exact_match") if not plausible else "sportscore_ambiguous"
             self.reasons[reason]+=1
             return None,reason
         result,reason=verified(signal,plausible[0],self.competitions.get(signal["match_key"],""))
