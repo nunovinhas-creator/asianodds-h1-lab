@@ -136,12 +136,13 @@ def verify(signal,ev,level):
     source_id=ev.get("apiId")
     if not isinstance(source_id,str) or not re.fullmatch(r"[0-9]{3,12}",source_id):
         return None,"goal_invalid_id"
-    return {"match_key":signal["match_key"],"status":"final",
-            "home_goals":hg,"away_goals":ag,
-            "source":"https://api.goal-api.com/v1/fixtures/"+source_id,
-            "identity_match":level,"identity_version":IDENTITY_VERSION},
-           "verified_goal_ft"+("_after_et" if status=="AFTER_ET" else
-                                "_after_pen" if status=="AFTER_PEN" else "")
+    reason=("verified_goal_ft_after_et" if status=="AFTER_ET" else
+            "verified_goal_ft_after_pen" if status=="AFTER_PEN" else
+            "verified_goal_ft")
+    return ({"match_key":signal["match_key"],"status":"final",
+             "home_goals":hg,"away_goals":ag,
+             "source":"https://api.goal-api.com/v1/fixtures/"+source_id,
+             "identity_match":level,"identity_version":IDENTITY_VERSION}, reason)
 
 
 class GoalResults:
