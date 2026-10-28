@@ -19,7 +19,7 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
-LOOKUP_SOURCE_VERSION = 8  # v8: one-time LAB FT retry for guarded Monte-Carlos CORE_NAME BSD IDs
+LOOKUP_SOURCE_VERSION = 9  # v9: bounded FotMob 90-minute FT provider for unresolved LAB games
 
 
 def utc(value):
@@ -96,7 +96,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -203,6 +203,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("espn", espn_lookup))
         if sportscore_lookup is not None:
             providers.append(("sportscore", sportscore_lookup))
+        if fotmob_lookup is not None:
+            providers.append(("fotmob", fotmob_lookup))
         for provider, lookup in providers:
             try:
                 candidate, reason = lookup(signal)
