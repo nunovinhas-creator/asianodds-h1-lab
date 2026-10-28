@@ -99,7 +99,7 @@ def _payload_hash(record):
 
 
 def read_journal(root):
-    """Fail closed on modified/reordered/truncated JSONL; preserve original bytes."""
+    """Fail closed on modified/reordered JSONL; Git commits anchor tail history."""
     records, previous = [], ZERO_HASH
     for path in sorted((Path(root) / "data/lab").glob(JOURNAL_GLOB)):
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -205,12 +205,32 @@ def _retrospective_quality(root):
             "historical_only_not_forecasts": True}
 
 
+def snapshot_quality_rows(root):
+    """QA evidence by source event: *retrospective diagnostics*, never forecasts."""
+    rows = []
+    for path in sorted((Path(root) / "data/lab").glob("markets-????-??.jsonl")):
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            item = json.loads(raw)
+            total = (item.get("markets") or {}).get("total")
+            if total is not None:
+                rows.append({
+                    "event_id": item["event_id"], "observed_at": item["observed_at"],
+                    "match_key": item.get("match_key"), "kickoff_utc": item.get("kickoff_utc"),
+                    "quality": quality(total),
+                })
+    return {"schema_version": SCHEMA, "scope": "HISTORICAL_PRICE_QA_NOT_FORECASTS",
+            "snapshots": sorted(rows, key=lambda x: (x["observed_at"], x["event_id"]))}
+
+
 def _ft(root):
     ledger_path = Path(root) / "data/lab/ft-ledger.json"
     ledger = json.loads(ledger_path.read_text(encoding="utf-8")) if ledger_path.exists() else {}
     csv_path = Path(root) / "data/results.csv"
-    with csv_path.open(encoding="utf-8") if csv_path.exists() else open(Path(root) / "data/lab/ft-ledger.json", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f)) if csv_path.exists() else []
+    if csv_path.exists():
+        with csv_path.open(encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+    else:
+        rows = []
     return outcomes_from(ledger, rows)[0]
 
 
