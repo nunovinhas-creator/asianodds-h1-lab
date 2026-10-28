@@ -342,7 +342,7 @@ def main():
         "bsd": report["bsd_date_search"],
         "sportscore": report["sportscore_search"],
         "thesportsdb": report["thesportsdb_search"],
-    })
+    }, evidence_retry=True)
     # Persist bounded evidence of real scheduled provider calls. A subsequent
     # push run can overwrite the dashboard snapshot without erasing this audit.
     event = os.environ.get("GITHUB_EVENT_NAME", "local")
