@@ -49,6 +49,10 @@ jobs:
           assert prices['scope']=='HISTORICAL_PRICE_QA_NOT_FORECASTS'
           assert len(prices['snapshots'])==report['price_quality_historical']['total_snapshots']
           assert len(read_journal(root))==report['forecasts']['records']
+          rd=json.loads((root/'docs/lab/v6-readiness.json').read_text(encoding='utf-8'))
+          assert rd['status']=='V6_COVERAGE_OBSERVABILITY_NOT_MODEL_VALIDATION'
+          assert rd['records']==report['forecasts']['records']
+          assert rd['p0_7_day_gate'] in ('WARMUP','SOURCE_COVERAGE_PASS_PENDING_EXTERNAL_VERIFICATION','SOURCE_COVERAGE_BELOW_99_PERCENT')
           print('V6_REAL_INPUT_SMOKE_OK',len(prices['snapshots']))
           PY
       - name: Validate external five-minute cron fallback
