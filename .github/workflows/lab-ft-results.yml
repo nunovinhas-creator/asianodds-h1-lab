@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - 'h1lab/lab_results.py'
+      - 'h1lab/lab_ft_diagnostics.py'
+      - 'tests/test_lab_ft_diagnostics.py'
       - 'scripts/lab_results.py'
       - 'tests/test_lab_results.py'
       - 'h1lab/lab_espn.py'
@@ -58,6 +60,7 @@ jobs:
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_diagnostics.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_search.py' -v
           python -m unittest discover -s tests -p 'test_lab_espn.py' -v
           python -m unittest discover -s tests -p 'test_lab_sportscore.py' -v
@@ -86,6 +89,8 @@ jobs:
           assert all(x['match_key'] in ledger['matches'] for x in d['games'])
           assert all(x.get('home_goals') is None for x in d['games'] if x['status']!='FINAL')
           assert d['matches_omitted_from_display']+d['displayed_matches']==d['matches']
+          c=d['coverage_diagnostics']
+          assert c['ft_confirmed']+c['future']+c['grace']+c['blocked_review']+c['past_unverified_eligible']==d['matches']
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
