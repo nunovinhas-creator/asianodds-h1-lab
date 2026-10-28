@@ -13,6 +13,8 @@ on:
     branches: [main]
     paths:
       - 'h1lab/lab_results.py'
+      - 'h1lab/lab_ft_evidence.py'
+      - 'tests/test_lab_ft_v7.py'
       - 'h1lab/lab_ft_crosswalk.py'
       - 'h1lab/lab_goal_id_probe.py'
       - 'tests/test_lab_goal_id_probe.py'
@@ -95,6 +97,7 @@ jobs:
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_v7.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_fair_queue.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_rotation.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_id_probe.py' -v
