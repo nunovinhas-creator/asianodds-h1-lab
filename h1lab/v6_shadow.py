@@ -220,7 +220,15 @@ def captures(timelines, now, competitions=None):
             continue
         last = events[-1]
         q = quality((last.get("snapshots") or {}).get("total"))
-        watch = inspect(timeline, now)
+        # Reconstruct episode components only from events present at capture.
+        # A future message must never join two earlier episodes transitively.
+        from .timeline import episodes as isolated_episodes
+        allowed = {e["event_id"] for e in events}
+        past_relations = [r for r in timeline.get("related_messages", [])
+                          if set(r.get("events") or ()) <= allowed]
+        past_timeline = dict(timeline, events=events,
+                             movement_episodes=isolated_episodes(events, past_relations))
+        watch = inspect(past_timeline, now)
         competition = (competitions or {}).get(timeline["match_key"])
         out.append({
             "match_key": timeline["match_key"], "match_label": timeline.get("match_label"),
@@ -386,7 +394,9 @@ def run(root, now):
     alerts, v4, errors = read_sources(root)
     timelines, _, _ = collect_timelines(alerts, v4, source_errors=errors)
     competitions = {a.get("match_key"): a.get("competition") for a in alerts
-                    if isinstance(a, dict) and a.get("match_key") and a.get("competition")}
+                    if isinstance(a, dict) and a.get("match_key") and a.get("competition")
+                    and utc(a.get("observed_at")) is not None
+                    and utc(a["observed_at"]) <= now}
     additions = captures(timelines, now, competitions)
     n = append_journal(root, now, additions)
     records = read_journal(root)
