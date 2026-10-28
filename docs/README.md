@@ -26,6 +26,7 @@
 | [Golden Set](lab/golden-report.json) | Revisões, conflitos e estado NOT_CERTIFIED |
 | [Cronologia](lab/match-trajectories.json) | Trajetórias agrupadas por jogo |
 | [Todos os resultados FT do LAB](lab/ft-results.json) | Cobertura FT por jogo, fontes, futuros e atrasados |
+| [V6 — resíduos vs mercado em todas as hipóteses](lab/v6-residual-research.json) | Relatório exploratório com filtro de preço, bootstrap por dia e cobertura FT (publicado após execução) |
 | [Cérebro V5 — hipóteses e testes](lab/pattern-research.json) | Estados EXPLORATORIO/CANDIDATO/etc., combinações, FT e similaridade |
 | [Auditoria histórica BSD](../reports/bsd-europa-audit.json) | Amostra da cobertura BSD, não dados de jogo em tempo real |
 
