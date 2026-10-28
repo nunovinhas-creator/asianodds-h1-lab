@@ -230,6 +230,9 @@ def captures(timelines, now, competitions=None):
                              movement_episodes=isolated_episodes(events, past_relations))
         watch = inspect(past_timeline, now)
         competition = (competitions or {}).get(timeline["match_key"])
+        from .v6_features_v2 import build as freeze_v2
+        feature_context = freeze_v2(past_timeline, events, known_at=stamp(now),
+                                    competition=competition)
         out.append({
             "match_key": timeline["match_key"], "match_label": timeline.get("match_label"),
             "kickoff_utc": kos[0], "event_id": last["event_id"],
@@ -237,7 +240,8 @@ def captures(timelines, now, competitions=None):
             "message_count_at_capture": len(events),
             "total_origin": ((last.get("snapshots") or {}).get("total") or {}).get("origin"),
             "price_quality": q, "quality_policy_version": QUALITY_POLICY,
-            "falsification_context": _falsification_context(timeline, events, watch, competition),
+            "falsification_context": _falsification_context(past_timeline, events, watch, competition),
+            "feature_context_v2": feature_context,
             "market_probability_over_2_5": q["p_over_2_5"],
             "pattern_original_posthoc": bool(watch and watch["original_condition"]),
             "pattern_strict_posthoc": bool(watch and watch["strict_condition"]),

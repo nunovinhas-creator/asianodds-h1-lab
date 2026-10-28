@@ -205,6 +205,13 @@ def rebuild(root, *, frozen=None, registration=None):
                 e["pattern_original_posthoc"] != bool(src["pattern_original_posthoc"]) or
                 e["pattern_strict_posthoc"] != bool(src["pattern_strict_posthoc"])):
             raise ValueError("V6 pattern snapshot mismatches frozen observation")
+        f2 = src.get("feature_context_v2")
+        if f2 is not None:
+            from .v6_features_v2 import verify
+            if not verify(f2) or e.get("feature_context_v2_sha256") != f2["sha256"]:
+                raise ValueError("V2 scientific memory fingerprint mismatch")
+        elif "feature_context_v2_sha256" in e:
+            raise ValueError("V2 context missing in source forecast")
         patterns.add(e["forecast_sha256"])
     for row in streams["hypotheses"]:
         e = row["event"]
@@ -294,6 +301,12 @@ def synchronize(root, now, *, report=None):
              "total_origin": row.get("total_origin"),
              "event_id": row["event_id"],
              "derived_from": "frozen_pattern_flags_at_actual_known_at"}
+        if "feature_context_v2" in row:
+            from .v6_features_v2 import verify
+            v2 = row["feature_context_v2"]
+            if not verify(v2):
+                raise ValueError("invalid V2 frozen features")
+            p["feature_context_v2_sha256"] = v2["sha256"]
         patterns.append(fact("patterns", "PAT:" + source, p))
     change["observations"] = append_events(root, "observations", now, observations)
     change["patterns"] = append_events(root, "patterns", now, patterns)

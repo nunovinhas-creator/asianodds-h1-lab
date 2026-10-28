@@ -35,10 +35,13 @@ jobs:
       # time, never a backdated Telegram timestamp, before any FT analysis.
       # Failure does not block the established V4/Golden or H1 pipelines.
       - name: Freeze V6 market baselines and audit price quality (shadow)
+        id: v6_capture
         continue-on-error: true
         run: |
           python -m unittest discover -s tests -p 'test_v6_shadow.py' -v
+          python -m unittest discover -s tests -p 'test_v6_features_v2.py' -v
           python -m scripts.lab_v6_shadow
+          python -m scripts.lab_v6_feature_coverage
       # V6.1 P1 preparation only: scientific memory stays a shadow.
       # It does not promote hypotheses until the P0 7/14-day readiness gates.
       - name: Synchronize and replay V6 scientific memories (shadow)
@@ -109,6 +112,9 @@ jobs:
           fi
           if [ "${{ steps.v6_falsification.outcome }}" = "success" ]; then
             if [ -f docs/lab/v6-falsification.json ]; then git add docs/lab/v6-falsification.json; fi
+          fi
+          if [ "${{ steps.v6_capture.outcome }}" = "success" ] && [ -f docs/lab/v6-feature-coverage.json ]; then
+            git add docs/lab/v6-feature-coverage.json
           fi
           if [ -f docs/lab/v6-price-quality.json ]; then git add docs/lab/v6-price-quality.json; fi
           git add -f data/lab/v6-forecasts-*.jsonl 2>/dev/null || true
