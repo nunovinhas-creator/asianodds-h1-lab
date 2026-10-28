@@ -65,6 +65,8 @@ def fetch_date(day,key):
     if (not isinstance(rows,list) or len(rows)>MAX_ROWS or
         not all(isinstance(ev,dict) for ev in rows)):
         raise ValueError("GOAL invalid result rows")
+    if page is None and len(rows) >= 500:
+        raise ValueError("GOAL incomplete list: possible silent truncation")
     if page is not None:
         if not isinstance(page,dict) or page.get("hasMore") is not False:
             raise ValueError("GOAL incomplete pagination")
