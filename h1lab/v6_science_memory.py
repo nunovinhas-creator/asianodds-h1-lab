@@ -66,14 +66,15 @@ def read_stream(root, kind):
 def append_events(root, kind, now, rows):
     """Append idempotently; source and historical timestamps never altered."""
     existing = read_stream(root, kind)
-    seen = {r["id"] for r in existing}
+    previous_by_id = {r["id"]: r for r in existing}
+    seen = set(previous_by_id)
     previous = existing[-1]["sha256"] if existing else ZERO
     path = Path(root) / "data/lab" / ("v6-memory-" + kind + "-"
                                   + now.astimezone(timezone.utc).strftime("%Y-%m") + ".jsonl")
     new = []
     for candidate in rows:
         if candidate["id"] in seen:
-            prior = next(r for r in existing if r["id"] == candidate["id"])
+            prior = previous_by_id[candidate["id"]]
             # Content may contain ingest/process time in a newly generated
             # candidate; never update or silently replace the existing row.
             if prior["source_digest"] != candidate["source_digest"]:
@@ -161,7 +162,8 @@ def _evidence_proposal(frozen, results, provenance, conflicts, ledger, prior_evi
         if previous and previous["signature"] == signature:
             continue
         payload["signature"] = signature
-        payload["event_id"] = "FT:" + digest({"match_key": key, "signature": signature})[:24]
+        payload["event_id"] = "FT:" + digest({"match_key": key, "signature": signature,
+                                             "prior": payload["previous_evidence_event_id"]})[:24]
         proposals.append(fact("evidence", payload["event_id"], payload))
     return proposals
 
