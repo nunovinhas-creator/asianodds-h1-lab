@@ -4,6 +4,7 @@
  const ROOT="./";
  const SOURCES={
    research:"lab/pattern-research.json", watch:"lab/pattern-watch.json",
+   discovery:"lab/discoveries.json",
    ft:"lab/ft-results.json", quality:"lab/v4-audit.json", h1:"data.json"
  };
  const PAGE_NAMES={radar:"Radar do Cérebro",futuros:"Jogos futuros",padroes:"Padrões e cruzamentos",validacao:"Validação e evolução",dados:"Dados e qualidade"};
@@ -190,6 +191,151 @@
      if(first!=null)rowKeyVal(feeds,"Primeiras deteções congeladas",num(first));
    }
  }
+
+ const DISCOVERY_TYPES={
+   NEW_PATTERN:["Novo padrão publicado","flat"],
+   NEW_EVIDENCE:["Novos resultados FT","flat"],
+   IMPROVED:["Efeito observado aumentou","rise"],
+   DEGRADED:["Efeito observado diminuiu","alert"],
+   DATA_REVISION:["Revisão de dados · auditoria","warn"],
+   RECALCULATED:["Recalculado, sem novos FT no grupo","warn"],
+   CANDIDATE:["Candidata congelada","rise"],
+   VALIDATED:["Validada fora da amostra","rise"],
+   REJECTED:["Rejeitada na validação","alert"],
+   STATE_CHANGE:["Mudança de estado V5","warn"]
+ };
+ const nameTarget=v=>v==="BTTS_YES"?"BTTS Sim":"Over 2,5";
+ function renderChronology(){
+   const where=clear("r-discovery"),d=data("discovery");
+   if(!d || d.status==="AWAITING_FIRST_BASELINE"){
+     empty(where,"A primeira execução ainda vai fixar a baseline. Não existem descobertas históricas inventadas.");
+     put("discovery-count","Baseline pendente");return;
+   }
+   const current=$("discovery-filter").value;
+   const all=d.timeline||[];
+   const filtered=all.filter(x=>current==="all" ||
+     (current==="states"&&["CANDIDATE","VALIDATED","REJECTED","STATE_CHANGE"].includes(x.kind)) ||
+     x.kind===current);
+   put("discovery-count",num(filtered.length)+" de "+num(all.length)+" acontecimentos recentes");
+   if(!filtered.length){
+     empty(where,"Sem mudanças desta categoria desde a baseline de "+
+       formatDate(d.baseline_at,{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})+
+       ". A ausência de eventos também é informação.");
+     return;
+   }
+   for(const ev of filtered.slice(0,24)){
+     const card=create("article",null,"discovery-item "+String(ev.kind||"").toLowerCase());
+     const when=create("div",null,"discovery-time");
+     when.append(create("strong",formatDate(ev.at_utc,{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",timeZone:"UTC"})),
+       create("div","UTC"));
+     const main=create("div"),typ=DISCOVERY_TYPES[ev.kind]||[ev.kind,"warn"];
+     main.append(tag(typ[0],typ[1]),create("h3",ev.label+" · "+nameTarget(ev.target)));
+     main.append(create("p",ev.explanation));
+     const vals=create("div",null,"discovery-values");
+     if(ev.ft_delta!==null&&ev.ft_delta!==undefined&&ev.ft_delta!==0)vals.append(create("span",(ev.ft_delta>0?"+":"")+num(ev.ft_delta)+" FT no grupo"));
+     if(ev.oos_ft_delta)vals.append(create("span","OOS: +"+num(ev.oos_ft_delta)+" FT, separado"));
+     vals.append(create("span","FT: "+num(ev.previous?.known)+" → "+num(ev.current?.known)),
+       create("span","Δ: "+perc(ev.previous?.diff)+" → "+perc(ev.current?.diff)),
+       create("span","q: "+nDec(ev.previous?.q_bh)+" → "+nDec(ev.current?.q_bh)));
+     main.append(vals);
+     const actions=create("div",null,"discovery-actions"),btn=create("button","Examinar evidência");
+     btn.type="button";btn.addEventListener("click",()=>showEvidence(ev.id,ev.target));
+     actions.append(btn,create("small",ev.id+" · "+(ev.state||"EXPLORATORIO")));
+     main.append(actions);card.append(when,main);where.append(card);
+   }
+   if(filtered.length>24)where.append(create("p","São mostrados os 24 eventos mais recentes do filtro; os históricos completos ficam nos arquivos mensais versionados.","muted"));
+ }
+ function showEvidence(id,target){
+   const d=data("discovery"),record=d?.patterns?.[id+"|"+target];
+   const el=clear("r-detail");
+   if(!record){el.hidden=false;empty(el,"Este padrão saiu do conjunto publicado ou ainda não tem histórico.");return}
+   el.hidden=false;
+   const current=record.latest||{},pts=record.points||[];
+   el.append(create("div","EVOLUÇÃO INDIVIDUAL · "+id,"small-label"),create("h3",current.label+" · "+nameTarget(target)));
+   el.append(create("p","Amostra de descoberta: taxas descritivas, não sinais executados. Os dados OOS, quando existem, são apresentados separadamente.","muted"));
+   const grid=create("div",null,"detail-grid");
+   const metrics=[
+     ["Jogos com padrão",num(current.matches)],
+     ["FT conhecidos",num(current.known)],
+     ["Sim / Não",num(current.hits)+" / "+num(current.misses)],
+     ["Taxa observada",perc(current.rate)],
+     ["Sem padrão",perc(current.reference_rate)],
+     ["Diferença",perc(current.diff)],
+     ["IC 95% taxa",Array.isArray(current.ci95)?current.ci95.map(perc).join(" — "):"—"],
+     ["IC 95% diferença",Array.isArray(current.diff_ci95)?current.diff_ci95.map(perc).join(" — "):"—"],
+     ["p / q",nDec(current.p_two_sided,4)+" / "+nDec(current.q_bh,4)],
+     ["Estabilidade",current.temporal_stability||"Por avaliar"],
+     ["Estado V5",current.state||"EXPLORATORIO"]
+   ];
+   for(const [label,value] of metrics){const cell=create("div");cell.append(create("strong",value),create("span",label));grid.append(cell)}
+   el.append(grid);
+   if(current.frozen_at){
+     const oos=current.out_of_sample||{};
+     const panel=create("p","Congelada: "+formatDate(current.frozen_at)+
+       " · FT fora da amostra: "+num(oos.known)+" · Taxa OOS: "+perc(oos.rate)+
+       " · Referência OOS: "+perc(oos.reference_rate)+
+       " · efeito OOS: "+perc(oos.diff),"note");
+     el.append(panel);
+   } else {
+     el.append(create("p","Sem amostra independente congelada. Os FT acima pertencem à investigação exploratória.","note"));
+   }
+   const usable=pts.filter(p=>typeof p.rate==="number"&&Number.isFinite(p.rate));
+   if(usable.length){
+     const graph=document.createElementNS("http://www.w3.org/2000/svg","svg");
+     graph.setAttribute("class","discovery-graph");graph.setAttribute("viewBox","0 0 650 150");
+     graph.setAttribute("role","img");graph.setAttribute("aria-label","Taxa observada por atualização, com datas UTC reais");
+     const coords=usable.map((p,i)=>{
+       const x=25+(usable.length===1?0:i*600/(usable.length-1));
+       return [x,135-120*Math.min(1,Math.max(0,p.rate)),p];
+     });
+     const line=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+     line.setAttribute("points",coords.map(p=>p[0]+","+p[1]).join(" "));graph.append(line);
+     for(const [x,y,p] of coords){
+       const dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
+       dot.setAttribute("cx",x);dot.setAttribute("cy",y);dot.setAttribute("r","3.5");
+       const tooltip=document.createElementNS("http://www.w3.org/2000/svg","title");
+       tooltip.textContent=p.at_utc+" · "+perc(p.rate)+" · "+num(p.known)+" FT";dot.append(tooltip);graph.append(dot);
+     }
+     el.append(create("h4","Evolução da taxa observada (datas UTC reais)"),graph);
+     const dates=create("div",null,"discovery-point-list");
+     for(const p of usable.slice(-6))dates.append(create("small",formatDate(p.at_utc,{day:"2-digit",month:"short",year:"numeric"})+" · "+num(p.known)+" FT · "+perc(p.rate)));
+     el.append(dates);
+   }else empty(el,"Ainda não há FT suficientes para desenhar uma evolução.");
+   const note=create("p","O gráfico conserva apenas os últimos 24 pontos por padrão. Os eventos históricos completos estão arquivados mensalmente no GitHub.","muted");
+   el.append(note);
+   const link=create("a","Abrir relatório V5 e respetiva evidência →");link.href="./lab-research.html";el.append(link);
+   move("radar");
+   el.scrollIntoView({block:"start",behavior:"smooth"});
+ }
+ function renderProspective(){
+   const container=clear("r-prospective"),d=data("discovery");
+   if(!d||d.status==="AWAITING_FIRST_BASELINE"){
+     empty(container,"Sem baseline e resultados históricos associados ainda.");return;
+   }
+   const p=d.prospective||{},head=create("div",null,"prospective-summary");
+   head.append(tag(num(p.detected_total||0)+" primeiras deteções","flat"),
+     tag(num(p.settled_total||0)+" FT confirmados","rise"));
+   container.append(head);
+   const groups=Object.entries(p.by_first_detection_category||{});
+   if(!groups.length){empty(container,"Ainda não há FT elegíveis após uma primeira deteção pré-jogo. Jogos pendentes não são reds.");return}
+   for(const [key,s] of groups){
+     const row=create("div",null,"prospective-row");
+     row.append(create("strong",category(key)[0]+" · "+num(s.known_ft)+" FT"),
+       create("small","Over 2,5: "+num(s.over_2_5)+" sim / "+num(s.known_ft-s.over_2_5)+" não · BTTS: "+
+         num(s.btts_yes)+" sim / "+num(s.known_ft-s.btts_yes)+" não"));
+     container.append(row);
+   }
+   for(const m of (p.settled||[]).slice(0,4)){
+     const row=create("div",null,"list-row");
+     const left=create("div");left.append(create("div",m.match_label+" · "+m.score,"name"),
+       create("div","Deteção: "+formatDate(m.first_detected_at)+" · "+category(m.category_at_first_detection)[0],"meta"));
+     const right=create("div",null,"right");right.append(tag(m.over_2_5?"Over Sim":"Over Não",m.over_2_5?"rise":"warn"),
+       create("div",m.btts_yes?"BTTS Sim":"BTTS Não","meta"));
+     row.append(left,right);container.append(row);
+   }
+   container.append(create("p","Resultados desportivos descritivos; não representam apostas nem demonstram ROI ou EV. Categorias posteriores não substituem a classificação original.","muted"));
+ }
+
  function rowKeyVal(parent,key,val){const r=create("div",null,"gate");r.append(create("span",key),create("strong",val,"state"));parent.append(r)}
  function renderFuture(){
    const w=data("watch"),f=originalFuture();metric("f-original",w?num(f.original.length):"—");metric("f-strict",w?num(f.strict.length):"—");
