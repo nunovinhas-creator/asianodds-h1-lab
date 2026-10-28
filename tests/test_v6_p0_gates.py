@@ -18,8 +18,7 @@ class P0SimulationTests(unittest.TestCase):
         self.assertEqual(s["null_trials"],10000)
         self.assertEqual(s["checkpoints"][-1],1000)
         self.assertEqual(s["alpha_single_registered_hypothesis"],.005)
-        self.assertIn("NOT",sim.run.__doc__ or "" if False else
-                      "NOT fitted to football matches")  # synthetic-only design
+        self.assertIn("NOT fitted",s["design_assumption"])  # synthetic-only design
 
     def test_replay_seed_and_every_look_optional_hit(self):
         a=sim._paths(30,0,123)
