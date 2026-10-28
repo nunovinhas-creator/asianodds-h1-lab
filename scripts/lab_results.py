@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from h1lab.lab_results import reconcile
+from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
@@ -53,14 +54,22 @@ def main():
     existing = (json.loads(LEDGER.read_text(encoding="utf-8"))
                 if LEDGER.exists() else {"schema_version": 1, "matches": {}})
     checks = int(os.environ.get("LAB_RESULTS_MAX_CHECKS", "20"))
+    bsd_finder = BSDDateFallback(
+        token=os.environ.get("BSD_API_KEY", ""),
+        max_days=int(os.environ.get("LAB_BSD_DATE_MAX_DAYS", "3")),
+        max_pages=int(os.environ.get("LAB_BSD_DATE_MAX_PAGES", "3")),
+    )
     next_ledger, report, queried = reconcile(
         state, read_v4(), existing, now=datetime.now(timezone.utc),
-        bsd_lookup=lookup_bsd, tsdb_lookup=lookup_thesportsdb, max_checks=checks)
+        bsd_lookup=bsd_finder.lookup, tsdb_lookup=lookup_thesportsdb,
+        max_checks=checks)
+    report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)
     print("LAB_FT_RESULT_SYNC", "catalog", report["matches"],
           "final", report["final_recorded"], "unverified", report["unverified"],
-          "queried", queried, "pending_due", report["pending_due_checks"],
+          "queried", queried, "bsd_date_pages", report["bsd_date_search"]["date_list_requests"],
+          "pending_due", report["pending_due_checks"],
           "ledger_written", changed_ledger, "report_written", changed_report)
     return report
 
