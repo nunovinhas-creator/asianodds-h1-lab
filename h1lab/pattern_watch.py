@@ -113,7 +113,15 @@ def inspect(timeline, now):
             "total_origin": m.get("total_origin"),
         })
     c = classify(metrics, eps)
+    # The Total line comes from the last observed pre-kickoff message, never
+    # from a reconstructed path or a later market snapshot.
+    last_total = (events[-1].get("snapshots") or {}).get("total") or {}
+    before_total = last_total.get("before") or {}
+    after_total = last_total.get("after") or {}
     return {
+        "total_line_before": before_total.get("line"),
+        "total_line_after": after_total.get("line"),
+        "total_line_origin": last_total.get("origin"),
         "match_key": timeline["match_key"], "match_label": timeline["match_label"],
         "kickoff_utc": kos[0], "first_alert_at": events[0]["observed_at"],
         "last_alert_at": events[-1]["observed_at"],
