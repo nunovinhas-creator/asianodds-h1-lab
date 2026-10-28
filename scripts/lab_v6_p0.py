@@ -63,7 +63,8 @@ def main(argv=None):
             old=computed
     if not old:
         raise ValueError("P0 simulation missing")
-    now=datetime.now(timezone.utc)
+    # Save and verify with identical second-resolution UTC times.
+    now=datetime.now(timezone.utc).replace(microsecond=0)
     gate_path=root/GATES_FILE
     if args.verify_only:
         if not gate_path.exists():
