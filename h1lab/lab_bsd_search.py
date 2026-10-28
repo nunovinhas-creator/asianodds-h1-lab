@@ -11,8 +11,9 @@ from collections import Counter
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
-from .bsd import (ROOT, BSDProviderError, event_kickoff, find_result,
+from .bsd import (ROOT, BSDProviderError, event_kickoff, event_name, find_result,
                   matches_identity, regulation_result, request_json)
+from .lab_identity import CORE, EXACT, IDENTITY_VERSION, select_event
 
 PAGE_SIZE = 200
 MAX_DAYS = 4
@@ -118,11 +119,21 @@ class BSDDateFallback:
             return None, diagnostic
 
         matches = [event for event in events if matches_identity(signal, event)]
+        level = EXACT
+        if not matches:
+            # Second pass on the SAME complete date list (no extra list request):
+            # designator/exonym-only name differences, fail-closed on ambiguity.
+            chosen, level, why = select_event(
+                signal, events,
+                lambda ev: (event_name(ev, "home_team"), event_name(ev, "away_team")),
+                event_kickoff)
+            if chosen is None:
+                return None, ("bsd_no_exact_match_in_date" if why == "identity_no_core_match"
+                              else "bsd_date_" + why)
+            matches = [chosen]
         # Distinct IDs only; duplicate pages or reused IDs with inconsistent
         # source data never justify accepting a unique match.
         ids = [e.get("id") for e in matches]
-        if len(matches) == 0:
-            return None, "bsd_no_exact_match_in_date"
         if len(matches) != 1 or type(ids[0]) is not int or ids[0] <= 0:
             return None, "bsd_date_ambiguous_match"
 
@@ -133,9 +144,20 @@ class BSDDateFallback:
             return None, "bsd_detail_unavailable"
         if not isinstance(detail, dict) or detail.get("id") != ids[0]:
             return None, "bsd_detail_mismatch"
-        result, verification = regulation_result(signal, detail)
+        probe = signal
+        if level == CORE:
+            # The detail must carry the same provider names that were matched.
+            names = (event_name(matches[0], "home_team"), event_name(matches[0], "away_team"))
+            if (event_name(detail, "home_team"), event_name(detail, "away_team")) != names:
+                return None, "bsd_date_core_detail_name_changed"
+            probe = dict(signal, home=names[0], away=names[1])
+        result, verification = regulation_result(probe, detail)
         if result is None:
             return None, "bsd_date_" + verification
+        if level == CORE:
+            result["identity_match"] = CORE
+            result["identity_version"] = IDENTITY_VERSION
+            return result, "verified_bsd_ft_via_date_core_name"
         return result, "verified_bsd_ft_via_date"
 
 
@@ -146,4 +168,6 @@ def summary(search: BSDDateFallback):
             "date_complete_days": sum(s == "complete" for _, s in search.days.values()),
             "date_incomplete_days": sum(s != "complete" for _, s in search.days.values()),
             "lookup_reason_counts": dict(sorted(search.diagnostics.items())),
-            "fallback_results_recovered": search.diagnostics["verified_bsd_ft_via_date"]}
+            "fallback_results_recovered": (search.diagnostics["verified_bsd_ft_via_date"] +
+                                           search.diagnostics["verified_bsd_ft_via_date_core_name"]),
+            "core_name_results_recovered": search.diagnostics["verified_bsd_ft_via_date_core_name"]}
