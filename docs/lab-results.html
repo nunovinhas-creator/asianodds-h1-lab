@@ -80,7 +80,7 @@ fetch("./lab/ft-results.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error(
  const c=d.status_counts||{};
 
  const bd=d.bsd_date_search||{};
- node("summary").textContent="Pendentes ainda sem primeira consulta: "+(t.ELIGIBLE_NEVER_QUERIED||0)+" · Revisões com novas fontes: "+(t.ELIGIBLE_SOURCE_UPGRADE||0)+" · Novas tentativas disponíveis: "+(t.ELIGIBLE_RETRY_DUE||0)+" · Em intervalo de segurança: "+(t.ELIGIBLE_COOLDOWN||0)+" · Espera de 3h pós-jogo: "+(t.IN_3H_GRACE||0)+" · ESPN FT nesta execução: "+((d.espn_scoreboards||{}).confirmed_in_run??"—")+" · SportScore FT nesta execução: "+((d.sportscore_search||{}).confirmed_in_run??"—")+" · Recuperados por data BSD: "+(bd.fallback_results_recovered??"—")+".";
+ node("summary").textContent="Pendentes ainda sem primeira consulta: "+(t.ELIGIBLE_NEVER_QUERIED||0)+" · Revisões com novas fontes: "+(t.ELIGIBLE_SOURCE_UPGRADE||0)+" · Novas tentativas disponíveis: "+(t.ELIGIBLE_RETRY_DUE||0)+" · Em intervalo de segurança: "+(t.ELIGIBLE_COOLDOWN||0)+" · Espera de 3h pós-jogo: "+(t.IN_3H_GRACE||0)+" · ESPN FT nesta execução: "+((d.espn_scoreboards||{}).confirmed_in_run??"—")+" · SportScore FT nesta execução: "+((d.sportscore_search||{}).confirmed_in_run??"—")+" · FT recuperados por identidade revista: "+((d.sportscore_search||{}).reviewed_alias_ft_in_run??"—")+" · Recuperados por data BSD: "+(bd.fallback_results_recovered??"—")+".";
  node("fresh").textContent=d.last_updated_at?"Última atualização de dados: "+d.last_updated_at+" (UTC)":"Ainda sem verificações de resultados.";
  render();
 }).catch(e=>{node("fresh").textContent="Relatório LAB indisponível ou ainda não publicado. Consulte a Action «Lab - Reconcile FT for all observed matches».";node("visible").textContent="Não foi possível ler os dados.";});
