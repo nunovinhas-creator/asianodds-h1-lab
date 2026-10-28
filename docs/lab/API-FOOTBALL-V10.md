@@ -1,3 +1,5 @@
+> **Registo técnico datado (28/10/2026):** a implementação atual do LAB está em [lab-ft-results.yml](../../.github/workflows/lab-ft-results.yml) / [lab_api_football.py](../../h1lab/lab_api_football.py). Em produção o secret `API_FOOTBALL` é aceite com fallback `API_FOOTBALL_KEY` e o adaptador preserva regras de identidade/FT. Para cobertura atual consultar [ft-results.json](ft-results.json); o [README](../../README.md) descreve o fluxo completo H1/LAB/V5. Números de PRs antigas nesta página são evidência histórica, não totais atualizados.
+
 # LAB FT — transição para fontes de acesso autorizado
 
 ## O que foi demonstrado em produção
