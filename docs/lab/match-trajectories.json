@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T16:31:39+00:00",
+ "generated_at": "2026-10-28T16:36:34+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 96
+  "timelines_published": 97
  },
  "schema_version": 1,
- "source_commit": "e96a0ca38177eb7accc9d6494b5f1454932f740d",
+ "source_commit": "1c04786a3699027a831540095f2982fb843cdb5b",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 334,
+  "matches": 335,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 465,
+  "messages": 467,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 227,
+  "messages_on_repeated_matches": 229,
   "messages_v4_only": 0,
-  "messages_with_v4": 391,
-  "movement_episodes_upper_bound": 445,
+  "messages_with_v4": 393,
+  "movement_episodes_upper_bound": 447,
   "possibly_redundant_snapshots": 13,
   "post_kickoff_messages": 13,
   "related_message_pairs": 20,
@@ -50,25 +50,162 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 7
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 96,
+  "repeated_matches": 97,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 606
+   "V4_EXPLICIT": 610
   },
   "total_line_reversals_on_repeated": 44,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 11,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 12,
    "CONTINUOUS": 70,
    "SAME_MOVEMENT_REPEAT": 20,
    "UNOBSERVED_CHANGE": 30
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 109,
-   "one_x_two:AGREE": 106,
-   "total:AGREE": 391
+   "asian_handicap:AGREE": 110,
+   "one_x_two:AGREE": 107,
+   "total:AGREE": 393
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51023",
+    "3571094759:51046"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51023",
+     "message_id": 51023,
+     "minutes_to_kickoff": 114.3,
+     "observed_at": "2026-10-28T15:35:44+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.95,
+        "under_price": 1.84
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.84,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51046",
+     "message_id": 51046,
+     "minutes_to_kickoff": 57.9,
+     "observed_at": "2026-10-28T16:32:06+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.8,
+        "under_price": 1.95
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.76,
+        "under_price": 2.01
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T15:35:44+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T17:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T16:32:06+00:00",
+   "match_key": "2026-10-28,23038,31261",
+   "match_label": "Orduspor vs Trabzon Karadeniz",
+   "movement_episodes": [
+    [
+     "3571094759:51023"
+    ],
+    [
+     "3571094759:51046"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    3382.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.75,
+     "last_observed_line": 3.0,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:51023",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:51046",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51023",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.75,
+       "previous_after_line": 3.0,
+       "to": "3571094759:51046"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
