@@ -73,9 +73,30 @@ class WatchTests(unittest.TestCase):
         self.assertTrue(row["strict_condition"])
         self.assertEqual(row["category"],"RISING_EACH_EPISODE")
         self.assertEqual(row["v4_total_count"],2)
+        self.assertEqual(row["total_line_before"], 2.75)
+        self.assertEqual(row["total_line_after"], 2.75)
+        self.assertEqual(row["total_line_origin"], "V4_EXPLICIT")
         self.assertEqual(len(row["observations"]),2)
         self.assertTrue(all(x["delta_lambda"] is not None for x in row["observations"]))
         self.assertTrue(all(datetime.fromisoformat(x["observed_at"]) <= NOW for x in row["observations"]))
+
+    def test_total_line_from_last_known_snapshot_and_not_future_message(self):
+        t = timeline(future_event=True)
+        # The latest message available before NOW changes the Asian Total line.
+        t["events"][1]["snapshots"]["total"]["before"]["line"] = 2.5
+        # This later message is not known yet and must not influence the alert.
+        t["events"][2]["snapshots"]["total"]["after"]["line"] = 4.0
+        row = inspect(t, NOW)
+        self.assertTrue(row["strict_condition"])
+        self.assertEqual(row["total_line_before"], 2.5)
+        self.assertEqual(row["total_line_after"], 2.75)
+
+    def test_missing_total_line_stays_unknown(self):
+        t = timeline()
+        t["events"][-1]["snapshots"]["total"]["after"].pop("line")
+        row = inspect(t, NOW)
+        self.assertFalse(row["strict_condition"])
+        self.assertIsNone(row["total_line_after"])
 
     def test_group_duplicates_and_missing_total(self):
         duplicate=inspect(timeline(duplicate=True),NOW)
