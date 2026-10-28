@@ -284,9 +284,19 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     # Research hints only reorder eligible candidates WITHIN the same priority
     # tier; a new retry cannot leapfrog source-order/public-evidence review.
     # A game remains subject to the existing 3h grace and 4h cooldown.
-    candidates.sort(key=lambda candidate: (
-        candidate[0], -priority_hints.get(candidate[3], 0),
-        candidate[1], candidate[2], candidate[3]))
+    if evidence_retry:
+        # P0 coverage: age of a never-examined fixture wins over V6 research
+        # hints. Otherwise a steady inflow of high-hint new fixtures can
+        # indefinitely starve older dates, preventing their provider-day
+        # snapshots from ever being queried.
+        candidates.sort(key=lambda candidate: (
+            candidate[0], candidate[1], candidate[2],
+            -priority_hints.get(candidate[3], 0), candidate[3]))
+    else:
+        # Preserve legacy/V6 scientific hint ordering outside FT V7.
+        candidates.sort(key=lambda candidate: (
+            candidate[0], -priority_hints.get(candidate[3], 0),
+            candidate[1], candidate[2], candidate[3]))
     selected_keys = [item[3] for item in candidates[:max_checks]]
     deferred_keys = [item[3] for item in candidates[max_checks:]]
     queue_plan = {

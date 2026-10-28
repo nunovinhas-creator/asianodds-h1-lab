@@ -133,6 +133,53 @@ class V7Tests(unittest.TestCase):
                          "2026-10-28T17:00:00+00:00")
         self.assertEqual(game["evidence_attempts"], 0)
 
+    def test_oldest_never_examined_date_beats_newer_v6_hints(self):
+        # Regression of actual 28 October 2026 FT run: 30 newer games
+        # excluded all eight unresolved 27-Oct games from authenticated day
+        # requests, because the V6 hint sorted before kickoff age.
+        older = [
+            {"match_key": f"2026-10-27,old-{i}", "home": f"Older {i}",
+             "away": "Away FC", "kickoff_utc": "2026-10-27T16:00:00+00:00"}
+            for i in range(8)]
+        newer = [
+            {"match_key": f"2026-10-28,new-{i}", "home": f"Newer {i}",
+             "away": "Away FC", "kickoff_utc": "2026-10-28T13:00:00+00:00"}
+            for i in range(36)]
+        hints = {g["match_key"]: 3 for g in newer}
+        ledger, report, checked = reconcile(
+            {"alerts": older + newer, "signals": []}, [],
+            {"schema_version": 1, "matches": {}},
+            now=datetime(2026, 10, 28, 23, 30, tzinfo=timezone.utc),
+            max_checks=30,
+            bsd_lookup=lambda _: (None, "not_found"),
+            tsdb_lookup=lambda _: (None, "not_found"),
+            priority_hints=hints, evidence_retry=True)
+        selected = report["ft_queue"]["selected_keys"]
+        self.assertEqual(checked, 30)
+        self.assertEqual(set(selected[:8]), {g["match_key"] for g in older})
+        self.assertEqual(len(selected), 30)
+        # The rotation must be able to visit the older fixture date.
+        days = choose_days(selected, ledger["matches"],
+                           {"schema_version": 1, "providers": {}},
+                           datetime(2026, 10, 28, 23, 30, tzinfo=timezone.utc),
+                           {"api_football"})
+        self.assertIn("2026-10-27", days["api_football"])
+
+    def test_v7_hints_still_break_same_kickoff_ties(self):
+        signals = [
+            {"match_key": f"2026-10-27,x-{i}", "home": f"Team {i}",
+             "away": "Away FC", "kickoff_utc": GAME["kickoff_utc"]}
+            for i in range(3)]
+        _, report, _ = reconcile(
+            {"alerts": signals, "signals": []}, [],
+            {"schema_version": 1, "matches": {}},
+            now=NOW, max_checks=1,
+            bsd_lookup=lambda _: (None, "not_found"),
+            tsdb_lookup=lambda _: (None, "not_found"),
+            priority_hints={signals[-1]["match_key"]: 3}, evidence_retry=True)
+        self.assertEqual(report["ft_queue"]["selected_keys"],
+                         [signals[-1]["match_key"]])
+
     def test_watchdog_ignores_recent_push(self):
         runs = [{"created_at": "2026-10-28T19:58:00Z", "event": "push"},
                 {"created_at": "2026-10-28T19:00:00Z", "event": "schedule"}]

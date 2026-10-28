@@ -25,3 +25,9 @@
 ## Acceptance
 
 Run `python -m compileall -q h1lab scripts` and `python -m unittest discover -s tests -v`. Confirm live authentic runs via `data/lab/ft-api-audit.json`: `authenticated_providers_ran`, requests by provider and `effective_evidence_checks`. Check no push increases `evidence_attempts` or `stable_confirmations`. In 24-hour simulations with complete, immutable fixture lists, exactly three scans occur (t=0h, 4h and 16h), even with 60 matches sharing the same provider-day. No FT result should be claimed recovered until ledger and review queues show verified sources.
+
+## P0: anti-starvation de datas antigas (28/10/2026, 23:17 UTC)
+
+A primeira execução autenticada V7 terminou com 30 jogos consultados, 5 FT novos e 139 FT no total, mas os 30 jogos selecionados eram de 28/10. Oito jogos pendentes de 27/10 continuavam `DEFERRED_BY_30_GAME_CAP`, entre eles Uganda e duas reservas argentinas. A causa foi a prioridade V6 entre jogos nunca examinados ter precedência sobre o KO cronológico.
+
+A fila V7 agora ordena primeiro o nível de segurança, depois a antiguidade da última evidência/visita e a data do KO; os *research hints* V6 apenas desempata jogos da mesma antiguidade/KO. A seleção de 30 continua limitada, a rotação diária continua sob quota, os resultados não são aceites sem validação. A ordenação antiga fora da V7 é preservada. Teste sintético: oito jogos de 27/10 e 36 de 28/10 com V6 hints fortes, os oito antigos entram antes dos novos e a data 27/10 entra na rotação API-Football.
