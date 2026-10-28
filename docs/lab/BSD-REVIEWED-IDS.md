@@ -1,3 +1,5 @@
+> **Atualização de contexto (28/10/2026):** os IDs e casos abaixo são verificações pontuais, **não correspondências globais por nomes**. O LAB passou a utilizar outros fornecedores com identidade rigorosa e a [ponte LAB → H1](../../h1lab/lab_promotion.py) importa apenas FT finais verificáveis para sinais H1 já registados. A cobertura corrente vem de [ft-results.json](ft-results.json); não repetir uma descoberta diagnóstica apenas porque os números anteriores eram baixos.
+
 # LAB — IDs BSD reais descobertos para liquidação direta (28/10/2026)
 
 ## Prova
