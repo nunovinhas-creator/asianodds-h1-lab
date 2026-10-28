@@ -1,0 +1,186 @@
+{
+  "history": [
+    {
+      "as_of": "2026-10-28T16:21:35+00:00",
+      "calibration_n": 0,
+      "overall": "INSUFFICIENT_HISTORY",
+      "quality_n": 183,
+      "sha256": "4b3cb169e16e257992bbfd677d139f209571097ffcba680fc0de3b338ec6c1ed",
+      "week": "2026-W44"
+    }
+  ],
+  "last_sha256": "4b3cb169e16e257992bbfd677d139f209571097ffcba680fc0de3b338ec6c1ed",
+  "latest": {
+    "as_of": "2026-10-28T16:21:35+00:00",
+    "comparisons": {
+      "calibration": {
+        "comparison_n": 0,
+        "detail": "",
+        "reference_n": 0,
+        "review_threshold": null,
+        "status": "INSUFFICIENT_HISTORY",
+        "value": null
+      },
+      "formats": {
+        "comparison_n": 0,
+        "detail": "",
+        "reference_n": 0,
+        "review_threshold": null,
+        "status": "INSUFFICIENT_HISTORY",
+        "value": null
+      },
+      "market": {
+        "comparison_n": 0,
+        "detail": "",
+        "reference_n": 0,
+        "review_threshold": null,
+        "status": "INSUFFICIENT_HISTORY",
+        "value": null
+      },
+      "quality": {
+        "comparison_n": 0,
+        "detail": "",
+        "reference_n": 0,
+        "review_threshold": null,
+        "status": "INSUFFICIENT_HISTORY",
+        "value": null
+      }
+    },
+    "first_day_of_monitor_week": "2026-10-26",
+    "input": {
+      "forecast_tail": "46b5fa1416384e938e69c4a597844ecee4f1340e89b77700d06f769a9fe41619",
+      "forecasts_total": 191,
+      "format_projection_digest": "78f17ba36bf62ab26907846115b38b293875b3b1c08a5429e0af743fa3039580",
+      "formats_total": 401,
+      "ft_events_total": 320,
+      "ft_tail": "bd552bdee6622d89b18a3a080224a7d745c36f2481bff874f7f939c66a0236ce",
+      "registration_sha256": "1f7c6f14ec2a5b358bef518aa2e52e6ebee5ec583b5da375828515e527529b1d"
+    },
+    "last_comparable_completed_weeks": [],
+    "limitations": [
+      "Only completed ISO UTC weeks can trigger a drift review; current week is provisional.",
+      "All drift signals are heuristic screening, not a causal or statistical significance test.",
+      "The latest week with partial FT can have selection bias; review FT coverage before interpretation.",
+      "Calibration uses one actual pre-kickoff freeze AFTER formal registration and a verified later FT; no historical backfill.",
+      "Probability Over 2.5 is a model reference from Total Asian odds, not an executable O2.5 price.",
+      "V4 format timestamps describe original Telegram messages, not proven collector ingestion or immutable revisions.",
+      "Daily/weekly sampling variation and competition mix can explain apparent drift.",
+      "A lack of threshold crossing is never a proof of stability, quality, edge or profitability.",
+      "The monitor has no API calls, notifications, betting actions or power to validate V5/V6 hypotheses."
+    ],
+    "monitor_week": "2026-W44",
+    "overall": "INSUFFICIENT_HISTORY",
+    "schema_version": 1,
+    "status": "V6_WEEKLY_DRIFT_MONITOR_SHADOW",
+    "thresholds_predeclared": {
+      "brier_deterioration": 0.05,
+      "format_js_bits": 0.12,
+      "market_psi": 0.25,
+      "min_calibration_games_per_comparison_week": 100,
+      "min_calibration_games_per_completed_week": 30,
+      "min_format_messages_per_completed_week": 30,
+      "min_market_matches_per_completed_week": 50,
+      "min_quality_matches_per_completed_week": 50,
+      "new_family_share": 0.2,
+      "quality_rate_absolute_change": 0.15
+    },
+    "weeks": [
+      {
+        "calibration": {
+          "basis": "Post-registration, pre-kickoff frozen reference + verified FT; no H1 picks",
+          "bins": [
+            {
+              "bin": "0",
+              "n": 0,
+              "observed_rate": null,
+              "predicted_mean": null
+            },
+            {
+              "bin": "1",
+              "n": 0,
+              "observed_rate": null,
+              "predicted_mean": null
+            },
+            {
+              "bin": "2",
+              "n": 0,
+              "observed_rate": null,
+              "predicted_mean": null
+            },
+            {
+              "bin": "3",
+              "n": 0,
+              "observed_rate": null,
+              "predicted_mean": null
+            },
+            {
+              "bin": "4",
+              "n": 0,
+              "observed_rate": null,
+              "predicted_mean": null
+            }
+          ],
+          "brier_score": null,
+          "ece_5bins_descriptive": null,
+          "eligible_pre_kickoff_post_registration": 3,
+          "mean_reference_p": null,
+          "n": 0,
+          "observed_rate": null,
+          "status": "INSUFFICIENT_N"
+        },
+        "formats": {
+          "basis": "Telegram message timestamps, not guaranteed collector reception times",
+          "distinct_families": 2,
+          "family_counts": {
+            "0cb96ce0a94fa1ad": 290,
+            "5151ed30536bdac9": 111
+          },
+          "legacy_unparsed": 0,
+          "n": 401,
+          "unknown_share": 0.0
+        },
+        "market": {
+          "basis": "Model-derived market P(Over 2.5); NOT tradable O2.5 odds",
+          "line_bins": {
+            "0": 12,
+            "1": 44,
+            "2": 65,
+            "3": 62
+          },
+          "line_n": 183,
+          "n": 116,
+          "p_mean": 0.594455,
+          "probability_bins": {
+            "0": 0,
+            "1": 6,
+            "2": 50,
+            "3": 56,
+            "4": 4
+          }
+        },
+        "period": "CURRENT_INCOMPLETE",
+        "quality": {
+          "basis": "Latest prospectively known snapshot per match within observation week",
+          "flags": {
+            "cross_line_unchanged_price": 63,
+            "high_after_margin": 8,
+            "high_before_margin": 6,
+            "negative_after_margin": 20,
+            "negative_before_margin": 18
+          },
+          "n": 183,
+          "unusable": 67,
+          "unusable_rate": 0.36612,
+          "usable": 116
+        },
+        "week": "2026-W44"
+      }
+    ]
+  },
+  "latest_monitor_week": "2026-W44",
+  "latest_snapshot_at": "2026-10-28T16:21:35+00:00",
+  "method": "one snapshot per UTC ISO week; previous snapshots never revised",
+  "schema_version": 1,
+  "snapshot_count": 1,
+  "status": "V6_WEEKLY_DRIFT_MONITOR_SHADOW"
+}
