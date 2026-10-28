@@ -1,3 +1,5 @@
+> **Estado revisto em 28/10/2026:** este é o **cérebro de investigação V5 ativo** (não o H1 de triplas). Ver [guia visual e conceptual](CEREBRO-ODDS.md) e [dashboard](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html). No relatório de 11:16 UTC, 267 jogos observados, 263 elegíveis, 60 FT nesta pesquisa, 800 hipóteses `EXPLORATORIO`, **zero CANDIDATO / VALIDADO** e registo congelado vazio. É um instantâneo, não os números atuais. `results.yml` importa FT finais via `h1lab/lab_promotion.py`, **mas não importa hipóteses V5 nem muda apostas**.
+
 # Motor de investigação V5 — padrões, combinações e validação
 
 Modo LAB. Não lê nem altera ficheiros H1 além de **ler** `data/state.json` e `data/results.csv`. Não cria apostas, não calcula ROI nem EV.
