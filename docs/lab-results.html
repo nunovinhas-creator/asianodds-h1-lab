@@ -76,7 +76,8 @@ fetch("./lab/ft-results.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error(
  node("pending").textContent=d.unverified;
  const c=d.status_counts||{};
  node("problem").textContent=(c.SCORE_CONFLICT||0)+(c.IDENTITY_CONFLICT||0)+(c.INSUFFICIENT_IDENTITY||0);
- node("summary").textContent="Consultas por executar: "+d.pending_due_checks+" · Jogos só na fonte V4: "+d.source_only_v4_matches+" · Não mostrados por limite de página: "+d.matches_omitted_from_display+".";
+ const bd=d.bsd_date_search||{};
+ node("summary").textContent="Consultas por executar: "+d.pending_due_checks+" · Recuperados pela pesquisa BSD por data nesta execução: "+(bd.fallback_results_recovered??"não medido")+" · Consultas adicionais BSD: "+(bd.date_list_requests??"—")+" · Jogos só na fonte V4: "+d.source_only_v4_matches+" · Jogos não mostrados: "+d.matches_omitted_from_display+".";
  node("fresh").textContent=d.last_updated_at?"Última atualização de dados: "+d.last_updated_at+" (UTC)":"Ainda sem verificações de resultados.";
  render();
 }).catch(e=>{node("fresh").textContent="Relatório LAB indisponível ou ainda não publicado. Consulte a Action «Lab - Reconcile FT for all observed matches».";node("visible").textContent="Não foi possível ler os dados.";});
