@@ -19,6 +19,16 @@ SCHEMA = 1
 MAX_CHECKS_CAP = 30
 DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
+# Repeated no-result cycles use slower retries; never mark a missing FT final.
+# A new source version or explicitly reviewed evidence may still bypass this.
+def retry_wait(entry):
+    attempts = max(0, int(entry.get("attempts", 0)))
+    if attempts >= 10:
+        return timedelta(hours=24)
+    if attempts >= 6:
+        return timedelta(hours=12)
+    return RETRY
+
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
@@ -213,22 +223,36 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
               (original.get(key) or {}).get("status") in ("PENDING", "PROVIDER_ERROR") and
               key in REVIEWED_PENDING_FT))
             and entry.get("reviewed_public_ft_check_version") != 1)
-        if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
+        if last and now < last + retry_wait(entry) and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
-        priority = (-3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
+        priority = (-4 if last is None else
+                    -3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
                     -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
         candidates.append((priority, last or datetime.min.replace(tzinfo=timezone.utc),
                            kickoff, key))
 
-    # Existing critical review priorities and API budgets remain unchanged.
+    # Coverage invariant: never-consulted eligible games lead every retry tier.
+    # Research hints only sort within a tier and may never starve first checks.
     # Research hints only reorder eligible candidates WITHIN the same priority
     # tier; a new retry cannot leapfrog source-order/public-evidence review.
     # A game remains subject to the existing 3h grace and 4h cooldown.
     candidates.sort(key=lambda candidate: (
         candidate[0], -priority_hints.get(candidate[3], 0),
         candidate[1], candidate[2], candidate[3]))
+    selected_keys = [item[3] for item in candidates[:max_checks]]
+    deferred_keys = [item[3] for item in candidates[max_checks:]]
+    queue_plan = {
+        "eligible": len(candidates),
+        "selected": len(selected_keys),
+        "deferred_by_capacity": len(deferred_keys),
+        "never_checked_eligible": sum(utc(entries[item[3]].get("checked_at")) is None for item in candidates),
+        "never_checked_deferred": sum(utc(entries[key].get("checked_at")) is None for key in deferred_keys),
+        "selected_keys": selected_keys,
+        "deferred_keys": deferred_keys[:100],
+        "retry_policy": "4h after 1-5 attempts; 12h after 6-9; 24h after 10+",
+    }
     attempts = 0
     for _, _, _, key in candidates[:max_checks]:
         row = entries[key]
@@ -265,7 +289,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 reasons[provider] = "provider_unavailable"  # never expose credentials/URLs
         attempts += 1
         row["checked_at"] = now.isoformat(timespec="seconds")
-        row["lookup_source_version"] = source_version
+        row["lookup_source_version"] = max(int(row.get("lookup_source_version", 0)), source_version)
         if key in SPORTSCORE_REVIEWED:
             row["reviewed_alias_check_version"] = 1
         if key in REVIEWED_BSD_FIXTURES:
@@ -274,6 +298,18 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["reviewed_public_ft_check_version"] = 1
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
+        # Counters mean adapter invocations, not necessarily remote HTTP calls:
+        # adapters may use day caches or return an unsupported-competition reason.
+        history = row.setdefault("provider_attempts", {})
+        for provider, _ in providers:
+            old = history.get(provider, {})
+            history[provider] = {
+                "invocations": int(old.get("invocations", 0)) + 1,
+                "first_at": old.get("first_at") or now.isoformat(timespec="seconds"),
+                "last_at": now.isoformat(timespec="seconds"),
+                "last_reason": reasons[provider],
+                "confirmed": int(old.get("confirmed", 0)) + int(found[provider] is not None),
+            }
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
         scores = {(item["home_goals"], item["away_goals"]) for _, item in confirmed}
         if len(scores) > 1:
@@ -351,7 +387,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["ELIGIBLE_REVIEWED_ALIAS"] += 1
         elif int(row.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION:
             timing["ELIGIBLE_SOURCE_UPGRADE"] += 1
-        elif utc(row.get("checked_at")) and now < utc(row["checked_at"]) + RETRY:
+        elif utc(row.get("checked_at")) and now < utc(row["checked_at"]) + retry_wait(row):
             timing["ELIGIBLE_COOLDOWN"] += 1
         else:
             timing["ELIGIBLE_RETRY_DUE"] += 1
@@ -383,6 +419,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "reviewed_bsd_id_catalog_matches": sum(key in REVIEWED_BSD_FIXTURES for key in games),
         "final_recorded": counts["FINAL"], "unverified": len(games) - counts["FINAL"],
         "pending_due_checks": max(0, len(candidates) - attempts),
+        "ft_queue": queue_plan,
         "v6_ft_priority": {
             "mode": "SAME_REVIEW_TIER_ONLY_NO_EXTRA_API",
             "hinted_eligible": sum(key in priority_hints for *_, key in candidates),
