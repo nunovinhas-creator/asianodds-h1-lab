@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import timezone
 
 from .market_math import (fair_probs, implied_lambda, margin, prob_total_over,
@@ -32,6 +33,13 @@ def digest(obj):
 
 def _round(value):
     return round(value, 5) if value is not None else None
+
+
+def _ah_line_ok(value):
+    # AH runs both sides of zero: -0.75 and +0.75 are valid handicap lines.
+    return (isinstance(value, (float, int)) and not isinstance(value, bool)
+            and math.isfinite(value) and -15 <= value <= 15
+            and abs(value * 4 - round(value * 4)) < 1e-7)
 
 
 def _margin_ok(*prices):
@@ -109,7 +117,7 @@ def _handicap(snap):
     prices_a = [a.get("home_price"), a.get("away_price")]
     out["margin_before"] = _round(margin(*prices_b))
     out["margin_after"] = _round(margin(*prices_a))
-    if not (valid_line(b.get("line")) and valid_line(a.get("line")) and
+    if not (_ah_line_ok(b.get("line")) and _ah_line_ok(a.get("line")) and
             _margin_ok(*prices_b) and _margin_ok(*prices_a)):
         out["status"] = "INCOMPLETE_OR_SUSPECT_QUOTE"
         return out
@@ -137,7 +145,7 @@ def _pair_relation(total, one):
     }
 
 
-def build(timeline, events, *, known_at, competition=None, relations=None):
+def build(timeline, events, *, known_at, competition=None):
     """Capture-time V6 features only from source messages actually known now.
 
     Caller supplies events filtered by observed_at <= actual known_at and before
