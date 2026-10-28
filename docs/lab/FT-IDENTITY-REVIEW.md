@@ -28,3 +28,20 @@ Testes sintéticos em \`tests/test_lab_identity_review.py\` verificam coincidên
 Depois do merge, esperar uma execução real de \`Lab - Reconcile FT for all observed matches\` e confirmar: \`LAB_FT_IDENTITY_REVIEW\` nos logs, publicação do JSON, \`total_eligible\` consistente com a fila de atrasados e zero mudanças no resultado dos testes/ledger por efeito da fila. Os valores do snapshot só são reais após essa execução.
 
 **Links:** [Painel de revisão](../ft-identity-review.html) · [JSON da fila](ft-identity-review.json) · [FT atrasados](ft-backlog.json).
+
+## Revisão documental adicional, 28/10/2026 (seis jogos, sem aliases globais)
+
+Comparadas fontes públicas independentes e a identidade ORIGINAL do jogo (equipa casa, fora, data e KO UTC). As seis correspondências com prova por duas fontes são adicionadas **apenas ao registo de revisão explícita por `match_key`** em `h1lab/lab_ft_reviewed_evidence.py`; não são adicionadas como normalização global:
+
+| Jogo (identidade AsianOdds) | FT 90m | Fontes | Nota |
+|---|---|---|---|
+| Alianza FC (SLV) – CD Marathón | 0–0 | CONCACAF; Fútbol Centroamérica | KO 02:00 UTC, 28/10 |
+| Silivrispor – Beyoglu Yeni Carsiz | 3–2 | Federação turca TFF; Kamu1 | KO 10:30 UTC |
+| Menemen Belediyespor – Karacabey Belediyespor | 0–1 | TFF; Canlı Gaste | KO 10:30 UTC |
+| FK Teleoptik Zemun – FK Mladost Lučani | 1–1 | Tanjug; HotSport | **5–4 nas grandes penalidades não é FT** |
+| Adana 1954 FK – Kutahyaspor | 1–1 | TFF; Kütahya'nın Sesi | **2–1 após prolongamento não é FT**; Adana 1954 foi renomeado Adana 01 em 2024 |
+| Balikesirspor – Arnavutkoy Genclik Spor | 1–0 | TFF; Canlı Gaste | KO 12:00 UTC |
+
+**Não promover:** `2026-10-28,29823,1748` (Karsspor vs Antalyaspor): fontes oficiais dizem Kars 36 Spor e há evidência de que **Karsspor e Kars 36 são entidades distintas**. O calendário coincidente não autoriza fundir as identidades. `2026-10-28,10088406,95346` e `2026-10-28,10055350,95346` identificam duas entradas concorrentes para Eskisehir Anadolu/Anadolu Universitesi vs Aksaray. Não atribuir o resultado a ambos sem reconciliação explícita dos IDs.
+
+Apenas os seis registos originais `PENDING` podem receber resultado nesta recuperação, depois dos testes, se não houver qualquer contradição de outro fornecedor. O FT é gravado com `checked_at` real da execução, sem retrodatação. Não são previsões prospetivas nem ROI.

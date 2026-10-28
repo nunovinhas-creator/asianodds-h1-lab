@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from h1lab.lab_ft_reviewed_evidence import REVIEWED_PENDING_FT, verified_public_ft
 from h1lab.lab_results import reconcile
 
-NOW = datetime(2026, 10, 28, 12, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 29, 12, tzinfo=timezone.utc)
 EXPECTED = {
     "2026-10-27,10030127,75": (1, 0),
     "2026-10-27,59193,10052416": (3, 2),
@@ -22,6 +22,12 @@ EXPECTED = {
     "2026-10-27,26873,26901": (3, 1),
     "2026-10-27,29242,53546": (0, 2),
     "2026-10-27,39759,696": (1, 1),
+    "2026-10-28,30921,29839": (0, 0),
+    "2026-10-28,50151,10045457": (3, 2),
+    "2026-10-28,31269,31927": (0, 1),
+    "2026-10-28,40595,28192": (1, 1),
+    "2026-10-28,10055256,84215": (1, 1),
+    "2026-10-28,33305,10030821": (1, 0),
 }
 
 
@@ -34,7 +40,7 @@ def no_result(signal):
 
 
 class OverdueFTTests(unittest.TestCase):
-    def test_twelve_exact_reviewed_scores_not_including_penalties_or_aet(self):
+    def test_eighteen_exact_reviewed_scores_not_including_penalties_or_aet(self):
         self.assertEqual(set(REVIEWED_PENDING_FT), set(EXPECTED))
         for key, fixture in REVIEWED_PENDING_FT.items():
             with self.subTest(key=key):
@@ -42,6 +48,16 @@ class OverdueFTTests(unittest.TestCase):
                 self.assertEqual((result["home_goals"], result["away_goals"]), EXPECTED[key])
                 self.assertEqual(result["status"], "final")
                 self.assertEqual(reason, "reviewed_two_independent_public_ft")
+
+    def test_post_regulation_scenarios_keep_only_ninety_minutes(self):
+        # Adana ended 2-1 after extra time; Teleoptik qualified on penalties.
+        self.assertEqual(EXPECTED["2026-10-28,10055256,84215"], (1, 1))
+        self.assertEqual(EXPECTED["2026-10-28,40595,28192"], (1, 1))
+        # Kars 36 is NOT a generic alias for Karsspor (distinct clubs).
+        self.assertNotIn("2026-10-28,29823,1748", REVIEWED_PENDING_FT)
+        # Potential duplicate Eskisehir/Anadolu IDs must not be promoted.
+        self.assertNotIn("2026-10-28,10088406,95346", REVIEWED_PENDING_FT)
+        self.assertNotIn("2026-10-28,10055350,95346", REVIEWED_PENDING_FT)
 
     def test_corrupted_identity_rejected_at_review_boundary(self):
         for key, fixture in REVIEWED_PENDING_FT.items():
@@ -53,7 +69,7 @@ class OverdueFTTests(unittest.TestCase):
                     changed[field]=value
                     self.assertIsNone(verified_public_ft(changed)[0])
 
-    def test_twelve_previously_pending_recovered_with_immutable_audit_urls(self):
+    def test_eighteen_previously_pending_recovered_with_immutable_audit_urls(self):
         previous={"schema_version":1,"matches":{}}
         alerts=[]
         for key, row in REVIEWED_PENDING_FT.items():
@@ -66,8 +82,8 @@ class OverdueFTTests(unittest.TestCase):
         original=copy.deepcopy(previous)
         ledger,report,attempted=reconcile({"alerts":alerts,"signals":[]},[],previous,
             now=NOW, bsd_lookup=no_result,tsdb_lookup=no_result,max_checks=30)
-        self.assertEqual(attempted,12)
-        self.assertEqual(report["final_recorded"],12)
+        self.assertEqual(attempted,18)
+        self.assertEqual(report["final_recorded"],18)
         self.assertEqual(previous, original)
         for key, row in REVIEWED_PENDING_FT.items():
             resolved=ledger["matches"][key]
