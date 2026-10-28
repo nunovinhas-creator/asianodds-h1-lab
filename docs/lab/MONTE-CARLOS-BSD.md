@@ -45,3 +45,18 @@ Contadores novos: `core_name_event_id_candidates` e `verified_core_name_in_run`.
 A documentação BSD comunica uma quota gratuita diária e limites de pico que podem mudar; portanto a implementação mantém orçamentos conservadores e não assume acesso ilimitado.
 
 **Critério de êxito:** confirmar num workflow FT real um `verified_core_name_in_run > 0` e aumento de FT sem conflitos; zero mantém a integração funcional mas sem ganho empírico demonstrado. A PR só altera módulos e documentos LAB.
+
+## Validação real pós-merge #43 — 28/10/2026, 09:45 UTC
+
+Execução: https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/40666734459 — **success** com publicação FT e V5. Commit da funcionalidade: `0184c8c4`.
+
+- 177 jogos observados; 28 FT confirmados; 98 futuros; 5 em tolerância de 3h; **42 elegíveis sem FT**, mais 4 conflitos bloqueados.
+- 30 jogos reconsultados após V8; 12 ficaram marcados para verificação da nova fonte em ciclo posterior.
+- Monte-Carlos: arquivo `read_only_loaded`, 7106 grupos, 0 candidatos de ID exato, **0 CORE_NAME**, **0 pedidos diretos de eventos BSD**, 0 FT adicionais. Não confundir validade da implementação com cobertura efetiva.
+- Pesquisa BSD por data: 1 dia completo, 1 pedido de lista, 0 resultados novos.
+- TheSportsDB: 11 pedidos, um HTTP 429, 19 pedidos suprimidos.
+- O motor de padrões V5 foi republicado sem erros: 28 FT, 800 hipóteses todas exploratórias.
+
+Distribuição dos **42 elegíveis** por competições no ledger atual: Romania Cupa Romaniei 4; Turkey Cup 3; Austria OFB Cup 3; Argentina Reserve League 3; Uganda Premier League 2; Italy Serie C 2; Czech MOL Cup 2; Russia Cup 2; South Africa Telkom Knockout 2; Netherlands KNVB Cup 2; England Professional Development U21 2; restantes 15 jogos noutras competições (1 cada).
+
+**Decisão operacional:** não aumentar quotas BSD cegamente: a lista por data é completa e não devolveu correspondências; a base Monte-Carlos não partilha IDs de eventos com este lote, mesmo após V8. A próxima recuperação FT deve focar fontes efetivamente presentes nestas competições, com validação de casa/fora e marcador regulamentar. Manter os quatro conflitos bloqueados. A BSD permanece ativa para novos jogos de ligas cobertas.
