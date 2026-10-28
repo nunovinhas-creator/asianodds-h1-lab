@@ -83,6 +83,27 @@ class GoalAndOpenFootTests(unittest.TestCase):
         self.assertIsNone(OpenFootResults("key",getter=lambda d,k:[op(),op()]).lookup(S)[0])
         self.assertIsNone(OpenFootResults("key",getter=lambda d,k:[op(h="Rapid București",a="Corvinul Hunedoara")]).lookup(S)[0])
 
+    def test_openfoot_two_reviewed_romanian_pairs(self):
+        reviewed=[
+            ("2026-10-27,95935,1688","AFC Progresul Spartac '44",
+             "FC Petrolul Ploieşti","2026-10-27T15:00:00+00:00",
+             "Progresul Spartac","Petrolul Ploiești",0,6),
+            ("2026-10-27,22207,24472","FCM Uzina Textila Arad (UTA)",
+             "FC SA Botoşani","2026-10-27T17:00:00+00:00",
+             "UTA Arad","Botoșani",2,2)]
+        for key,home,away,ko,provider_home,provider_away,hs,aw in reviewed:
+            with self.subTest(key=key):
+                signal={"match_key":key,"home":home,"away":away,"kickoff_utc":ko}
+                ev=op(h=provider_home,a=provider_away,hs=hs,aw=aw,kick=ko)
+                r,reason=OpenFootResults("key",getter=lambda d,k:[ev]).lookup(signal)
+                self.assertEqual(reason,"verified_openfoot_ft_reviewed_pair")
+                self.assertEqual(r["identity_match"],"REVIEWED_PAIR")
+                self.assertEqual((r["home_goals"],r["away_goals"]),(hs,aw))
+                bad=dict(ev,competitionId="comp_wrong")
+                self.assertIsNone(OpenFootResults("key",getter=lambda d,k:[bad]).lookup(signal)[0])
+                reverse=op(h=provider_away,a=provider_home,hs=hs,aw=aw,kick=ko)
+                self.assertIsNone(OpenFootResults("key",getter=lambda d,k:[reverse]).lookup(signal)[0])
+
     def test_conflicting_providers_never_settle(self):
         from h1lab.lab_results import reconcile
         state={"alerts":[S],"signals":[]}
