@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T10:01:23+00:00",
+  "generated_at": "2026-10-28T10:06:45+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -119,13 +119,15 @@
         "DOWN",
         "UP",
         "DOWN",
+        "DOWN",
         "DOWN"
       ],
       "event_ids": [
         "3571094759:50792",
         "3571094759:50795",
         "3571094759:50807",
-        "3571094759:50817"
+        "3571094759:50817",
+        "3571094759:50833"
       ],
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-29,30895,30899",
@@ -248,16 +250,16 @@
   "scope": {
     "all_distinct_matches": 180,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 129,
-    "messages_in_source": 252,
+    "events_analysed": 130,
+    "messages_in_source": 253,
     "repeated_matches_analysed": 57,
     "repeated_matches_in_source": 57,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "36b99c59d741d8ab49208f138e66ab1db697cc7d",
-  "source_generated_at": "2026-10-28T10:01:23+00:00",
+  "source_commit": "c5add271f2178b403313c192e57d32de5ba51082",
+  "source_generated_at": "2026-10-28T10:06:45+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
@@ -272,7 +274,7 @@
     "messages_by_bucket": {
       "AFTER_KICKOFF": 6,
       "T_0_TO_60": 35,
-      "T_360_TO_1440": 36,
+      "T_360_TO_1440": 37,
       "T_60_TO_360": 41,
       "T_OVER_1440": 11,
       "UNKNOWN": 0
@@ -282,21 +284,21 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 37,
-      "V4_EXPLICIT": 92
+      "V4_EXPLICIT": 93
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 38.0,
-      "FLAT": 24.0,
-      "UP": 38.0
+      "DOWN": 38.5,
+      "FLAT": 23.8,
+      "UP": 37.7
     },
-    "down": 49,
+    "down": 50,
     "flat": 31,
-    "messages_with_total": 129,
+    "messages_with_total": 130,
     "up": 49,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
-    "ambiguous_repeat_or_reversal": 6,
+    "ambiguous_repeat_or_reversal": 7,
     "continuous": 41,
     "identical_total_pairs": 8,
     "related_pairs": 13,
