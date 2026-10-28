@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T13:11:26+00:00",
+  "generated_at": "2026-10-28T13:16:27+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 55,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 67.9
+      "matches": 56,
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 68.3
     },
     "both_total_and_1x2": {
       "matches": 55,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 67.9
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 67.1
     },
     "opposing_intra_alert_directions": {
-      "matches": 18,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 22.2
+      "matches": 19,
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 23.2
     },
     "with_ambiguous_repeats": {
       "matches": 8,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 9.9
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 9.8
     },
     "with_identical_total_snapshots": {
       "matches": 12,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 14.8
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 14.6
     },
     "with_mixed_origin_total": {
-      "matches": 15,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 18.5
+      "matches": 16,
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 19.5
     },
     "with_only_legacy_total": {
       "matches": 10,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 12.3
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 12.2
     },
     "with_only_v4_total": {
       "matches": 56,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 69.1
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 68.3
     },
     "with_post_kickoff_alerts": {
       "matches": 7,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 8.6
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 8.5
     },
     "with_related_alerts": {
       "matches": 19,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 23.5
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 23.2
     },
     "with_unobserved_line_gaps": {
       "matches": 19,
-      "of_repeated_matches_analysed": 81,
-      "percentage_descriptive": 23.5
+      "of_repeated_matches_analysed": 82,
+      "percentage_descriptive": 23.2
     }
   },
   "opposing_direction_examples": [
@@ -216,6 +216,19 @@
         "UP"
       ],
       "event_ids": [
+        "3571094759:50606",
+        "3571094759:50989"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-28,1223,24576",
+      "match_label": "FK Mladá Boleslav vs Bohemians 1905"
+    },
+    {
+      "directions": [
+        "DOWN",
+        "UP"
+      ],
+      "event_ids": [
         "3571094759:50894",
         "3571094759:50970"
       ],
@@ -252,77 +265,62 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,795,1488",
       "match_label": "Kashima Antlers vs Pohang Steelers"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50584",
-        "3571094759:50594",
-        "3571094759:50598"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-27,10052413,10062563",
-      "match_label": "NEC FC vs Ntugasaze FC"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 296,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 193,
-    "messages_in_source": 408,
-    "repeated_matches_analysed": 81,
-    "repeated_matches_in_source": 81,
+    "events_analysed": 195,
+    "messages_in_source": 409,
+    "repeated_matches_analysed": 82,
+    "repeated_matches_in_source": 82,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "6351dc89076d85490cd563d3e60bce19b507b420",
-  "source_generated_at": "2026-10-28T13:11:26+00:00",
+  "source_commit": "fcfbf7cb2c8de3e2c53008079e657833e67e9e70",
+  "source_generated_at": "2026-10-28T13:16:27+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 7,
-      "T_0_TO_60": 36,
+      "T_0_TO_60": 37,
       "T_360_TO_1440": 26,
       "T_60_TO_360": 33,
-      "T_OVER_1440": 15,
+      "T_OVER_1440": 16,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 9,
-      "T_0_TO_60": 58,
+      "T_0_TO_60": 59,
       "T_360_TO_1440": 50,
       "T_60_TO_360": 48,
-      "T_OVER_1440": 28,
+      "T_OVER_1440": 29,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
   },
   "total_line_within_alert": {
     "by_origin": {
-      "H1_LEGACY_ONLY": 38,
-      "V4_EXPLICIT": 155
+      "H1_LEGACY_ONLY": 39,
+      "V4_EXPLICIT": 156
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 37.3,
-      "FLAT": 22.8,
-      "UP": 39.9
+      "DOWN": 37.4,
+      "FLAT": 22.6,
+      "UP": 40.0
     },
-    "down": 72,
+    "down": 73,
     "flat": 44,
-    "messages_with_total": 193,
-    "up": 77,
+    "messages_with_total": 195,
+    "up": 78,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 9,
-    "continuous": 62,
+    "continuous": 63,
     "identical_total_pairs": 12,
     "related_pairs": 19,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
