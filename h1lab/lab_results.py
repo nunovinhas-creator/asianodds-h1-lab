@@ -19,7 +19,7 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
-LOOKUP_SOURCE_VERSION = 9  # v9: bounded FotMob 90-minute FT provider for unresolved LAB games
+LOOKUP_SOURCE_VERSION = 10  # v10: one-time retry of pending LAB games with official API-Football
 
 
 def utc(value):
