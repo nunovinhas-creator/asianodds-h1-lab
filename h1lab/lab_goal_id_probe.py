@@ -6,14 +6,13 @@ orientation and regulation-time validators still decide FT acceptance.
 from __future__ import annotations
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from .lab_ft_crosswalk import event_id, providers_from_final
 from .lab_identity import pair_level
-from .lab_results import utc
+from .lab_results import utc, GOAL_ID_RECHECK_EVIDENCE
 
-GOOD_REASONS = frozenset({
-    "goal_no_regulation_score", "goal_not_finished_or_unverified",
-    "goal_unavailable", "goal_et_evidence_missing", "goal_penalty_evidence_missing",
-})
+GOOD_REASONS = GOAL_ID_RECHECK_EVIDENCE
+ID_RECHECK_GAP = timedelta(hours=24)
 IDENTIFIER = re.compile(r"[0-9]{3,12}")
 
 
@@ -33,6 +32,14 @@ def plan_goal_id(selected_keys, matches, review, now):
             usage.update(set(c.get("provider_event_id") for c in g.get("candidates", [])
                              if isinstance(c, dict) and c.get("provider") == "goal"
                              and IDENTIFIER.fullmatch(str(c.get("provider_event_id", "")))))
+    # Do not consume a paid/free-tier slot on a GOAL event already attached
+    # to a different, independently verified FINAL match.
+    confirmed_goal_ids = set()
+    for key, row in matches.items():
+        if isinstance(row, dict) and row.get("status") == "FINAL":
+            for provider, url in providers_from_final(row).items():
+                if provider == "goal":
+                    confirmed_goal_ids.add(event_id(provider, url))
     allowed = set(selected_keys)
     choices = []
     for g in games:
@@ -46,8 +53,16 @@ def plan_goal_id(selected_keys, matches, review, now):
             continue
         if g.get("possible_duplicates"):
             continue
-        reason = (current.get("provider_reasons") or {}).get("goal")
+        # Last-attempt reason can be a quota/rotation deferral, which must
+        # never erase the last actual GOAL fixture evidence.
+        saved = current.get("goal_ft_last_evidence") or {}
+        reason = (saved.get("reason") if isinstance(saved, dict) else None)
         if reason not in GOOD_REASONS:
+            reason = (current.get("provider_reasons") or {}).get("goal")
+        if reason not in GOOD_REASONS:
+            continue
+        last_id_request = utc(current.get("goal_id_last_attempt_at"))
+        if last_id_request is not None and now - last_id_request < ID_RECHECK_GAP:
             continue
         cand = [c for c in g.get("candidates", [])
                 if isinstance(c, dict) and c.get("provider") == "goal"]
@@ -55,7 +70,8 @@ def plan_goal_id(selected_keys, matches, review, now):
             continue
         c = cand[0]
         event_id = str(c.get("provider_event_id", ""))
-        if not IDENTIFIER.fullmatch(event_id) or usage[event_id] != 1:
+        if (not IDENTIFIER.fullmatch(event_id) or usage[event_id] != 1
+                or event_id in confirmed_goal_ids):
             continue
         if c.get("orientation") != "SAME_ORDER" or c.get("review_only") is not True:
             continue
