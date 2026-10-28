@@ -19,7 +19,7 @@ input{min-width:210px;flex:1}
 .scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.92rem}
 th,td{border-bottom:1px solid color-mix(in srgb,CanvasText 19%,transparent);padding:9px;text-align:left;vertical-align:top}
 td:nth-child(3){font-variant-numeric:tabular-nums;white-space:nowrap}
-.tag{font-weight:650}.s-FINAL{color:#0b805d}.s-SCORE_CONFLICT,.s-IDENTITY_CONFLICT{color:#be5b21}
+.tag{font-weight:650}.s-FINAL{color:#0b805d}.s-SCORE_CONFLICT,.s-IDENTITY_CONFLICT,.s-SOURCE_ORDER_CONFLICT{color:#be5b21}
 @media(prefers-color-scheme:dark){.s-FINAL{color:#76dbb4}.s-SCORE_CONFLICT,.s-IDENTITY_CONFLICT{color:#f3ab78}}
 aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 </style></head><body><main>
@@ -36,7 +36,7 @@ aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 <p id="summary" class="small"></p>
 <div class="controls">
 <label for="search">Procurar jogo</label><input id="search" type="search" placeholder="Equipa ou identificador">
-<label for="status">Estado</label><select id="status"><option value="">Todos</option><option value="FINAL">Resultado FT</option><option value="PENDING">Pendente</option><option value="PROVIDER_ERROR">Erro fornecedor</option><option value="IDENTITY_CONFLICT">Identidade em conflito</option><option value="INSUFFICIENT_IDENTITY">Identidade incompleta</option><option value="SCORE_CONFLICT">Marcadores contraditórios</option><option value="EXPIRED_UNVERIFIED">Prazo expirado</option></select>
+<label for="status">Estado</label><select id="status"><option value="">Todos</option><option value="FINAL">Resultado FT</option><option value="PENDING">Pendente</option><option value="PROVIDER_ERROR">Erro fornecedor</option><option value="IDENTITY_CONFLICT">Identidade em conflito</option><option value="INSUFFICIENT_IDENTITY">Identidade incompleta</option><option value="SCORE_CONFLICT">Marcadores contraditórios</option><option value="SOURCE_ORDER_CONFLICT">Ordem casa/fora contraditória</option><option value="EXPIRED_UNVERIFIED">Prazo expirado</option></select>
 </div>
 <p id="visible" class="small" role="status"></p>
 <div class="scroll"><table><thead><tr><th>Jogo</th><th>Estado</th><th>Início UTC</th><th>Resultado</th><th>Fonte / motivo</th></tr></thead><tbody id="rows"></tbody></table></div>
@@ -47,7 +47,7 @@ aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 "use strict";
 const node=id=>document.getElementById(id);
 const evidence={bsd_only:"BSD apenas",thesportsdb_only:"TheSportsDB apenas",bsd_and_thesportsdb:"BSD + TheSportsDB",espn_only:"ESPN apenas",sportscore_only:"SportScore apenas (fonte única)",bsd_and_sportscore:"BSD + SportScore",thesportsdb_and_sportscore:"TheSportsDB + SportScore",espn_and_sportscore:"ESPN + SportScore",bsd_and_espn:"BSD + ESPN",thesportsdb_and_espn:"TheSportsDB + ESPN",bsd_and_thesportsdb_and_espn:"BSD + TheSportsDB + ESPN"};
-const names={FINAL:"FT registado",PENDING:"Pendente",PROVIDER_ERROR:"Erro do fornecedor",IDENTITY_CONFLICT:"Identidade em conflito",INSUFFICIENT_IDENTITY:"Identidade incompleta",SCORE_CONFLICT:"Marcadores contraditórios",EXPIRED_UNVERIFIED:"Prazo ultrapassado"};
+const names={FINAL:"FT registado",PENDING:"Pendente",PROVIDER_ERROR:"Erro do fornecedor",IDENTITY_CONFLICT:"Identidade em conflito",INSUFFICIENT_IDENTITY:"Identidade incompleta",SCORE_CONFLICT:"Marcadores contraditórios",SOURCE_ORDER_CONFLICT:"Fonte inverte casa/fora",EXPIRED_UNVERIFIED:"Prazo ultrapassado"};
 let games=[];
 function td(tr,text,cls){const cell=document.createElement("td");cell.textContent=String(text??"—");if(cls)cell.className=cls;tr.appendChild(cell);return cell;}
 function render(){

@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import copy
 import re
-from .lab_reviewed_aliases import SPORTSCORE_REVIEWED
+from .lab_reviewed_aliases import SPORTSCORE_REVIEWED, reviewed_provider_pair
+from .lab_sportscore import source_order_conflict
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -143,6 +144,17 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["status"] = "PENDING"
             row["reason"] = "awaiting_ft"
         # Existing identity conflicts remain quarantined until human review.
+        # Historical single-source SportScore results must also be audited
+        # after detecting a provider disagreement between its teams and URL.
+        recorded = row.get("result") if row.get("status") == "FINAL" else None
+        if isinstance(recorded, dict) and recorded.get("evidence") == "sportscore_only":
+            original_signal = {"match_key": key, **identity}
+            source_pair = reviewed_provider_pair(original_signal) or (
+                identity["home"], identity["away"])
+            if source_order_conflict(recorded.get("source"), *source_pair):
+                row["status"] = "SOURCE_ORDER_CONFLICT"
+                row["reason"] = "sportscore_source_url_reverses_home_away"
+                row.pop("result", None)  # not a valid 90m score assignment
 
     candidates = []
     for key in games:
@@ -237,7 +249,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["FUTURE"] += 1
         elif now < kickoff + DELAY:
             timing["IN_3H_GRACE"] += 1
-        elif row["status"] in ("SCORE_CONFLICT", "IDENTITY_CONFLICT", "INSUFFICIENT_IDENTITY"):
+        elif row["status"] in ("SCORE_CONFLICT", "IDENTITY_CONFLICT", "INSUFFICIENT_IDENTITY", "SOURCE_ORDER_CONFLICT"):
             timing["BLOCKED_REVIEW"] += 1
         elif row["status"] == "EXPIRED_UNVERIFIED":
             timing["EXPIRED"] += 1
@@ -286,6 +298,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             "A missing FT is not a lost wager or proof about goals.",
             "A single provider FT is identified as single-source, not independent cross-verification.",
             "Unmatched, conflicting, postponed and ambiguous fixtures remain unverified.",
+            "SportScore results with a provably reversed home-away URL are quarantined.",
             "No betting ROI or predictive accuracy is computed; matches are the unit of analysis.",
         ],
     }
