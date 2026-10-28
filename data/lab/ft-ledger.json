@@ -1,5 +1,5 @@
 {
-  "last_updated_at": "2026-10-28T08:09:07+00:00",
+  "last_updated_at": "2026-10-28T08:13:10+00:00",
   "matches": {
     "2026-10-27,10017282,84806": {
       "attempts": 3,
@@ -76,18 +76,12 @@
         "sportscore": "verified_sportscore_ft",
         "thesportsdb": "tsdb_limited_this_run"
       },
-      "reason": "ft_recorded_with_source",
-      "result": {
-        "away_goals": 1,
-        "evidence": "sportscore_only",
-        "home_goals": 0,
-        "source": "https://sportscore.com/football/match/stourbridge-vs-real-bedford/pxwrxlhy4nplryk/"
-      },
+      "reason": "sportscore_source_url_reverses_home_away",
       "sources": [
         "H1_ALERT",
         "V4"
       ],
-      "status": "FINAL"
+      "status": "SOURCE_ORDER_CONFLICT"
     },
     "2026-10-27,10068586,24722": {
       "attempts": 2,
@@ -144,18 +138,12 @@
         "sportscore": "verified_sportscore_ft_reviewed_alias",
         "thesportsdb": "no_event"
       },
-      "reason": "ft_recorded_with_source",
-      "result": {
-        "away_goals": 0,
-        "evidence": "sportscore_only",
-        "home_goals": 4,
-        "source": "https://sportscore.com/football/match/albion-fc-reserves-vs-montevideo-city-torque-reserves/2y8m4zhv34gyql0/"
-      },
+      "reason": "sportscore_source_url_reverses_home_away",
       "reviewed_alias_check_version": 1,
       "sources": [
         "H1_ALERT"
       ],
-      "status": "FINAL"
+      "status": "SOURCE_ORDER_CONFLICT"
     },
     "2026-10-27,10107877,10107878": {
       "attempts": 2,
@@ -572,15 +560,17 @@
       "status": "PENDING"
     },
     "2026-10-27,24168,10033571": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "Harborough Town FC",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "Buxton FC",
       "kickoff_utc": "2026-10-27T19:45:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 2,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_unsupported_competition",
+        "sportscore": "source_home_away_conflict",
         "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
@@ -591,23 +581,31 @@
       "status": "PENDING"
     },
     "2026-10-27,24188,1": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "Arsenal",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "Fleetwood Town",
       "kickoff_utc": "2026-10-27T20:00:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 2,
       "provider_reasons": {
-        "bsd": "bsd_primary_unavailable",
+        "bsd": "verified_bsd_ft",
         "espn": "extra_time_penalties_unverified",
+        "sportscore": "cup_regulation_unverified",
         "thesportsdb": "not_confirmed_ft"
       },
-      "reason": "no_verified_ft_yet",
+      "reason": "ft_recorded_with_source",
+      "result": {
+        "away_goals": 1,
+        "evidence": "bsd_only",
+        "home_goals": 1,
+        "source": "https://sports.bzzoiro.com/api/v2/events/604439/"
+      },
       "sources": [
         "H1_ALERT",
         "V4"
       ],
-      "status": "PENDING"
+      "status": "FINAL"
     },
     "2026-10-27,24464,892": {
       "attempts": 2,
@@ -811,16 +809,18 @@
       "status": "PENDING"
     },
     "2026-10-27,29242,53546": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "CA Torque",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "CA Peñarol",
       "kickoff_utc": "2026-10-27T22:30:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 2,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_unsupported_competition",
-        "thesportsdb": "tsdb_limited_this_run"
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
       "sources": [
@@ -830,15 +830,17 @@
       "status": "PENDING"
     },
     "2026-10-27,294,32214": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "Calcio Como",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "Torino",
       "kickoff_utc": "2026-10-27T19:45:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 1,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_no_exact_match",
+        "sportscore": "sportscore_no_exact_match",
         "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
@@ -947,15 +949,17 @@
       "status": "FINAL"
     },
     "2026-10-27,32663,112": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "Clyde FC",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "Penicuik Athletic FC",
       "kickoff_utc": "2026-10-27T19:45:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 1,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_no_exact_match",
+        "sportscore": "sportscore_no_exact_match",
         "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
@@ -965,15 +969,17 @@
       "status": "PENDING"
     },
     "2026-10-27,327,326": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "Longford Town FC",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "University College Dublin AFC",
       "kickoff_utc": "2026-10-27T19:45:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 2,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
         "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
@@ -1007,16 +1013,18 @@
       "status": "FINAL"
     },
     "2026-10-27,33791,86126": {
-      "attempts": 2,
+      "attempts": 3,
       "away": "Kataka FC",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "Express Red Eagles",
       "kickoff_utc": "2026-10-27T16:00:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 2,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_unsupported_competition",
-        "thesportsdb": "tsdb_limited_this_run"
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
       "sources": [
@@ -1208,16 +1216,18 @@
       "status": "FINAL"
     },
     "2026-10-27,505,27518": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "CS Independiente Rivadavia",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "AA Argentinos Juniors",
       "kickoff_utc": "2026-10-27T22:00:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 1,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_no_exact_match",
-        "thesportsdb": "tsdb_limited_this_run"
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
       "sources": [
@@ -1240,17 +1250,11 @@
         "sportscore": "verified_sportscore_ft",
         "thesportsdb": "tsdb_limited_this_run"
       },
-      "reason": "ft_recorded_with_source",
-      "result": {
-        "away_goals": 1,
-        "evidence": "sportscore_only",
-        "home_goals": 3,
-        "source": "https://sportscore.com/football/match/kigezi-homeboys-fc-vs-uganda-police-fc/23xmvkh6ezk2qg8/"
-      },
+      "reason": "sportscore_source_url_reverses_home_away",
       "sources": [
         "H1_ALERT"
       ],
-      "status": "FINAL"
+      "status": "SOURCE_ORDER_CONFLICT"
     },
     "2026-10-27,58689,68384": {
       "attempts": 2,
@@ -1393,18 +1397,12 @@
         "sportscore": "verified_sportscore_ft_reviewed_alias",
         "thesportsdb": "no_event"
       },
-      "reason": "ft_recorded_with_source",
-      "result": {
-        "away_goals": 1,
-        "evidence": "sportscore_only",
-        "home_goals": 5,
-        "source": "https://sportscore.com/football/match/fc-dobrudzha-dobrich-vs-ludogorets-razgrad-ii/dn1m1ghlzylzmoe/"
-      },
+      "reason": "sportscore_source_url_reverses_home_away",
       "reviewed_alias_check_version": 1,
       "sources": [
         "H1_ALERT"
       ],
-      "status": "FINAL"
+      "status": "SOURCE_ORDER_CONFLICT"
     },
     "2026-10-27,77621,67110": {
       "attempts": 2,
@@ -1751,7 +1749,7 @@
       "away": "CA Vinotinto",
       "home": "Atletico Rojiblanco",
       "kickoff_utc": "2026-10-28T19:00:00+00:00",
-      "observed_alerts": 1,
+      "observed_alerts": 2,
       "reason": "awaiting_ft",
       "sources": [
         "H1_ALERT",
@@ -2054,16 +2052,18 @@
       "status": "PENDING"
     },
     "2026-10-28,30921,29839": {
-      "attempts": 1,
+      "attempts": 2,
       "away": "CD Marathón",
-      "checked_at": "2026-10-28T07:39:59+00:00",
+      "checked_at": "2026-10-28T08:13:10+00:00",
       "home": "Alianza FC (SLV)",
       "kickoff_utc": "2026-10-28T02:00:00+00:00",
+      "lookup_source_version": 4,
       "observed_alerts": 1,
       "provider_reasons": {
         "bsd": "bsd_no_exact_match_in_date",
         "espn": "espn_unsupported_competition",
-        "thesportsdb": "tsdb_limited_this_run"
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
       },
       "reason": "no_verified_ft_yet",
       "sources": [
@@ -2384,6 +2384,19 @@
       "home": "Yokohama F Marinos",
       "kickoff_utc": "2026-10-28T10:00:00+00:00",
       "observed_alerts": 3,
+      "reason": "awaiting_ft",
+      "sources": [
+        "H1_ALERT",
+        "V4"
+      ],
+      "status": "PENDING"
+    },
+    "2026-10-28,795,1488": {
+      "attempts": 0,
+      "away": "Pohang Steelers",
+      "home": "Kashima Antlers",
+      "kickoff_utc": "2026-10-28T10:00:00+00:00",
+      "observed_alerts": 1,
       "reason": "awaiting_ft",
       "sources": [
         "H1_ALERT",
