@@ -1,8 +1,8 @@
 """Nonblocking GitHub FT workflow watchdog, run AFTER H1 data were safely pushed.
 
 H1/Telegram/FIFO already finished before this call. No sports API calls here.
-Conservatively dispatch LAB FT once only if no FT workflow run was created
-in the preceding 35 minutes (including queued / running / failed runs).
+Conservatively dispatch LAB FT only if no real scheduled/manual FT workflow
+was created in the preceding 35 minutes. Unauthenticated push runs are ignored.
 The GitHub API token stays in the authorization header and is never logged.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ def _utc(x):
 
 def plan(runs, now):
     """Return safe dispatch decision. Invalid/missing fields fail closed."""
-    if not isinstance(runs,list) or len(runs)>10 or now.tzinfo is None:
+    if not isinstance(runs,list) or len(runs)>100 or now.tzinfo is None:
         raise ValueError("Invalid workflow run list or clock")
     times=[]
     for entry in runs:
@@ -41,6 +41,9 @@ def plan(runs, now):
         when=_utc(entry.get("created_at"))
         if when>now+timedelta(minutes=2):
             raise ValueError("GitHub run timestamp in the future")
+        event = entry.get("event")
+        if event is not None and event not in ("schedule", "workflow_dispatch"):
+            continue  # notably push: NO authenticated FT scan
         times.append(when)
     newest=max(times) if times else None
     age=(now-newest) if newest else None
@@ -80,7 +83,7 @@ def run(*, env=None, now=None, opener=urlopen):
         "X-GitHub-Api-Version":"2022-11-28",
         "User-Agent":"master-brain-lab-ft-watchdog",
     }
-    req=Request(base+"/runs?branch=main&per_page=5",headers=headers)
+    req=Request(base+"/runs?branch=main&per_page=100",headers=headers)
     try:
         payload=_json_request(opener,req)
         if not isinstance(payload,dict):

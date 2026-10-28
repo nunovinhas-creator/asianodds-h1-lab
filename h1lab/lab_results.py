@@ -11,6 +11,7 @@ from .lab_reviewed_aliases import SPORTSCORE_REVIEWED, reviewed_provider_pair
 from .lab_reviewed_bsd_ids import REVIEWED_BSD_FIXTURES
 from .lab_sportscore import source_order_conflict
 from .lab_ft_crosswalk import event_id, providers_from_final
+from .lab_ft_evidence import fingerprint as evidence_fingerprint
 from .lab_ft_reviewed_evidence import (REVIEWED_PUBLIC_FT, REVIEWED_PENDING_FT,
                                        public_evidence_urls, verified_public_ft)
 from collections import Counter
@@ -23,7 +24,7 @@ RETRY = timedelta(hours=4)
 # Repeated no-result cycles use slower retries; never mark a missing FT final.
 # A new source version or explicitly reviewed evidence may still bypass this.
 def retry_wait(entry):
-    attempts = max(0, int(entry.get("attempts", 0)))
+    attempts = max(0, int(entry.get("evidence_attempts", entry.get("attempts", 0))))
     if attempts >= 10:
         return timedelta(hours=24)
     if attempts >= 6:
@@ -118,7 +119,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -132,8 +133,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         raise ValueError("Unsupported LAB FT lookup source version")
     if not isinstance(max_checks, int) or not 0 <= max_checks <= MAX_CHECKS_CAP:
         raise ValueError("max_checks outside safe range 0..30")
-    if type(force_recheck) is not bool:
-        raise ValueError("force_recheck must be boolean")
+    if type(force_recheck) is not bool or type(evidence_retry) is not bool:
+        raise ValueError("force_recheck and evidence_retry must be boolean")
     if priority_hints is None:
         priority_hints = {}
     if (not isinstance(priority_hints, dict) or
@@ -230,7 +231,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             continue
         if now < kickoff + DELAY:
             continue
-        last = utc(entry.get("checked_at"))
+        last = utc(entry.get("evidence_checked_at" if evidence_retry else "checked_at"))
+        visit = utc(entry.get("queue_visited_at")) if evidence_retry else None
         # A newly added provider may be checked once immediately, without
         # disabling the normal four-hour cooldown on subsequent runs.
         upgrade = (entry["status"] != "SOURCE_ORDER_CONFLICT" and
@@ -250,12 +252,16 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             and entry.get("reviewed_public_ft_check_version") != 1)
         if last and now < last + retry_wait(entry) and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
             continue
+        # Fairness gate for a visit that found no new authenticated evidence.
+        # This is NOT an FT attempt and never increases the exponential retry.
+        if evidence_retry and visit and now < visit + timedelta(minutes=45) and not (force_recheck or public_due or bsd_id_due):
+            continue
         # Proven real BSD IDs take precedence for a single immediate check.
         priority = (-4 if last is None and not force_recheck else
                     -3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
                     -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
-        candidates.append((priority, last or datetime.min.replace(tzinfo=timezone.utc),
+        candidates.append((priority, last or visit or datetime.min.replace(tzinfo=timezone.utc),
                            kickoff, key))
 
     # Coverage invariant: never-consulted eligible games lead every retry tier.
@@ -272,11 +278,11 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "eligible": len(candidates),
         "selected": len(selected_keys),
         "deferred_by_capacity": len(deferred_keys),
-        "never_checked_eligible": sum(utc(entries[item[3]].get("checked_at")) is None for item in candidates),
-        "never_checked_deferred": sum(utc(entries[key].get("checked_at")) is None for key in deferred_keys),
+        "never_checked_eligible": sum(utc(entries[item[3]].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for item in candidates),
+        "never_checked_deferred": sum(utc(entries[key].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for key in deferred_keys),
         "selected_keys": selected_keys,
         "deferred_keys": deferred_keys[:100],
-        "retry_policy": "4h after 1-5 attempts; 12h after 6-9; 24h after 10+",
+        "retry_policy": ("V7: only changed authenticated snapshots count; 4h/12h/24h" if evidence_retry else "4h after 1-5 attempts; 12h after 6-9; 24h after 10+"),
     }
     attempts = 0
     for _, _, _, key in candidates[:max_checks]:
@@ -313,16 +319,46 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 found[provider] = None
                 reasons[provider] = "provider_unavailable"  # never expose credentials/URLs
         attempts += 1
-        row["checked_at"] = now.isoformat(timespec="seconds")
-        row["lookup_source_version"] = max(int(row.get("lookup_source_version", 0)), source_version)
+        stamp = now.isoformat(timespec="seconds")
+        snapshots = {}
+        if evidence_retry:
+            # Record a complete authenticated date list only when its score-free
+            # signature changed for THIS match's kickoff window.
+            for provider, lookup in providers:
+                if provider in ("api_football", "goal", "openfoot"):
+                    snap = evidence_fingerprint(lookup, provider, signal)
+                    old = (row.get("examined_against") or {}).get(provider) or {}
+                    if snap is not None and snap["fingerprint"] != old.get("fingerprint"):
+                        snapshots[provider] = {**snap, "observed_at": stamp}
+        effective = (not evidence_retry or bool(snapshots) or
+                     any(value is not None for value in found.values()) or
+                     any(name == "reviewed_public" for name, _ in providers))
+        if evidence_retry:
+            row["queue_visited_at"] = stamp
+            if snapshots:
+                row.setdefault("examined_against", {}).update(snapshots)
+            if effective:
+                row["evidence_checked_at"] = stamp
+                row["evidence_attempts"] = int(row.get("evidence_attempts", 0)) + 1
+        if effective:
+            row["checked_at"] = stamp
+            row["lookup_source_version"] = max(int(row.get("lookup_source_version", 0)), source_version)
         if key in SPORTSCORE_REVIEWED:
             row["reviewed_alias_check_version"] = 1
         if key in REVIEWED_BSD_FIXTURES:
             row["reviewed_bsd_id_check_version"] = 1
         if any(name == "reviewed_public" for name, _ in providers):
             row["reviewed_public_ft_check_version"] = 1
-        row["attempts"] = int(row.get("attempts", 0)) + 1
-        row["provider_reasons"] = reasons
+        if effective:
+            row["attempts"] = int(row.get("attempts", 0)) + 1
+        if evidence_retry:
+            # Never erase the last meaningful GOAL/OpenFoot/API finding with a
+            # disabled, deferred or failed adapter invocation.
+            meaningful = {p: why for p, why in reasons.items()
+                          if p in snapshots or found.get(p) is not None or p == "reviewed_public"}
+            row["provider_reasons"] = {**(row.get("provider_reasons") or {}), **meaningful}
+        else:
+            row["provider_reasons"] = reasons
         if reasons.get("goal") in GOAL_ID_RECHECK_EVIDENCE:
             row["goal_ft_last_evidence"] = {
                 "reason": reasons["goal"],
@@ -332,6 +368,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         # adapters may use day caches or return an unsupported-competition reason.
         history = row.setdefault("provider_attempts", {})
         for provider, _ in providers:
+            if evidence_retry and provider not in snapshots and found.get(provider) is None:
+                continue
             old = history.get(provider, {})
             history[provider] = {
                 "invocations": int(old.get("invocations", 0)) + 1,
@@ -403,10 +441,11 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 row["status"] = "SOURCE_ORDER_CONFLICT"
                 row["reason"] = "sportscore_source_url_reverses_home_away"
             else:
-                row["status"] = "PROVIDER_ERROR" if any(
-                    r in ("provider_unavailable", "invalid_provider_result") for r in reasons.values()
-                ) else "PENDING"
-                row["reason"] = "no_verified_ft_yet"
+                if effective:
+                    row["status"] = "PROVIDER_ERROR" if any(
+                        r in ("provider_unavailable", "invalid_provider_result") for r in reasons.values()
+                    ) else "PENDING"
+                    row["reason"] = "no_verified_ft_yet"
             row.pop("result", None)
 
     # Distinguish not-started matches from real provider gaps. The "unverified"
@@ -427,7 +466,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["BLOCKED_REVIEW"] += 1
         elif row["status"] == "EXPIRED_UNVERIFIED":
             timing["EXPIRED"] += 1
-        elif not row.get("checked_at"):
+        elif not row.get("evidence_checked_at" if evidence_retry else "checked_at"):
             timing["ELIGIBLE_NEVER_QUERIED"] += 1
         elif key in REVIEWED_BSD_FIXTURES and row.get("reviewed_bsd_id_check_version") != 1:
             timing["ELIGIBLE_REVIEWED_BSD_ID"] += 1
@@ -435,7 +474,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["ELIGIBLE_REVIEWED_ALIAS"] += 1
         elif int(row.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION:
             timing["ELIGIBLE_SOURCE_UPGRADE"] += 1
-        elif utc(row.get("checked_at")) and now < utc(row["checked_at"]) + retry_wait(row):
+        elif utc(row.get("evidence_checked_at" if evidence_retry else "checked_at")) and now < utc(row["evidence_checked_at" if evidence_retry else "checked_at"]) + retry_wait(row):
             timing["ELIGIBLE_COOLDOWN"] += 1
         else:
             timing["ELIGIBLE_RETRY_DUE"] += 1
