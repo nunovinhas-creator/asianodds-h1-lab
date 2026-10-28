@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T23:31:30+00:00",
+  "generated_at": "2026-10-28T23:36:31+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 75,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 65.8
+      "matches": 76,
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 66.1
     },
     "both_total_and_1x2": {
       "matches": 77,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 67.5
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 67.0
     },
     "opposing_intra_alert_directions": {
-      "matches": 25,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 21.9
+      "matches": 26,
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 22.6
     },
     "with_ambiguous_repeats": {
       "matches": 14,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 12.3
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 12.2
     },
     "with_identical_total_snapshots": {
       "matches": 15,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 13.2
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 13.0
     },
     "with_mixed_origin_total": {
       "matches": 20,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 17.5
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 17.4
     },
     "with_only_legacy_total": {
       "matches": 9,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 7.9
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 7.8
     },
     "with_only_v4_total": {
-      "matches": 85,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 74.6
+      "matches": 86,
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 74.8
     },
     "with_post_kickoff_alerts": {
       "matches": 9,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 7.9
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 7.8
     },
     "with_related_alerts": {
       "matches": 22,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 19.3
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 19.1
     },
     "with_unobserved_line_gaps": {
       "matches": 32,
-      "of_repeated_matches_analysed": 114,
-      "percentage_descriptive": 28.1
+      "of_repeated_matches_analysed": 115,
+      "percentage_descriptive": 27.8
     }
   },
   "opposing_direction_examples": [
@@ -194,6 +194,19 @@
     {
       "directions": [
         "DOWN",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:51039",
+        "3571094759:51125"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-29,58921,37833",
+      "match_label": "Delfin SC vs CSD Independiente Del Valle"
+    },
+    {
+      "directions": [
+        "DOWN",
         "UP",
         "DOWN",
         "DOWN",
@@ -252,50 +265,37 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-02,624,25861",
       "match_label": "Fortaleza EC (CE) vs Atlético Clube Goianiense (GO)"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:50740",
-        "3571094759:50742"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-28,34927,10104437",
-      "match_label": "Hammarby IF U19 vs SK Super Nova U19"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 381,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 277,
-    "messages_in_source": 544,
-    "repeated_matches_analysed": 114,
-    "repeated_matches_in_source": 114,
+    "events_analysed": 279,
+    "messages_in_source": 545,
+    "repeated_matches_analysed": 115,
+    "repeated_matches_in_source": 115,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "b37d10b47481d10dc45a78148a9e48730dcffa7f",
-  "source_generated_at": "2026-10-28T23:31:30+00:00",
+  "source_commit": "59c9d0864a34940bf300c579d0b8e81d0d726d30",
+  "source_generated_at": "2026-10-28T23:36:31+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 9,
-      "T_0_TO_60": 65,
-      "T_360_TO_1440": 41,
+      "T_0_TO_60": 66,
+      "T_360_TO_1440": 42,
       "T_60_TO_360": 45,
       "T_OVER_1440": 19,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 11,
-      "T_0_TO_60": 99,
-      "T_360_TO_1440": 72,
+      "T_0_TO_60": 100,
+      "T_360_TO_1440": 73,
       "T_60_TO_360": 63,
       "T_OVER_1440": 32,
       "UNKNOWN": 0
@@ -305,22 +305,22 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 235
+      "V4_EXPLICIT": 237
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.0,
-      "FLAT": 27.1,
-      "UP": 37.9
+      "DOWN": 35.1,
+      "FLAT": 26.9,
+      "UP": 38.0
     },
-    "down": 97,
+    "down": 98,
     "flat": 75,
-    "messages_with_total": 277,
-    "up": 105,
+    "messages_with_total": 279,
+    "up": 106,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 15,
-    "continuous": 88,
+    "continuous": 89,
     "identical_total_pairs": 15,
     "related_pairs": 22,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
