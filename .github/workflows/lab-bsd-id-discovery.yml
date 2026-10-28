@@ -1,0 +1,82 @@
+name: Lab - BSD event ID discovery diagnostic (read-only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lab-bsd-id-discovery.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Audit BSD finished-event catalogue vs unresolved AsianOdds fixtures
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from difflib import SequenceMatcher
+          from urllib.parse import urlencode
+          from h1lab.bsd import ROOT,request_json,event_kickoff,event_name,BSDProviderError
+          from h1lab.results import norm_team
+          token=os.environ.get("BSD_API_KEY","").strip()
+          if not token:
+              raise SystemExit("BSD_TOKEN_UNCONFIGURED")
+          ledger=json.loads(Path("data/lab/ft-ledger.json").read_text(encoding="utf-8"))["matches"]
+          unresolved={k:v for k,v in ledger.items() if v["status"]!="FINAL"
+                       and v.get("kickoff_utc","").startswith("2026-10-27")}
+          print("BSD_ID_FORENSIC_UNRESOLVED",len(unresolved))
+          events=[]
+          for date in ("2026-10-27","2026-10-28"):
+              for page in range(3):
+                  params={"date_from":date,"date_to":date,"status":"finished",
+                          "limit":200,"offset":page*200}
+                  try:
+                      body=request_json(ROOT+"?"+urlencode(params),token)
+                  except BSDProviderError:
+                      print("BSD_ID_FORENSIC_UNAVAILABLE",date,page);break
+                  if not isinstance(body,dict) or not isinstance(body.get("results"),list):
+                      print("BSD_ID_FORENSIC_INVALID",date,page);break
+                  batch=body["results"]
+                  print("BSD_ID_FORENSIC_PAGE",date,page,len(batch),"more",bool(body.get("next")))
+                  events.extend(x for x in batch if isinstance(x,dict))
+                  if not body.get("next"):break
+          print("BSD_ID_FORENSIC_CATALOGUE",len(events))
+          exact=[]
+          candidates={}
+          for key,row in unresolved.items():
+              kickoff=datetime.fromisoformat(row["kickoff_utc"]).astimezone(timezone.utc)
+              best=[]
+              for ev in events:
+                  when=event_kickoff(ev)
+                  if when is None or abs((when-kickoff).total_seconds())>5400:continue
+                  h,a=norm_team(row["home"]),norm_team(row["away"])
+                  e,f=norm_team(event_name(ev,"home_team")),norm_team(event_name(ev,"away_team"))
+                  if not all((h,a,e,f)):continue
+                  if h==e and a==f:
+                      exact.append((key,ev.get("id"),row["home"],row["away"]))
+                      continue
+                  s1,s2=SequenceMatcher(None,h,e).ratio(),SequenceMatcher(None,a,f).ratio()
+                  if min(s1,s2)>=.67 and s1+s2>=1.54:
+                      best.append((round(s1+s2,3),round(min(s1,s2),3),ev.get("id"),
+                                   event_name(ev,"home_team"),event_name(ev,"away_team")))
+              if best:
+                  best.sort(reverse=True)
+                  candidates[key]=(row["home"],row["away"],best[:2])
+          print("BSD_ID_FORENSIC_EXACT",len(exact))
+          for x in exact[:12]:print("BSD_ID_EXACT_REVIEW",*x)
+          print("BSD_ID_FORENSIC_NEAR",len(candidates))
+          for k,(h,a,options) in list(sorted(candidates.items(),
+                   key=lambda item:-item[1][2][0][0]))[:35]:
+              print("BSD_ID_ALIAS_REVIEW",k,repr(h),repr(a),"->",options)
+          print("BSD_ID_FORENSIC_COMPLETE_NO_RESULT_SETTLEMENT")
+          PY
