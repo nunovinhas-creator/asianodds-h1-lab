@@ -3,8 +3,9 @@
 Monte-Carlos stores *BSD event IDs* in predictions.db and settles directly by
 /api/v2/events/{id}/. AsianOdds' match_key values do NOT identify BSD events.
 
-We build an exact ordered home/away + UTC kickoff crosswalk to obtain a *candidate*
-BSD ID from the public Monte-Carlos archive. The score must then be fetched
+We build an ordered home/away + UTC kickoff crosswalk to obtain a *candidate*
+BSD ID from the public Monte-Carlos archive. A CORE_NAME fallback is used only
+on unique same-day fixtures without ambiguous clubs or reversed sides. The score must then be fetched
 fresh from BSD and validated against the original LAB fixture. Nothing from
 the Monte-Carlos database is taken as a final score on its own.
 """
@@ -24,6 +25,7 @@ from urllib.error import HTTPError, URLError
 from .bsd import ROOT, BSDProviderError, matches_identity, request_json, regulation_result
 from .results import norm_team
 from .lab_reviewed_bsd_ids import reviewed_bsd_fixture
+from .lab_identity import CORE, IDENTITY_VERSION, core_tokens, pair_level
 
 SOURCE_URL = "https://raw.githubusercontent.com/nunovinhas-creator/Monte-Carlos/main/predictions.db"
 MAX_ARCHIVE_BYTES = 4000000
@@ -202,6 +204,7 @@ class MonteBSDCrosswalk:
         self.load_reason="not_loaded"
         self.reasons=Counter()
         self.matched_keys=set()
+        self.core_candidate_keys=set()
         self.rate_limited=False
 
     def _load(self):
@@ -244,11 +247,53 @@ class MonteBSDCrosswalk:
                 return None,"monte_bsd_provider_unavailable"
         return None,"monte_bsd_provider_unavailable"
 
+    def _core_archive_candidate(self, signal, kickoff):
+        """Find one ordered CORE_NAME candidate; the archive is only an ID lead.
+
+        A collision, reversed pair, different youth/reserve status or multiple
+        IDs yields no result. The source event is validated again below.
+        """
+        home, away = signal.get("home"), signal.get("away")
+        if not isinstance(home, str) or not isinstance(away, str):
+            return None, "monte_no_exact_archive_match"
+        hc, ac = core_tokens(home), core_tokens(away)
+        if not hc or not ac or hc == ac:
+            return None, "monte_core_invalid_identity"
+        # Adjacent UTC days matter for matches around midnight.
+        from datetime import timedelta
+        days = {(kickoff + timedelta(minutes=n)).date().isoformat()
+                for n in (-90, 0, 90)}
+        nearby = [(eid, start, eh, ea)
+                  for (eh, ea, day), items in self.index.items()
+                  if day in days
+                  for eid, start in items
+                  if abs((start - kickoff).total_seconds()) <= 90 * 60]
+        candidates = [x for x in nearby
+                      if pair_level(home, away, x[2], x[3]) is not None]
+        reversed_ = [x for x in nearby
+                     if pair_level(home, away, x[3], x[2]) is not None]
+        if reversed_:
+            return None, "monte_core_reversed_order"
+        if not candidates:
+            return None, "monte_no_exact_archive_match"
+        if len(candidates) != 1:
+            return None, "monte_core_ambiguous_match"
+        chosen = candidates[0]
+        # Other archived fixtures of either club in the same kickoff window
+        # make CORE_NAME unsafe, even if the opposing team is different.
+        for eid, _, eh, ea in nearby:
+            if eid == chosen[0]:
+                continue
+            if core_tokens(eh) in (hc, ac) or core_tokens(ea) in (hc, ac):
+                return None, "monte_core_side_collision"
+        return (chosen[0], chosen[2], chosen[3]), "monte_core_candidate"
+
     def lookup(self, signal):
         if not self.token:
             return None,"bsd_not_configured"
         reviewed=reviewed_bsd_fixture(signal)
         using_reviewed=reviewed is not None
+        using_core=False
         if using_reviewed:
             event_id, home, away = reviewed
             # The approved BSD names belong ONLY to the original match_key
@@ -270,14 +315,33 @@ class MonteBSDCrosswalk:
             candidates={eid for eid,dt in self.index.get(key,[])
                         if abs((dt-kickoff).total_seconds()) <= 90*60}
             if not candidates:
-                self.reasons["no_exact_archive_match"]+=1
-                return None,"monte_no_exact_archive_match"
-            if len(candidates)!=1:
-                self.reasons["ambiguous_archive_match"]+=1
-                return None,"monte_ambiguous_archive_match"
+                core, reason = self._core_archive_candidate(signal, kickoff)
+                if core is None:
+                    self.reasons[reason.removeprefix("monte_")] += 1
+                    return None, reason
+                event_id, candidate_home, candidate_away = core
+                # Never assume the AsianOdds labels are the BSD labels.
+                # A fresh BSD detail must exactly verify the archive labels.
+                checking_signal = {**signal, "home": candidate_home,
+                                   "away": candidate_away}
+                self.core_candidate_keys.add(signal["match_key"])
+                using_core = True
+            else:
+                if len(candidates)!=1:
+                    self.reasons["ambiguous_archive_match"]+=1
+                    return None,"monte_ambiguous_archive_match"
+                event_id=candidates.pop()
+                # An exact alias must not hide a second CORE_NAME candidate
+                # or a reversed fixture in the same source archive.
+                confirmed, confirmation = self._core_archive_candidate(signal, kickoff)
+                if confirmed is None or confirmed[0] != event_id:
+                    rejection = (confirmation if confirmed is None
+                                 else "monte_core_ambiguous_match")
+                    self.reasons[rejection.removeprefix("monte_")]+=1
+                    return None, rejection
+                checking_signal=signal
+                using_core = False
             self.matched_keys.add(signal["match_key"])
-            event_id=candidates.pop()
-            checking_signal=signal
         visited=set()
         for _ in range(MAX_REDIRECTS):
             if event_id in visited:
@@ -295,6 +359,10 @@ class MonteBSDCrosswalk:
             result,reason=validated_result(checking_signal,data)
             if result and using_reviewed:
                 reason="verified_bsd_ft_from_reviewed_id"
+            elif result and using_core:
+                result["identity_match"] = CORE
+                result["identity_version"] = IDENTITY_VERSION
+                reason="verified_bsd_ft_from_monte_core_name"
             self.reasons[reason]+=1
             return result,reason
         return None,"monte_replaced_by_limit"
@@ -303,10 +371,13 @@ class MonteBSDCrosswalk:
         return {"archive_status":self.load_reason,
                 "archive_sha256_prefix":self.archive_hash,
                 "catalog_matchday_groups":len(self.index or {}),
-                "exact_event_id_candidates":len(self.matched_keys),
+                "exact_event_id_candidates":len(self.matched_keys)-len(self.core_candidate_keys),
+                "core_name_event_id_candidates":len(self.core_candidate_keys),
                 "bsd_direct_event_requests":self.events_requested,
                 "verified_in_run":(self.reasons["verified_bsd_ft_from_monte_id"]+
-                                   self.reasons["verified_bsd_ft_from_reviewed_id"]),
+                                   self.reasons["verified_bsd_ft_from_reviewed_id"]+
+                                   self.reasons["verified_bsd_ft_from_monte_core_name"]),
+                "verified_core_name_in_run":self.reasons["verified_bsd_ft_from_monte_core_name"],
                 "reviewed_bsd_ids_verified":self.reasons["verified_bsd_ft_from_reviewed_id"],
                 "rate_limited":self.rate_limited,
                 "reason_counts":dict(sorted(self.reasons.items()))}

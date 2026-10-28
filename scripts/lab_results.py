@@ -145,6 +145,8 @@ def main():
           "queried", queried, "bsd_date_pages", report["bsd_date_search"]["date_list_requests"],
           "monte_bsd_resolved", report["monte_carlos_bsd"]["verified_in_run"],
           "monte_bsd_archive", report["monte_carlos_bsd"]["archive_status"],
+          "monte_core_candidates", report["monte_carlos_bsd"]["core_name_event_id_candidates"],
+          "monte_core_verified", report["monte_carlos_bsd"]["verified_core_name_in_run"],
           "espn_confirmed", report["espn_scoreboards"]["confirmed_in_run"],
           "espn_requests", report["espn_scoreboards"]["requests"],
           "sportscore_ft", report["sportscore_search"]["confirmed_in_run"],

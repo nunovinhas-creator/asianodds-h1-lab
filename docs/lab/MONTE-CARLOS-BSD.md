@@ -31,3 +31,17 @@ O lote geral de SportScore pode truncar-se a 200 jogos/dia. Portamos também a m
 A integração só será considerada empiricamente útil depois de um run real mostrar `monte_carlos_bsd.verified_in_run > 0`. Caso não existam jogos comuns aos dois projetos, o contador pode ser zero: o método de liquidação fica disponível, mas a cobertura não melhora automaticamente. Não se inventam IDs nem se copia um marcador não confirmado de outra base.
 
 **Permanecem intocáveis:** `h1lab/bsd.py`, `results.py`, H1 collector e cron Cloudflare, `data/state.json`, resultados oficiais H1, Telegram, picks, triplas e FIFO.
+
+## Atualização V8 — identificação por CORE_NAME (28/10/2026)
+
+A auditoria oficial confirma que `/api/v2/events/` suporta `date_from`, `date_to`, `status=finished`, `team_name`, `limit` até 200 e `offset`; detalhes em `/api/v2/events/{id}/`. O ID é sempre obtido da resposta BSD ou do arquivo de eventos BSD do Monte-Carlos, **nunca de um identificador AsianOdds**.
+
+Na ausência de correspondência estritamente normalizada no SQLite público, o LAB V8 examina eventos do arquivo dentro de ±90 minutos (incluindo dias UTC adjacentes) e permite somente equivalência `CORE_NAME` para **ambas** as equipas na ordem casa/fora. Rejeita automaticamente: nomes genéricos ou inválidos, duplicados, inversões, coincidência com outra partida do mesmo clube, alteração de U21/reservas/feminino e discrepâncias de horário.
+
+O ID encontrado é **um candidato**: exige consulta fresca de `GET /events/{id}/`, com ID do detalhe, nomes originais do arquivo, kickoff, estado e marcador regulamentar validados. Em provas de taça usa somente `home_score`/`away_score` ou blocos explicitamente regulamentares; prolongamento e penáltis não são somados. A resposta de origem fica em `result.source`. Identidades V8 aceites incluem `identity_match=CORE_NAME`.
+
+Contadores novos: `core_name_event_id_candidates` e `verified_core_name_in_run`. Os limites de **12 consultas diretas por ciclo** e 30 jogos consultados não aumentam. `LOOKUP_SOURCE_VERSION=8` permite uma única reconsulta aos jogos pendentes, respeitando depois o intervalo de 4 horas.
+
+A documentação BSD comunica uma quota gratuita diária e limites de pico que podem mudar; portanto a implementação mantém orçamentos conservadores e não assume acesso ilimitado.
+
+**Critério de êxito:** confirmar num workflow FT real um `verified_core_name_in_run > 0` e aumento de FT sem conflitos; zero mantém a integração funcional mas sem ganho empírico demonstrado. A PR só altera módulos e documentos LAB.

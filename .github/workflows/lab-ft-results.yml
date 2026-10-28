@@ -94,6 +94,7 @@ jobs:
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
+          assert d['monte_carlos_bsd']['verified_core_name_in_run'] <= d['monte_carlos_bsd']['core_name_event_id_candidates']
           assert d['reviewed_bsd_id_catalog_matches'] <= 3
           assert d["sportscore_search"]["requests"] <= 45
           assert d["sportscore_search"]["targeted_searches"] <= 20
