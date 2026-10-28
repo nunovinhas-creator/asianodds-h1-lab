@@ -1,5 +1,6 @@
 """Fixed-threshold weekly monitoring, FT chronology, and weekly replay tests."""
 import json
+import hashlib
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -23,6 +24,7 @@ def fixtures(week_begin, count, *, p, goals, bad=0):
         key=week_begin.strftime("%Y%m%d")+"-"+str(i)
         forecasts.append({
             "match_key":key,"event_id":"test:"+key,
+            "sha256":hashlib.sha256(key.encode()).hexdigest(),
             "known_at":known.isoformat(),"kickoff_utc":kickoff.isoformat(),
             "price_quality":{"status":quality,
                              "flags":["negative_after_margin"] if quality=="UNUSABLE" else [],
