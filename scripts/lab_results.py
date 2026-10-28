@@ -126,7 +126,7 @@ def main():
     tsdb = PacedTSDB()
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
-    sportscore = SportScoreResults(mapped_competitions, max_requests=24,max_team_searches=8)
+    sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
     next_ledger, report, queried = reconcile(
         state, read_v4(), existing, now=datetime.now(timezone.utc),
         bsd_lookup=bsd_with_monte, tsdb_lookup=tsdb.lookup,
