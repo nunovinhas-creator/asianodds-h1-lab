@@ -10,18 +10,21 @@
   },
   "bsd_date_search": {
     "core_name_results_recovered": 0,
-    "date_complete_days": 0,
-    "date_days_examined": 0,
+    "date_complete_days": 1,
+    "date_days_examined": 1,
     "date_detail_requests": 0,
     "date_incomplete_days": 0,
-    "date_list_requests": 0,
+    "date_list_requests": 1,
     "fallback_results_recovered": 0,
-    "lookup_reason_counts": {}
+    "lookup_reason_counts": {
+      "bsd_no_exact_match_in_date": 2,
+      "bsd_primary_unavailable": 1
+    }
   },
   "coverage_diagnostics": {
-    "blocked_review": 3,
-    "ft_confirmed": 50,
-    "future": 167,
+    "blocked_review": 0,
+    "ft_confirmed": 53,
+    "future": 168,
     "grace": 23,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
@@ -31,27 +34,27 @@
     "past_unverified_eligible": 21,
     "provider_obstacles": [
       {
-        "matches": 24,
+        "matches": 21,
         "provider": "api_football",
         "reason": "api_football_identity_no_core_match"
       },
       {
-        "matches": 24,
+        "matches": 21,
         "provider": "bsd",
         "reason": "monte_no_exact_archive_match"
       },
       {
-        "matches": 24,
+        "matches": 21,
         "provider": "goal",
         "reason": "goal_identity_no_core_match"
       },
       {
-        "matches": 24,
+        "matches": 21,
         "provider": "openfoot",
         "reason": "openfoot_identity_no_core_match"
       },
       {
-        "matches": 20,
+        "matches": 17,
         "provider": "espn",
         "reason": "espn_unsupported_competition"
       },
@@ -66,7 +69,7 @@
         "reason": "tsdb_limited_this_run"
       },
       {
-        "matches": 10,
+        "matches": 7,
         "provider": "thesportsdb",
         "reason": "no_event"
       },
@@ -79,11 +82,6 @@
         "matches": 3,
         "provider": "espn",
         "reason": "espn_no_exact_match"
-      },
-      {
-        "matches": 3,
-        "provider": "sportscore",
-        "reason": "quarantined_source_not_reused"
       },
       {
         "matches": 1,
@@ -99,18 +97,19 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 211,
-      "SOURCE_ORDER_CONFLICT": 3
+      "PENDING": 212
     }
   },
-  "displayed_matches": 264,
+  "displayed_matches": 265,
   "espn_scoreboards": {
     "cached_league_days": 0,
     "confirmed_in_run": 0,
-    "reason_counts": {},
+    "reason_counts": {
+      "unsupported_competition": 3
+    },
     "requests": 0
   },
-  "final_recorded": 50,
+  "final_recorded": 53,
   "fotmob_search": {
     "cached_days": 0,
     "licensed_automation_enabled": false,
@@ -1435,7 +1434,7 @@
       "kickoff_utc": "2026-10-28T17:30:00+00:00",
       "last_checked_at": null,
       "match_key": "2026-10-28,1290,1507",
-      "observed_alerts": 1,
+      "observed_alerts": 3,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -1847,13 +1846,24 @@
       "status": "PENDING"
     },
     {
+      "away": "Arnavutkoy Genclik Spor",
+      "evidence": null,
+      "home": "Balikesirspor",
+      "kickoff_utc": "2026-10-28T12:00:00+00:00",
+      "last_checked_at": null,
+      "match_key": "2026-10-28,33305,10030821",
+      "observed_alerts": 2,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "Somaspor",
       "evidence": null,
       "home": "Fatih Karagümrük SK",
       "kickoff_utc": "2026-10-28T12:00:00+00:00",
       "last_checked_at": null,
       "match_key": "2026-10-28,25147,10017284",
-      "observed_alerts": 1,
+      "observed_alerts": 3,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -2953,14 +2963,17 @@
     },
     {
       "away": "PFC Dobrudzha Dobrich",
-      "evidence": null,
+      "away_goals": 1,
+      "evidence": "reviewed_public_only",
       "home": "FK Ludogorets Razgrad B",
+      "home_goals": 5,
       "kickoff_utc": "2026-10-27T16:00:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:07:45+00:00",
       "match_key": "2026-10-27,70933,35866",
       "observed_alerts": 1,
-      "reason": "sportscore_source_url_reverses_home_away",
-      "status": "SOURCE_ORDER_CONFLICT"
+      "reason": "independent_ft_resolved_source_order_conflict",
+      "source": "https://www.fotmob.com/matches/dobrudzha-dobrich-vs-ludogorets-razgrad-ii/2t9em1i5",
+      "status": "FINAL"
     },
     {
       "away": "ND Mura 05",
@@ -3125,14 +3138,17 @@
     },
     {
       "away": "Kigezi Homeboys FC",
-      "evidence": null,
+      "away_goals": 1,
+      "evidence": "reviewed_public_only",
       "home": "Uganda Police FC",
+      "home_goals": 3,
       "kickoff_utc": "2026-10-27T13:00:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:07:45+00:00",
       "match_key": "2026-10-27,58630,10024258",
       "observed_alerts": 1,
-      "reason": "sportscore_source_url_reverses_home_away",
-      "status": "SOURCE_ORDER_CONFLICT"
+      "reason": "independent_ft_resolved_source_order_conflict",
+      "source": "https://upl.co.ug/event/police-fc-vs-kigezi-homeboyz-fc/",
+      "status": "FINAL"
     },
     {
       "away": "Millwall FC U21",
@@ -3150,14 +3166,17 @@
     },
     {
       "away": "Albion FC Reserves",
-      "evidence": null,
+      "away_goals": 0,
+      "evidence": "reviewed_public_only",
       "home": "Montevideo City Torque Reserve",
+      "home_goals": 4,
       "kickoff_utc": "2026-10-27T13:00:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:07:45+00:00",
       "match_key": "2026-10-27,10102013,10048381",
       "observed_alerts": 1,
-      "reason": "sportscore_source_url_reverses_home_away",
-      "status": "SOURCE_ORDER_CONFLICT"
+      "reason": "independent_ft_resolved_source_order_conflict",
+      "source": "https://90sports.live/leagues/7715/reserve-league?lang=no",
+      "status": "FINAL"
     },
     {
       "away": "Ntugasaze FC",
@@ -3182,10 +3201,10 @@
     "requests": 0,
     "verified_in_run": 0
   },
-  "h1_alerts_count": 345,
+  "h1_alerts_count": 351,
   "h1_signals_count_in_state": 82,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-28T11:01:55+00:00",
+  "last_updated_at": "2026-10-28T11:07:45+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -3193,17 +3212,19 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 264,
+  "matches": 265,
   "matches_omitted_from_display": 0,
   "monte_carlos_bsd": {
-    "archive_sha256_prefix": null,
-    "archive_status": "not_loaded",
+    "archive_sha256_prefix": "2cbd8e5e106a72c5",
+    "archive_status": "read_only_loaded",
     "bsd_direct_event_requests": 0,
-    "catalog_matchday_groups": 0,
+    "catalog_matchday_groups": 7106,
     "core_name_event_id_candidates": 0,
     "exact_event_id_candidates": 0,
     "rate_limited": false,
-    "reason_counts": {},
+    "reason_counts": {
+      "no_exact_archive_match": 2
+    },
     "reviewed_bsd_ids_verified": 0,
     "verified_core_name_in_run": 0,
     "verified_in_run": 0
@@ -3225,62 +3246,62 @@
     "cases": [
       {
         "away": "Albion FC Reserves",
-        "checked_at": "2026-10-28T11:01:55+00:00",
+        "checked_at": "2026-10-28T11:07:45+00:00",
         "home": "Montevideo City Torque Reserve",
         "match_key": "2026-10-27,10102013,10048381",
         "provider_reasons": {
-          "api_football": "api_football_identity_no_core_match",
           "bsd": "monte_no_exact_archive_match",
           "espn": "espn_unsupported_competition",
-          "goal": "goal_identity_no_core_match",
-          "openfoot": "openfoot_identity_no_core_match",
+          "reviewed_public": "reviewed_two_independent_public_ft",
           "sportscore": "quarantined_source_not_reused",
           "thesportsdb": "no_event"
         },
-        "reason": "sportscore_source_url_reverses_home_away",
-        "recovered_from": [],
-        "status": "SOURCE_ORDER_CONFLICT"
+        "reason": "independent_ft_resolved_source_order_conflict",
+        "recovered_from": [
+          "reviewed_public"
+        ],
+        "status": "FINAL"
       },
       {
         "away": "Kigezi Homeboys FC",
-        "checked_at": "2026-10-28T11:01:55+00:00",
+        "checked_at": "2026-10-28T11:07:45+00:00",
         "home": "Uganda Police FC",
         "match_key": "2026-10-27,58630,10024258",
         "provider_reasons": {
-          "api_football": "api_football_identity_no_core_match",
           "bsd": "monte_no_exact_archive_match",
           "espn": "espn_unsupported_competition",
-          "goal": "goal_identity_no_core_match",
-          "openfoot": "openfoot_identity_no_core_match",
+          "reviewed_public": "reviewed_two_independent_public_ft",
           "sportscore": "quarantined_source_not_reused",
           "thesportsdb": "no_event"
         },
-        "reason": "sportscore_source_url_reverses_home_away",
-        "recovered_from": [],
-        "status": "SOURCE_ORDER_CONFLICT"
+        "reason": "independent_ft_resolved_source_order_conflict",
+        "recovered_from": [
+          "reviewed_public"
+        ],
+        "status": "FINAL"
       },
       {
         "away": "PFC Dobrudzha Dobrich",
-        "checked_at": "2026-10-28T11:01:55+00:00",
+        "checked_at": "2026-10-28T11:07:45+00:00",
         "home": "FK Ludogorets Razgrad B",
         "match_key": "2026-10-27,70933,35866",
         "provider_reasons": {
-          "api_football": "api_football_identity_no_core_match",
-          "bsd": "monte_no_exact_archive_match",
+          "bsd": "bsd_primary_unavailable",
           "espn": "espn_unsupported_competition",
-          "goal": "goal_identity_no_core_match",
-          "openfoot": "openfoot_identity_no_core_match",
+          "reviewed_public": "reviewed_two_independent_public_ft",
           "sportscore": "quarantined_source_not_reused",
           "thesportsdb": "no_event"
         },
-        "reason": "sportscore_source_url_reverses_home_away",
-        "recovered_from": [],
-        "status": "SOURCE_ORDER_CONFLICT"
+        "reason": "independent_ft_resolved_source_order_conflict",
+        "recovered_from": [
+          "reviewed_public"
+        ],
+        "status": "FINAL"
       }
     ],
     "quarantined_identified": 3,
-    "recovered_with_independent_ft": 0,
-    "remaining_quarantined": 3
+    "recovered_with_independent_ft": 3,
+    "remaining_quarantined": 0
   },
   "sportscore_search": {
     "cached_date_team_queries": 0,
@@ -3292,18 +3313,19 @@
   },
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
-    "FINAL": 50,
-    "PENDING": 211,
-    "SOURCE_ORDER_CONFLICT": 3
+    "FINAL": 53,
+    "PENDING": 212
   },
-  "thesportsdb_search": {},
+  "thesportsdb_search": {
+    "no_event": 3,
+    "requested": 3
+  },
   "timing_counts": {
-    "BLOCKED_REVIEW": 3,
     "ELIGIBLE_COOLDOWN": 21,
-    "FINAL_RECORDED": 50,
-    "FUTURE": 167,
+    "FINAL_RECORDED": 53,
+    "FUTURE": 168,
     "IN_3H_GRACE": 23
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 214
+  "unverified": 212
 }
