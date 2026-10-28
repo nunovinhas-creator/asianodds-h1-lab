@@ -68,6 +68,36 @@ REVIEWED_PENDING_FT = {
         "https://www.rte.ie/sport/soccer/2026/1027/1597020-ucd-dispatch-longford-to-book-semi-final-date-with-bray/",
         "https://www.shannonside.ie/index.php/sport/ucd-finish-off-longford-promotion-hopes-299980",
     ),
+    "2026-10-27,10068586,24722": (
+        "SPG Wels", "Wolfsberger AC",
+        "2026-10-27T17:30:00+00:00", 1, 0,
+        "https://www.oefb.at/cup",
+        "https://www.ligaportal.at/bundesliga/spielberichte/22780-erster-bundesligist-im-oefb-cup-raus-2-ligist-fc-hertha-wels-besiegt-wac",
+    ),
+    "2026-10-27,10085234,32260": (
+        "Inter Milano U23", "SS Scafatese Calcio 1922",
+        "2026-10-27T13:30:00+00:00", 2, 1,
+        "https://www.inter.it/en/news/inter-u23-scafatese-serie-c-2026-27",
+        "https://flashsportapp.com/en/football/match/inter-u23-scafatese-2026-10-27-1609066/",
+    ),
+    "2026-10-27,26873,26901": (
+        "Al Shamal SC", "Al Hilal (KSA)",
+        "2026-10-27T18:15:00+00:00", 3, 1,
+        "https://alhilal.com/en/news/al-hilal-loses-to-qatars-al-shamal-in-afc-champions-league-elite",
+        "https://www.365scores.com/football/match/afc-champions-league-elite-623/al-hilal-riyadh-al-shamal-5457-7081-623",
+    ),
+    "2026-10-27,29242,53546": (
+        "CA Peñarol", "CA Torque",
+        "2026-10-27T22:30:00+00:00", 0, 2,
+        "https://www.elpais.com.uy/ovacion/futbol/penarol-vs-city-torque-en-vivo-por-la-copa-auf-uruguay-segui-el-minuto-a-minuto-y-como-va-el-partido",
+        "https://www.besoccer.com/match/penarol-montevideo/torque/2027247946",
+    ),
+    "2026-10-27,39759,696": (
+        "ACD Virtus Entella", "Calcio Avellino SSD",
+        "2026-10-27T19:00:00+00:00", 1, 1,
+        "https://www.legab.it/seriebkt/calendario/2026-2027/stagione-regolare/v-entella",
+        "https://www.fotmob.com/en-GB/matches/avellino-vs-virtus-entella/aokhvwn",
+    ),
 }
 
 

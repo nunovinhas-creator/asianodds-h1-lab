@@ -15,6 +15,11 @@ EXPECTED = {
     "2026-10-27,31960,1154": (1, 1),
     "2026-10-27,38744,1566": (0, 2),
     "2026-10-27,327,326": (2, 0),
+    "2026-10-27,10068586,24722": (1, 0),
+    "2026-10-27,10085234,32260": (2, 1),
+    "2026-10-27,26873,26901": (3, 1),
+    "2026-10-27,29242,53546": (0, 2),
+    "2026-10-27,39759,696": (1, 1),
 }
 
 
@@ -27,7 +32,7 @@ def no_result(signal):
 
 
 class OverdueFTTests(unittest.TestCase):
-    def test_five_exact_reviewed_scores_not_including_penalties_or_aet(self):
+    def test_ten_exact_reviewed_scores_not_including_penalties_or_aet(self):
         self.assertEqual(set(REVIEWED_PENDING_FT), set(EXPECTED))
         for key, fixture in REVIEWED_PENDING_FT.items():
             with self.subTest(key=key):
@@ -46,7 +51,7 @@ class OverdueFTTests(unittest.TestCase):
                     changed[field]=value
                     self.assertIsNone(verified_public_ft(changed)[0])
 
-    def test_five_previously_pending_recovered_with_immutable_audit_urls(self):
+    def test_ten_previously_pending_recovered_with_immutable_audit_urls(self):
         previous={"schema_version":1,"matches":{}}
         alerts=[]
         for key, row in REVIEWED_PENDING_FT.items():
@@ -59,8 +64,8 @@ class OverdueFTTests(unittest.TestCase):
         original=copy.deepcopy(previous)
         ledger,report,attempted=reconcile({"alerts":alerts,"signals":[]},[],previous,
             now=NOW, bsd_lookup=no_result,tsdb_lookup=no_result,max_checks=30)
-        self.assertEqual(attempted,5)
-        self.assertEqual(report["final_recorded"],5)
+        self.assertEqual(attempted,10)
+        self.assertEqual(report["final_recorded"],10)
         self.assertEqual(previous, original)
         for key, row in REVIEWED_PENDING_FT.items():
             resolved=ledger["matches"][key]
