@@ -9,6 +9,8 @@ on:
       - 'h1lab/lab_results.py'
       - 'scripts/lab_results.py'
       - 'tests/test_lab_results.py'
+      - 'h1lab/lab_bsd_search.py'
+      - 'tests/test_lab_bsd_search.py'
       - '.github/workflows/lab-ft-results.yml'
 
 permissions:
@@ -36,10 +38,13 @@ jobs:
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_bsd_search.py' -v
       - name: Reconcile all observed fixture identities (bounded, no betting)
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
           LAB_RESULTS_MAX_CHECKS: ${{ vars.LAB_RESULTS_MAX_CHECKS || '20' }}
+          LAB_BSD_DATE_MAX_DAYS: ${{ vars.LAB_BSD_DATE_MAX_DAYS || '3' }}
+          LAB_BSD_DATE_MAX_PAGES: ${{ vars.LAB_BSD_DATE_MAX_PAGES || '3' }}
         run: python -m scripts.lab_results
       - name: Validate published snapshot
         run: |
@@ -54,6 +59,8 @@ jobs:
           assert all(x['match_key'] in ledger['matches'] for x in d['games'])
           assert all(x.get('home_goals') is None for x in d['games'] if x['status']!='FINAL')
           assert d['matches_omitted_from_display']+d['displayed_matches']==d['matches']
+          assert d['bsd_date_search']['date_days_examined'] <= 4
+          assert d['bsd_date_search']['date_list_requests'] <= 16
           assert Path('docs/lab/ft-results.json').stat().st_size < 400000
           print('LAB_FT_SUMMARY_VALID', d['matches'], d['final_recorded'], d['status_counts'])
           PY
