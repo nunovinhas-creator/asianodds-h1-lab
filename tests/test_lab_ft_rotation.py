@@ -40,6 +40,18 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(x["goal"],[])
         self.assertEqual(x["api_football"],[])
 
+    def test_global_free_tier_budget_stops_at_quota(self):
+        matches={"day":{"kickoff_utc":"2026-10-27T10:00:00+00:00"}}
+        journal={"schema_version":1,"providers":{},"usage":{
+            "api_football":{"2026-10-28":90},
+            "openfoot":{"2026-10-01":4499}}}
+        result=choose_days(["day"],matches,journal,NOW,{"api_football","openfoot"})
+        self.assertEqual(result["api_football"],[])
+        self.assertEqual(result["openfoot"],["2026-10-27"])
+        updated=advance(journal,result,{"openfoot":["2026-10-27"]},NOW)
+        self.assertEqual(updated["usage"]["openfoot"]["2026-10-28"],1)
+        self.assertEqual(choose_days(["day"],matches,updated,NOW,{"openfoot"})["openfoot"],[])
+
     def test_invalid_old_journal_fails_closed(self):
         with self.assertRaises(ValueError):
             choose_days([],{},{"schema_version":9},NOW,{"goal"})
