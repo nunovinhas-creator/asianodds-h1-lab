@@ -1,12 +1,12 @@
 # MASTER BRAIN — AsianOdds H1 + Observatório V4 + Cérebro V5
 
-**MASTER BRAIN** é o novo nome e a interface principal da ferramenta (anteriormente MASTER BRAIN). O **cérebro V5**, as hipóteses de investigação e o observatório de jogos futuros são agora os painéis principais. **Under H1 e triplas passam para arquivo secundário** em [h1.html](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1), mantendo os motores e os resultados originais.
+**MASTER BRAIN** é o novo nome e a interface principal da ferramenta (anteriormente UNDER TESTE). O **cérebro V5**, as hipóteses de investigação e o observatório de jogos futuros são agora os painéis principais. **Under H1 e triplas passam para arquivo secundário** em [h1.html](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1), mantendo os motores e os resultados originais.
 
 Observatório experimental de odds asiáticas: recolhe alertas estruturados de um canal Telegram autorizado, regista movimentos de mercado, forma sinais e triplas H1 simuladas e investiga combinações de padrões com resultados finais. **Não executa apostas reais, não garante rentabilidade e não ativa automaticamente estratégias descobertas pelo LAB.**
 
 **Acesso rápido:** [MASTER BRAIN · Radar](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Jogos futuros](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#futuros) · [Padrões](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#padroes) · [Validação](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#validacao) · [Under H1 secundário](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1).
 
-**Referências técnicas:** [Centro de controlo](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Sinais H1](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#h1) · [Cérebro V5 / investigação](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) · [Resultados de todos os jogos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-results.html) · [Auditoria V4](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-v4-audit.html).
+**Referências técnicas:** [Centro de controlo](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Sinais H1](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1) · [Cérebro V5 / investigação](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) · [Resultados de todos os jogos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-results.html) · [Auditoria V4](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-v4-audit.html).
 
 ## O cérebro que cruza odds, mercados e resultados (V5)
 
