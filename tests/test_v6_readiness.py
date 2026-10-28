@@ -26,7 +26,7 @@ class ReadinessTests(unittest.TestCase):
         self.assertIsNone(r["first_prospective_known_at"])
 
     def test_wait_seven_days_even_with_perfect_coverage(self):
-        r = measure([timeline("one")], [record("one")], datetime(2026, 11, 1, tzinfo=timezone.utc))
+        r = measure([timeline("one")], [record("one")], datetime(2026, 11, 2, tzinfo=timezone.utc))
         self.assertEqual(r["p0_7_day_gate"], "WARMUP")
         self.assertEqual(r["last_7_kickoff_days"]["ratio"], 1.0)
 
