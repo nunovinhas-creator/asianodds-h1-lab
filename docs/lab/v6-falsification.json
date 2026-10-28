@@ -8,14 +8,18 @@
       "diagnostics": {
         "legacy_without_context_excluded": 1,
         "strict_ratio": 1.0,
-        "with_independent_episodes": 1
+        "with_independent_episodes": 5
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 1,
+      "n": 5,
       "required": "10 selected freezes with captured context; strict >= 80%",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
-        "2026-10-28,1325,630"
+        "2026-10-28,10018602,48030",
+        "2026-10-28,1325,630",
+        "2026-10-28,23038,31261",
+        "2026-10-28,29694,23665",
+        "2026-10-28,42312,231"
       ]
     },
     {
@@ -51,14 +55,17 @@
     {
       "code": "F03_1X2_AH_CONSISTENCY",
       "diagnostics": {
-        "agreement_fraction": null,
+        "agreement_fraction": 1.0,
         "warning": "Agreement of AH and 1X2 is not independent evidence of Over"
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 0,
+      "n": 2,
       "required": "10 comparable simultaneous AH/1X2 direction events",
       "result": "INSUFFICIENT_N",
-      "source_match_keys": []
+      "source_match_keys": [
+        "2026-10-28,10018602,48030",
+        "2026-10-28,29694,23665"
+      ]
     },
     {
       "code": "F04_LEAD_TIME_STRATA",
@@ -146,7 +153,7 @@
         "coverage_gate": "WARMUP",
         "coverage_is_source_observable_not_delivery_certification": true,
         "invalid_freezes": 0,
-        "prospective_pattern_without_ft": 2,
+        "prospective_pattern_without_ft": 6,
         "registered_at": "2026-10-28T14:41:35+00:00",
         "scored_fraction_of_observed_selected": 0.0,
         "selected_with_clean_ft": 0
@@ -161,17 +168,17 @@
   "data_lineage": {
     "confirmed_evidence_events": 0,
     "excluded_reasons": {
-      "captured_before_formal_registration": 14,
-      "ft_missing_or_quarantined": 17,
-      "no_clean_market_probability": 2,
-      "not_completed_prospective_freeze": 163
+      "captured_before_formal_registration": 18,
+      "ft_missing_or_quarantined": 23,
+      "no_clean_market_probability": 3,
+      "not_completed_prospective_freeze": 153
     },
-    "forecast_journal_tail": "6a3694577cb8b2a3dab32ee37b944549e482c3c25ee053c122b86d34f8e11526",
-    "frozen_records": 215,
+    "forecast_journal_tail": "4f45b8ff1e684df2a243ea4a7baf2bd6e172facf452ef05fec2691eb3fda8cfb",
+    "frozen_records": 216,
     "memory_evidence_tail": null,
     "source": "frozen forecasts + append-only V6 FT evidence; no historical V5 backfill"
   },
-  "evaluation_clock": "2026-10-28T17:26:29+00:00",
+  "evaluation_clock": "2026-10-28T17:31:25+00:00",
   "hypothesis_definition_sha256": "3a2ad8c8a23443e1eb20e83bb5d753279ba93762c2efcb2947a1b5dd3e8900a0",
   "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
   "limitations": [
@@ -186,9 +193,9 @@
   "registered_at": "2026-10-28T14:41:35+00:00",
   "sample": {
     "controls_scored": 0,
-    "eligible_completed": 17,
+    "eligible_completed": 23,
     "eligible_scored": 0,
-    "selected_completed": 2,
+    "selected_completed": 6,
     "selected_scored": 0
   },
   "schema_version": 1,
