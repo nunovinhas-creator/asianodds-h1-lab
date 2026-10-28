@@ -112,6 +112,47 @@ REVIEWED_PENDING_FT = {
         "https://www.legab.it/seriebkt/calendario/2026-2027/stagione-regolare/v-entella",
         "https://www.fotmob.com/en-GB/matches/avellino-vs-virtus-entella/aokhvwn",
     ),
+    # Documentary 28/10 batch: match_key + ORIGINAL AsianOdds home/away/KO.
+    # Source order is the original game, not the provider's display order.
+    # Strict 90-minute score, independently cross-checked, never AET/penalties.
+    # CAUTION: Karsspor and Kars 36 Spor are distinct clubs; that candidate
+    # is NOT included despite an apparent provider identity match.
+    "2026-10-28,30921,29839": (
+        "Alianza FC (SLV)", "CD Marathón",
+        "2026-10-28T02:00:00+00:00", 0, 0,
+        "https://www.concacaf.com/competitions/central-american-cup/news/marathon-clinch-2027-champions-cup-spot",
+        "https://futbolcentroamerica.com/noticias/alianza-quedo-eliminado-de-la-copa-centroamericana-y-no-clasifico-a-la-concachampions-2027-aYyN65b5szZs",
+    ),
+    "2026-10-28,50151,10045457": (
+        "Silivrispor", "Beyoglu Yeni Carsiz",
+        "2026-10-28T10:30:00+00:00", 3, 2,
+        "https://www.tff.org/default.aspx?ftxtID=2966&pageID=600",
+        "https://www.kamu1.net/mac/silivrispor-beyoglu-yeni-carsi-fk-28-ekim-2026",
+    ),
+    "2026-10-28,31269,31927": (
+        "Menemen Belediyespor", "Karacabey Belediyespor",
+        "2026-10-28T10:30:00+00:00", 0, 1,
+        "https://www.tff.org/default.aspx?ftxtID=2966&pageID=600",
+        "https://www.canligaste.com/sonuc-menemen-fk-karacabey-birlikspor-90-dakika-tamamlandi-0-1/937732/",
+    ),
+    "2026-10-28,40595,28192": (
+        "FK Teleoptik Zemun", "FK Mladost Lučani",
+        "2026-10-28T12:00:00+00:00", 1, 1,
+        "https://www.tanjug.rs/sport/fudbal/293293/fudbaleri-teleoptika-posle-penala-izbacili-lucansku-mladost-iz-kupa-srbije/vest",
+        "https://hotsport.rs/2026/10/28/teleoptik-mladost-kup-srbije-penali/",
+    ),
+    "2026-10-28,10055256,84215": (
+        "Adana 1954 FK", "Kutahyaspor",
+        "2026-10-28T12:00:00+00:00", 1, 1,
+        "https://www.tff.org/default.aspx?ftxtID=2966&pageID=600",
+        "https://www.kutahyaninsesi.com/haber/29065209/kutahyaspor-uzatmalara-gitti-kritik-dakikalar-basladi",
+    ),
+    "2026-10-28,33305,10030821": (
+        "Balikesirspor", "Arnavutkoy Genclik Spor",
+        "2026-10-28T12:00:00+00:00", 1, 0,
+        "https://www.tff.org/default.aspx?ftxtID=2966&pageID=600",
+        "https://www.canligaste.com/sonuc-balikesirspor-arnavutkoy-belediyespor-90-dakika-tamamlandi-1-0/937834/",
+    ),
 }
 
 
