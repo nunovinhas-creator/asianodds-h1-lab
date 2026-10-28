@@ -12,6 +12,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlencode,urlparse
 from urllib.request import Request,urlopen
 from .results import norm_team
+from .lab_reviewed_aliases import reviewed_provider_pair
 
 ROOT="https://sportscore.com"
 API=ROOT+"/api/v1/"
@@ -19,7 +20,7 @@ MAX_REQUESTS=35
 MAX_TEAM_SEARCHES=12
 NO_ET=re.compile(r"extra.?time|aet|after.extra|penalt|shoot.?out|spot.kick|\bET\b",re.I)
 FULL=re.compile(r"\bft\b|full.?time|finish|\bfinal\b",re.I)
-CUP=re.compile(r"\bcup\b|ta[cç]a|pokal|copa|trophy|knockout",re.I)
+CUP=re.compile(r"\bcup\b|\bcupa\b|coppa|coupe|ta[cç]a|pokal|copa|trophy|knockout",re.I)
 
 
 def _dt(value):
@@ -43,12 +44,27 @@ def _source_url(raw):
     return raw if parsed.scheme=="https" and parsed.netloc=="sportscore.com" else None
 
 
+def teams_match(signal, match):
+    """Only exact names or a specific reviewed game; never generic fuzzy matching."""
+    if not isinstance(match, dict):
+        return False
+    home, away = norm_team(_str(match.get("home"))), norm_team(_str(match.get("away")))
+    if home == norm_team(signal.get("home")) and away == norm_team(signal.get("away")):
+        return True
+    pair = reviewed_provider_pair(signal)
+    return pair is not None and home == norm_team(pair[0]) and away == norm_team(pair[1])
+
+
+def is_reviewed_alias(signal, match):
+    return teams_match(signal, match) and (
+        norm_team(_str(match.get("home"))) != norm_team(signal.get("home")) or
+        norm_team(_str(match.get("away"))) != norm_team(signal.get("away")))
+
+
 def verified(signal,match,competition=""):
     if not isinstance(match,dict):return None,"invalid_match"
-    if norm_team(_str(match.get("home")))!=norm_team(signal.get("home")):
-        return None,"home_mismatch"
-    if norm_team(_str(match.get("away")))!=norm_team(signal.get("away")):
-        return None,"away_mismatch"
+    if not teams_match(signal,match):
+        return None,"team_identity_mismatch"
     kickoff,when=_dt(signal.get("kickoff_utc")),_dt(match.get("time"))
     if not kickoff or not when or abs((kickoff-when).total_seconds())>5400:
         return None,"kickoff_mismatch"
@@ -71,7 +87,9 @@ def verified(signal,match,competition=""):
     if not source:
         return None,"missing_source_url"
     return {"match_key":signal["match_key"],"status":"final",
-            "home_goals":int(h),"away_goals":int(a),"source":source},"verified_sportscore_ft"
+            "home_goals":int(h),"away_goals":int(a),"source":source},(
+                "verified_sportscore_ft_reviewed_alias" if is_reviewed_alias(signal,match)
+                else "verified_sportscore_ft")
 
 
 def fetch(endpoint,params):
@@ -181,12 +199,14 @@ class SportScoreResults:
             timestamp=_dt(x.get("time"))
             if timestamp is None or abs((when-timestamp).total_seconds())>5400:
                 continue
-            if norm_team(_str(x.get("home")))==norm_team(signal["home"]) and norm_team(_str(x.get("away")))==norm_team(signal["away"]):
+            if teams_match(signal,x):
                 out.append(x)
         return out
 
     def summary(self):
         return {"requests":self.requests,"targeted_searches":self.targeted,
                 "cached_date_team_queries":len(self.day_cache),
-                "confirmed_in_run":self.reasons["verified_sportscore_ft"],
+                "confirmed_in_run":(self.reasons["verified_sportscore_ft"]+
+                                    self.reasons["verified_sportscore_ft_reviewed_alias"]),
+                "reviewed_alias_ft_in_run":self.reasons["verified_sportscore_ft_reviewed_alias"],
                 "reason_counts":dict(sorted(self.reasons.items()))}
