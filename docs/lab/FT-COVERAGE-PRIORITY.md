@@ -1,3 +1,5 @@
+> **Plano V3 histórico, não o backlog de hoje (28/10/2026).** Os números 147 jogos / 7 FT referem-se à fotografia de 07:30 UTC anterior à recuperação por várias fontes. Depois das PRs #49–#52, [ft-results.json](ft-results.json) registava **267 jogos, 63 FT** às 11:15 UTC, sem conflitos `SOURCE_ORDER_CONFLICT` no relatório; muitos jogos sem FT são futuros ou ainda na janela de espera. A PR #53 integrou também a [ponte de FT verificados para H1](../../h1lab/lab_promotion.py). Ver [arquitetura atual](ARCHITECTURE.md). O histórico e a justificação das limitações nesta página mantêm-se, mas não são instruções para repetir recuperações antigas.
+
 # PRIORIDADE MÁXIMA — Cobertura FT, LAB v3
 
 **Sem modificações ao motor H1.** A investigação de odds aguarda resultados observados. Este plano mede resultados por jogo, não aposta, EV ou ROI.
