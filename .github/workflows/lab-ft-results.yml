@@ -44,6 +44,9 @@ on:
       - 'h1lab/lab_stats.py'
       - 'scripts/lab_pattern_research.py'
       - 'tests/test_pattern_engine.py'
+      - 'h1lab/discovery_timeline.py'
+      - 'scripts/lab_discoveries.py'
+      - 'tests/test_discovery_timeline.py'
       - 'h1lab/pattern_watch.py'
       - 'scripts/lab_pattern_watch.py'
       - 'tests/test_pattern_watch.py'
@@ -191,6 +194,25 @@ jobs:
           assert Path('docs/lab/pattern-watch.json').stat().st_size<180000
           print('V5_WATCH_VALID',d['summary'])
           PY
+      - name: Update MASTER BRAIN discovery chronology (no API / no betting)
+        id: discovery
+        if: steps.research.outcome == 'success' && steps.prospective.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_discovery_timeline.py' -v
+          python -m scripts.lab_discoveries
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('docs/lab/discoveries.json').read_text(encoding='utf-8'))
+          s=json.loads(Path('data/lab/discovery-state.json').read_text(encoding='utf-8'))
+          assert d['status']=='DISCOVERY_OBSERVATION_NOT_BETTING'
+          assert len(d['patterns'])==len(s['patterns'])
+          assert d['prospective']['settled_total']==len(s['prospective_settled'])
+          assert len(d['timeline']) <= 90
+          assert all(x['at_utc'] >= d['baseline_at'] for x in d['timeline'])
+          print('MASTER_BRAIN_DISCOVERY_VALID', len(d['timeline']), d['prospective']['settled_total'])
+          PY
       - name: Commit only LAB FT artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -201,6 +223,9 @@ jobs:
           if [ -f data/lab/pattern-registry.json ]; then git add data/lab/pattern-registry.json; fi
           if [ -f docs/lab/pattern-watch.json ]; then git add docs/lab/pattern-watch.json; fi
           if [ -f data/lab/pattern-watch-first-seen.json ]; then git add data/lab/pattern-watch-first-seen.json; fi
+          if [ -f data/lab/discovery-state.json ]; then git add data/lab/discovery-state.json; fi
+          if [ -f docs/lab/discoveries.json ]; then git add docs/lab/discoveries.json; fi
+          git add -f data/lab/discovery-events-*.jsonl 2>/dev/null || true
           if git diff --cached --quiet; then
             echo LAB_FT_NO_CHANGE
             exit 0
