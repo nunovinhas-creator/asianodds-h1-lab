@@ -153,6 +153,7 @@ def main():
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup,
         fotmob_lookup=fotmob.lookup if fotmob_enabled else None,
         api_football_lookup=api_football.lookup if api_football_poll else None,
+        lookup_source_version=10 if api_football_poll else None,
         max_checks=checks)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
