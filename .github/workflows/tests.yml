@@ -21,6 +21,25 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
+      - name: V6.2 P2#13 real observations, frozen catalogue, replay and integrity
+        run: |
+          python -m scripts.lab_v6_hypothesis_pruning
+          python -m scripts.lab_v6_hypothesis_pruning --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/lab/v6-pruning.json')
+          r=json.loads(p.read_text(encoding='utf-8'))
+          assert r['status']=='V6_EXPLORATORY_PODA_NOT_VALIDATED'
+          assert r['scientific_state']=='INCONCLUSIVO'
+          assert r['scope']['original_catalog']==800
+          assert r['scope']['mapped_originals']==800
+          assert r['scope']['representatives']<=300
+          assert r['source']['ft_outcomes_used'] is False
+          assert r['effective_tests']['not_a_multiple_testing_alpha_adjustment']
+          print('V6_P2_13_REAL_REPLAY_OK',r['scope']['observed_matches_frozen'],
+                r['scope']['representatives'],r['effective_tests']['estimate'])
+          PY
       - name: V6 all-hypothesis market residual smoke (no API / no push)
         run: |
           python -m scripts.lab_v6_residual
