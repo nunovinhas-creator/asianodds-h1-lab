@@ -17,33 +17,33 @@
     "date_list_requests": 1,
     "fallback_results_recovered": 0,
     "lookup_reason_counts": {
-      "bsd_no_exact_match_in_date": 7
+      "bsd_no_exact_match_in_date": 2
     }
   },
   "coverage_diagnostics": {
     "blocked_review": 0,
-    "ft_confirmed": 76,
-    "future": 153,
+    "ft_confirmed": 78,
+    "future": 154,
     "grace": 45,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
       "No unresolved game is treated as an incorrect pick or a settled bet."
     ],
-    "past_unverified_eligible": 71,
+    "past_unverified_eligible": 69,
     "provider_obstacles": [
       {
-        "matches": 71,
+        "matches": 69,
         "provider": "bsd",
         "reason": "monte_no_exact_archive_match"
       },
       {
-        "matches": 71,
+        "matches": 69,
         "provider": "espn",
         "reason": "espn_unsupported_competition"
       },
       {
-        "matches": 62,
+        "matches": 60,
         "provider": "sportscore",
         "reason": "sportscore_no_exact_match"
       },
@@ -53,22 +53,22 @@
         "reason": "no_event"
       },
       {
-        "matches": 29,
+        "matches": 27,
         "provider": "api_football",
         "reason": "api_football_identity_no_core_match"
       },
       {
-        "matches": 29,
+        "matches": 27,
         "provider": "openfoot",
         "reason": "openfoot_identity_no_core_match"
       },
       {
-        "matches": 28,
+        "matches": 26,
         "provider": "goal",
         "reason": "goal_identity_no_core_match"
       },
       {
-        "matches": 25,
+        "matches": 23,
         "provider": "thesportsdb",
         "reason": "tsdb_limited_this_run"
       },
@@ -101,19 +101,19 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 269
+      "PENDING": 268
     }
   },
-  "displayed_matches": 345,
+  "displayed_matches": 346,
   "espn_scoreboards": {
     "cached_league_days": 0,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "unsupported_competition": 7
+      "unsupported_competition": 2
     },
     "requests": 0
   },
-  "final_recorded": 76,
+  "final_recorded": 78,
   "fotmob_search": {
     "cached_days": 0,
     "licensed_automation_enabled": false,
@@ -899,6 +899,17 @@
       "kickoff_utc": "2026-10-31T14:00:00+00:00",
       "last_checked_at": null,
       "match_key": "2026-10-31,10076338,76254",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "GIF Sundsvall",
+      "evidence": null,
+      "home": "United IK Nordic",
+      "kickoff_utc": "2026-10-31T14:00:00+00:00",
+      "last_checked_at": null,
+      "match_key": "2026-10-31,10041612,526",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -3435,14 +3446,17 @@
     },
     {
       "away": "Rushden and Diamonds",
-      "evidence": null,
+      "away_goals": 0,
+      "evidence": "reviewed_public_only",
       "home": "Loughborough University",
+      "home_goals": 1,
       "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": "2026-10-28T17:33:10+00:00",
+      "last_checked_at": "2026-10-28T17:44:06+00:00",
       "match_key": "2026-10-27,10030127,75",
       "observed_alerts": 1,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://lborostudentsfc.co.uk/",
+      "status": "FINAL"
     },
     {
       "away": "AS Gubbio 1910",
@@ -3650,14 +3664,17 @@
     },
     {
       "away": "La Luz Reserves",
-      "evidence": null,
+      "away_goals": 2,
+      "evidence": "reviewed_public_only",
       "home": "Cerro Largo FC Reserves",
+      "home_goals": 3,
       "kickoff_utc": "2026-10-27T18:00:00+00:00",
-      "last_checked_at": "2026-10-28T17:33:10+00:00",
+      "last_checked_at": "2026-10-28T17:44:06+00:00",
       "match_key": "2026-10-27,59193,10052416",
       "observed_alerts": 2,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://betimate.com/en/football-predictions/cerro-largo-reserves-vs-la-luz-reserves/2026-10-27/game",
+      "status": "FINAL"
     },
     {
       "away": "CA Sarmiento Reserves",
@@ -4154,10 +4171,10 @@
     "requests": 0,
     "verified_in_run": 0
   },
-  "h1_alerts_count": 490,
+  "h1_alerts_count": 491,
   "h1_signals_count_in_state": 104,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-28T17:38:02+00:00",
+  "last_updated_at": "2026-10-28T17:44:06+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -4165,7 +4182,7 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 345,
+  "matches": 346,
   "matches_omitted_from_display": 0,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": "dcd9b4bc1a18154f",
@@ -4176,7 +4193,7 @@
     "exact_event_id_candidates": 0,
     "rate_limited": false,
     "reason_counts": {
-      "no_exact_archive_match": 7
+      "no_exact_archive_match": 2
     },
     "reviewed_bsd_ids_verified": 0,
     "verified_core_name_in_run": 0,
@@ -4202,32 +4219,32 @@
     "remaining_quarantined": 0
   },
   "sportscore_search": {
-    "cached_date_team_queries": 5,
+    "cached_date_team_queries": 2,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "sportscore_no_exact_match": 7
+      "sportscore_no_exact_match": 2
     },
-    "requests": 12,
+    "requests": 4,
     "reviewed_alias_ft_in_run": 0,
-    "targeted_searches": 7
+    "targeted_searches": 2
   },
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
-    "FINAL": 76,
-    "PENDING": 269
+    "FINAL": 78,
+    "PENDING": 268
   },
   "thesportsdb_search": {
-    "no_event": 7,
-    "requested": 7
+    "no_event": 2,
+    "requested": 2
   },
   "timing_counts": {
-    "ELIGIBLE_COOLDOWN": 71,
-    "FINAL_RECORDED": 76,
-    "FUTURE": 153,
+    "ELIGIBLE_COOLDOWN": 69,
+    "FINAL_RECORDED": 78,
+    "FUTURE": 154,
     "IN_3H_GRACE": 45
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 269,
+  "unverified": 268,
   "v6_ft_priority": {
     "budget": 30,
     "hinted_eligible": 0,
