@@ -1,6 +1,42 @@
-# AsianOdds H1 Lab
+# UNDER TESTE — AsianOdds H1 + Observatório V4 + Cérebro V5
 
-Observatório experimental de odds asiáticas: **recolha de um canal Telegram ao qual a tua conta já tem acesso**, normalização de alertas, identificação de H1, triplas FIFO pré-registadas e ROI simulado. Não executa apostas reais.
+Observatório experimental de odds asiáticas: recolhe alertas estruturados de um canal Telegram autorizado, regista movimentos de mercado, forma sinais e triplas H1 simuladas e investiga combinações de padrões com resultados finais. **Não executa apostas reais, não garante rentabilidade e não ativa automaticamente estratégias descobertas pelo LAB.**
+
+**Acesso rápido:** [Centro de controlo](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Sinais H1](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#h1) · [Cérebro V5 / investigação](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) · [Resultados de todos os jogos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-results.html) · [Auditoria V4](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-v4-audit.html).
+
+## O cérebro que cruza odds, mercados e resultados (V5)
+
+**O cérebro já existe e está operacional em modo LAB exploratório**: [guia acessível do cérebro V5](docs/lab/CEREBRO-ODDS.md), [especificação e validação](docs/lab/PATTERN-ENGINE.md), [código principal](h1lab/pattern_engine.py), [investigação visual](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) e [relatório estruturado](docs/lab/pattern-research.json).
+
+| Motor | O que faz | Cria apostas? |
+| --- | --- | --- |
+| **H1 — produção** | Primeiro H1 de cada jogo: linha Total sobe pelo menos 0,25 **e** odd Over sobe; seleção Under e triplas cronológicas FIFO, com ROI simulado quando há FT. | Regista **apostas simuladas já definidas pela regra fixa**, não apostas reais. |
+| **V4 — observação** | Extrai e audita alertas Total, **1X2 e handicap asiático (AH)**, horários, snapshots e sequências. | Não. Parser e Golden Set não certificados. |
+| **V5 — cérebro** | Cruza padrões dos três mercados, preços, tempo até ao jogo, repetições e direções opostas; cria hipóteses A, A e B, A sem B, A antes de B e trios; confronta-as com resultados verificados. | **Não.** Procura associações estatísticas em Over 2,5 e BTTS, com controlo de falsos positivos e validação fora da amostra. |
+
+O V5 combina **49 padrões pré-definidos**, normaliza Total asiático entre diferentes linhas para uma referência de golos implícitos, compara jogos com e sem cada combinação, cruza os resultados FT e procura jogos semelhantes sem utilizar o desfecho futuro. Não confunde três mensagens do mesmo jogo com três observações independentes. As hipóteses ficam `EXPLORATORIO` até cumprirem os critérios; `VALIDADO` nunca significa automaticamente que existe lucro real.
+
+**Importante:** as **triplas H1** são agrupamentos FIFO de três sinais Under anteriores ao início; **não foram construídas nem otimizadas pelo V5**. O único fluxo do LAB para a liquidação H1 é a **importação de resultados FT verificados** para apostas que já existiam; não importa novos prognósticos.
+
+### Como os módulos se ligam
+
+~~~text
+Telegram → collect.yml
+          ├─ H1: core.py → data/state.json → sinais Under / triplas FIFO
+          │     └─ results.yml (:41 UTC): BSD + TheSportsDB
+          │            + lab_promotion.py (FT FINAL LAB verificado)
+          │            → data/results.csv → docs/data.json → ROI H1
+          └─ V4 sombra: market_v4.py + shadow_formats.py
+                → mercados/odds + cronologia + auditoria V4/Golden
+                → lab-ft-results.yml (:12 e :42 UTC)
+                     ├─ FT de TODOS os jogos observados → ft-ledger.json
+                     └─ V5: pattern_features + pattern_engine + similarity
+                          → pattern-research.json + pattern-registry.json
+~~~
+
+**Fotografia consultada (não tempo real):** em 28/10/2026, 11:46 UTC, o H1 apresentava 84 sinais, 18 liquidados, 27 triplas e uma liquidada (ROI H1 simulado −17,17%). O LAB FT tinha 63 resultados em 267 jogos observados (ficheiro das 11:15 UTC). O cérebro tinha 60 FT elegíveis, 800 hipóteses **EXPLORATORIO**, **zero candidatas congeladas e zero hipóteses validadas** (relatório das 11:16 UTC). Os pipelines publicam em momentos diferentes: estas contagens não são diretamente sincronizadas. Para ver o estado atual consultar os JSON e o dashboard, não esta fotografia.
+
+**Documentação canónica:** [Arquitetura completa](docs/lab/ARCHITECTURE.md) · [Índice de documentação](docs/README.md) · [Cérebro V5 explicado](docs/lab/CEREBRO-ODDS.md).
 
 ## Estado atual
 
@@ -12,8 +48,8 @@ Observatório experimental de odds asiáticas: **recolha de um canal Telegram ao
 - ✅ Dashboard estático em `docs/index.html`, com ROI das singles e das triplas, calculado apenas sobre bilhetes já liquidados.
 - ✅ Envio das triplas para as **Mensagens Guardadas** da tua própria conta Telegram com `python -m h1lab.notify`.
 - ✅ Recolha real com Telethon de cinco em cinco minutos, disparada pelo Cloudflare Workers Cron (ver secção seguinte). O GitHub pode atrasar/omitir os seus próprios ticks.
-- ⚠️ Envio de triplas configurado para *Mensagens Guardadas* via Telegram; ainda sem primeira entrega real comprovada. Mensagens Guardadas não garantem notificação push.
-- ✅ Reconciliação automática horária de resultados com a **BSD Football v2**, caso `BSD_API_KEY` esteja configurado, em conjunto com a API V1 gratuita TheSportsDB. Confere ambas as fontes e bloqueia discrepâncias de marcador; sem chave BSD funciona apenas a TheSportsDB. Cobertura parcial: jogos sem identificação inequívoca permanecem pendentes, com motivo em `data/result_audit.json`.
+- ℹ️ As triplas são dirigidas às *Mensagens Guardadas* (configuração existente). Verificar os recibos e os logs de cada execução; Mensagens Guardadas não garantem notificação push.
+- ✅ Reconciliação horária H1 por BSD Football v2 e TheSportsDB, seguida de **importação estrita de FT FINAL do LAB** via `h1lab/lab_promotion.py`. A publicação preserva os resultados H1 existentes e atualiza o ROI. O LAB procura FT para **todos os jogos observados**, usando vários fornecedores com limites de pedidos; sem correspondência segura, os jogos continuam pendentes.
 
 ## Agendamento de 5 minutos — estado verificado (27/10/2026)
 
@@ -30,7 +66,7 @@ O laboratório **não altera o H1** e não cria apostas. Mapa de componentes, re
 
 `canal AsianOdds → Telethon (conta subscritora) → alertas numéricos → primeiro H1 por jogo → fila cronológica de 3 jogos futuros → Saved Messages`
 
-Em paralelo, `h1lab/results.py` tenta verificar resultados oficiais de FT na TheSportsDB, guarda os confirmados em `data/results.csv` e o estado dos pendentes em `data/result_audit.json`. O CSV alimenta o dashboard com retorno bruto por aposta de 1 unidade. Múltiplas são o produto dos retornos dos três Under asiáticos, incluindo meias liquidações. A odd combinada é **teórica**: as três cotações podem não estar simultaneamente disponíveis para uma aposta real.
+Em paralelo, `h1lab/results.py` verifica resultados FT na BSD e TheSportsDB, e `h1lab/lab_promotion.py` acrescenta FT finais compatíveis confirmados pelo LAB; ambos alimentam `data/results.csv` e a proveniência em `data/result_audit.json`. O CSV alimenta o dashboard com retorno bruto por aposta de 1 unidade. Múltiplas são o produto dos retornos dos três Under asiáticos, incluindo meias liquidações. A odd combinada é **teórica**: as três cotações podem não estar simultaneamente disponíveis para uma aposta real.
 
 ## Ativação — única configuração sensível
 
@@ -45,9 +81,13 @@ Em paralelo, `h1lab/results.py` tenta verificar resultados oficiais de FT na The
 ## Dados
 
 - `data/state.json`: histórico estruturado de alertas, sinais e triplas, com checkpoint de ID Telegram e recibos de notificações.
-- `data/results.csv`: resultados finais fornecidos pela TheSportsDB ou introduzidos manualmente, com URL da fonte (não estimados).
+- `data/results.csv`: resultados finais confirmados pela BSD, TheSportsDB, pela ponte de FT FINAL do LAB ou por intervenção manual documentada, com URL de origem (nunca estimados).
 - `data/result_audit.json`: última pesquisa automática por jogo, estado e motivo da não liquidação; sem credenciais.
-- `h1lab/results.py`: reconciliação de FT por nome exato e data/hora, com consulta gratuita e sem chave pessoal.
+- `h1lab/results.py`: reconciliação H1 de FT via BSD / TheSportsDB, com identidade, data/hora, proveniência e regras de período regulamentar.
+- `h1lab/lab_promotion.py`: ponte **só de resultados** LAB → H1, sem alterar picks, triplas, resultados previamente liquidados ou regras do motor.
+- `data/lab/ft-ledger.json`: todos os jogos observados no LAB (incluindo sem H1), com estados de verificação e evidências.
+- `h1lab/pattern_engine.py`: **cérebro V5**; cruza 49 padrões, combinações e FT, com avaliação estatística e fora da amostra; não produz apostas.
+- `docs/lab/pattern-research.json`: relatório público da investigação V5; `data/lab/pattern-registry.json` conserva hipóteses congeladas.
 - `docs/data.json`: visão pública de sinais, triplas e ROI.
 - `h1lab/core.py`: regras e liquidação, completamente testáveis sem Telegram.
 - `h1lab/cli.py`: leitor Telegram e atualização do dashboard.
@@ -65,7 +105,7 @@ A BSD usa `Authorization: Token …` e `GET /api/v2/events/` (filtro por nome da
 
 ### Resultados finais
 
-A reconciliação é automática e gratuita quando a TheSportsDB devolve um jogo identificável. O algoritmo só aceita `strStatus=FT`, equipas correspondentes (ignorando apenas abreviaturas de clube não ambíguas), início temporal compatível, golos inteiros e ausência de marcadores de prolongamento/penáltis. Jogos sem garantia de resultado nos 90 minutos, sem correspondência ou cuja API esteja indisponível **continuam pendentes**. Em taças, a fonte pode ser ambígua sobre prolongamento; nesse caso confirmar manualmente o resultado regulamentar antes de liquidar. Um FT reportado pela fonte não substitui auditoria independente dos mercados especiais.
+A reconciliação direta H1 pode ser automática e gratuita quando a TheSportsDB devolve um jogo identificável; a BSD depende de chave configurada e existe uma ponte adicional de resultados FINAL do LAB. O algoritmo só aceita `strStatus=FT`, equipas correspondentes (ignorando apenas abreviaturas de clube não ambíguas), início temporal compatível, golos inteiros e ausência de marcadores de prolongamento/penáltis. Jogos sem garantia de resultado nos 90 minutos, sem correspondência ou cuja API esteja indisponível **continuam pendentes**. Em taças, a fonte pode ser ambígua sobre prolongamento; nesse caso confirmar manualmente o resultado regulamentar antes de liquidar. Um FT reportado pela fonte não substitui auditoria independente dos mercados especiais.
 
 A API V1 gratuita da TheSportsDB usa a chave pública `123`; as pesquisas gratuitas podem devolver apenas um jogo e não cobrem todas as competições. Consulta: https://www.thesportsdb.com/documentation. As pesquisas são limitadas a 20 jogos por execução, repetidas no mínimo de quatro em quatro horas e apenas nos 30 dias seguintes ao pontapé de saída. O histórico anterior a esse período exige verificação manual.
 
