@@ -331,6 +331,14 @@ class MonteBSDCrosswalk:
                     self.reasons["ambiguous_archive_match"]+=1
                     return None,"monte_ambiguous_archive_match"
                 event_id=candidates.pop()
+                # An exact alias must not hide a second CORE_NAME candidate
+                # or a reversed fixture in the same source archive.
+                confirmed, confirmation = self._core_archive_candidate(signal, kickoff)
+                if confirmed is None or confirmed[0] != event_id:
+                    rejection = (confirmation if confirmed is None
+                                 else "monte_core_ambiguous_match")
+                    self.reasons[rejection.removeprefix("monte_")]+=1
+                    return None, rejection
                 checking_signal=signal
                 using_core = False
             self.matched_keys.add(signal["match_key"])
