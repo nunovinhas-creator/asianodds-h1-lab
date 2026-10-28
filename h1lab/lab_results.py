@@ -24,7 +24,21 @@ RETRY = timedelta(hours=4)
 # Repeated no-result cycles use slower retries; never mark a missing FT final.
 # A new source version or explicitly reviewed evidence may still bypass this.
 def retry_wait(entry):
+    # V7: an unchanged, COMPLETE authenticated list is evidence that the
+    # provider has not progressed. Throttle identical-day requests by a
+    # separate stable confirmation counter, never by execution count.
+    # 0 -> 4h; 1 -> 12h; >=2 -> 24h (at most 3 scans in the first 24h).
+    if "stable_confirmations" in entry:
+        stable = max(0, int(entry["stable_confirmations"]))
+        if stable >= 2:
+            return timedelta(hours=24)
+        if stable >= 1:
+            return timedelta(hours=12)
+        return RETRY
+    # Legacy records remain readable until the first V7 authenticated scan.
     attempts = max(0, int(entry.get("evidence_attempts", entry.get("attempts", 0))))
+    if "evidence_attempts" in entry:
+        return RETRY
     if attempts >= 10:
         return timedelta(hours=24)
     if attempts >= 6:
@@ -252,9 +266,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             and entry.get("reviewed_public_ft_check_version") != 1)
         if last and now < last + retry_wait(entry) and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
             continue
-        # Fairness gate for a visit that found no new authenticated evidence.
-        # This is NOT an FT attempt and never increases the exponential retry.
-        if evidence_retry and visit and now < visit + timedelta(minutes=45) and not (force_recheck or public_due or bsd_id_due):
+        # A failed/deferred scan without a complete list must not trigger
+        # 45-minute retries of BSD/TSDB/SportScore. Keep a conservative 4h
+        # visit gate, independently from the authenticated stable backoff.
+        if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
         priority = (-4 if last is None and not force_recheck else
@@ -282,7 +297,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "never_checked_deferred": sum(utc(entries[key].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for key in deferred_keys),
         "selected_keys": selected_keys,
         "deferred_keys": deferred_keys[:100],
-        "retry_policy": ("V7: only changed authenticated snapshots count; 4h/12h/24h" if evidence_retry else "4h after 1-5 attempts; 12h after 6-9; 24h after 10+"),
+        "retry_policy": ("V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h" if evidence_retry else "4h after 1-5 attempts; 12h after 6-9; 24h after 10+"),
     }
     attempts = 0
     for _, _, _, key in candidates[:max_checks]:
@@ -321,25 +336,44 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         attempts += 1
         stamp = now.isoformat(timespec="seconds")
         snapshots = {}
+        stable_providers = {}
         if evidence_retry:
-            # Record a complete authenticated date list only when its score-free
-            # signature changed for THIS match's kickoff window.
+            # A successfully fetched complete list is examined for each
+            # provider. A repeated fingerprint MUST still advance the
+            # stability clock, without pretending a new fixture was found.
             for provider, lookup in providers:
                 if provider in ("api_football", "goal", "openfoot"):
                     snap = evidence_fingerprint(lookup, provider, signal)
                     old = (row.get("examined_against") or {}).get(provider) or {}
-                    if snap is not None and snap["fingerprint"] != old.get("fingerprint"):
+                    if snap is None:
+                        continue  # missing, failed or deferred is NOT stable
+                    if (old.get("day") == snap["day"] and
+                            old.get("fingerprint") == snap["fingerprint"]):
+                        stable_providers[provider] = snap
+                    else:
                         snapshots[provider] = {**snap, "observed_at": stamp}
-        effective = (not evidence_retry or bool(snapshots) or
-                     any(value is not None for value in found.values()) or
-                     any(name == "reviewed_public" for name, _ in providers))
+        verified = any(value is not None for value in found.values())
+        public_review = any(name == "reviewed_public" for name, _ in providers)
+        fresh = (not evidence_retry or bool(snapshots) or verified or public_review)
+        effective = fresh or bool(stable_providers)
         if evidence_retry:
             row["queue_visited_at"] = stamp
+            evidence = row.setdefault("examined_against", {})
+            for provider, snap in stable_providers.items():
+                old = dict(evidence[provider])
+                old["stable_confirmations"] = int(old.get("stable_confirmations", 0)) + 1
+                old["last_confirmed_at"] = stamp
+                evidence[provider] = old
             if snapshots:
-                row.setdefault("examined_against", {}).update(snapshots)
+                evidence.update(snapshots)
+            if fresh:
+                row["stable_confirmations"] = 0
+                row["evidence_attempts"] = int(row.get("evidence_attempts", 0)) + 1
+            elif stable_providers:
+                row["stable_confirmations"] = int(row.get("stable_confirmations", 0)) + 1
+                row["last_stable_at"] = stamp
             if effective:
                 row["evidence_checked_at"] = stamp
-                row["evidence_attempts"] = int(row.get("evidence_attempts", 0)) + 1
         if effective:
             row["checked_at"] = stamp
             row["lookup_source_version"] = max(int(row.get("lookup_source_version", 0)), source_version)
@@ -349,13 +383,14 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["reviewed_bsd_id_check_version"] = 1
         if any(name == "reviewed_public" for name, _ in providers):
             row["reviewed_public_ft_check_version"] = 1
-        if effective:
+        if fresh:
             row["attempts"] = int(row.get("attempts", 0)) + 1
         if evidence_retry:
             # Never erase the last meaningful GOAL/OpenFoot/API finding with a
             # disabled, deferred or failed adapter invocation.
             meaningful = {p: why for p, why in reasons.items()
-                          if p in snapshots or found.get(p) is not None or p == "reviewed_public"}
+                          if p in snapshots or p in stable_providers or
+                          found.get(p) is not None or p == "reviewed_public"}
             row["provider_reasons"] = {**(row.get("provider_reasons") or {}), **meaningful}
         else:
             row["provider_reasons"] = reasons
@@ -368,7 +403,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         # adapters may use day caches or return an unsupported-competition reason.
         history = row.setdefault("provider_attempts", {})
         for provider, _ in providers:
-            if evidence_retry and provider not in snapshots and found.get(provider) is None:
+            if (evidence_retry and provider not in snapshots and
+                    provider not in stable_providers and found.get(provider) is None):
                 continue
             old = history.get(provider, {})
             history[provider] = {
