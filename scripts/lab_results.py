@@ -19,6 +19,7 @@ from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
+from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_fotmob import FotMobResults
@@ -270,8 +271,19 @@ def main():
         "openfoot": sorted(openfoot.days),
         "api_football": sorted(api_football.days),
     }
+    # Provider-day hash throttles the shared list globally across all games.
+    # No scores, access tokens or raw fixture lists are written to git.
+    provider_day_rows = {"goal": goal.cache, "openfoot": openfoot.days,
+                         "api_football": api_football.days}
+    fingerprints = {
+        provider: {day: digest for day, rows in provider_day_rows[provider].items()
+                   if isinstance(rows, list)
+                   if (digest := day_fingerprint(provider, rows)) is not None}
+        for provider in provider_day_rows
+    }
     next_rotation = advance(historical_days, rotation, used_days, now,
-                            extra_requests={"goal":goal.id_requests})
+                            extra_requests={"goal":goal.id_requests},
+                            fingerprints=fingerprints)
     report["ft_queue"]["date_rotation"] = {
         provider: {"selected_days": rotation[provider],
                    "requested_days": used_days[provider],
