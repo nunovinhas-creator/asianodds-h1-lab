@@ -10,8 +10,8 @@ import re
 from .lab_reviewed_aliases import SPORTSCORE_REVIEWED, reviewed_provider_pair
 from .lab_reviewed_bsd_ids import REVIEWED_BSD_FIXTURES
 from .lab_sportscore import source_order_conflict
-from .lab_ft_reviewed_evidence import (REVIEWED_PUBLIC_FT, public_evidence_urls,
-                                       verified_public_ft)
+from .lab_ft_reviewed_evidence import (REVIEWED_PUBLIC_FT, REVIEWED_PENDING_FT,
+                                       public_evidence_urls, verified_public_ft)
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -199,15 +199,19 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                      entry.get("reviewed_alias_check_version") != 1)
         bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
                       entry.get("reviewed_bsd_id_check_version") != 1)
-        public_due = (entry["status"] == "SOURCE_ORDER_CONFLICT" and
-                      (original.get(key) or {}).get("status") == "SOURCE_ORDER_CONFLICT" and
-                      key in REVIEWED_PUBLIC_FT and
-                      entry.get("reviewed_public_ft_check_version") != 1)
+        public_due = (
+            ((entry["status"] == "SOURCE_ORDER_CONFLICT" and
+              (original.get(key) or {}).get("status") == "SOURCE_ORDER_CONFLICT" and
+              key in REVIEWED_PUBLIC_FT) or
+             (entry["status"] in ("PENDING", "PROVIDER_ERROR") and
+              (original.get(key) or {}).get("status") in ("PENDING", "PROVIDER_ERROR") and
+              key in REVIEWED_PENDING_FT))
+            and entry.get("reviewed_public_ft_check_version") != 1)
         if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
         priority = (-3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
-                    -2 if force_recheck and last else
+                    -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
         candidates.append((priority, last or datetime.min.replace(tzinfo=timezone.utc),
                            kickoff, key))
@@ -235,7 +239,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("goal", goal_lookup))
         if openfoot_lookup is not None:
             providers.append(("openfoot", openfoot_lookup))
-        if key in source_order_keys and key in REVIEWED_PUBLIC_FT:
+        if ((key in source_order_keys and key in REVIEWED_PUBLIC_FT) or
+                (key in REVIEWED_PENDING_FT and
+                 (original.get(key) or {}).get("status") in ("PENDING", "PROVIDER_ERROR"))):
             providers.append(("reviewed_public", verified_public_ft))
         for provider, lookup in providers:
             try:
@@ -253,7 +259,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["reviewed_alias_check_version"] = 1
         if key in REVIEWED_BSD_FIXTURES:
             row["reviewed_bsd_id_check_version"] = 1
-        if key in source_order_keys and key in REVIEWED_PUBLIC_FT:
+        if any(name == "reviewed_public" for name, _ in providers):
             row["reviewed_public_ft_check_version"] = 1
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
@@ -278,6 +284,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             methods = sorted({item.get("identity_match", "EXACT") for _, item in confirmed})
             if methods != ["EXACT"]:
                 row["result"]["identity_match"] = "+".join(methods)
+            if key in REVIEWED_PENDING_FT and "reviewed_public" in names:
+                row["reviewed_public_resolution"] = {
+                    "method": "reviewed_two_independent_public_ft",
+                    "verified_at_utc": now.isoformat(timespec="seconds"),
+                    "corroboration_urls": public_evidence_urls(key),
+                }
             if key in source_order_keys:
                 row["source_order_resolution"] = {
                     "method": ("reviewed_two_independent_public_ft"

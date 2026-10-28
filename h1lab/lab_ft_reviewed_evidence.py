@@ -32,8 +32,47 @@ REVIEWED_PUBLIC_FT = {
 }
 
 
+# Additional 2026-10-27 overdue fixtures independently corroborated on
+# 2026-10-28. Strictly normal-time 90m results, NOT AET/penalties.
+# Key -> original home, original away, UTC kickoff, 90m home/away,
+#        primary and corroboration URLs. These matches were observed and
+#        PENDING before documentary review, not SOURCE_ORDER_CONFLICT.
+REVIEWED_PENDING_FT = {
+    "2026-10-27,23683,747": (
+        "FK Fakel Voronezh", "FK Akhmat Grozny",
+        "2026-10-27T15:00:00+00:00", 0, 0,
+        "https://www.flashfootball.com/match/akhmat-grozny-bJGqkoet/fakel-voronezh-KK7VWueJ/",
+        "https://footballnation.eu/match/beker-van-rusland/2026/795294/",
+    ),
+    "2026-10-27,25153,62798": (
+        "Alanyaspor", "12 Bingol spor",
+        "2026-10-27T17:30:00+00:00", 4, 1,
+        "https://www.alanyaspor.org.tr/Haber/corendon-alanyasporumuz--12-bingolspor-4-1",
+        "https://www.fotmob.com/matches/alanyaspor-vs-12-bingolspor/2707wwqp",
+    ),
+    "2026-10-27,31960,1154": (
+        "BVV Barendrecht", "RKC Waalwijk",
+        "2026-10-27T19:00:00+00:00", 1, 1,
+        "https://www.omroepbrabant.nl/nieuws/6032644/rkc-waalwijk-wint-na-strafschoppen-in-knvb-beker",
+        "https://www.reddit.com/r/soccer/comments/1xh3pi4/match_thread_bvv_barendrecht_vs_rkc_waalwijk/",
+    ),
+    "2026-10-27,38744,1566": (
+        "vv Kloetinge", "SC Cambuur Leeuwarden",
+        "2026-10-27T19:00:00+00:00", 0, 2,
+        "https://www.sofascore.com/it/football/match/vv-kloetinge-sc-cambuur/vjbsNjb",
+        "https://omroepleeuwarden.nl/cambuur-bekert-verder-maar-maakt-het-zichzelf-onnodig-moeilijk/",
+    ),
+    "2026-10-27,327,326": (
+        "University College Dublin AFC", "Longford Town FC",
+        "2026-10-27T19:45:00+00:00", 2, 0,
+        "https://www.rte.ie/sport/soccer/2026/1027/1597020-ucd-dispatch-longford-to-book-semi-final-date-with-bray/",
+        "https://www.shannonside.ie/index.php/sport/ucd-finish-off-longford-promotion-hopes-299980",
+    ),
+}
+
+
 def public_evidence_urls(match_key):
-    row = REVIEWED_PUBLIC_FT.get(match_key)
+    row = REVIEWED_PUBLIC_FT.get(match_key) or REVIEWED_PENDING_FT.get(match_key)
     return [row[5], row[6]] if row else []
 
 
@@ -45,7 +84,8 @@ def verified_public_ft(signal):
     """
     if not isinstance(signal, dict):
         return None, "reviewed_public_invalid_signal"
-    row = REVIEWED_PUBLIC_FT.get(signal.get("match_key"))
+    row = (REVIEWED_PUBLIC_FT.get(signal.get("match_key")) or
+           REVIEWED_PENDING_FT.get(signal.get("match_key")))
     if row is None:
         return None, "reviewed_public_no_fixture"
     if (signal.get("home"), signal.get("away"), signal.get("kickoff_utc")) != row[:3]:
