@@ -1,9 +1,9 @@
 {
   "classification": {
-    "future": 131,
-    "in_3h_grace": 12,
-    "past_due_never_checked": 102,
-    "past_due_unverified": 102,
+    "future": 133,
+    "in_3h_grace": 6,
+    "past_due_never_checked": 108,
+    "past_due_unverified": 108,
     "verified_ft": 134
   },
   "deferred_games": [
@@ -18,8 +18,8 @@
     "2026-10-28,10,2",
     "2026-10-28,10002882,179",
     "2026-10-28,10007744,36060",
-    "2026-10-28,10008447,82391",
     "2026-10-28,10008528,70702",
+    "2026-10-28,10008540,533",
     "2026-10-28,10016992,35194",
     "2026-10-28,10017124,26965",
     "2026-10-28,10020287,10060085",
@@ -39,7 +39,6 @@
     "2026-10-28,1284,298",
     "2026-10-28,1290,1507",
     "2026-10-28,1325,630",
-    "2026-10-28,1374,1095",
     "2026-10-28,1382,93089",
     "2026-10-28,1388,156",
     "2026-10-28,1390,22937",
@@ -53,6 +52,7 @@
     "2026-10-28,23038,31261",
     "2026-10-28,23167,181",
     "2026-10-28,23670,30838",
+    "2026-10-28,23874,184",
     "2026-10-28,24835,32671",
     "2026-10-28,25155,25145",
     "2026-10-28,25166,10017249",
@@ -65,12 +65,12 @@
     "2026-10-28,28841,52294",
     "2026-10-28,28864,57490",
     "2026-10-28,28981,26885",
-    "2026-10-28,29287,10047786",
     "2026-10-28,29474,38367",
     "2026-10-28,29694,23665",
     "2026-10-28,29695,32137",
     "2026-10-28,29823,1748",
     "2026-10-28,30577,587",
+    "2026-10-28,31124,540",
     "2026-10-28,33309,10004830",
     "2026-10-28,336,335",
     "2026-10-28,33793,10009931",
@@ -238,13 +238,15 @@
     "FUTURE and IN_3H_GRACE games are NOT overdue.",
     "last_attempt_provider_reasons are NOT lifetime provider-attempt counters.",
     "provider_attempts counts adapter invocations, including cache hits; not HTTP requests.",
-    "V7 evidence_attempts and last_checked_at exclude repeated or failed authenticated snapshots when evidence_retry is enabled.",
+    "V7 evidence_attempts counts NEW authenticated evidence, not repeated snapshots.",
+    "V7 last_checked_at/evidence_checked_at includes valid stable confirmations; failures and uncredentialed pushes are excluded.",
+    "V7 stable_confirmations backs off identical complete lists 4h -> 12h -> 24h.",
     "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",
     "Providers are never assumed to cover every competition.",
     "No missing FT becomes a loss, an invented score, or an H1 settlement.",
     "A single observed result is not an independently corroborated source."
   ],
-  "measured_at": "2026-10-28T22:58:30+00:00",
+  "measured_at": "2026-10-28T23:07:42+00:00",
   "overdue_by_kickoff_utc_day": {
     "2026-10-27": {
       "last_check_without_provider": {
@@ -255,17 +257,17 @@
     },
     "2026-10-28": {
       "last_check_without_provider": {
-        "api_football": 94,
-        "bsd": 10,
-        "espn": 10,
-        "fotmob": 94,
-        "goal": 10,
-        "openfoot": 10,
-        "sportscore": 10,
-        "thesportsdb": 10
+        "api_football": 100,
+        "bsd": 16,
+        "espn": 16,
+        "fotmob": 100,
+        "goal": 16,
+        "openfoot": 16,
+        "sportscore": 16,
+        "thesportsdb": 16
       },
-      "never_checked": 94,
-      "overdue": 94
+      "never_checked": 100,
+      "overdue": 100
     }
   },
   "overdue_games": [
@@ -273,6 +275,7 @@
       "attempts": 12,
       "away": "Watford Reserves",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Milton Keynes Dons Reserves",
@@ -287,18 +290,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,65565,23714",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 31.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 31.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 12,
       "away": "FC Ararat Yerevan",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FC Pyunik Yerevan",
@@ -313,18 +319,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,845,26962",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 29.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 29.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 12,
       "away": "Mus Spor FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "İçel İdmanyurdu Spor",
@@ -339,18 +348,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,10017282,84806",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 28.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 28.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 12,
       "away": "Mus Spor FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Mersin Idmanyurdu SK",
@@ -365,18 +377,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,25158,84806",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 28.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 28.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 11,
       "away": "Kataka FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Express Red Eagles",
@@ -391,18 +406,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,33791,86126",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 28.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 28.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 11,
       "away": "Londrina II",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Athletico Paranaense II",
@@ -417,18 +435,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,10107877,10107878",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 26.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 26.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 11,
       "away": "CSyD Defensa y Justicia Reserves",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CA Independiente Reserves",
@@ -443,18 +464,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,77621,67110",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 26.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 26.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 11,
       "away": "AA Argentinos Juniors Reserves",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CA Banfield Reserves",
@@ -469,18 +493,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T17:33:10+00:00",
       "match_key": "2026-10-27,77680,51172",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 26.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 26.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Su Pham Thai Nguyen University",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Dong Tam Long An FC",
@@ -494,10 +521,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,28864,57490",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 11.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 11.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -543,12 +571,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Penang FC U20",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Kedah Darul Aman U20",
@@ -562,10 +592,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,34322,10061098",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 11.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 11.4,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -611,12 +642,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Johor Darul Ta'zim III U20",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Terengganu FA U20",
@@ -630,10 +663,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,37979,10062891",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 11.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 11.4,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -679,12 +713,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Cerezo Osaka Sakai Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "NTV Beleza Women",
@@ -698,10 +734,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,28841,52294",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 11.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 11.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -747,12 +784,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "FC Metalist 1925 Kharkiv",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Mayak Sarny",
@@ -766,10 +805,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10085003,90827",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 10.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 10.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -815,12 +855,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Antalyaspor",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Karsspor",
@@ -834,10 +876,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,29823,1748",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 10.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 10.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -883,12 +926,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "68 Aksaray Belediyespor Spor Kulubu",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Anadolu Universitesi",
@@ -902,10 +947,11 @@
         "thesportsdb": "tsdb_http_429"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10055350,95346",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 9.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 9.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -951,12 +997,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "68 Aksaray Belediyespor Spor Kulubu",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Eskisehir Anadolu",
@@ -970,10 +1018,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10088406,95346",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 9.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 9.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1019,12 +1068,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Yeşilyurt Belediyespor",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Gebzespor",
@@ -1038,10 +1089,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,25166,10017249",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 9.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 9.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1087,12 +1139,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 4,
       "away": "Isparta Davrazspor",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Duczespor",
@@ -1106,10 +1160,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,33309,10004830",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 9.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 9.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1155,12 +1210,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "FC Shirak Gyumri",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Lernayin Artsakh FC",
@@ -1174,10 +1231,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10017124,26965",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 9.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 9.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1223,12 +1281,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "FC Fastav Zlín U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "SK Slavia Praha U19",
@@ -1242,10 +1302,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,35322,34260",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 8.7,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 8.9,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1291,12 +1352,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "Nyíregyháza Spartacus",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Ozd-Sajovolgye",
@@ -1310,10 +1373,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10084669,27483",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 8.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 8.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1359,12 +1423,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "Iskenderun FK",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Karabuk Idmanyurduspor",
@@ -1378,10 +1444,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10055158,10031495",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 8.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 8.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1427,12 +1494,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "FK TSC Backa Topola",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FK Sartid Smederevo",
@@ -1446,10 +1515,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,1382,93089",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 8.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 8.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1495,12 +1565,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "Al Sahel (KSA)",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Al Ghota FC",
@@ -1514,10 +1586,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10062890,63625",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1563,12 +1636,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "Eyupspor",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Fethiyespor",
@@ -1582,9 +1657,81 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,25155,25145",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.6,
+      "provider_attempts": {
+        "bsd": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "monte_no_exact_archive_match"
+        },
+        "espn": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "espn_unsupported_competition"
+        },
+        "goal": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "goal_identity_no_core_match"
+        },
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        },
+        "sportscore": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "sportscore_no_exact_match"
+        },
+        "thesportsdb": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "tsdb_limited_this_run"
+        }
+      },
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Dhamk",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Al-Jandal FC",
+      "kickoff_utc": "2026-10-28T12:35:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "goal": "goal_identity_no_core_match",
+        "openfoot": "openfoot_identity_no_core_match",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "tsdb_limited_this_run"
+      },
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
+      "match_key": "2026-10-28,10007744,36060",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
       "overdue_hours": 7.5,
       "provider_attempts": {
         "bsd": {
@@ -1631,80 +1778,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Dhamk",
-      "evidence_attempts": 0,
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "Al-Jandal FC",
-      "kickoff_utc": "2026-10-28T12:35:00+00:00",
-      "last_attempt_provider_reasons": {
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "tsdb_limited_this_run"
-      },
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
-      "match_key": "2026-10-28,10007744,36060",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.4,
-      "provider_attempts": {
-        "bsd": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "monte_no_exact_archive_match"
-        },
-        "espn": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "espn_unsupported_competition"
-        },
-        "goal": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "goal_identity_no_core_match"
-        },
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        },
-        "sportscore": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "sportscore_no_exact_match"
-        },
-        "thesportsdb": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "tsdb_limited_this_run"
-        }
-      },
-      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "Rodina",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FK Gazovik Orenburg",
@@ -1718,10 +1799,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,22960,80848",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1767,12 +1849,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "Lugazi Municipal FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Kampala City Capital Authority FC",
@@ -1786,10 +1870,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,33793,10009931",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1835,12 +1920,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "FC Argeş Piteşti",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "ASC Corona Braşov 2010",
@@ -1854,10 +1941,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,48183,1353",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1903,12 +1991,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 3,
       "away": "ACS FC Bacau",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CS Sporting Voinţa Lieşti",
@@ -1922,10 +2012,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,55001,10054174",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1971,12 +2062,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "TSG 1899 Hoffenheim U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FC Academy Pandev U19",
@@ -1990,18 +2083,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,71247,31104",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "FC Sheriff Tiraspol U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FC Farul Constanţa U19",
@@ -2015,18 +2111,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,87424,84849",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "NK Slovenska Bistrica",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "NK Jesenice",
@@ -2040,18 +2139,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,96453,68023",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 7.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 7.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "NK Smartno 1928",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Odranci",
@@ -2065,18 +2167,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,35505,10014418",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.7,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.9,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "L'Aquila",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "ASD Real Agro Aversa",
@@ -2090,18 +2195,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,10033957,40507",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.6,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Al Kuwait Kaifan SC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FK Nasaf Qarshi",
@@ -2115,18 +2223,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,28981,26885",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "MNK Izola",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "NK Svoboda Ljubljana",
@@ -2140,18 +2251,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,10008528,70702",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "BKMA Yerevan",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Alashkert FC",
@@ -2165,18 +2279,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,49014,10016874",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Sporting Club Delhi",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FC Goa",
@@ -2190,18 +2307,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,62924,10087106",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "NK Skofja Loka",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "NK Sobec Lesce",
@@ -2215,18 +2335,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,84620,10030071",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "NK Roltek Dob",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "NK Fama Vipava",
@@ -2240,18 +2363,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,95405,39929",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 6.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 6.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Al Ittifaq (BHR)",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Arbil FC",
@@ -2265,18 +2391,21 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,29695,32137",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 5.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 5.6,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Bursaspor",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Sakaryaspor",
@@ -2290,10 +2419,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10045949,1749",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 5.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 5.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2339,12 +2469,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "UCAM Murcia U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Valencia CF U19",
@@ -2358,9 +2490,81 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,39239,76813",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 5.1,
+      "provider_attempts": {
+        "bsd": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "monte_no_exact_archive_match"
+        },
+        "espn": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "espn_unsupported_competition"
+        },
+        "goal": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "goal_identity_no_core_match"
+        },
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        },
+        "sportscore": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "sportscore_no_exact_match"
+        },
+        "thesportsdb": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "tsdb_limited_this_run"
+        }
+      },
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 2,
+      "away": "Al Zulfi SC",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Al Najma (KSA)",
+      "kickoff_utc": "2026-10-28T15:05:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "goal": "goal_identity_no_core_match",
+        "openfoot": "openfoot_identity_no_core_match",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "tsdb_limited_this_run"
+      },
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
+      "match_key": "2026-10-28,36998,58673",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
       "overdue_hours": 5.0,
       "provider_attempts": {
         "bsd": {
@@ -2407,80 +2611,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
-      "status": "PENDING"
-    },
-    {
-      "attempts": 2,
-      "away": "Al Zulfi SC",
-      "evidence_attempts": 0,
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "Al Najma (KSA)",
-      "kickoff_utc": "2026-10-28T15:05:00+00:00",
-      "last_attempt_provider_reasons": {
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "tsdb_limited_this_run"
-      },
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
-      "match_key": "2026-10-28,36998,58673",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 4.9,
-      "provider_attempts": {
-        "bsd": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "monte_no_exact_archive_match"
-        },
-        "espn": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "espn_unsupported_competition"
-        },
-        "goal": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "goal_identity_no_core_match"
-        },
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        },
-        "sportscore": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "sportscore_no_exact_match"
-        },
-        "thesportsdb": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "tsdb_limited_this_run"
-        }
-      },
-      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Moquegua",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Asociacion Deportiva Tarma",
@@ -2494,18 +2632,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,10020287,10060085",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 4.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 4.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Al Muharraq SC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Al Jazira Club",
@@ -2519,18 +2660,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,23670,30838",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 4.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 4.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "FC Nordsjælland",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Esbjerg FB",
@@ -2544,18 +2688,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,336,335",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 4.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 4.1,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Soroksár SK KF",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Kozármisleny SE",
@@ -2569,18 +2716,21 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:50:21+00:00",
       "match_key": "2026-10-28,28511,28515",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.6,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "KKS Czarni Sosnowiec Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "SK Brann Women",
@@ -2594,10 +2744,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,10048297,44160",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2643,12 +2794,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "IL Hødd",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Åsane Fotball",
@@ -2662,10 +2815,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,1325,630",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2711,12 +2865,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Vålerenga IF",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Sarpsborg 08 FF",
@@ -2730,10 +2886,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,1388,156",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2779,12 +2936,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Puskás Ferenc Akadémia FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Diósgyőri VTK",
@@ -2798,10 +2957,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,1670,48955",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2847,12 +3007,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "MSK Zilina U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "HJK Helsinki U19",
@@ -2866,10 +3028,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,29474,38367",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2915,12 +3078,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Bryne FK",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Egersund IK",
@@ -2934,10 +3099,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,30577,587",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2983,12 +3149,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Kairat Almaty U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "MTK Hungaria FC U19",
@@ -3002,10 +3170,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,36622,84845",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3051,12 +3220,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Sandefjord Fotball",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Odd Grenland",
@@ -3070,10 +3241,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,508,715",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3119,12 +3291,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Strømsgodset IF",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Molde FK",
@@ -3138,10 +3312,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,509,667",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3187,12 +3362,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Ham-Kam",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Rosenborg",
@@ -3206,10 +3383,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,510,511",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3255,12 +3433,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Sogndal IL",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Lillestrøm SK",
@@ -3274,10 +3454,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,515,658",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3323,12 +3504,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "FK Crvena Zvezda U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "NK Bravo U19",
@@ -3342,10 +3525,11 @@
         "thesportsdb": "tsdb_http_429"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,67154,51135",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3391,12 +3575,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Hammarby IF DFF Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Spartak Myjava Women",
@@ -3410,10 +3596,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,72758,29209",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3459,12 +3646,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Cordoba CF U19",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "UD Tomares U19",
@@ -3478,10 +3667,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,88730,89130",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 3.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 3.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3527,12 +3717,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "OFI Crete",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "AEL Larisa",
@@ -3546,10 +3738,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,1290,1507",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3595,12 +3788,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Trabzon Karadeniz",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Orduspor",
@@ -3614,10 +3809,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,23038,31261",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3663,12 +3859,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Al Nasr SC (UAE)",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Al Zawraa SC",
@@ -3682,10 +3880,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,29694,23665",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3731,12 +3930,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Internazionale",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FBC Unione Venezia",
@@ -3750,10 +3951,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,42312,231",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3799,12 +4001,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Ironi Nir Ramat haSharon",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Ironi Nesher",
@@ -3818,10 +4022,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,59659,24852",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3867,12 +4072,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "FK Rubin Kazan'",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FK Spartak Moskva",
@@ -3886,10 +4093,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,649,744",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3935,12 +4143,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Levante",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CD Tarancon",
@@ -3954,10 +4164,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10002882,179",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4003,12 +4214,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Red Star Belgrade",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FK Jedinstvo UB",
@@ -4022,10 +4235,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10038651,1140",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4071,12 +4285,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "US Città di Palermo",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "AC Pisa 1909",
@@ -4090,10 +4306,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,1149,244",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4139,12 +4356,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Győri ETO FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Zalaegerszegi TE",
@@ -4158,10 +4377,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,1390,22937",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4207,12 +4427,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Feyenoord Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "VfL Wolfsburg Women",
@@ -4226,10 +4448,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,28162,10042394",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4275,12 +4498,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 2,
       "away": "Fenerbahçe SK Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Real Sociedad Women",
@@ -4294,10 +4519,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,29287,10047786",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 2.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 2.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4342,13 +4568,15 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Al Wahda FC (UAE)",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Al Khalidiyah",
@@ -4362,10 +4590,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10034327,23664",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.7,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.9,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4411,12 +4640,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "AEK Athens",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "PAOK Thessaloniki",
@@ -4430,10 +4661,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,1374,1095",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4478,13 +4710,15 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Malmo FF Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "AFC Ajax Women",
@@ -4498,10 +4732,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,49848,10061106",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4547,12 +4782,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "ASD Calcio Brusaporto",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "ASD Villa d'Almè Valbrembana",
@@ -4566,10 +4803,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10008447,82391",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4614,13 +4852,15 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Crystal Palace Women FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "London City Lionesses Women",
@@ -4634,10 +4874,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10016992,35194",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4683,12 +4924,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "CA Vinotinto",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Atletico Rojiblanco",
@@ -4702,10 +4945,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10094747,10071960",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4751,12 +4995,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Verona",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "SS Juve Stabia",
@@ -4770,10 +5016,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,1284,298",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4819,12 +5066,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "TOP OSS",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "FC Zwolle",
@@ -4838,10 +5087,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,1495,34889",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4887,12 +5137,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Real Oviedo CF",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CD Numancia de Soria",
@@ -4906,10 +5158,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,175,23624",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -4955,12 +5208,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Mallorca",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CD Alcoyano",
@@ -4974,10 +5229,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,23167,181",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5023,12 +5279,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "VV Eemdijk",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "KVV Quick Boys",
@@ -5042,10 +5300,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,27786,84674",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5091,12 +5350,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Leganés",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "CF Trival Valderas",
@@ -5110,10 +5371,11 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,36655,23605",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 1.0,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 1.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5159,12 +5421,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "West Ham United Women FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Charlton Athletic FC Women",
@@ -5178,10 +5442,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,28220,35187",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5227,12 +5492,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Birmingham City FC Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Aston Villa FC Women",
@@ -5246,10 +5513,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,35186,28216",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5295,12 +5563,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "Brighton & Hove Albion FC Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Wolverhampton Wanderers Women",
@@ -5314,10 +5584,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,52228,35192",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5363,12 +5634,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "US Latina",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "SSD Citta di Campobasso",
@@ -5382,10 +5655,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,84555,40505",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5431,12 +5705,14 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 1,
       "away": "SV Ried",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "LASK Linz",
@@ -5450,10 +5726,11 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,953,848",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.5,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -5499,186 +5776,343 @@
         }
       },
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "Aston Villa",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Bournemouth",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,10,2",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "Hibernian",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "St Mirren",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,143,127",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "1. FC Magdeburg",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Bayern München",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,198,1738",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "1. FC Nürnberg",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Bayer Leverkusen",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,202,206",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "1. FC Kaiserslautern",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Hannover 96",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,205,197",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "Broxburn Athletic FC",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Gala Fairydean FC",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,24835,32671",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "SS Murata",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "SS Virtus",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,27460,27466",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "FC Domagnano",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "SC Faetano",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,27461,908",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "Juventus",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "Genoa",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,280,233",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
       "attempts": 0,
       "away": "Boldmere St. Michaels Women",
       "evidence_attempts": 0,
+      "examined_provider_days": {},
       "goal_id_last_attempt_at": null,
       "goal_last_substantive_evidence": null,
       "home": "West Bromwich Albion Women",
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,85128,10051245",
-      "next_eligible_at": "2026-10-28T22:58:30+00:00",
-      "overdue_hours": 0.2,
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.4,
       "provider_attempts": {},
       "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "Cádiz CF",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Xerez Deportivo FC",
+      "kickoff_utc": "2026-10-28T20:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-28,10008540,533",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.1,
+      "provider_attempts": {},
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "Real Betis",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "CDA Navalcarnero",
+      "kickoff_utc": "2026-10-28T20:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-28,23874,184",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.1,
+      "provider_attempts": {},
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "Inter Milan Women",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Olympique Lyonnais Women",
+      "kickoff_utc": "2026-10-28T20:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-28,29148,10007370",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.1,
+      "provider_attempts": {},
+      "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "Celta Vigo",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Salamanca CF UDS",
+      "kickoff_utc": "2026-10-28T20:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-28,31124,540",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.1,
+      "provider_attempts": {},
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "SC Heerenveen",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Excelsior Maassluis",
+      "kickoff_utc": "2026-10-28T20:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-28,31963,1057",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.1,
+      "provider_attempts": {},
+      "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "Chelsea",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Liverpool",
+      "kickoff_utc": "2026-10-28T20:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-28,49,22",
+      "next_eligible_at": "2026-10-28T23:07:42+00:00",
+      "overdue_hours": 0.1,
+      "provider_attempts": {},
+      "queue_state": "DUE_NOT_SELECTED",
+      "stable_confirmations": 0,
       "status": "PENDING"
     }
   ],
@@ -5743,22 +6177,22 @@
         "selected_days": []
       }
     },
-    "deferred_by_capacity": 102,
+    "deferred_by_capacity": 108,
     "documented_ft_total": 31,
-    "eligible": 102,
+    "eligible": 108,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
       "outcome": []
     },
-    "never_checked_deferred": 102,
-    "never_checked_eligible": 102,
+    "never_checked_deferred": 108,
+    "never_checked_eligible": 108,
     "newly_confirmed": 0,
     "provider_id_collisions": 0,
-    "retry_policy": "V7: only changed authenticated snapshots count; 4h/12h/24h",
+    "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
     "selected": 0
   },
   "schema_version": 1,
   "status": "FT_BACKLOG_AUDIT_OBSERVATION_ONLY",
-  "total_matches": 379
+  "total_matches": 381
 }

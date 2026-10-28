@@ -23,14 +23,14 @@
   "coverage_diagnostics": {
     "blocked_review": 0,
     "ft_confirmed": 134,
-    "future": 131,
-    "grace": 12,
+    "future": 133,
+    "grace": 6,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
       "No unresolved game is treated as an incorrect pick or a settled bet."
     ],
-    "past_unverified_eligible": 102,
+    "past_unverified_eligible": 108,
     "provider_obstacles": [
       {
         "matches": 92,
@@ -106,10 +106,10 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 245
+      "PENDING": 247
     }
   },
-  "displayed_matches": 379,
+  "displayed_matches": 381,
   "espn_scoreboards": {
     "cached_league_days": 0,
     "confirmed_in_run": 0,
@@ -184,7 +184,7 @@
         "selected_days": []
       }
     },
-    "deferred_by_capacity": 102,
+    "deferred_by_capacity": 108,
     "deferred_keys": [
       "2026-10-28,1325,630",
       "2026-10-28,67154,51135",
@@ -196,6 +196,7 @@
       "2026-10-28,1284,298",
       "2026-10-28,36655,23605",
       "2026-10-28,85128,10051245",
+      "2026-10-28,31124,540",
       "2026-10-28,10045949,1749",
       "2026-10-28,39239,76813",
       "2026-10-28,36998,58673",
@@ -236,6 +237,8 @@
       "2026-10-28,24835,32671",
       "2026-10-28,27460,27466",
       "2026-10-28,27461,908",
+      "2026-10-28,10008540,533",
+      "2026-10-28,23874,184",
       "2026-10-27,65565,23714",
       "2026-10-27,845,26962",
       "2026-10-27,10017282,84806",
@@ -282,23 +285,20 @@
       "2026-10-28,29474,38367",
       "2026-10-28,515,658",
       "2026-10-28,72758,29209",
-      "2026-10-28,1390,22937",
-      "2026-10-28,29287,10047786",
-      "2026-10-28,1374,1095",
-      "2026-10-28,10008447,82391"
+      "2026-10-28,1390,22937"
     ],
     "documented_ft_total": 31,
-    "eligible": 102,
+    "eligible": 108,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
       "outcome": []
     },
-    "never_checked_deferred": 102,
-    "never_checked_eligible": 102,
+    "never_checked_deferred": 108,
+    "never_checked_eligible": 108,
     "newly_confirmed": 0,
     "provider_id_collisions": 0,
-    "retry_policy": "V7: only changed authenticated snapshots count; 4h/12h/24h",
+    "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
     "selected": 0,
     "selected_keys": []
   },
@@ -811,6 +811,19 @@
       "status": "PENDING"
     },
     {
+      "away": "Tigres UA Nuevo León",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "CF Pachuca",
+      "kickoff_utc": "2026-10-31T23:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,373,591",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "FC Coyotes De Tlaxcala",
       "evidence": null,
       "evidence_attempts": 0,
@@ -884,6 +897,19 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-31,25985,26015",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "Leones del Norte",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "CS Emelec",
+      "kickoff_utc": "2026-10-31T19:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,25722,10049302",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -5645,10 +5671,10 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "h1_alerts_count": 542,
-  "h1_signals_count_in_state": 110,
+  "h1_alerts_count": 544,
+  "h1_signals_count_in_state": 111,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-28T22:36:16+00:00",
+  "last_updated_at": "2026-10-28T23:07:42+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -5656,7 +5682,7 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 379,
+  "matches": 381,
   "matches_omitted_from_display": 0,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": null,
@@ -5681,7 +5707,7 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "pending_due_checks": 102,
+  "pending_due_checks": 108,
   "reviewed_alias_catalog_matches": 16,
   "reviewed_bsd_id_catalog_matches": 5,
   "schema_version": 1,
@@ -5703,20 +5729,20 @@
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
     "FINAL": 134,
-    "PENDING": 245
+    "PENDING": 247
   },
   "thesportsdb_search": {},
   "timing_counts": {
-    "ELIGIBLE_NEVER_QUERIED": 102,
+    "ELIGIBLE_NEVER_QUERIED": 108,
     "FINAL_RECORDED": 134,
-    "FUTURE": 131,
-    "IN_3H_GRACE": 12
+    "FUTURE": 133,
+    "IN_3H_GRACE": 6
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 245,
+  "unverified": 247,
   "v6_ft_priority": {
     "budget": 0,
-    "hinted_eligible": 50,
+    "hinted_eligible": 53,
     "hinted_selected": 0,
     "hints_do_not_override": [
       "3h grace",
