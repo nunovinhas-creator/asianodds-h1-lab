@@ -1,0 +1,89 @@
+name: Maintenance - delete merged branches 49-53 once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-merged-branches-20261028.yml'
+permissions:
+  contents: write
+  pull-requests: read
+concurrency:
+  group: asianodds-h1-write
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Verify each branch is exactly the merged PR head, then delete
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          targets = [
+              (49, "fix/lab-ft-recovery-and-source-audit-20261028", "b660ae3b5456f84e1e1fb7a600d0345b5be690ff"),
+              (50, "fix/lab-reviewed-three-ft-conflicts-20261028", "420304bb9e47877160d4d16a71578b5250a61429"),
+              (51, "fix/lab-recover-five-verified-overdue-ft-20261028", "86f654aaa4adf602f3181be9afc3fa546e"),
+              (52, "fix/lab-recover-five-more-verified-overdue-ft-20261028", "297a878c5238c920ac142057c8122be1ae26de97"),
+              (53, "fix/h1-consume-verified-lab-finals-20261028", "1966f6a30b049c0e4fc1e7f763334dbe8d890baf"),
+          ]
+
+          def gh(*args):
+              return subprocess.check_output(["gh", "api", *args], text=True)
+
+          verified = []
+          # Check everything before deleting anything.
+          for pr, branch, expected in targets:
+              details = json.loads(gh(f"repos/{repo}/pulls/{pr}"))
+              if (not details.get("merged") or details.get("merged_at") is None
+                  or details["head"]["ref"] != branch
+                  or details["head"]["sha"] != expected
+                  or details["base"]["ref"] != "main"):
+                  sys.exit(f"STOP: PR {pr} does not match merged branch and exact commit")
+              b = json.loads(gh(f"repos/{repo}/branches/{branch}"))
+              if b["name"] != branch or b["commit"]["sha"] != expected or b.get("protected", False):
+                  sys.exit(f"STOP: branch {branch} changed, was protected or has unmerged commits")
+              verified.append((pr, branch))
+              print("CLEANUP_VERIFIED", pr, branch)
+
+          for pr, branch in verified:
+              subprocess.run(
+                  ["gh", "api", "-X", "DELETE", f"repos/{repo}/git/refs/heads/{branch}"],
+                  check=True)
+              print("CLEANUP_DELETED", pr, branch)
+
+          remaining = json.loads(gh(f"repos/{repo}/branches?per_page=100"))
+          names = [x["name"] for x in remaining]
+          if any(branch in names for _, branch in verified):
+              sys.exit("STOP: branch deletion could not be verified")
+          if "main" not in names or "feature/bsd-europa-audit" not in names:
+              sys.exit("STOP: expected preserved branches not found")
+          print("CLEANUP_VERIFIED_REMAINING", json.dumps(names))
+          PY
+      - name: Remove this one-time maintenance workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/cleanup-merged-branches-20261028.yml
+          git commit -m "chore: remove completed one-shot branch cleanup [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo CLEANUP_ONE_SHOT_SELF_REMOVED
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
