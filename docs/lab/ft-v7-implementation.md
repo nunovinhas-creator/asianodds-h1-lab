@@ -3,7 +3,7 @@
 ## Scope delivered (first safe intervention)
 
 - Push events **never** reconcile FT provider calls or advance retry. They may refresh the observed catalogue.
-- Repeated **complete** authenticated lists now count as stability confirmations: the next attempt is 4h, then 12h, then 24h. A changed list resets the stable streak. Missing/error/deferred lists never count as stable, and an unsuccessful visit has a 4h anti-hammer gate.
+- Repeated **complete** authenticated lists now count as stability confirmations at **two levels**: individual fixture and global provider-day. The next request is 4h, then 12h, then 24h. A changed list resets the streak; failed/incomplete requests never count as stable, and an unsuccessful visit has a 4h anti-hammer gate. Date-level signatures and request quotas are persisted together in `ft-provider-day-rotation.json`, preventing 60 fixtures on one date from multiplying list requests.
 - A real FT scan uses the already persisted `ft-provider-day-rotation.json` limits, not an even-hour gate.
 - Each unresolved match stores score-free `examined_against` per provider (day, SHA-256 fingerprint, nearby fixture count, observed time and completeness), `evidence_attempts`, `evidence_checked_at`, and `queue_visited_at`.
 - Matching attempts only advance for changed, complete authenticated day-list evidence or a verified result. A repeated snapshot does not advance cooldown.
@@ -24,4 +24,4 @@
 
 ## Acceptance
 
-Run `python -m compileall -q h1lab scripts` and `python -m unittest discover -s tests -v`. Confirm live authentic runs via `data/lab/ft-api-audit.json`: `authenticated_providers_ran`, requests by provider and `effective_evidence_checks`. Check no push increases `evidence_attempts` or `stable_confirmations`. In a 24-hour simulation with a complete, immutable fixture list, exactly three scans occur (t=0h, 4h and 16h). No FT result should be claimed recovered until ledger and review queues show verified sources.
+Run `python -m compileall -q h1lab scripts` and `python -m unittest discover -s tests -v`. Confirm live authentic runs via `data/lab/ft-api-audit.json`: `authenticated_providers_ran`, requests by provider and `effective_evidence_checks`. Check no push increases `evidence_attempts` or `stable_confirmations`. In 24-hour simulations with complete, immutable fixture lists, exactly three scans occur (t=0h, 4h and 16h), even with 60 matches sharing the same provider-day. No FT result should be claimed recovered until ledger and review queues show verified sources.
