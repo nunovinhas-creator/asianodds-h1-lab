@@ -66,6 +66,27 @@ class TestV6P213(unittest.TestCase):
         self.assertFalse("ft" in original["selection"])
         self.assertTrue(original["effective_tests"]["not_a_multiple_testing_alpha_adjustment"])
 
+    def test_post_kickoff_alert_cannot_change_original_incidence(self):
+        # Identical observation universe; adding an after-KO telegram message
+        # must not change any of the 800 predicated columns.
+        root=Path(__file__).resolve().parents[1]
+        cat=p.catalog_read(root)
+        pre={"event_id":"channel:1","message_id":1,"match_key":"match-a",
+             "home":"Home","away":"Away","competition":"League",
+             "kickoff_utc":"2026-11-01T12:00:00+00:00",
+             "observed_at":"2026-11-01T09:00:00+00:00","market":"total",
+             "total_before":2.5,"total_after":2.75,
+             "over_before":1.90,"under_before":1.90,
+             "over_after":1.95,"under_after":1.85,"h1":False,"source_url":"x"}
+        post={**pre,"event_id":"channel:2","message_id":2,
+              "observed_at":"2026-11-01T12:20:00+00:00",
+              "total_after":2.25,"over_after":1.85,"under_after":1.95}
+        with patch.object(p,"read_sources",return_value=([pre],[],[])):
+            a=p.incidence(root,cat)
+        with patch.object(p,"read_sources",return_value=([pre,post],[],[])):
+            b=p.incidence(root,cat)
+        self.assertEqual(a,b)
+
     def test_live_real_catalogue_and_pre_kickoff_incidence(self):
         root=Path(__file__).resolve().parents[1]
         catalog=p.catalog_read(root)
