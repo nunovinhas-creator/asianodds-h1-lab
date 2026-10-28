@@ -200,6 +200,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
                       entry.get("reviewed_bsd_id_check_version") != 1)
         public_due = (entry["status"] == "SOURCE_ORDER_CONFLICT" and
+                      (original.get(key) or {}).get("status") == "SOURCE_ORDER_CONFLICT" and
                       key in REVIEWED_PUBLIC_FT and
                       entry.get("reviewed_public_ft_check_version") != 1)
         if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
