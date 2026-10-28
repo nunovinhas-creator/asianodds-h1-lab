@@ -206,7 +206,7 @@ def build(root, now, *, verify_only=False):
         raise ValueError("Archive index version changed")
     # Every LAB file, including mutable state, is checked. The mutable views
     # are NOT sealed, because Telegram can later reveal historical edits.
-    all_files = sorted(x for x in lab.rglob("*") if x.is_file() and
+    all_files = sorted(x for x in lab.rglob("*") if x.is_file() and x != old_path and
                        not x.name.endswith((".tmp", ".archive-tmp")))
     for path in all_files:
         if path.stat().st_size > MAX_BYTES:
@@ -238,7 +238,6 @@ def build(root, now, *, verify_only=False):
         "largest_file_bytes": max((x.stat().st_size for x in all_files), default=0),
         "monthly_parts": len(files),
         "sealed_parts": len(closed),
-        "new_seals": len(closed) - len(known),
         "replay": replay,
         "sealed_index_digest": hashlib.sha256(json.dumps(
             index, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
