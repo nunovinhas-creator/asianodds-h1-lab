@@ -1,0 +1,194 @@
+{
+  "check_result_counts": {
+    "INSUFFICIENT_N": 10
+  },
+  "checks": [
+    {
+      "code": "F01_EPISODE_INDEPENDENCE",
+      "diagnostics": {
+        "legacy_without_context_excluded": 1,
+        "strict_ratio": null,
+        "with_independent_episodes": 0
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "10 selected freezes with captured context; strict >= 80%",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F02_RISING_VS_FLAT",
+      "diagnostics": {
+        "categories": {
+          "FLAT_EACH_EPISODE": {
+            "market": null,
+            "n": 0,
+            "observed": null,
+            "residual": null
+          },
+          "RISING_EACH_EPISODE": {
+            "market": null,
+            "n": 0,
+            "observed": null,
+            "residual": null
+          },
+          "RISING_WITH_FLAT": {
+            "market": null,
+            "n": 0,
+            "observed": null,
+            "residual": null
+          }
+        }
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "two episode-category cells with >=10 genuine scored FT each",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F03_1X2_AH_CONSISTENCY",
+      "diagnostics": {
+        "agreement_fraction": null,
+        "warning": "Agreement of AH and 1X2 is not independent evidence of Over"
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "10 comparable simultaneous AH/1X2 direction events",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F04_LEAD_TIME_STRATA",
+      "diagnostics": {
+        "lead_strata": {}
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "two lead-time strata each with >=20 eligible FT",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F05_COMPETITION_CONTEXT",
+      "diagnostics": {
+        "classifier": "heuristic competition label, not validated taxonomy",
+        "groups": {}
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "two heuristic competition types with >=20 scored FT each",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F06_LEAVE_DAY_OUT_AND_TRIM",
+      "diagnostics": {
+        "days": 0,
+        "leave_one_day_out_residual": {},
+        "trimmed_residual": null
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "30 selected FT spanning 3 days, leave-one-day-out and trim highest 5% absolute residual",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F07_RESIDUAL_VS_MARKET",
+      "diagnostics": {
+        "compared_to_market": {
+          "market": null,
+          "n": 0,
+          "observed": null,
+          "residual": null
+        },
+        "distinct_weeks": 0,
+        "formal_e_process_required_independently": true,
+        "not_a_p_value": true
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": ">=1000 FT after hypothesis registration across >=3 weeks; mean residual > 5 pp",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F08_COMPETING_MARKET_LINE",
+      "diagnostics": {
+        "matched_bins": [],
+        "scope": "observed alert-selected sample; not causal",
+        "within_line_residual_uplift_vs_controls": {}
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "two market-line bins with >=20 selected AND 20 controls each",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F09_MATCHED_MARKET_PEERS",
+      "diagnostics": {
+        "match_method": "fixed scales, greedy, no control reuse",
+        "matched_mean_residual_difference": null
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "30 no-reuse peers within lambda 0.25 and lead time 6h",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    },
+    {
+      "code": "F10_PROSPECTIVE_CONFIRMATION",
+      "diagnostics": {
+        "coverage_gate": "WARMUP",
+        "coverage_is_source_observable_not_delivery_certification": true,
+        "invalid_freezes": 0,
+        "prospective_pattern_without_ft": 1,
+        "registered_at": "2026-10-28T14:41:35+00:00",
+        "scored_fraction_of_observed_selected": 0.0,
+        "selected_with_clean_ft": 0
+      },
+      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
+      "n": 0,
+      "required": "1000 registered genuine FT in >=3 weeks AND source coverage 14-day gate",
+      "result": "INSUFFICIENT_N",
+      "source_match_keys": []
+    }
+  ],
+  "data_lineage": {
+    "confirmed_evidence_events": 0,
+    "excluded_reasons": {
+      "captured_before_formal_registration": 4,
+      "ft_missing_or_quarantined": 2,
+      "not_completed_prospective_freeze": 161
+    },
+    "forecast_journal_tail": "03ce25e404294a6cf1580e2bca3185c20bef797b0365d0f9e8e13a7995df5e8d",
+    "frozen_records": 170,
+    "memory_evidence_tail": null,
+    "source": "frozen forecasts + append-only V6 FT evidence; no historical V5 backfill"
+  },
+  "evaluation_clock": "2026-10-28T15:16:22+00:00",
+  "hypothesis_definition_sha256": "3a2ad8c8a23443e1eb20e83bb5d753279ba93762c2efcb2947a1b5dd3e8900a0",
+  "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+  "limitations": [
+    "PASS/FAIL describe predefined falsification screens, NOT validation/p-value/edge.",
+    "Only one registered post-hoc hypothesis; exploratory V5 hypotheses are NOT frozen.",
+    "Missing capture-time context stays UNKNOWN; old journal rows are never rewritten.",
+    "Missing FT or unknown checked_at is excluded rather than backfilled.",
+    "The 7/14-day evidence gate remains separate and required.",
+    "No odds feed between Telegram messages, no causal claims or betting recommendation."
+  ],
+  "overall": "INCONCLUSIVO",
+  "registered_at": "2026-10-28T14:41:35+00:00",
+  "sample": {
+    "controls_scored": 0,
+    "eligible_completed": 2,
+    "eligible_scored": 0,
+    "selected_completed": 1,
+    "selected_scored": 0
+  },
+  "schema_version": 1,
+  "status": "V6_FALSIFICATION_SHADOW_NO_PROMOTION",
+  "test_version": "V6-FALSIFICATION-1"
+}
