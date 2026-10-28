@@ -155,8 +155,9 @@ class SportScoreResults:
         rows=self._fixtures(day)
         if rows is None:
             self.reasons["date_unavailable"]+=1
-            return None,"sportscore_unavailable"
-        plausible=self._plausible(signal,rows)
+        # Even a transient day-index failure must not block a strictly
+        # validated, separately budgeted team-scoped query.
+        plausible=self._plausible(signal,rows or [])
         if not plausible and self.targeted<self.max_team_searches:
             slug=self._team_slug(signal["home"])
             if slug:
