@@ -117,6 +117,15 @@ jobs:
           python -m unittest discover -s tests -p 'test_v6_scientific_radar.py' -v
           python -m scripts.lab_v6_scientific_radar
           python -m scripts.lab_v6_scientific_radar --verify-only
+      # Weekly monitor runs in the EXISTING LAB audit, creating a snapshot
+      # only on the first completed audit of a new ISO week. Thus no new
+      # GitHub workflow jobs, provider requests, or noisy commits every 5m.
+      - name: Weekly V6 calibration and drift monitor (shadow)
+        id: v6_weekly
+        continue-on-error: true
+        run: |
+          python -m scripts.lab_v6_weekly_monitor
+          python -m scripts.lab_v6_weekly_monitor --verify-only
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -128,6 +137,10 @@ jobs:
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if [ "${{ steps.v6_scientific_radar.outcome }}" = "success" ]; then
             if [ -f docs/lab/v6-scientific-radar.json ]; then git add docs/lab/v6-scientific-radar.json; fi
+          fi
+          if [ "${{ steps.v6_weekly.outcome }}" = "success" ]; then
+            if [ -f data/lab/v6-weekly-snapshots.jsonl ]; then git add -f data/lab/v6-weekly-snapshots.jsonl; fi
+            if [ -f docs/lab/v6-weekly-drift.json ]; then git add docs/lab/v6-weekly-drift.json; fi
           fi
           if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
           if [ -f docs/lab/v6-readiness.json ]; then git add docs/lab/v6-readiness.json; fi
