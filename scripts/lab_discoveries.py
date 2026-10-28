@@ -14,8 +14,8 @@ from h1lab.discovery_timeline import build
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path("data/lab/discovery-state.json")
 PUBLIC = Path("docs/lab/discoveries.json")
-MAX_PUBLIC_BYTES = 450_000
-MAX_STATE_BYTES = 800_000
+MAX_PUBLIC_BYTES = 1_400_000
+MAX_STATE_BYTES = 2_000_000
 
 
 def read(path, default=None):
