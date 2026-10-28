@@ -25,13 +25,13 @@ aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 </style></head><body><main>
 <header><nav><a href="./index.html">Centro H1 + LAB</a><a href="./lab.html">Laboratório</a><a href="./lab-v4-audit.html">Auditoria V4</a></nav>
 <h1>Resultados finais dos jogos observados</h1>
-<p>Todos os jogos identificados nos alertas, <strong>mesmo sem sinal H1</strong>. Consulta autónoma a BSD e TheSportsDB, com correspondência rigorosa de equipas e hora. O LAB não realiza apostas.</p>
+<p>Todos os jogos identificados nos alertas, <strong>mesmo sem sinal H1</strong>. Consulta autónoma a BSD, TheSportsDB e, nas ligas identificáveis, ESPN, com correspondência rigorosa de equipas e hora. O LAB não realiza apostas. Os jogos futuros não contam como resultados em atraso.</p>
 <p class="small" id="fresh">A carregar resultados…</p></header>
 <section class="cards" aria-label="Indicadores de cobertura">
 <div class="card"><span>Jogos observados</span><strong id="all">—</strong></div>
 <div class="card"><span>Resultados registados</span><strong id="final">—</strong></div>
-<div class="card"><span>Sem FT verificado</span><strong id="pending">—</strong></div>
-<div class="card"><span>Conflitos ou identidade em falta</span><strong id="problem">—</strong></div>
+<div class="card"><span>Já deveriam ter FT, por confirmar</span><strong id="pending">—</strong></div>
+<div class="card"><span>Jogos ainda futuros</span><strong id="future">—</strong></div>
 </section>
 <p id="summary" class="small"></p>
 <div class="controls">
@@ -45,7 +45,7 @@ aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 <script>
 "use strict";
 const node=id=>document.getElementById(id);
-const evidence={bsd_only:"BSD apenas",thesportsdb_only:"TheSportsDB apenas",bsd_and_thesportsdb:"BSD + TheSportsDB"};
+const evidence={bsd_only:"BSD apenas",thesportsdb_only:"TheSportsDB apenas",bsd_and_thesportsdb:"BSD + TheSportsDB",espn_only:"ESPN apenas",bsd_and_espn:"BSD + ESPN",thesportsdb_and_espn:"TheSportsDB + ESPN",bsd_and_thesportsdb_and_espn:"BSD + TheSportsDB + ESPN"};
 const names={FINAL:"FT registado",PENDING:"Pendente",PROVIDER_ERROR:"Erro do fornecedor",IDENTITY_CONFLICT:"Identidade em conflito",INSUFFICIENT_IDENTITY:"Identidade incompleta",SCORE_CONFLICT:"Marcadores contraditórios",EXPIRED_UNVERIFIED:"Prazo ultrapassado"};
 let games=[];
 function td(tr,text,cls){const cell=document.createElement("td");cell.textContent=String(text??"—");if(cls)cell.className=cls;tr.appendChild(cell);return cell;}
@@ -73,11 +73,13 @@ fetch("./lab/ft-results.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error(
  games=d.games;
  node("all").textContent=d.matches;
  node("final").textContent=d.final_recorded;
- node("pending").textContent=d.unverified;
+ const t=d.timing_counts||{};
+ node("pending").textContent=(d.matches-(t.FUTURE||0)-(t.IN_3H_GRACE||0)-d.final_recorded);
+ node("future").textContent=t.FUTURE||0;
  const c=d.status_counts||{};
- node("problem").textContent=(c.SCORE_CONFLICT||0)+(c.IDENTITY_CONFLICT||0)+(c.INSUFFICIENT_IDENTITY||0);
+
  const bd=d.bsd_date_search||{};
- node("summary").textContent="Consultas por executar: "+d.pending_due_checks+" · Recuperados pela pesquisa BSD por data nesta execução: "+(bd.fallback_results_recovered??"não medido")+" · Consultas adicionais BSD: "+(bd.date_list_requests??"—")+" · Jogos só na fonte V4: "+d.source_only_v4_matches+" · Jogos não mostrados: "+d.matches_omitted_from_display+".";
+ node("summary").textContent="Pendentes ainda sem primeira consulta: "+(t.ELIGIBLE_NEVER_QUERIED||0)+" · Novas tentativas disponíveis: "+(t.ELIGIBLE_RETRY_DUE||0)+" · Em intervalo de segurança: "+(t.ELIGIBLE_COOLDOWN||0)+" · Espera de 3h pós-jogo: "+(t.IN_3H_GRACE||0)+" · Verificações ESPN nesta execução: "+((d.espn_scoreboards||{}).confirmed_in_run??"—")+" · Recuperados por data BSD: "+(bd.fallback_results_recovered??"—")+".";
  node("fresh").textContent=d.last_updated_at?"Última atualização de dados: "+d.last_updated_at+" (UTC)":"Ainda sem verificações de resultados.";
  render();
 }).catch(e=>{node("fresh").textContent="Relatório LAB indisponível ou ainda não publicado. Consulte a Action «Lab - Reconcile FT for all observed matches».";node("visible").textContent="Não foi possível ler os dados.";});
