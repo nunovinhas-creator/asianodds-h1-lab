@@ -159,9 +159,8 @@ def main():
     tsdb = PacedTSDB()
     fotmob_enabled = os.environ.get('LAB_FOTMOB_LICENSED', '0') == '1'
     fotmob = FotMobResults(max_days=3 if fotmob_enabled else 0)
-    # Free API-Sports tier is 100 calls/day. Poll only scheduled runs
-    # on even UTC hours before :30, at most 3 date calls per eligible run.
-    # This prevents an automatic 48 * 3 = 144/day loop.
+    # API-Football quota is enforced by persisted day rotation (90/day).
+    # Do NOT gate by UTC hour: watchdog runs are not synchronized to cron.
     api_key = os.environ.get("API_FOOTBALL_KEY", "")
     # Explicitly scoped one-shot GH workflow for the secret activation check.
     # Never lets an ordinary push, H1 cron, or local run bypass the free quota.
@@ -178,10 +177,12 @@ def main():
     # recovery run. Ordinary push/manual executions cannot bypass cooldown.
     backlog_once = backlog_recovery_enabled(os.environ)
     recovery_once = recovery_once or backlog_once
-    api_football_poll = (bool(api_key.strip()) and (
-        one_shot or recovery_once or
-        (os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
-         and now.hour % 2 == 0 and now.minute < 30)))
+    live_context = (os.environ.get("GITHUB_WORKFLOW") ==
+                    "Lab - Reconcile FT for all observed matches" and
+                    os.environ.get("GITHUB_EVENT_NAME") in ("schedule", "workflow_dispatch"))
+    is_scheduled = (os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
+                    or live_context or recovery_once)
+    api_football_poll = bool(api_key.strip()) and (one_shot or is_scheduled)
     api_football = APIFootballResults(key=api_key,
                                       max_days=3 if api_football_poll else 0)
     one_shot_new = (os.environ.get("LAB_NEW_FT_ONE_SHOT") == "true"
@@ -189,10 +190,12 @@ def main():
                     "LAB - GOAL and OpenFoot one-time FT activation")
     # 48 scheduled FT runs/day * 2 dates = at most 96 GOAL requests/day
     # and 96 OpenFoot requests/day (~2,976/month for 31 days).
-    is_scheduled = os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true" or recovery_once
     goal_key = os.environ.get("GOAL_API_KEY", "")
     openfoot_key = os.environ.get("OPENFOOT_API_KEY", "")
     goal_enabled = bool(goal_key.strip()) and (is_scheduled or one_shot_new)
+    # Ordinary push merges must NEVER consume FT attempts, even BSD/TSDB.
+    if os.environ.get("GITHUB_EVENT_NAME") == "push" and not recovery_once:
+        checks = 0
     openfoot_enabled = bool(openfoot_key.strip()) and (is_scheduled or one_shot_new)
     goal = GoalResults(key=goal_key, max_days=2 if goal_enabled else 0)
     openfoot = OpenFootResults(key=openfoot_key, max_days=2 if openfoot_enabled else 0)
@@ -211,7 +214,7 @@ def main():
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=0, force_recheck=recovery_once,
-        priority_hints=research_hints)
+        priority_hints=research_hints, evidence_retry=True)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
     active = set()
     if goal_enabled: active.add("goal")
@@ -223,8 +226,12 @@ def main():
     # a strict id verification. Substitute one date request; never add calls.
     previous_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
                        if IDENTITY_REVIEW.exists() else {})
+    goal_today = (historical_days.get("usage", {}).get("goal", {})
+                  .get(now.date().isoformat(), 0))
+    # An ID probe plus one date request must BOTH fit under the daily cap.
     goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
-                                 previous_review, now) if goal_enabled else {})
+                                 previous_review, now)
+                    if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
     if goal_targets:
         goal.target_ids = goal_targets
         goal.max_days = 1
@@ -246,7 +253,7 @@ def main():
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
-        priority_hints=research_hints)
+        priority_hints=research_hints, evidence_retry=True)
 
 
     # Fail closed if dry-run queue and real queue unexpectedly diverged.
@@ -343,7 +350,7 @@ def main():
                          and os.environ.get("LAB_FT_WATCHDOG_DISPATCH") == "true"
                          and os.environ.get("GITHUB_WORKFLOW") ==
                          "Lab - Reconcile FT for all observed matches")
-    if event == "schedule" or recovery_once or watchdog_dispatch:
+    if event in ("schedule", "workflow_dispatch") or recovery_once:
         previous_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
                           if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
         if (not isinstance(previous_audit, dict) or
@@ -356,8 +363,15 @@ def main():
             "run_id": run_id,
             "trigger": ("one_time_backlog_recovery_v12" if backlog_once
                         else "one_time_recovery" if recovery_once
-                        else "h1_ft_watchdog" if watchdog_dispatch else "schedule"),
+                        else "h1_ft_watchdog" if watchdog_dispatch
+                        else "manual" if event == "workflow_dispatch" else "schedule"),
             "checked_games": queried,
+            "authenticated_providers_ran": any((api_football.requests,
+                                                goal.requests + goal.id_requests,
+                                                openfoot.requests)),
+            "effective_evidence_checks": sum(
+                row.get("evidence_checked_at") == now.isoformat(timespec="seconds")
+                for row in next_ledger["matches"].values()),
             "ft_queue": {k: v for k, v in report["ft_queue"].items()
                          if k not in ("selected_keys", "deferred_keys", "adapter_invocations")},
             "final_recorded": report["final_recorded"],
