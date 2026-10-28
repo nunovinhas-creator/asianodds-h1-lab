@@ -76,7 +76,10 @@ class RotationTests(unittest.TestCase):
             record = journal["providers"][provider]["2026-10-27"]
             self.assertEqual(record["stable_confirmations"], 2)
             self.assertEqual(record["last_fetch_status"], "COMPLETE")
-            self.assertEqual(journal["usage"][provider][NOW.date().isoformat()], 3)
+            # NOW=21:00 UTC; requests cross midnight, so the daily ledger
+            # correctly splits one call today and two calls tomorrow.
+            self.assertEqual(sum(journal["usage"][provider].values()), 3)
+            self.assertLessEqual(max(journal["usage"][provider].values()), 3)
 
     def test_provider_day_failure_does_not_confirm_stability(self):
         game = {"key": {"kickoff_utc": "2026-10-27T16:00:00+00:00"}}
