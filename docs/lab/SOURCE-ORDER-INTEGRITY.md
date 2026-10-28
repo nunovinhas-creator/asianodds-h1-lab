@@ -1,3 +1,5 @@
+> **Resolução posterior (28/10/2026):** a fotografia inicial abaixo de 25 FT e conflitos SportScore está ultrapassada. As PRs #49 e #50 introduziram revalidação independente, prova documental específica por jogo e registo de proveniência; os quatro casos antigos ficaram resolvidos após verificação, sem simplesmente inverter placares SportScore. [ft-results.json](ft-results.json) registava zero conflitos `SOURCE_ORDER_CONFLICT` no instantâneo de 11:15 UTC e 63 FT. A proteção contra novas inversões **permanece ativa**. Ver [código](../../h1lab/lab_results.py) e [ponte H1](../../h1lab/lab_promotion.py).
+
 # Correção crítica — integridade casa/fora no resultado SportScore
 
 O LAB confirmou 25 resultados FT no run de 28/10/2026 às 08:09 UTC. Numa auditoria ao URL original de alguns dos novos resultados, foram encontrados **dois casos em que o endereço do jogo na SportScore identifica a ordem das equipas invertida face à resposta da API**.
