@@ -153,6 +153,71 @@ REVIEWED_PENDING_FT = {
         "https://www.tff.org/default.aspx?ftxtID=2966&pageID=600",
         "https://www.canligaste.com/sonuc-balikesirspor-arnavutkoy-belediyespor-90-dakika-tamamlandi-1-0/937834/",
     ),
+    # Manual independent public-source review (28/10 evening UTC).
+    # The string home/away/kickoff MUST match the original AsianOdds fixture.
+    # SOURCE CHECKS: Nagoya 1-1 and Puszcza 1-1 at 90 minutes only;
+    # the 117th/109th-minute extra-time winning goals are EXCLUDED.
+    # No global alias; no guessed identity; no changed H1 signal.
+    "2026-10-28,28717,61795": (
+        "FK Viagem Pribram B", "SK Benešov",
+        "2026-10-28T09:30:00+00:00", 2, 3,
+        "https://www.eurofotbal.cz/souteze/cesko/cfl-a/2026-2027/reportaz/fk-pribram-b-sk-benesov-1092965/",
+        "https://futebolmax.org/football/match/pribram-b-vs-benesov-2582090",
+    ),
+    "2026-10-28,28720,24581": (
+        "FC Slovan Liberec II", "FC Zenit Caslav",
+        "2026-10-28T10:00:00+00:00", 0, 0,
+        "https://www.fcslovanliberec.cz/cz/match/5784-Svatecni-dohravka-branky-nenabidla-B-tym-remizoval-s-Caslavi",
+        "https://www.eurofotbal.cz/souteze/cesko/cfl-b/2026-2027/reportaz/slovan-liberec-b-fk-caslav-1093061/",
+    ),
+    "2026-10-28,799,631": (
+        "Nagoya Grampus Eight", "Urawa Red Diamonds",
+        "2026-10-28T10:00:00+00:00", 1, 1,
+        "https://www.urawa-reds.co.jp/topteamtopics/9029897.html",
+        "https://www.redspress.jp/index/reds_report/ARTICLE1/2026102800003",
+    ),
+    "2026-10-28,55219,22939": (
+        "Cigánd SE", "Paksi SE",
+        "2026-10-28T11:30:00+00:00", 1, 2,
+        "https://nb1.hu/hir/magyar-kupa-4-fordulo-eredmenyek/",
+        "https://hatsofuves.nemzetisport.hu/labdarugo-nb-i/2026/10/a-loki-es-a-paks-a-hajraban-a-szpari-a-hosszabbitasban-harcolta-ki-a-tovabbjutast-a-mol-magyar-kupaban",
+    ),
+    "2026-10-28,10012613,10074748": (
+        "Muranga Seal", "Nairobi United",
+        "2026-10-28T12:00:00+00:00", 3, 2,
+        "https://www.kovascore.com/football/match/sportpesa-premier-league/murang-a-seal-nairobi-united-4883398",
+        "https://www.oddsgpt.com/asian-handicap/1629093/murang-a-seal-vs-nairobi-united/en",
+    ),
+    "2026-10-28,10038000,1142": (
+        "OFK Vrsac", "Omladinski FK Beograd",
+        "2026-10-28T12:00:00+00:00", 0, 1,
+        "https://meridiansport.rs/fudbal/zvezdina-filijala-srusila-superligasa-romanticari-preziveli-odlazak-u-vrsac/",
+        "https://www.dnevnik.rs/lat/sport/fudbal/suboticane-eliminisao-srpskoligas-kraj-za-spartak-kupu-superligasi-polozili-koplja-pred-teleoptikom-graficarom-2026-10-28",
+    ),
+    "2026-10-28,95299,1092": (
+        "Marko", "Olympiakos",
+        "2026-10-28T13:00:00+00:00", 0, 2,
+        "https://www.epo.gr/el/arthra/marko-olympiakos-0-2",
+        "https://www.sport24.gr/football/marko-olimpiakos-0-2-me-saliaka-kai-karmo-oi-erithrolefkoi-exoun-to-apolito-sto-superbet-kipello-elladas/",
+    ),
+    "2026-10-28,35198,74459": (
+        "ACF Fiorentina U19", "FC Septemvri Sofia U19",
+        "2026-10-28T13:30:00+00:00", 5, 0,
+        "https://ng.soccerway.com/match/fiorentina-2TBysB6k/septemvri-sofia-80w3wjhQ/?mid=W8kExAdJ",
+        "https://www.nove.firenze.it/primavera-goleada-europea-5-0-al-septemviri-sofia.htm",
+    ),
+    "2026-10-28,28354,23552": (
+        "MKS Znicz Pruszków", "Ruch Chorzow",
+        "2026-10-28T16:30:00+00:00", 0, 1,
+        "https://pilkanozna.pl/ruch-zwycieski-w-pruszkowie-niebiescy-z-awansem-do-kolejnej-rundy/",
+        "https://www.sporx.com/znicz-pruszkow-player1-bu-kulvarda-bu-sezonki-5-maci-anlatim-6280516",
+    ),
+    "2026-10-28,36192,993": (
+        "Puszcza Niepolomice", "Wisła Płock",
+        "2026-10-28T16:30:00+00:00", 1, 1,
+        "https://www.scorebat.com/puszcza-n-vs-wisla-plock-live-stream/",
+        "https://kanalsportowy.pl/relacja/puszcza-niepolomice-wisla-plock-2026-10-28/sklady/",
+    ),
 }
 
 
