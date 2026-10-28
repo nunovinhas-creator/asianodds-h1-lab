@@ -55,5 +55,20 @@ jobs:
           assert rd['p0_7_day_gate'] in ('WARMUP','SOURCE_COVERAGE_PASS_PENDING_EXTERNAL_VERIFICATION','SOURCE_COVERAGE_BELOW_99_PERCENT')
           print('V6_REAL_INPUT_SMOKE_OK',len(prices['snapshots']))
           PY
+      - name: V6 scientific memory replay smoke on real frozen snapshots
+        run: |
+          python -m scripts.lab_v6_memory
+          python -m scripts.lab_v6_memory --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from h1lab.v6_science_memory import rebuild
+          d=json.loads(Path('docs/lab/v6-memory.json').read_text(encoding='utf-8'))
+          assert d['status']=='V6_SCIENCE_MEMORY_SHADOW_WARMUP_NOT_VALIDATED'
+          assert d['source_forecasts']==d['stream_records']['observations']
+          assert d['source_forecasts']==d['stream_records']['patterns']
+          assert d==rebuild('.')
+          print('V6_FIVE_MEMORIES_REPLAY_OK',d['source_forecasts'])
+          PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs

@@ -39,6 +39,15 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_v6_shadow.py' -v
           python -m scripts.lab_v6_shadow
+      # V6.1 P1 preparation only: scientific memory stays a shadow.
+      # It does not promote hypotheses until the P0 7/14-day readiness gates.
+      - name: Synchronize and replay V6 scientific memories (shadow)
+        id: v6_science_memory
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_science_memory.py' -v
+          python -m scripts.lab_v6_memory
+          python -m scripts.lab_v6_memory --verify-only
       - name: Validate V4 audit tests before publication
         run: |
           python -m unittest discover -s tests -p 'test_v4_audit.py' -v
@@ -82,6 +91,11 @@ jobs:
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
           if [ -f docs/lab/v6-readiness.json ]; then git add docs/lab/v6-readiness.json; fi
+          # A failed memory step can leave partial local files; never publish them.
+          if [ "${{ steps.v6_science_memory.outcome }}" = "success" ]; then
+            if [ -f docs/lab/v6-memory.json ]; then git add docs/lab/v6-memory.json; fi
+            git add -f data/lab/v6-memory-*.jsonl 2>/dev/null || true
+          fi
           if [ -f docs/lab/v6-price-quality.json ]; then git add docs/lab/v6-price-quality.json; fi
           git add -f data/lab/v6-forecasts-*.jsonl 2>/dev/null || true
           if [ -f data/lab/v6-hypotheses.jsonl ]; then git add -f data/lab/v6-hypotheses.jsonl; fi
