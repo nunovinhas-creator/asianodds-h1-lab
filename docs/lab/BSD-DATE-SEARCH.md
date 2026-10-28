@@ -1,3 +1,5 @@
+> **Histórico 28/10/2026:** a baseline abaixo de 138 jogos e 3 FT corresponde ao início do processo de recuperação, não ao estado atual. [ft-results.json](ft-results.json) registava 267 jogos e 63 FT em 28/10, 11:15 UTC. A procura BSD por data é hoje apenas uma das fontes do [pipeline LAB](../../.github/workflows/lab-ft-results.yml); a [ponte FT LAB → H1](../../h1lab/lab_promotion.py) liquida sinais existentes. Ver [arquitetura canónica](ARCHITECTURE.md).
+
 # UNDER TESTE LAB — Pesquisa BSD alternativa por data
 
 ## Problema observado e baseline
