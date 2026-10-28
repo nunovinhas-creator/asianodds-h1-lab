@@ -25,6 +25,8 @@ on:
       - 'tests/test_lab_reviewed_bsd_ids.py'
       - 'tests/test_lab_monte_bsd.py'
       - 'h1lab/lab_reviewed_aliases.py'
+      - 'h1lab/lab_ft_reviewed_evidence.py'
+      - 'tests/test_lab_ft_reviewed_evidence.py'
       - 'tests/test_lab_reviewed_aliases.py'
       - 'tests/test_lab_source_order.py'
       - 'tests/test_lab_ft_recovery.py'
@@ -78,6 +80,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_reviewed_aliases.py' -v
           python -m unittest discover -s tests -p 'test_lab_source_order.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_recovery.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_reviewed_evidence.py' -v
           python -m unittest discover -s tests -p 'test_lab_monte_bsd.py' -v
           python -m unittest discover -s tests -p 'test_lab_identity.py' -v
           python -m unittest discover -s tests -p 'test_lab_reviewed_bsd_ids.py' -v

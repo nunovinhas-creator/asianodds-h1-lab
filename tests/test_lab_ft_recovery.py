@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from h1lab.lab_results import reconcile
 
-KEY = "2026-10-27,10102013,10048381"
+KEY = "2026-10-27,9999001,9999002"
 HOME = "Montevideo City Torque Reserve"
 AWAY = "Albion FC Reserves"
 KICKOFF = "2026-10-27T13:00:00+00:00"
