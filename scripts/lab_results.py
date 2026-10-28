@@ -252,6 +252,12 @@ def main():
     # Fail closed if dry-run queue and real queue unexpectedly diverged.
     if report["ft_queue"]["selected_keys"] != preview_keys:
         raise ValueError("FT queue changed between date planning and reconciliation")
+    # An ID request is counted as a real HTTP attempt (including failures).
+    # Do not repeatedly consume the same free-tier slot on every eligible run.
+    if goal.id_requests:
+        for match_key in goal_targets:
+            next_ledger["matches"][match_key]["goal_id_last_attempt_at"] = (
+                now.isoformat(timespec="seconds"))
     used_days = {
         "goal": sorted(goal.cache),
         "openfoot": sorted(openfoot.days),
