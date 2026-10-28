@@ -96,7 +96,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -205,6 +205,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("sportscore", sportscore_lookup))
         if fotmob_lookup is not None:
             providers.append(("fotmob", fotmob_lookup))
+        if api_football_lookup is not None:
+            providers.append(("api_football", api_football_lookup))
         for provider, lookup in providers:
             try:
                 candidate, reason = lookup(signal)
