@@ -393,12 +393,14 @@ def match_timeline(match_key, events, *, near_seconds, identities):
 # --------------------------------------------------------------------------
 # Whole report
 
-def build_report(alerts, market_rows, *, near_seconds=DEFAULT_NEAR_SECONDS,
-                 max_timelines=DEFAULT_MAX_TIMELINES, source_errors=()):
+def collect_timelines(alerts, market_rows, *, near_seconds=DEFAULT_NEAR_SECONDS, source_errors=()):
+    """Every match timeline (single-message matches included) plus issues.
+
+    Shared by the published chronology and by the LAB pattern engine, so both
+    use exactly the same message -> snapshot -> movement -> match logic.
+    """
     if not isinstance(near_seconds, (int, float)) or isinstance(near_seconds, bool) or near_seconds < 0:
         raise ValueError("near_seconds must be a non-negative number")
-    if not isinstance(max_timelines, int) or max_timelines < 0:
-        raise ValueError("max_timelines must be a non-negative integer")
     issues = list(source_errors)
     legacy, v4 = {}, {}
     for source, rows, target in (("h1_state", alerts, legacy), ("v4", market_rows, v4)):
@@ -433,6 +435,17 @@ def build_report(alerts, market_rows, *, near_seconds=DEFAULT_NEAR_SECONDS,
                                                "kickoff_utc": kickoff})
     timelines = [match_timeline(k, v, near_seconds=near_seconds, identities=identities[k])
                  for k, v in groups.items()]
+    return timelines, issues, excluded
+
+
+def build_report(alerts, market_rows, *, near_seconds=DEFAULT_NEAR_SECONDS,
+                 max_timelines=DEFAULT_MAX_TIMELINES, source_errors=()):
+    if not isinstance(near_seconds, (int, float)) or isinstance(near_seconds, bool) or near_seconds < 0:
+        raise ValueError("near_seconds must be a non-negative number")
+    if not isinstance(max_timelines, int) or max_timelines < 0:
+        raise ValueError("max_timelines must be a non-negative integer")
+    timelines, issues, excluded = collect_timelines(
+        alerts, market_rows, near_seconds=near_seconds, source_errors=source_errors)
     repeated = [t for t in timelines if t["event_count"] > 1]
     repeated.sort(key=lambda t: (t["last_observed_at"], t["match_key"]), reverse=True)
     published = repeated[:max_timelines]
@@ -513,7 +526,8 @@ def read_jsonl(path):
     return rows, errors
 
 
-def generate(root, **options):
+def read_sources(root):
+    """(alerts, V4 rows, source errors) from the tracked repository files."""
     root = Path(root)
     state = json.loads((root / "data" / "state.json").read_text(encoding="utf-8"))
     if not isinstance(state, dict) or not isinstance(state.get("alerts"), list):
@@ -523,4 +537,9 @@ def generate(root, **options):
         r, e = read_jsonl(path)
         rows += r
         errors += e
-    return build_report(state["alerts"], rows, source_errors=errors, **options)
+    return state["alerts"], rows, errors
+
+
+def generate(root, **options):
+    alerts, rows, errors = read_sources(root)
+    return build_report(alerts, rows, source_errors=errors, **options)
