@@ -98,7 +98,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -112,6 +112,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         raise ValueError("Unsupported LAB FT lookup source version")
     if not isinstance(max_checks, int) or not 0 <= max_checks <= MAX_CHECKS_CAP:
         raise ValueError("max_checks outside safe range 0..30")
+    if type(force_recheck) is not bool:
+        raise ValueError("force_recheck must be boolean")
     if not isinstance(state, dict) or not isinstance(state.get("alerts"), list):
         raise ValueError("H1 alerts missing or invalid")
     if not isinstance(v4rows, list):
@@ -166,18 +168,22 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 row["reason"] = "sportscore_source_url_reverses_home_away"
                 row.pop("result", None)  # not a valid 90m score assignment
 
+    # Only independent providers can resolve a quarantined SportScore fixture.
+    source_order_keys = {key for key in games
+                         if entries[key]["status"] == "SOURCE_ORDER_CONFLICT"}
     candidates = []
     for key in games:
         entry = entries[key]
-        if entry["status"] not in ("PENDING", "PROVIDER_ERROR"):
+        if entry["status"] not in ("PENDING", "PROVIDER_ERROR", "SOURCE_ORDER_CONFLICT"):
             continue
         kickoff = utc(entry["kickoff_utc"])
         if kickoff is None:
             entry["status"] = "INSUFFICIENT_IDENTITY"
             continue
         if now > kickoff + HORIZON:
-            entry["status"] = "EXPIRED_UNVERIFIED"
-            entry["reason"] = "beyond_30_day_lookup_window"
+            if entry["status"] != "SOURCE_ORDER_CONFLICT":
+                entry["status"] = "EXPIRED_UNVERIFIED"
+                entry["reason"] = "beyond_30_day_lookup_window"
             continue
         if now < kickoff + DELAY:
             continue
@@ -189,11 +195,13 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                      entry.get("reviewed_alias_check_version") != 1)
         bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
                       entry.get("reviewed_bsd_id_check_version") != 1)
-        if last and now < last + RETRY and not upgrade and not alias_due and not bsd_id_due:
+        if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or force_recheck):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
-        candidates.append((-1 if bsd_id_due else 0 if alias_due else 1,
-                           last or datetime.min.replace(tzinfo=timezone.utc), kickoff, key))
+        priority = (-2 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
+                    -1 if bsd_id_due else 0 if alias_due else 1)
+        candidates.append((priority, last or datetime.min.replace(tzinfo=timezone.utc),
+                           kickoff, key))
 
     # Oldest attempted first; tie-break by kickoff/key to avoid starved matches.
     candidates.sort()
@@ -203,10 +211,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         signal = {"match_key": key, **{field: row[field] for field in ("home", "away", "kickoff_utc")}}
         found = {}
         reasons = {}
+        if key in source_order_keys:
+            reasons["sportscore"] = "quarantined_source_not_reused"
         providers = [("bsd", bsd_lookup), ("thesportsdb", tsdb_lookup)]
         if espn_lookup is not None:
             providers.append(("espn", espn_lookup))
-        if sportscore_lookup is not None:
+        if sportscore_lookup is not None and key not in source_order_keys:
             providers.append(("sportscore", sportscore_lookup))
         if fotmob_lookup is not None:
             providers.append(("fotmob", fotmob_lookup))
@@ -237,8 +247,11 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
         scores = {(item["home_goals"], item["away_goals"]) for _, item in confirmed}
         if len(scores) > 1:
-            row["status"] = "SCORE_CONFLICT"
-            row["reason"] = "provider_score_conflict_manual_review"
+            row["status"] = ("SOURCE_ORDER_CONFLICT" if key in source_order_keys
+                             else "SCORE_CONFLICT")
+            row["reason"] = ("independent_sources_disagree_manual_review"
+                             if key in source_order_keys else
+                             "provider_score_conflict_manual_review")
             row.pop("result", None)
             # Any disagreement, including ESPN vs BSD, quarantines the score.
         elif confirmed:
@@ -252,12 +265,24 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             methods = sorted({item.get("identity_match", "EXACT") for _, item in confirmed})
             if methods != ["EXACT"]:
                 row["result"]["identity_match"] = "+".join(methods)
-            row["reason"] = "ft_recorded_with_source"
+            if key in source_order_keys:
+                row["source_order_resolution"] = {
+                    "method": "independent_non_sportscore_90m_ft",
+                    "verified_by": names,
+                    "verified_at_utc": now.isoformat(timespec="seconds"),
+                }
+                row["reason"] = "independent_ft_resolved_source_order_conflict"
+            else:
+                row["reason"] = "ft_recorded_with_source"
         else:
-            row["status"] = "PROVIDER_ERROR" if any(
-                r in ("provider_unavailable", "invalid_provider_result") for r in reasons.values()
-            ) else "PENDING"
-            row["reason"] = "no_verified_ft_yet"
+            if key in source_order_keys:
+                row["status"] = "SOURCE_ORDER_CONFLICT"
+                row["reason"] = "sportscore_source_url_reverses_home_away"
+            else:
+                row["status"] = "PROVIDER_ERROR" if any(
+                    r in ("provider_unavailable", "invalid_provider_result") for r in reasons.values()
+                ) else "PENDING"
+                row["reason"] = "no_verified_ft_yet"
             row.pop("result", None)
 
     # Distinguish not-started matches from real provider gaps. The "unverified"
@@ -328,6 +353,23 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             "Unmatched, conflicting, postponed and ambiguous fixtures remain unverified.",
             "SportScore results with a provably reversed home-away URL are quarantined.",
             "No betting ROI or predictive accuracy is computed; matches are the unit of analysis.",
+        ],
+    }
+    report["source_order_audit"] = {
+        "quarantined_identified": len(source_order_keys),
+        "recovered_with_independent_ft": sum(
+            entries[key]["status"] == "FINAL" for key in source_order_keys),
+        "remaining_quarantined": sum(
+            entries[key]["status"] == "SOURCE_ORDER_CONFLICT" for key in source_order_keys),
+        "cases": [
+            {"match_key": key,
+             "home": entries[key]["home"], "away": entries[key]["away"],
+             "status": entries[key]["status"],
+             "reason": entries[key].get("reason"),
+             "checked_at": entries[key].get("checked_at"),
+             "provider_reasons": entries[key].get("provider_reasons", {}),
+             "recovered_from": (entries[key].get("source_order_resolution") or {}).get("verified_by", [])}
+            for key in sorted(source_order_keys)
         ],
     }
     return {"schema_version": SCHEMA, "matches": entries,
