@@ -50,7 +50,7 @@ footer{margin-top:56px;font-size:15px;color:var(--soft)}
 </style></head>
 <body class="loading"><div class="wrap">
 <header>
-<div class="top"><a href="./index.html">Centro de controlo H1 + LAB</a><a href="./lab-results.html">Resultados dos jogos</a><a href="./lab-v4-audit.html">Auditoria V4</a><a href="./golden-review.html">Golden Set — revisão</a></div>
+<div class="top"><a href="./index.html">Centro de controlo H1 + LAB</a><a href="./lab-research.html">Investigação de padrões</a><a href="./lab-results.html">Resultados dos jogos</a><a href="./lab-v4-audit.html">Auditoria V4</a><a href="./golden-review.html">Golden Set — revisão</a></div>
 <h1 id="headline">Nada está certificado ainda.</h1>
 <p class="lede">Este laboratório observa os alertas AsianOdds em modo sombra. Mede se os dados são fiáveis antes de qualquer estudo de vantagem. Não altera o H1 e não cria apostas.</p>
 <ol class="chain" aria-label="Cadeia de evidência, da mensagem ao resultado">
@@ -62,7 +62,13 @@ footer{margin-top:56px;font-size:15px;color:var(--soft)}
 </ol>
 <p class="muted" id="chain-note">A unidade de avaliação de uma aposta é o jogo, não cada notificação.</p>
 </header>
-<nav class="toc" aria-label="Secções"><a href="#saude">Saúde e cobertura V4</a><a href="#qualidade">Qualidade e confiança</a><a href="#golden">Golden Set</a><a href="#cronologias">Cronologias</a><a href="#prioridades">Prioridades</a><a href="#limites">Limitações e documentação</a></nav>
+<nav class="toc" aria-label="Secções"><a href="#investigacao">Investigação de padrões</a><a href="#saude">Saúde e cobertura V4</a><a href="#qualidade">Qualidade e confiança</a><a href="#golden">Golden Set</a><a href="#cronologias">Cronologias</a><a href="#prioridades">Prioridades</a><a href="#limites">Limitações e documentação</a></nav>
+
+<section id="investigacao" aria-labelledby="h-inv"><h2 id="h-inv">Investigação de padrões</h2>
+<p class="stamp" id="r-stamp"></p>
+<p id="r-summary"></p>
+<p><a href="./lab-research.html">Abrir a investigação</a>: padrões, combinações, jogos semelhantes, evolução, descobertas e cobertura FT.</p>
+</section>
 
 <section id="saude" aria-labelledby="h-saude"><h2 id="h-saude">Saúde e cobertura V4</h2>
 <p class="stamp" id="v4-stamp"></p>
@@ -147,8 +153,11 @@ const GATE={window_elapsed:["Janela de 24 h terminada","Fecha em "],minimum_evid
  independent_identity:["Identidade independente","12 registos anteriores à proveniência."],data_integrity:["Integridade dos ficheiros",""],
  golden_set_verified:["Golden Set verificado","Exige revisão humana independente."],logs_clean_24h:["Logs limpos 24 h","Só certificável no fim da janela."]};
 const LEVEL={R1_ONLY:"R1",R1_PLUS_USER_SOURCE_CONFIRMATION:"R1 + confirmação do utilizador",TWO_REVIEWS:"duas revisões"};
-Promise.all([get("./lab/v4-audit.json"),get("./lab/golden-report.json"),get("./lab/match-trajectories.json"),get("./lab/quality.json"),get("./data.json")])
-.then(([v4,g,t,q,h1])=>{
+Promise.all([get("./lab/v4-audit.json"),get("./lab/golden-report.json"),get("./lab/match-trajectories.json"),get("./lab/quality.json"),get("./data.json"),get("./lab/pattern-research.json"),get("./lab/ft-results.json")])
+.then(([v4,g,t,q,h1,rs,ft])=>{
+ // LAB V5 research summary
+ stamp("r-stamp",rs?.generated_at,"O relatório de investigação",2);
+ if(rs){const sc=rs.state_counts||{};$("r-summary").textContent=rs.scope.research_eligible+" jogos em estudo, "+rs.scope.ft_confirmed+" com resultado confirmado, "+rs.generation.hypotheses_evaluated+" hipóteses avaliadas ("+rs.generation.tests_performed+" testes com correção múltipla). Congeladas: "+rs.frozen.length+"; validadas fora da amostra: "+(sc.VALIDADO||0)+". Tudo o resto é exploratório."}
  document.body.classList.remove("loading");
  // Evidence chain
  const s=t?.summary;
@@ -161,9 +170,9 @@ Promise.all([get("./lab/v4-audit.json"),get("./lab/golden-report.json"),get("./l
  $("s-mov").replaceChildren(tag(s?"independência por provar":"cronologia não publicada",s?"wait":"bad"));
  $("c-game").textContent=fmt(s?.matches);
  $("s-game").replaceChildren(tag(s?s.repeated_matches+" com vários alertas":"—","wait"));
- const settled=h1?.singles?.settled;
- $("c-res").textContent=fmt(settled);
- $("s-res").replaceChildren(tag("só sinais H1 liquidados","old"));
+ // LAB FT for every observed match (not only H1 signals); H1 figure as fallback.
+ if(ft){$("c-res").textContent=fmt(ft.final_recorded);$("s-res").replaceChildren(tag("FT confirmado de "+ft.matches+" jogos","wait"))}
+ else{$("c-res").textContent=fmt(h1?.singles?.settled);$("s-res").replaceChildren(tag("só sinais H1 liquidados","old"))}
  $("headline").textContent=v4?.status==="PASS"?"Gates V4 aprovados; Golden Set ainda por certificar.":"Nada está certificado ainda.";
 
  // V4 health

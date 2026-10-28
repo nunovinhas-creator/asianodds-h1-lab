@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Investigação de padrões</title>
+<meta name="description" content="Motor de investigação do laboratório UNDER TESTE: padrões de movimento de odds, combinações, resultados, validação fora da amostra e jogos semelhantes. Exploratório; não cria apostas.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#eef2f0;--sheet:#f8faf9;--ink:#14212b;--soft:#4c5d66;--line:#c3cfcb;--ok:#0e6a5b;--wait:#9a5b00;--old:#625c7c;--bad:#a12c2c;--focus:#1d5fd1;--bar:#3c6e8f;--bar2:#b8c7c3;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#121a1f;--sheet:#18232a;--ink:#e3ebe8;--soft:#9fb0b4;--line:#2f3f45;--ok:#5ac2ad;--wait:#e3a548;--old:#ada6cc;--bad:#ef8a8a;--focus:#8fb4ff;--bar:#7fb0d1;--bar2:#3a4c53;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#121a1f;--sheet:#18232a;--ink:#e3ebe8;--soft:#9fb0b4;--line:#2f3f45;--ok:#5ac2ad;--wait:#e3a548;--old:#ada6cc;--bad:#ef8a8a;--focus:#8fb4ff;--bar:#7fb0d1;--bar2:#3a4c53;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.55 "Atkinson Hyperlegible",system-ui,sans-serif}
+a{color:inherit;text-decoration-color:var(--soft);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:2px}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 64px}
+.top{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px;color:var(--soft)}
+h1{font-size:clamp(30px,6.5vw,52px);line-height:1.04;letter-spacing:-.02em;margin:24px 0 10px;max-width:18ch}
+.lede{font-size:18px;color:var(--soft);max-width:62ch;margin:0}
+h2{font-size:23px;margin:0 0 6px}h3{font-size:18px;margin:20px 0 6px}
+p{max-width:68ch}.muted{color:var(--soft)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:26px 0 6px;border-top:3px solid var(--ink)}
+.kpis div{padding:12px 12px 14px 0}.kpis div+div{padding-left:14px;border-left:1px solid var(--line)}
+.kpis b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpis span{font-size:14px;color:var(--soft)}
+@media (max-width:640px){.kpis{grid-template-columns:1fr 1fr}.kpis div:nth-child(3){border-left:0;padding-left:0}.kpis div:nth-child(n+3){border-top:1px solid var(--line)}}
+[role=tablist]{position:sticky;top:0;z-index:2;background:var(--paper);display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:28px -16px 0;padding:0 16px;border-bottom:1px solid var(--line);scrollbar-width:none}
+[role=tab]{flex:0 0 auto;font:inherit;font-size:16px;background:none;border:0;border-bottom:3px solid transparent;padding:12px 12px 10px;color:var(--soft);cursor:pointer;min-height:48px}
+[role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+[role=tabpanel]{padding-top:18px}
+.tag{display:inline-block;font-size:13.5px;font-weight:700;padding:1px 8px;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.tag.ok{color:var(--ok)}.tag.wait{color:var(--wait)}.tag.old{color:var(--old)}.tag.bad{color:var(--bad)}
+.note{border-left:4px solid var(--wait);padding:6px 0 6px 14px;margin:14px 0;max-width:68ch}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--sheet)}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:700;white-space:nowrap}td.n{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.cards{display:grid;gap:12px}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.card h4{margin:0 0 4px;font-size:16.5px}
+.row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px;color:var(--soft)}
+.row b{color:var(--ink);font-variant-numeric:tabular-nums}
+.diff{display:grid;grid-template-columns:7.5rem 1fr 4.5rem;align-items:center;gap:8px;font-size:14.5px;margin:4px 0}
+.track{position:relative;height:14px;background:var(--bar2);border-radius:2px}
+.track i{position:absolute;top:0;bottom:0;background:var(--bar)}
+.track s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);left:50%}
+.track u{position:absolute;top:5px;height:4px;background:var(--ink);opacity:.45;text-decoration:none}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.chips span{font-size:13px;border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--soft)}
+label.sel{display:block;font-weight:700;margin:6px 0}select{font:inherit;width:100%;max-width:520px;padding:10px;border:1px solid var(--line);border-radius:4px;background:var(--sheet);color:var(--ink);min-height:48px}
+svg text{fill:var(--soft);font:12px "Atkinson Hyperlegible",system-ui,sans-serif}
+details{margin:10px 0}summary{cursor:pointer;font-weight:700;min-height:32px}
+footer{margin-top:48px;font-size:15px;color:var(--soft)}
+</style></head>
+<body><div class="wrap">
+<div class="top"><a href="./lab.html">Laboratório</a><a href="./lab-results.html">Resultados dos jogos</a><a href="./index.html">Centro de controlo H1 + LAB</a></div>
+<h1 id="headline">Investigação de padrões</h1>
+<p class="lede">Movimentos de odds observados, combinações e resultados reais, por jogo. Tudo o que aqui aparece é exploratório até ser congelado e confirmado em jogos posteriores. Não há apostas nem ROI.</p>
+<p class="muted" id="stamp">A carregar…</p>
+<div class="kpis" aria-label="Resumo">
+ <div><b id="k-games">—</b><span>jogos em estudo</span></div>
+ <div><b id="k-ft">—</b><span>com resultado confirmado</span></div>
+ <div><b id="k-hyp">—</b><span>hipóteses avaliadas</span></div>
+ <div><b id="k-val">—</b><span>validadas fora da amostra</span></div>
+</div>
+<p class="note" id="verdict"></p>
+
+<div role="tablist" aria-label="Áreas de investigação" id="tabs">
+ <button role="tab" id="t-pat" aria-controls="p-pat" aria-selected="true">Padrões</button>
+ <button role="tab" id="t-com" aria-controls="p-com" aria-selected="false" tabindex="-1">Combinações</button>
+ <button role="tab" id="t-sim" aria-controls="p-sim" aria-selected="false" tabindex="-1">Jogos semelhantes</button>
+ <button role="tab" id="t-evo" aria-controls="p-evo" aria-selected="false" tabindex="-1">Evolução</button>
+ <button role="tab" id="t-dis" aria-controls="p-dis" aria-selected="false" tabindex="-1">Descobertas</button>
+ <button role="tab" id="t-ft" aria-controls="p-ft" aria-selected="false" tabindex="-1">Cobertura FT</button>
+</div>
+
+<section role="tabpanel" id="p-pat" aria-labelledby="t-pat">
+ <h2>Padrões individuais</h2>
+ <p class="muted">Taxa de Over 2,5 nos jogos com o padrão, comparada com os jogos sem ele. A barra mostra a diferença e o seu intervalo de confiança de 95%; o traço central é zero.</p>
+ <label class="sel" for="outcome">Resultado</label>
+ <select id="outcome"><option value="OVER_2_5">Over 2,5 golos (Under 2,5 é o complemento)</option><option value="BTTS_YES">Ambas marcam (BTTS Não é o complemento)</option></select>
+ <div class="cards" id="pat-list" style="margin-top:14px"></div>
+</section>
+
+<section role="tabpanel" id="p-com" aria-labelledby="t-com" hidden>
+ <h2>Combinações</h2>
+ <p class="muted">Pares (A e B), exclusões (A sem B), ordem (A antes de B, noutro episódio) e trios (A e B sem C), geradas só a partir dos padrões, sem olhar para os resultados. Mostra-se uma por amostra de resultados idêntica.</p>
+ <div class="cards" id="com-list"></div>
+</section>
+
+<section role="tabpanel" id="p-sim" aria-labelledby="t-sim" hidden>
+ <h2>Jogos semelhantes</h2>
+ <p class="muted">Para cada jogo recente, os jogos anteriores com comportamento de odds mais parecido, usando só a informação disponível no último alerta antes do início. O marcador final nunca entra na semelhança.</p>
+ <label class="sel" for="sim-pick">Jogo</label>
+ <select id="sim-pick"></select>
+ <div id="sim-out" style="margin-top:14px"></div>
+ <h3>O método prevê alguma coisa?</h3>
+ <p id="sim-wf" class="muted"></p>
+</section>
+
+<section role="tabpanel" id="p-evo" aria-labelledby="t-evo" hidden>
+ <h2>Evolução</h2>
+ <p class="muted">Jogos por dia de início e taxa de Over 2,5 nos jogos com resultado. Os dias com poucos resultados variam muito.</p>
+ <div class="scroll" id="evo-chart"></div>
+ <div class="scroll"><table><thead><tr><th>Dia</th><th>Jogos</th><th>Com FT</th><th>Over 2,5</th><th>BTTS</th></tr></thead><tbody id="evo-rows"></tbody></table></div>
+ <h3>Referências globais</h3>
+ <div id="base"></div>
+</section>
+
+<section role="tabpanel" id="p-dis" aria-labelledby="t-dis" hidden>
+ <h2>Descobertas</h2>
+ <h3>Hipóteses congeladas</h3>
+ <p class="muted">Só uma hipótese congelada pode ser validada, e apenas com jogos observados depois de congelada.</p>
+ <div class="cards" id="frozen"></div>
+ <h3>Mudanças desde a última execução</h3>
+ <div id="changes"></div>
+ <h3>Resultados novos e padrões desses jogos</h3>
+ <div class="cards" id="newft"></div>
+ <h3>Evidência negativa</h3>
+ <div id="neg"></div>
+</section>
+
+<section role="tabpanel" id="p-ft" aria-labelledby="t-ft" hidden>
+ <h2>Cobertura de resultados</h2>
+ <p class="muted">Situação real de todos os jogos observados, tenham ou não gerado H1.</p>
+ <div id="ft-bar"></div>
+ <div class="scroll"><table><thead><tr><th>Estado</th><th>Jogos</th></tr></thead><tbody id="ft-rows"></tbody></table></div>
+ <h3>Porque continuam pendentes</h3>
+ <div class="scroll"><table><thead><tr><th>Motivo</th><th>Jogos</th></tr></thead><tbody id="ft-why"></tbody></table></div>
+ <p><a href="./lab-results.html">Ver jogo a jogo</a></p>
+</section>
+
+<footer>Dados: <code>docs/lab/pattern-research.json</code>. Regras de classificação: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/PATTERN-ENGINE.md">PATTERN-ENGINE.md</a>.</footer>
+</div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const el=(t,txt,cls)=>{const x=document.createElement(t);if(txt!=null)x.textContent=String(txt);if(cls)x.className=cls;return x};
+const tag=(t,k)=>el("span",t,"tag "+k);
+const pct=x=>x==null?"—":(100*x).toFixed(0)+"%";
+const pp=x=>x==null?"—":(x>0?"+":"")+(100*x).toFixed(0)+" pp";
+const STATE={EXPLORATORIO:["exploratório","old"],CANDIDATO:["candidato","wait"],EM_VALIDACAO:["em validação","wait"],VALIDADO:["validado","ok"],REJEITADO:["rejeitado","bad"]};
+const EVID={MEETS_CANDIDATE_CRITERIA:"cumpre critérios de candidato",NOT_SIGNIFICANT_AFTER_FDR:"não significativo após correção múltipla",BELOW_CANDIDATE_CRITERIA:"abaixo dos critérios",NULL_CONSISTENT:"compatível com efeito nulo",INSUFFICIENT_N:"amostra insuficiente"};
+const OUT={OVER_2_5:"Over 2,5",BTTS_YES:"BTTS Sim",UNDER_2_5:"Under 2,5",BTTS_NO:"BTTS Não"};
+function rows(id,list){const tb=$(id);tb.replaceChildren();for(const r of list){const tr=document.createElement("tr");for(const c of r){const td=document.createElement("td");if(c instanceof Node)td.append(c);else{td.textContent=c==null?"—":String(c);if(typeof c==="number")td.className="n"}tr.append(td)}tb.append(tr)}}
+function diffBar(st){const w=el("div",null,"diff");w.append(el("span",pct(st.rate)+" vs "+pct(st.reference_rate)));
+ if(st.q_bh==null){const n=el("div","Com padrão: "+pct(st.rate)+" (n="+st.known+"). Sem padrão: "+pct(st.reference_rate)+" (n="+st.reference_known+"). Amostra pequena: sem comparação.","row");return n}
+ const tr=el("div",null,"track");tr.setAttribute("role","img");
+ const d=st.diff,ci=st.diff_ci95;tr.setAttribute("aria-label","Diferença "+pp(d)+(ci?", intervalo "+pp(ci[0])+" a "+pp(ci[1]):""));
+ const pos=v=>Math.max(0,Math.min(100,50+v*50));
+ if(ci){const u=el("u");u.style.left=pos(ci[0])+"%";u.style.width=(pos(ci[1])-pos(ci[0]))+"%";tr.append(u)}
+ if(d!=null){const i=el("i");const a=pos(0),b=pos(d);i.style.left=Math.min(a,b)+"%";i.style.width=Math.abs(b-a)+"%";tr.append(i)}
+ tr.append(el("s"));w.append(tr,el("b",pp(d)));return w}
+function card(x,target,showParents){const st=x.outcomes[target];const c=el("article",null,"card");
+ const h=el("h4",x.label);c.append(h);
+ const meta=el("div",null,"row");const s=STATE[x.state]||[x.state,"old"];meta.append(tag(s[0],s[1]));
+ meta.append(el("span","jogos "),el("b",x.matches),el("span","FT "),el("b",st.known),el("span","de "+(st.known+st.unknown_past)+" terminados"));
+ if(st.q_bh!=null)meta.append(el("span","q "),el("b",st.q_bh.toFixed(3)));c.append(meta);
+ if(st.known)c.append(diffBar(st));
+ const ev=el("div",null,"row");ev.append(el("span",EVID[st.evidence]||st.evidence||""));
+ if(st.market_implied_rate!=null)ev.append(el("span","implícito pelo mercado "+pct(st.market_implied_rate)));
+ if(st.temporal_stability)ev.append(el("span",{SAME_SIGN_BOTH_HALVES:"mesmo sentido nas duas metades",SIGN_CHANGES:"sentido muda entre metades",NOT_ENOUGH_PER_HALF:"metades pequenas"}[st.temporal_stability]));
+ if(st.ft_coverage_gap!=null&&st.ft_coverage_gap>0.2)ev.append(tag("cobertura FT desigual","bad"));
+ c.append(ev);
+ if(showParents&&x.parents&&Object.keys(x.parents).length){const p=el("div",null,"row");p.append(el("span","isolados:"));
+  for(const [k,v] of Object.entries(x.parents))p.append(el("span",(PC[k]||k)+" "+pct(v[target]?.rate)+" (n="+(v[target]?.known??0)+")"));c.append(p)}
+ if(x.example_matches?.length){const d=el("details");d.append(el("summary","Jogos"));const ul=el("ul");for(const m of x.example_matches)ul.append(el("li",m.match_label+" · "+m.kickoff_day+" · "+(m.score||"sem FT")));d.append(ul);c.append(d)}
+ return c}
+let D=null,PC={};
+function renderPatterns(){const t=$("outcome").value;const box=$("pat-list");box.replaceChildren();
+ const list=[...D.patterns].sort((a,b)=>(b.outcomes[t].q_bh!=null)-(a.outcomes[t].q_bh!=null)||Math.abs(b.outcomes[t].diff||0)-Math.abs(a.outcomes[t].diff||0));
+ for(const x of list)box.append(card(x,t,false))}
+function renderCombos(){const box=$("com-list");box.replaceChildren();
+ for(const x of D.combinations_top){const t=(x.outcomes.OVER_2_5.q_bh??2)<=(x.outcomes.BTTS_YES.q_bh??2)?"OVER_2_5":"BTTS_YES";
+  const c=card(x,t,true);c.querySelector("h4").prepend(el("span",OUT[t]+" · ","muted"));
+  if(x.other_definitions_same_known_sample)c.append(el("div","+ "+x.other_definitions_same_known_sample+" definições com os mesmos jogos com resultado","row"));box.append(c)}}
+function renderSim(){const pick=$("sim-pick");pick.replaceChildren();
+ D.similar_matches.forEach((s,i)=>{const o=el("option",s.match_label+" · "+s.kickoff_utc.slice(0,16).replace("T"," ")+" UTC");o.value=i;pick.append(o)});
+ const show=()=>{const s=D.similar_matches[+pick.value];const out=$("sim-out");out.replaceChildren();if(!s)return;
+  const head=el("div",null,"row");head.append(tag({FT_CONFIRMED:"FT confirmado",FUTURE:"por jogar",AWAITING_FT:"à espera de FT"}[s.status],s.status==="FT_CONFIRMED"?"ok":"wait"));
+  const f2=v=>v==null?"—":v.toFixed(2).replace(".",",");
+  head.append(el("span","golos implícitos "),el("b",f2(s.lam_decision)),el("span","variação "),el("b",(s.net_dlam>0?"+":"")+f2(s.net_dlam)));out.append(head);
+  const ch=el("div",null,"chips");for(const p of s.patterns)ch.append(el("span",PC[p]||p));out.append(ch);
+  out.append(el("p",s.eligible_earlier_matches+" jogos anteriores elegíveis; "+s.similar_above_threshold+" acima do limiar; "+s.with_confirmed_ft+" com FT.","muted"));
+  if(!s.neighbours.length){out.append(el("p","Ainda não há jogos semelhantes com resultado confirmado."));return}
+  const n=s.neighbour_over_2_5;out.append(el("p","Over 2,5 nos semelhantes: "+n[0]+" de "+n[1]+". Descritivo; não é previsão."));
+  const tb=el("table");tb.innerHTML="<thead><tr><th>Jogo</th><th>Semelhança</th><th>Resultado</th></tr></thead>";const b=el("tbody");
+  for(const m of s.neighbours){const tr=el("tr");tr.append(el("td",m.match_label),el("td",(100*m.similarity).toFixed(0)+"%","n"),el("td",m.score+(m.over_2_5?" · Over":" · Under")+(m.btts?" · BTTS":"")));b.append(tr)}
+  tb.append(b);const sc=el("div",null,"scroll");sc.append(tb);out.append(sc)};
+ pick.onchange=show;show();
+ const w=D.similarity_walk_forward;$("sim-wf").textContent=w.matches_evaluated?("Em "+w.matches_evaluated+" jogos, erro de Brier: semelhantes "+w.brier_knn+", taxa histórica "+w.brier_running_base_rate+", mercado implícito "+w.brier_market_implied_model+" (menor é melhor). "+(w.status==="INSUFFICIENT_SAMPLE"?"Amostra insuficiente para conclusões.":"Exploratório.")):"Ainda não há jogos suficientes com vizinhos conhecidos para avaliar o método sem usar informação futura."}
+function renderEvo(){const e=D.evolution;rows("evo-rows",e.map(d=>[d.kickoff_day.slice(8,10)+"/"+d.kickoff_day.slice(5,7),d.matches,d.known||0,d.known?pct(d.over_2_5_rate):"—",d.known?pct(d.btts_rate):"—"]));
+ const W=Math.max(320,e.length*56),H=170,max=Math.max(1,...e.map(d=>d.matches));const ns="http://www.w3.org/2000/svg";
+ const svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox","0 0 "+W+" "+H);svg.setAttribute("width",W);svg.setAttribute("role","img");svg.setAttribute("aria-label","Jogos por dia e jogos com resultado");
+ e.forEach((d,i)=>{const x=i*56+10,h1=(d.matches/max)*120,h2=((d.known||0)/max)*120;
+  for(const [h,c] of [[h1,"var(--bar2)"],[h2,"var(--bar)"]]){const r=document.createElementNS(ns,"rect");r.setAttribute("x",x);r.setAttribute("y",140-h);r.setAttribute("width",40);r.setAttribute("height",h);r.setAttribute("fill",c);svg.append(r)}
+  const t=document.createElementNS(ns,"text");t.setAttribute("x",x);t.setAttribute("y",158);t.textContent=d.kickoff_day.slice(5);svg.append(t);
+  const v=document.createElementNS(ns,"text");v.setAttribute("x",x);v.setAttribute("y",134-h1);v.textContent=(d.known||0)+"/"+d.matches;svg.append(v)});
+ $("evo-chart").replaceChildren(svg);
+ const b=D.baselines,m=b.market_implied_over_2_5;const box=$("base");box.replaceChildren();
+ box.append(el("p","Over 2,5: "+pct(b.over_2_5.rate)+" em "+b.known+" jogos (IC 95% "+pct(b.over_2_5.ci95?.[0])+"–"+pct(b.over_2_5.ci95?.[1])+"). BTTS: "+pct(b.btts_yes.rate)+". Média de golos: "+(b.total_goals.mean??"—")+"."));
+ box.append(el("p","Probabilidade implícita pelo mercado (modelo de Poisson a partir da linha Total observada): média "+pct(m.mean_model_probability)+" contra "+pct(m.observed_rate_same_matches)+" observado nos mesmos jogos. É uma referência, não uma odd de Over 2,5.","muted"))}
+function renderDisc(){const fz=$("frozen");fz.replaceChildren();
+ if(!D.frozen.length)fz.append(el("p","Nenhuma hipótese cumpriu ainda os critérios para ser congelada. Com "+D.scope.ft_confirmed+" resultados, isto é o esperado.","muted"));
+ for(const f of D.frozen){const c=el("article",null,"card");c.append(el("h4",f.label));const r=el("div",null,"row");const s=STATE[f.state];r.append(tag(s[0],s[1]),el("span",OUT[f.outcome]+" "+(f.direction==="HIGHER"?"mais alto":"mais baixo")),el("span","congelada "+f.frozen_at.slice(0,16).replace("T"," ")));c.append(r);
+  c.append(el("div","Descoberta: "+pct(f.discovery.rate)+" vs "+pct(f.discovery.reference_rate)+" (n="+f.discovery.known+")","row"));
+  const o=f.out_of_sample;c.append(el("div","Fora da amostra: "+(o.known?pct(o.rate)+" vs "+pct(o.reference_rate)+" (n="+o.known+")":"ainda sem resultados"),"row"));
+  if(f.degradation_flag)c.append(tag("a perder consistência","bad"));fz.append(c)}
+ const ch=D.changes;const cb=$("changes");cb.replaceChildren();
+ cb.append(el("p",(ch.new_frozen_candidates.length?ch.new_frozen_candidates.length+" nova(s) hipótese(s) congelada(s). ":"Sem novas hipóteses congeladas. ")+(ch.state_transitions.length?ch.state_transitions.length+" mudança(s) de estado.":"Sem mudanças de estado.")));
+ for(const t of ch.state_transitions.slice(0,20))cb.append(el("div",t.id+": "+(STATE[t.from]?.[0]||t.from)+" → "+(STATE[t.to]?.[0]||t.to),"row"));
+ const nf=$("newft");nf.replaceChildren();if(!ch.new_ft_results.length)nf.append(el("p","Sem resultados novos desde a última execução.","muted"));
+ for(const g of ch.new_ft_results.slice(-12).reverse()){const c=el("article",null,"card");c.append(el("h4",g.match_label+" · "+g.score));const cp=el("div",null,"chips");for(const p of g.patterns)cp.append(el("span",PC[p]||p));c.append(cp);
+  if(g.counts_out_of_sample_for.length)c.append(el("div","Conta fora da amostra para "+g.counts_out_of_sample_for.length+" hipótese(s) congelada(s).","row"));nf.append(c)}
+ const ng=$("neg");ng.replaceChildren();ng.append(el("p",D.negative_evidence.length?D.negative_evidence.length+" hipóteses com amostra razoável e diferença inferior a 5 pp (sem efeito aparente).":"Ainda não há amostra suficiente para afirmar ausência de efeito (são precisos ≥ 30 jogos com FT em cada grupo).","muted"));
+ for(const x of D.negative_evidence.slice(0,10))ng.append(el("div",x.label+" · "+OUT[x.outcome]+" · "+pp(x.diff)+" (n="+x.known+")","row"))}
+function renderFT(){const c=D.ft_coverage,s=D.scope;const parts=[["Confirmados",c.ft_confirmed,"var(--ok)"],["Terminados sem FT",c.past_without_ft,"var(--wait)"],["Por jogar ou < 3 h",s.future+s.in_result_grace,"var(--bar2)"]];
+ const tot=parts.reduce((a,p)=>a+p[1],0)||1;const bar=el("div");bar.style.cssText="display:flex;height:22px;border-radius:3px;overflow:hidden;margin:8px 0 4px";bar.setAttribute("role","img");bar.setAttribute("aria-label",parts.map(p=>p[0]+" "+p[1]).join(", "));
+ for(const p of parts){const s_=el("span");s_.style.cssText="flex:"+p[1]+";background:"+p[2];bar.append(s_)}$("ft-bar").replaceChildren(bar,el("p",parts.map(p=>p[0]+": "+p[1]).join(" · ")+". Cobertura dos jogos já terminados: "+pct(c.coverage_of_past_matches)+".","muted"));
+ const L={FINAL_RECORDED:"Confirmado",FUTURE:"Por jogar",IN_3H_GRACE:"Terminado há < 3 h",ELIGIBLE_COOLDOWN:"Em espera entre tentativas (4 h)",ELIGIBLE_RETRY_DUE:"Nova tentativa devida",ELIGIBLE_NEVER_QUERIED:"Ainda não consultado",ELIGIBLE_SOURCE_UPGRADE:"Nova verificação com método melhorado",BLOCKED_REVIEW:"Bloqueado: conflito por rever",EXPIRED:"Expirado (> 30 dias)",ELIGIBLE_REVIEWED_ALIAS:"Revisão de nome",ELIGIBLE_REVIEWED_BSD_ID:"ID BSD revisto"};
+ rows("ft-rows",Object.entries(c.ledger_timing_counts||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[L[k]||k,v]));
+ const R={"PENDING:awaiting_ft":"Ainda não começou ou acabou há pouco","PENDING:no_verified_ft_yet":"Nenhum fornecedor confirmou o marcador de 90 min","SOURCE_ORDER_CONFLICT:sportscore_source_url_reverses_home_away":"Fonte inverte casa/fora: em quarentena"};
+ rows("ft-why",Object.entries(c.unresolved_reasons||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[R[k]||k,v]))}
+function tabs(){const list=[...document.querySelectorAll("[role=tab]")];
+ const go=t=>{for(const x of list){const on=x===t;x.setAttribute("aria-selected",on);x.tabIndex=on?0:-1;$(x.getAttribute("aria-controls")).hidden=!on}t.focus();try{history.replaceState(null,"","#"+t.id)}catch(e){}};
+ list.forEach((t,i)=>{t.onclick=()=>go(t);t.onkeydown=e=>{if(e.key==="ArrowRight")go(list[(i+1)%list.length]);if(e.key==="ArrowLeft")go(list[(i-1+list.length)%list.length])}});
+ const h=location.hash.slice(1);const t=list.find(x=>x.id===h);if(t)go(t)}
+fetch("./lab/pattern-research.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>{
+ tabs();
+ if(!d){$("stamp").replaceChildren(tag("não publicado","bad")," O relatório de investigação ainda não existe na main.");return}
+ D=d;for(const [k,v] of Object.entries(d.pattern_catalogue||{}))PC[k]=v.description;
+ const h=(Date.now()-Date.parse(d.generated_at))/36e5;
+ $("stamp").replaceChildren(tag(h>2?"histórico":"atual",h>2?"old":"ok")," Gerado em "+new Date(d.generated_at).toLocaleString("pt-PT",{timeZone:"UTC",dateStyle:"short",timeStyle:"short"})+" UTC.");
+ $("k-games").textContent=d.scope.research_eligible;$("k-ft").textContent=d.scope.ft_confirmed;
+ $("k-hyp").textContent=d.generation.hypotheses_evaluated;$("k-val").textContent=d.state_counts.VALIDADO||0;
+ const tested=d.generation.tests_performed;
+ $("verdict").textContent=(d.state_counts.VALIDADO?"Há hipóteses validadas fora da amostra; ver Descobertas.":"Nenhuma hipótese está validada.")+" "+tested+" testes feitos com correção para comparações múltiplas; "+(d.frozen.length?d.frozen.length+" hipótese(s) congelada(s) à espera de jogos novos.":"nenhuma cumpre ainda os critérios para ser congelada.");
+ renderPatterns();$("outcome").onchange=renderPatterns;renderCombos();renderSim();renderEvo();renderDisc();renderFT()});
+</script>
+</body></html>

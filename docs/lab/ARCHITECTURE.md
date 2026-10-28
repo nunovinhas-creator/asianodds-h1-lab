@@ -19,6 +19,9 @@ GitHub schedule (2-57/5, best effort) ─────┤
                                golden_priority → docs/lab/golden-priority.json
                                timeline      → docs/lab/match-trajectories.json   (PR lab/match-timeline)
 results.yml (hora a hora, :41) ── H1 ──► data/results.csv · data/result_audit.json · docs/data.json
+lab-ft-results.yml (:12, :42) ── LAB ──► data/lab/ft-ledger.json · docs/lab/ft-results.json
+                                   └─ V5 (continue-on-error) pattern_engine → docs/lab/pattern-research.json
+                                                                           → data/lab/pattern-registry.json (append-only)
 ```
 
 ## 2. Componentes e estado
@@ -36,6 +39,8 @@ results.yml (hora a hora, :41) ── H1 ──► data/results.csv · data/resu
 | Golden Set | `h1lab/golden.py`, `scripts/lab_golden.py`, `data/lab/golden/**` | Experimental ativo | Revisão humana por mensagem | NOT_CERTIFIED |
 | Prioridades Golden | `h1lab/golden_priority.py` | Experimental ativo | Escolhe mensagens a rever | Não valida valores |
 | Cronologia por jogo | `h1lab/timeline.py` | Experimental (nova) | Mensagem → snapshot → movimento → jogo | ver `TIMELINE.md` |
+| Identidade FT `CORE_NAME` | `h1lab/lab_identity.py` | Experimental ativo | Nomes iguais após designadores/exónimos; fail-closed | ESPN + lista diária BSD |
+| Motor de investigação V5 | `h1lab/pattern_features.py`, `pattern_engine.py`, `market_math.py`, `similarity.py`, `lab_stats.py`, `scripts/lab_pattern_research.py` | Experimental ativo | Padrões, combinações, FT, validação fora da amostra, jogos semelhantes | ver `PATTERN-ENGINE.md`; página `docs/lab-research.html` |
 | Qualidade V2 | `h1lab/market_v2.py`, `scripts/lab_quality.py`, `lab-quality.yml`, `docs/lab-quality.html` | **Desatualizado** | Agregado sobre o registo H1 | Só manual; `quality.json` de 16:11 UTC |
 | Market Intelligence V1 | `h1lab/intelligence.py`, `docs/market-intelligence.html` | **Obsoleto** | Protótipo | Página pede `market-intelligence.json`, que não existe; só `tests/test_intelligence.py` o importa |
 | Smoke BSD/Bot | `bsd-smoke.yml`, `bsd-coverage.yml`, `bot-smoke.yml` | Diagnóstico manual | Testes de credenciais | Não escrevem no repo |
@@ -57,6 +62,7 @@ results.yml (hora a hora, :41) ── H1 ──► data/results.csv · data/resu
 | `docs/lab/v4-audit.json` | lab-v4-audit | após cada recolha | atual (20:36 UTC) |
 | `docs/lab/golden-*.json` | lab-v4-audit | após cada recolha | atual |
 | `docs/lab/match-trajectories.json` | lab-v4-audit (após PR) | após cada recolha | novo |
+| `docs/lab/pattern-research.json` | lab-ft-results (V5) | 30 min, só se mudar | novo |
 | `docs/lab/quality.json` | lab-quality (manual) | manual | **histórico** (16:11 UTC, commit `8e0e541`); não representa o estado atual |
 | `market-intelligence.json` | nenhum | — | **inexistente** |
 
@@ -107,6 +113,7 @@ Duplicação de observações: `event_id` é chave única em todos os armazename
 | `docs/lab/ARCHITECTURE.md` | este mapa |
 | `docs/lab/CLAUDE-HANDOFF-2026-10-27.md` | regras absolutas e pendências (instantâneo) |
 | `docs/lab/TIMELINE.md` | modelo de dados da cronologia |
+| `docs/lab/PATTERN-ENGINE.md` | motor V5: padrões, hipóteses, estados, validação |
 | `docs/lab/QUALITY-DIMENSIONS.md` | dimensões de qualidade e critérios estatísticos |
 | `docs/lab/GOLDEN-REVIEW.md` | procedimento Golden e estado das revisões |
 | `docs/MARKET-INTELLIGENCE.md` | **histórico** (protótipos V1/V2) |

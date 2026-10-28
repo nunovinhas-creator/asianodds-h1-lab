@@ -10,6 +10,14 @@ on:
       - "scripts/lab_trajectory_research.py"
       - "tests/test_trajectory_research.py"
       - ".github/workflows/lab-trajectory-research-smoke.yml"
+      - "h1lab/pattern_engine.py"
+      - "h1lab/pattern_features.py"
+      - "h1lab/market_math.py"
+      - "h1lab/similarity.py"
+      - "h1lab/lab_stats.py"
+      - "scripts/lab_pattern_research.py"
+      - "tests/test_pattern_engine.py"
+      - "docs/lab-research.html"
       - ".github/workflows/lab-v4-audit.yml"
   workflow_dispatch:
 permissions:
@@ -65,10 +73,24 @@ jobs:
           assert len(Path("docs/lab/outcome-readiness.json").read_bytes()) < 100_000
           print("LAB_FT_READINESS_REAL_VERIFIED",s,d["repeated_match_outcomes"])
           PY
+      - name: V5 pattern engine on tracked real data (no commit)
+        run: |
+          python -m unittest discover -s tests -p 'test_pattern_engine.py' -v
+          python -m scripts.lab_pattern_research
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("docs/lab/pattern-research.json").read_text())
+          assert d["status"]=="LAB_EXPLORATORY_RESEARCH_NOT_BETTING"
+          assert d["scope"]["research_eligible"]+sum(d["scope"]["excluded"].values())==d["scope"]["matches_observed"]
+          assert not any(k in d for k in ("roi","profit","bets","betting_picks"))
+          print("LAB_PATTERN_REAL_VERIFIED", d["scope"], d["state_counts"], d["generation"])
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: lab-trajectory-research-preview
           path: |
             docs/lab/trajectory-research.json
             docs/lab/outcome-readiness.json
+            docs/lab/pattern-research.json
           retention-days: 7

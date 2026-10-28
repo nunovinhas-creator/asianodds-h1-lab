@@ -79,9 +79,10 @@ def main(argv=None):
     size = len(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode())
     if size > MAX_REPORT_BYTES:
         raise SystemExit("LAB_PATTERN_REPORT_TOO_LARGE %d" % size)
+    # Registry first: a report must never cite a frozen hypothesis that is not stored.
+    reg_changed = _write(reg_path, registry)
     wrote = _write(out_path, report, compare_without=("generated_at", "source_commit", "incremental"),
                    compact=True)
-    reg_changed = _write(reg_path, registry)
     _write(cache_path, cache, compact=True)
     s, g = report["scope"], report["generation"]
     print("LAB_PATTERN_RESEARCH", "matches", s["research_eligible"], "ft", s["ft_confirmed"],
