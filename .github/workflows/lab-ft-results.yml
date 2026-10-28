@@ -149,6 +149,14 @@ jobs:
           assert Path('docs/lab/ft-results.json').stat().st_size < 400000
           print('LAB_FT_SUMMARY_VALID', d['matches'], d['final_recorded'], d['status_counts'])
           PY
+      # P2#13: FT-blind observational pruning; preserve existing pipelines.
+      - name: Freeze and replay V6.2 P2#13 (shadow)
+        id: v6_pruning
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_hypothesis_pruning.py' -v
+          python -m scripts.lab_v6_hypothesis_pruning
+          python -m scripts.lab_v6_hypothesis_pruning --verify-only
       # LAB V5 research engine. Runs right after new FT results, reuses the
       # feature cache (outside git) and can never block FT publication.
       - name: Restore research feature cache
@@ -242,6 +250,10 @@ jobs:
           if [ -f data/lab/ft-api-audit.json ]; then git add data/lab/ft-api-audit.json; fi
           if [ -f docs/lab/pattern-research.json ]; then git add docs/lab/pattern-research.json; fi
           if [ -f docs/lab/v6-residual-research.json ]; then git add docs/lab/v6-residual-research.json; fi
+          if [ "${{ steps.v6_pruning.outcome }}" = "success" ]; then
+            git add -f data/lab/v6-pruning-selection-v1.json
+            git add docs/lab/v6-pruning.json
+          fi
           if [ -f data/lab/pattern-registry.json ]; then git add data/lab/pattern-registry.json; fi
           if [ -f docs/lab/pattern-watch.json ]; then git add docs/lab/pattern-watch.json; fi
           if [ -f data/lab/pattern-watch-first-seen.json ]; then git add data/lab/pattern-watch-first-seen.json; fi
