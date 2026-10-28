@@ -1,3 +1,5 @@
+> **Registo técnico datado (28/10/2026):** o LAB já integra GOAL e OpenFoot através de `GOAL_API_KEY` e `OPENFOOT_API_KEY`. As primeiras sondas temporárias falharam por scripts removidos; o mecanismo posterior comprovou pedidos reais. As quotas e filtros atuais estão no [workflow LAB FT](../../.github/workflows/lab-ft-results.yml); a cobertura está em [ft-results.json](ft-results.json) e o histórico dos pedidos em [ft-api-audit.json](../../data/lab/ft-api-audit.json). Não inferir FT por nomes aproximados. Os números abaixo são do diagnóstico V11, não do catálogo atual.
+
 # LAB FT V11 — GOAL API + OpenFoot Starter
 
 ## Dados de produção e documentação
