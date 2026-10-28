@@ -29,13 +29,9 @@ LEAGUES = {
     "Netherlands KNVB Cup": "ned.cup",
     "Italy Serie A": "ita.1",
     "Italy Serie B": "ita.2",
-    "Croatia Division 1 (HNL)": "cro.1",
     "Argentina Liga Profesional": "arg.1",
     "AFC Asian Champions League": "afc.champions",
 }
-# Mapping 'cro.1' isn't in the verified league source; exclude it rather
-# than silently treating ESPN aliases as verified.
-LEAGUES.pop("Croatia Division 1 (HNL)")
 MAX_SCOREBOARDS = 16
 NO_ET = re.compile(r"extra.?time|aet|after extra|penalt|shootout|spot kick|\bET\b", re.I)
 
