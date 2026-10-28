@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T18:31:37+00:00",
+ "generated_at": "2026-10-28T18:36:43+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 109
  },
  "schema_version": 1,
- "source_commit": "e06216f918b979db47ac9ff62aa1669bd81d11f4",
+ "source_commit": "3ecf71f69735d4f2e3b7183cbf733b4f8bd8606d",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 356,
+  "matches": 357,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 508,
+  "messages": 510,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 261,
+  "messages_on_repeated_matches": 262,
   "messages_v4_only": 0,
-  "messages_with_v4": 434,
-  "movement_episodes_upper_bound": 486,
+  "messages_with_v4": 436,
+  "movement_episodes_upper_bound": 488,
   "possibly_redundant_snapshots": 15,
   "post_kickoff_messages": 15,
   "related_message_pairs": 22,
@@ -53,22 +53,213 @@
   "repeated_matches": 109,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 685
+   "V4_EXPLICIT": 689
   },
-  "total_line_reversals_on_repeated": 47,
+  "total_line_reversals_on_repeated": 48,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 15,
    "CONTINUOUS": 83,
    "SAME_MOVEMENT_REPEAT": 22,
-   "UNOBSERVED_CHANGE": 32
+   "UNOBSERVED_CHANGE": 33
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 127,
-   "one_x_two:AGREE": 124,
-   "total:AGREE": 434
+   "asian_handicap:AGREE": 128,
+   "one_x_two:AGREE": 125,
+   "total:AGREE": 436
   }
  },
  "timelines": [
+  {
+   "event_count": 3,
+   "event_ids": [
+    "3571094759:50640",
+    "3571094759:50728",
+    "3571094759:51090"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50640",
+     "message_id": 50640,
+     "minutes_to_kickoff": 1645.9,
+     "observed_at": "2026-10-27T15:34:08+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.77,
+        "under_price": 1.93
+       },
+       "before": {
+        "line": 3.75,
+        "over_price": 1.83,
+        "under_price": 1.86
+       },
+       "origin": "H1_LEGACY_ONLY"
+      }
+     },
+     "sources": [
+      "H1_RECORD"
+     ],
+     "trigger_market": "total"
+    },
+    {
+     "event_id": "3571094759:50728",
+     "message_id": 50728,
+     "minutes_to_kickoff": 1247.3,
+     "observed_at": "2026-10-27T22:12:39+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.87,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 3.75,
+        "over_price": 1.84,
+        "under_price": 1.85
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51090",
+     "message_id": 51090,
+     "minutes_to_kickoff": 24.1,
+     "observed_at": "2026-10-28T18:35:51+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.0,
+        "over_price": 1.88,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 3.75,
+        "over_price": 1.94,
+        "under_price": 1.91
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-27T15:34:08+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T19:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T18:35:51+00:00",
+   "match_key": "2026-10-28,27786,84674",
+   "match_label": "KVV Quick Boys vs VV Eemdijk",
+   "movement_episodes": [
+    [
+     "3571094759:50640"
+    ],
+    [
+     "3571094759:50728"
+    ],
+    [
+     "3571094759:51090"
+    ]
+   ],
+   "movement_episodes_upper_bound": 3,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    23911.0,
+    73392.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.75,
+     "last_observed_line": 4.0,
+     "net_observed_change": 0.25,
+     "observations": 3,
+     "origins": {
+      "H1_LEGACY_ONLY": 1,
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.5,
+       "before": 3.75,
+       "event_id": "3571094759:50640",
+       "move": "DOWN",
+       "origin": "H1_LEGACY_ONLY"
+      },
+      {
+       "after": 3.5,
+       "before": 3.75,
+       "event_id": "3571094759:50728",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.0,
+       "before": 3.75,
+       "event_id": "3571094759:51090",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50640",
+       "at_event": "3571094759:51090",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50640",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.75,
+       "previous_after_line": 3.5,
+       "to": "3571094759:50728"
+      },
+      {
+       "from": "3571094759:50728",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.75,
+       "previous_after_line": 3.5,
+       "to": "3571094759:51090",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 4,
    "event_ids": [
@@ -19848,137 +20039,6 @@
        "previous_after_line": 3.0,
        "to": "3571094759:50742",
        "unobserved_direction": "UP"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:50640",
-    "3571094759:50728"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50640",
-     "message_id": 50640,
-     "minutes_to_kickoff": 1645.9,
-     "observed_at": "2026-10-27T15:34:08+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.5,
-        "over_price": 1.77,
-        "under_price": 1.93
-       },
-       "before": {
-        "line": 3.75,
-        "over_price": 1.83,
-        "under_price": 1.86
-       },
-       "origin": "H1_LEGACY_ONLY"
-      }
-     },
-     "sources": [
-      "H1_RECORD"
-     ],
-     "trigger_market": "total"
-    },
-    {
-     "event_id": "3571094759:50728",
-     "message_id": 50728,
-     "minutes_to_kickoff": 1247.3,
-     "observed_at": "2026-10-27T22:12:39+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.5,
-        "over_price": 1.87,
-        "under_price": 1.81
-       },
-       "before": {
-        "line": 3.75,
-        "over_price": 1.84,
-        "under_price": 1.85
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-27T15:34:08+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-28T19:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-27T22:12:39+00:00",
-   "match_key": "2026-10-28,27786,84674",
-   "match_label": "KVV Quick Boys vs VV Eemdijk",
-   "movement_episodes": [
-    [
-     "3571094759:50640"
-    ],
-    [
-     "3571094759:50728"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    23911.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 3.75,
-     "last_observed_line": 3.5,
-     "net_observed_change": -0.25,
-     "observations": 2,
-     "origins": {
-      "H1_LEGACY_ONLY": 1,
-      "V4_EXPLICIT": 1
-     },
-     "points": [
-      {
-       "after": 3.5,
-       "before": 3.75,
-       "event_id": "3571094759:50640",
-       "move": "DOWN",
-       "origin": "H1_LEGACY_ONLY"
-      },
-      {
-       "after": 3.5,
-       "before": 3.75,
-       "event_id": "3571094759:50728",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [],
-     "transitions": [
-      {
-       "from": "3571094759:50640",
-       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
-       "next_before_line": 3.75,
-       "previous_after_line": 3.5,
-       "to": "3571094759:50728"
       }
      ]
     }
