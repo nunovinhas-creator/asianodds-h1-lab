@@ -1,3 +1,5 @@
+> **Contexto em 28/10/2026:** este estudo mede **sequências observadas**, sem validação de desfechos. A investigação subsequente com ligação a FT, cruzamentos de mercados e controlo estatístico está no [cérebro V5](CEREBRO-ODDS.md). O V5 usa apenas dados anteriores ao kickoff e não garante que os movimentos não observados possam ser reconstituídos. Este relatório descritivo continua válido para o âmbito e data em que foi publicado.
+
 # Primeiro estudo empírico — alertas repetidos (exploratório)
 
 **Componente:** `h1lab/trajectory_research.py`
