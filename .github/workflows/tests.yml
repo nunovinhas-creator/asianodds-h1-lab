@@ -21,6 +21,20 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
+      - name: V6 all-hypothesis market residual smoke (no API / no push)
+        run: |
+          python -m scripts.lab_v6_residual
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('docs/lab/v6-residual-research.json').read_text(encoding='utf-8'))
+          assert d['status']=='V6_EXPLORATORY_MARKET_RELATIVE_NO_BETS'
+          assert len(d['all_hypotheses'])==d['generation']['hypotheses_evaluated']
+          assert all(x['btts_yes_vs_market']['state']=='MODEL_REFERENCE_NOT_AVAILABLE'
+                     for x in d['all_hypotheses'])
+          assert d['method']['freeze_or_validate'] is False
+          print('V6_RESIDUAL_REAL_INPUT_OK',len(d['all_hypotheses']))
+          PY
       - name: V6 smoke using real repository snapshots (no API / no push)
         run: |
           python -m scripts.lab_v6_shadow
