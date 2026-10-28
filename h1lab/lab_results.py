@@ -93,7 +93,7 @@ def _validate_result(result, key):
         return None
     out = {"home_goals": h, "away_goals": a, "source": source}
     # Provenance of the team-name identity rule (absent = exact legacy rule).
-    if result.get("identity_match") in ("EXACT", "CORE_NAME"):
+    if result.get("identity_match") in ("EXACT", "CORE_NAME", "REVIEWED_PAIR"):
         out["identity_match"] = result["identity_match"]
     return out
 
