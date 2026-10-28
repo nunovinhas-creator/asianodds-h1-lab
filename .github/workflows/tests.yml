@@ -101,5 +101,23 @@ jobs:
           assert d['overall']=='INCONCLUSIVO'
           print('V6_FALSIFICATION_REAL_SOURCE_OK',d['sample'])
           PY
+      - name: V6 FT evidence journal and bounded priority smoke (real ledger, no API)
+        run: |
+          python -m scripts.lab_v6_ft_events
+          python -m scripts.lab_v6_ft_events --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from h1lab.v6_ft_events import read_events, validate_against_ledger
+          l=json.loads(Path('data/lab/ft-ledger.json').read_text(encoding='utf-8'))
+          d=json.loads(Path('docs/lab/v6-ft-evidence.json').read_text(encoding='utf-8'))
+          records=read_events('.')
+          assert validate_against_ledger(records,l)
+          assert d['status']=='V6_FT_EVIDENCE_SHADOW_NOT_CERTIFIED'
+          assert d['events_total']==len(records)
+          assert d['confirmed_scores']==sum(x['status']=='FINAL' for x in l['matches'].values())
+          assert d['matches']==len(l['matches'])
+          print('V6_FT_ALL_MATCHES_REAL_INPUT_OK',d['matches'],d['events_total'])
+          PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs

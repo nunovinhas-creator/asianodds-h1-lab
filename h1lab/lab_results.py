@@ -100,7 +100,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -116,6 +116,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         raise ValueError("max_checks outside safe range 0..30")
     if type(force_recheck) is not bool:
         raise ValueError("force_recheck must be boolean")
+    if priority_hints is None:
+        priority_hints = {}
+    if (not isinstance(priority_hints, dict) or
+            any(not isinstance(k, str) or type(v) is not int or v not in (1, 2, 3)
+                for k, v in priority_hints.items())):
+        raise ValueError("Invalid LAB research priority hints")
     if not isinstance(state, dict) or not isinstance(state.get("alerts"), list):
         raise ValueError("H1 alerts missing or invalid")
     if not isinstance(v4rows, list):
@@ -216,8 +222,13 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         candidates.append((priority, last or datetime.min.replace(tzinfo=timezone.utc),
                            kickoff, key))
 
-    # Oldest attempted first; tie-break by kickoff/key to avoid starved matches.
-    candidates.sort()
+    # Existing critical review priorities and API budgets remain unchanged.
+    # Research hints only reorder eligible candidates WITHIN the same priority
+    # tier; a new retry cannot leapfrog source-order/public-evidence review.
+    # A game remains subject to the existing 3h grace and 4h cooldown.
+    candidates.sort(key=lambda candidate: (
+        candidate[0], -priority_hints.get(candidate[3], 0),
+        candidate[1], candidate[2], candidate[3]))
     attempts = 0
     for _, _, _, key in candidates[:max_checks]:
         row = entries[key]
@@ -372,6 +383,13 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "reviewed_bsd_id_catalog_matches": sum(key in REVIEWED_BSD_FIXTURES for key in games),
         "final_recorded": counts["FINAL"], "unverified": len(games) - counts["FINAL"],
         "pending_due_checks": max(0, len(candidates) - attempts),
+        "v6_ft_priority": {
+            "mode": "SAME_REVIEW_TIER_ONLY_NO_EXTRA_API",
+            "hinted_eligible": sum(key in priority_hints for *_, key in candidates),
+            "hinted_selected": sum(key in priority_hints for *_, key in candidates[:max_checks]),
+            "budget": max_checks,
+            "hints_do_not_override": ["3h grace", "4h cooldown", "source order quarantine"],
+        },
         "last_updated_at": (now.isoformat(timespec="seconds")
                             if entries != original else previous.get("last_updated_at")),
         "displayed_matches": len(rows), "matches_omitted_from_display": max(0, len(games)-len(rows)),

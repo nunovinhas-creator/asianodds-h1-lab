@@ -114,3 +114,22 @@ No instante `known_at` real da recolha e **apenas para novos snapshots de jogos 
 **Compatibilidade:** a memória de padrões associa o hash V2 somente a eventos cujos diários congelados o contém. Capturas anteriores não são enriquecidas retroativamente. Qualquer divergência entre o hash V2 e o diário de origem impede a reconstrução da memória científica. O relatório `docs/lab/v6-feature-coverage.json` mostra quantas novas capturas têm dados V2 e a distribuição por mercados, contexto e intervalos sem observação — não é um simulador nem validação de uma estratégia.
 
 Este catálogo é *descritivo*. Não passa automaticamente a ser um conjunto de hipóteses estatísticas, não altera os dez testes de falsificação previamente fixados e não faz qualquer escolha de apostas. A análise fora da amostra permanece bloqueada pelos gates 7/14 dias e 1000 FT da hipótese. P1 #9 e #10 continuam por executar.
+
+## V6.1 P1 #9 — Registo de acontecimentos FT e prioridade científica
+
+**Sem alterar a autoridade de liquidação.** `data/lab/ft-ledger.json` mantém-se como referência oficial do LAB. O módulo `h1lab/v6_ft_events.py` acrescenta uma memória específica para **todos os jogos observados**, mesmo sem previsão H1 ou V6: `data/lab/v6-ft-events-AAAA-MM.jsonl`. O primeiro registo de cada jogo é `INITIAL_LEDGER_OBSERVATION`, com `recorded_at` efetivo: **não inventa eventos históricos** anteriores à instalação deste módulo.
+
+Mudanças substantivas de `PENDING`→`FINAL`, resultado 2-1→1-0, mudança de fonte ou de nível de evidência e retirada/reconfirmação de um resultado geram novos eventos com `previous_sha256`, `previous_match_event_id`, identidade, fontes, resultado e hash da fotografia FT. O histórico não é reescrito. Consultas de API repetidas sem alterar resultados/estado/proveniência **não geram eventos**. O reprodutor valida SHA, encadeamento entre eventos de cada jogo e a fotografia do ledger atualmente publicado. Em caso de falha, a Action isolada **não publica** diários V6 incompletos; a publicação habitual do LAB e a liquidação H1 permanecem independentes.
+
+Cada confirmação FT recebe nível de evidência explicitamente não estatístico:
+- `MULTI_PROVIDER`: múltiplos provedores distintos concordantes no ledger;
+- `SINGLE_PROVIDER`: confirmação por uma só API;
+- `REVIEWED_PUBLIC_CORROBORATED`: revisão pública com pelo menos dois URL de corroboração identificados;
+- `REVIEWED_PUBLIC_UNCORROBORATED` ou `EVIDENCE_UNSPECIFIED`: informação insuficiente para nível superior;
+- `QUARANTINED` ou `NOT_YET_VERIFIED`: não tratar como resultado final.
+
+O relatório `docs/lab/v6-ft-evidence.json` é derivado do diário e conta os estados, os eventos, os níveis de evidência e os casos em quarentena. `python -m scripts.lab_v6_ft_events --verify-only` falha se a reconstrução divergir da fonte.
+
+**Prioridade sem novas consultas:** a função `priority_hints` lê **apenas previsões V6 com `known_at` anterior ao início** e atribui peso maior aos jogos com condição estrita (3), condição histórica original (2) e baseline Total utilizável (1). A função `reconcile` conserva os casos críticos de revisão no topo da fila, só podendo usar a prioridade V6 **dentro do mesmo nível de prioridade atual**; continuam inalterados a espera de 3 h, a pausa de 4 h, os filtros de identidade, o teto de 30 jogos por execução, as quotas das APIs e a lógica de seleção/validação FT. Com diário V6 ausente ou inutilizável, volta à ordem preexistente, sem afetar a liquidação.
+
+**Nota:** prioridade é uma estratégia de recolha de *evidência*, não é pick nem recomendação de aposta. A ordem dos jogos elegíveis pode mudar sem aumentar a quantidade máxima de pedidos; o valor dessa alteração depende da disponibilidade real de resultados nos provedores. A memória FT universal é separada da memória de evidências V6 associada a previsões congeladas (a qual não é modificada). Não altera H1, triplas, Telegram, nem critérios estatísticos. Continua `INCONCLUSIVO` enquanto os gates temporais não forem cumpridos.
