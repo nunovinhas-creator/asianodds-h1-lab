@@ -146,8 +146,48 @@ def fetch_date(day,key):
     return data["response"]
 
 
+def fetch_ids(ids, key):
+    """One official fixtures?ids= request, maximum 20 unique reviewed IDs."""
+    if (not key or not isinstance(ids, (list, tuple)) or
+            not 1 <= len(ids) <= 20 or
+            any(type(x) is not int or x <= 0 for x in ids) or
+            len(set(ids)) != len(ids)):
+        raise ValueError("Invalid API-Football reviewed ID batch")
+    req = Request(BASE + "fixtures?" +
+                  urlencode({"ids": "-".join(str(x) for x in ids)}),
+                  headers={"x-apisports-key": key, "Accept": "application/json",
+                           "User-Agent": "AsianOdds-LAB-Reviewed-FT/1.0"})
+    try:
+        with urlopen(req, timeout=16) as resp:
+            if resp.status != 200:
+                raise OSError("API-Football ID request unavailable")
+            raw = resp.read(MAX_BYTES + 1)
+            if len(raw) > MAX_BYTES:
+                raise ValueError("API-Football ID result oversized")
+            body = json.loads(raw)
+    except (HTTPError, URLError, OSError, TimeoutError, ValueError):
+        raise OSError("API-Football ID request unavailable") from None
+    if (not isinstance(body, dict) or body.get("errors") or
+            not isinstance(body.get("response"), list) or
+            len(body["response"]) > len(ids)):
+        raise ValueError("Invalid API-Football ID response")
+    paging = body.get("paging") or {}
+    if not isinstance(paging, dict) or paging.get("total", 1) != 1:
+        raise ValueError("Incomplete API-Football ID response")
+    rows = {}
+    for event in body["response"]:
+        fixture = event.get("fixture") if isinstance(event, dict) else None
+        event_id = fixture.get("id") if isinstance(fixture, dict) else None
+        if (type(event_id) is not int or event_id not in ids or
+                event_id in rows):
+            raise ValueError("Unrequested or duplicate API-Football fixture ID")
+        rows[event_id] = event
+    return rows
+
+
 class APIFootballResults:
-    def __init__(self,key="",*,fetch=fetch_date,max_days=MAX_DAYS,allowed_days=None):
+    def __init__(self,key="",*,fetch=fetch_date,max_days=MAX_DAYS,allowed_days=None,
+                 reviewed_targets=None, id_fetch=fetch_ids):
         if not isinstance(max_days,int) or not 0<=max_days<=MAX_DAYS:
             raise ValueError("invalid API-Football budget")
         self.key=(key or "").strip()
@@ -160,11 +200,42 @@ class APIFootballResults:
         self.allowed_days = None if allowed_days is None else frozenset(allowed_days)
         self.days={}
         self.requests=0
+        self.id_requests=0
+        self.reviewed_targets=dict(reviewed_targets or {})
+        if len(self.reviewed_targets) > 20 or any(
+                not isinstance(k, str) or not isinstance(v, dict)
+                for k, v in self.reviewed_targets.items()):
+            raise ValueError("Unsafe API-Football reviewed targets")
+        self.id_fetch=id_fetch
+        self.id_cache=None
         self.reasons=Counter()
 
     def lookup(self,signal):
         if not self.key:
             return None,"api_football_not_configured"
+        reviewed = self.reviewed_targets.get(signal.get("match_key"))
+        if reviewed is not None:
+            from .lab_api_football_reviewed import validate_reviewed_result
+            if self.id_cache is None:
+                if self.requests + self.id_requests >= MAX_DAYS:
+                    return None, "api_football_reviewed_id_budget_deferred"
+                self.id_requests += 1
+                try:
+                    self.id_cache = self.id_fetch(
+                        sorted(set(v["provider_fixture_id"]
+                                   for v in self.reviewed_targets.values())),
+                        self.key)
+                except (OSError, ValueError, KeyError, TypeError):
+                    self.id_cache = {}
+                    self.reasons["api_football_reviewed_id_unavailable"] += 1
+                    return None, "api_football_reviewed_id_unavailable"
+            event = self.id_cache.get(reviewed["provider_fixture_id"])
+            if event is None:
+                self.reasons["api_football_reviewed_id_missing"] += 1
+                return None, "api_football_reviewed_id_missing"
+            result, why = validate_reviewed_result(signal, reviewed, event)
+            self.reasons[why] += 1
+            return result, why
         ko=_utc(signal.get("kickoff_utc"))
         if ko is None:
             return None,"api_football_invalid_kickoff"
@@ -172,7 +243,7 @@ class APIFootballResults:
         if self.allowed_days is not None and day not in self.allowed_days:
             return None,"api_football_day_rotation_deferred"
         if day not in self.days:
-            if self.requests>=self.max_days:
+            if self.requests>=self.max_days or self.requests+self.id_requests >= MAX_DAYS:
                 return None,"api_football_day_budget_deferred"
             self.requests+=1
             try:
@@ -193,9 +264,12 @@ class APIFootballResults:
         return result,reason
 
     def summary(self):
-        return {"configured":bool(self.key),"requests":self.requests,
+        return {"configured":bool(self.key),"requests":self.requests + self.id_requests,
+                "date_requests":self.requests,"id_requests":self.id_requests,
+                "reviewed_targets":len(self.reviewed_targets),
                 "cached_days":len(self.days),
                 "requested_days":sorted(self.days),
                 "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
-                "verified_in_run":self.reasons["verified_api_football_ft"],
+                "verified_in_run":(self.reasons["verified_api_football_ft"] +
+                                   self.reasons["verified_api_football_ft_reviewed_pair"]),
                 "reason_counts":dict(sorted(self.reasons.items()))}
