@@ -59,3 +59,21 @@ O relatório derivado `docs/lab/v6-readiness.json` compara, nos jogos **cujo in�
 - Gate P0: pelo menos 7 dias desde o primeiro `known_at`, amostra não vazia e ≥99% de cobertura sobre oportunidades observáveis.
 - Gate reforçado V6.1: pelo menos 14 dias sob a mesma medição.
 - Até decorrer o período exigido o estado é `WARMUP`; evidência estatística/probabilística continua `INCONCLUSIVO`.
+
+## V6.1 P1 #6 — cinco memórias científicas (preparação em sombra)
+
+A implementação `h1lab/v6_science_memory.py` e `scripts/lab_v6_memory.py` acrescenta cinco **diários append-only independentes**, com SHA-256 por evento, cadeia de hashes por fluxo, IDs determinísticos e validação no replay:
+
+| Fluxo | Conteúdo | Fonte |
+|---|---|---|
+| observations | referências verificáveis a capturas congeladas com `known_at` verdadeiro | `v6-forecasts-*.jsonl` |
+| patterns | duas condições Pattern Watch congeladas por snapshot, com versão | mesmo diário, sem recálculo futuro |
+| hypotheses | registo formal da hipótese histórica pós-hoc | `v6-hypotheses.jsonl` |
+| evidence | FT por jogo, fonte, nível de evidência, correções e quarentenas sem apagar eventos anteriores | ledger FT + H1 apenas para preenchimento |
+| decisions | estado sequencial, motivo e métricas da decisão | relatório V6 congelado no momento da decisão |
+
+Ficheiros: `data/lab/v6-memory-{observations,patterns,hypotheses,evidence,decisions}-AAAA-MM.jsonl`, com resumo reconstituível em `docs/lab/v6-memory.json`. O comando `python -m scripts.lab_v6_memory --verify-only` não escreve nada e falha se o resumo publicado divergir da reconstrução. O workflow apenas publica os cinco fluxos se a sincronização e reconstrução passarem; continua isolado do H1 e de Telegram.
+
+A migração do que **já estava congelado** usa os `known_at` originais apenas como referência, mas os novos eventos de memória recebem a hora real `written_at`: nunca são retrodatados. Quando um FT desaparece ou muda, o fluxo de evidência acrescenta um evento de quarentena ou revisão; o anterior fica intacto. Esta operação **não altera** nem manda corrigir a liquidação de produção.
+
+**Limite explícito da fase:** neste momento a memória de padrões só cobre as condições Pattern Watch já congeladas, **não** as 800 hipóteses exploratórias nem as 49 variáveis V5 em todas as suas versões. A memória não é ainda o Radar completo e não certifica 99% de ingestão. P0 requer sete dias observados e V6.1 exige o gate de estabilidade de 14 dias; enquanto isso, `V6_SCIENCE_MEMORY_SHADOW_WARMUP_NOT_VALIDATED`. P1 #7–#10 continuam pendentes.
