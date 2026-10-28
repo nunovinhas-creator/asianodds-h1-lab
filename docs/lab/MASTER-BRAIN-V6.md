@@ -145,3 +145,19 @@ O primeiro registo dos dados que já estavam guardados antes desta alteração �
 O relatório derivado `docs/lab/v4-revisions.json` conta as versões, mensagens com `edit_date` alterado, alterações de conteúdo sem prova de edição, e identifica a cauda de hash. `python -m scripts.lab_v4_revisions --verify-only` valida a cadeia, a ligação por mensagem e a igualdade entre a última versão estruturada e a vista atual. Uma divergência impede a publicação do novo relatório. Os workflows V4/H1 e a memória de previsões congeladas continuam separados; edições observadas **depois** de uma previsão não podem retroativamente mudar o respetivo `known_at`.
 
 **Limites de inferência:** `msg.edit_date` descreve o estado da mensagem quando foi lida, não prova que todas as versões intermédias tenham sido observadas. As versões antigas guardadas antes da instalação não são recuperadas a partir da vista final. Não existe uma série contínua de odds; não são criadas apostas nem classificações automáticas de padrões.
+
+## V6.2 P2 #11 — Radar Científico rastreável (primeira versão)
+
+O novo [Radar Científico](../scientific-radar.html), em `docs/scientific-radar.html`, apresenta **até 10 hipóteses formalmente registadas** — atualmente apenas a definição pós-hoc `V6-POSTHOC-20261028-NO-DOWN`. **Não confunde as 800 hipóteses V5 exploratórias com hipóteses científicas congeladas.**
+
+**Fluxo de dois cliques:** a partir do Radar, clicar na hipótese (1) e depois no jogo (2) abre a cadeia de evidência em três secções visíveis juntas:
+
+1. **Observação Telegram/V4**: identificador exato da mensagem, data original e versão V4 se o diário das revisões comprovar que foi guardada antes do `known_at`. Se não houver prova, aparece `V4_HISTORY_NOT_PROVEN_AT_FREEZE`, sem reconstruir odds posteriores.
+2. **Previsão realmente congelada**: `known_at`, linha e preços Total no momento da captura, probabilidade de referência de modelo, hash da previsão e hashes das memórias de observações e padrões; condição histórica original e condição estrita distinguíveis. A probabilidade do mercado modelada **não** é um preço executável.
+3. **FT e qualidade da fonte**: evento e hash do diário FT universal, tipo de evidência, hora de verificação e resultado apenas quando temporalmente comprovável após o início. Distingue o FT universal da memória científica V6, que pode ainda não ter registado esse resultado. Um FT ausente ou não comprovado não é tratado como derrota.
+
+A página inclui dez tentativas de falsificação com `PASS/FAIL/INSUFFICIENT_N`, resultado somente se o relatório corresponder aos hashes das caudas atuais dos diários. Um relatório antigo fica explicitamente marcado como desatualizado e não é apresentado como atual. Há pesquisa por equipa, jogo ou identificador, filtros de jogos com condição original/estrita, FT, ausência de FT ou versão V4 original comprovada, e links de leitura aos diários do GitHub.
+
+**Origem e integridade:** `h1lab/v6_scientific_radar.py` valida o journal de previsões, as cinco memórias encadeadas, o registo formal de hipóteses, as revisões V4 e os FT universais, depois produz `docs/lab/v6-scientific-radar.json` como mera vista derivada. Um desvio nos hashes de origem interrompe a publicação. O CLI `python -m scripts.lab_v6_scientific_radar --verify-only` reconstrói a vista sem escrever dados. A Action publica somente após os passos de memória e falsificação aprovarem. Nenhum componente executa apostas ou modifica H1, Telegram, FT ou evidência anterior.
+
+**Limitações assumidas:** o primeiro snapshot V4 anterior a esta auditoria pode não ter prova de existência antes do congelamento. Resultados FT universais não equivalem a resultados já incorporados na memória científica; a página distingue ambos. Não se afirma edge, ROI, validação fora da amostra, nem precisão de ingestão em tempo real. As exigências de 7/14 dias e 1000 FT prospetivos continuam pendentes.
