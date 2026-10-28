@@ -1,11 +1,17 @@
 # Cron de 5 minutos — Cloudflare Workers + GitHub Actions
 
+**Documentação revista em 28/10/2026.** Ver também [arquitetura canónica](../docs/lab/ARCHITECTURE.md) e [README raiz](../README.md).
+
 ## Porque existe
 
 O workflow GitHub `.github/workflows/collect.yml` mantém `on.schedule` com
 intervalo de 5 minutos, mas o GitHub pode atrasar ou omitir execuções (documentado
-oficialmente). Em 27-10-2026, o repositório executava corretamente `push` e
-`workflow_dispatch`, porém ainda não tinha nenhuma execução `event=schedule`.
+oficialmente). Na fotografia de 27-10-2026, a recolha via Cloudflare foi comprovada por
+commits e logs, e foi também observada pelo menos uma execução
+`event=schedule` do cron GitHub por volta das 18:12 UTC. A afirmação anterior
+de ausência total de execuções agendadas ficou ultrapassada. Nenhuma das
+duas plataformas garante disparos pontuais 24/7; confirmar o histórico
+atual em Actions e o `collector.trigger_source` em `data/state.json`.
 
 Este Worker usa o cron gratuito da Cloudflare para disparar o **mesmo**
 workflow, com as mesmas credenciais Telegram guardadas **apenas no GitHub**.
