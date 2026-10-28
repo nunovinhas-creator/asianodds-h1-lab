@@ -55,6 +55,22 @@ jobs:
           assert rd['p0_7_day_gate'] in ('WARMUP','SOURCE_COVERAGE_PASS_PENDING_EXTERNAL_VERIFICATION','SOURCE_COVERAGE_BELOW_99_PERCENT')
           print('V6_REAL_INPUT_SMOKE_OK',len(prices['snapshots']))
           PY
+      - name: V6F2 observed markets smoke (real data, no backfill)
+        run: |
+          python -m scripts.lab_v6_feature_coverage
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from h1lab.v6_shadow import read_journal
+          from h1lab.v6_features_v2 import verify
+          d=json.loads(Path('docs/lab/v6-feature-coverage.json').read_text(encoding='utf-8'))
+          j=read_journal('.')
+          assert d['status']=='V6F2_SHADOW_COVERAGE_NOT_VALIDATED'
+          assert d['total_records']==len(j)
+          assert sum(d['snapshot_versions'].values())==len(j)
+          assert all(verify(x['feature_context_v2']) for x in j if 'feature_context_v2' in x)
+          print('V6F2_REAL_CAPTURE_COVERAGE_OK',d['snapshot_versions'])
+          PY
       - name: V6 scientific memory replay smoke on real frozen snapshots
         run: |
           python -m scripts.lab_v6_memory
