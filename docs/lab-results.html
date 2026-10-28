@@ -25,7 +25,7 @@ aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 </style></head><body><main>
 <header><nav><a href="./index.html">Centro H1 + LAB</a><a href="./lab.html">Laboratório</a><a href="./lab-v4-audit.html">Auditoria V4</a></nav>
 <h1>Resultados finais dos jogos observados</h1>
-<p>Todos os jogos identificados nos alertas, <strong>mesmo sem sinal H1</strong>. Consulta autónoma a BSD, TheSportsDB e, nas ligas identificáveis, ESPN, com correspondência rigorosa de equipas e hora. O LAB não realiza apostas. Os jogos futuros não contam como resultados em atraso.</p>
+<p>Todos os jogos identificados nos alertas, <strong>mesmo sem sinal H1</strong>. Consulta autónoma a BSD, TheSportsDB, ESPN e SportScore, com correspondência rigorosa de equipas e hora. O LAB não realiza apostas. Os jogos futuros não contam como resultados em atraso.</p>
 <p class="small" id="fresh">A carregar resultados…</p></header>
 <section class="cards" aria-label="Indicadores de cobertura">
 <div class="card"><span>Jogos observados</span><strong id="all">—</strong></div>
@@ -41,11 +41,12 @@ aside{margin-top:25px;border-left:3px solid;padding:5px 15px}
 <p id="visible" class="small" role="status"></p>
 <div class="scroll"><table><thead><tr><th>Jogo</th><th>Estado</th><th>Início UTC</th><th>Resultado</th><th>Fonte / motivo</th></tr></thead><tbody id="rows"></tbody></table></div>
 <aside><strong>Como interpretar</strong><p>FT registado não é sinónimo de confirmação por dois fornecedores. <em>BSD apenas</em> ou <em>TheSportsDB apenas</em> identifica uma única fonte. Jogos pendentes, não encontrados ou sem identidade não são derrotas, nem provas de que houve poucos golos. Esta recolha não demonstra lucratividade.</p></aside>
+<footer class="small" style="margin-top:24px;padding-top:15px;border-top:1px solid currentColor">Alguns resultados provêm da API pública SportScore. <a href="https://sportscore.com/" rel="dofollow" title="Sports data by SportScore">Powered by SportScore</a>. A fonte de cada marcador é identificada e deve ser confirmada de forma independente antes de qualquer avaliação financeira.</footer>
 </main>
 <script>
 "use strict";
 const node=id=>document.getElementById(id);
-const evidence={bsd_only:"BSD apenas",thesportsdb_only:"TheSportsDB apenas",bsd_and_thesportsdb:"BSD + TheSportsDB",espn_only:"ESPN apenas",bsd_and_espn:"BSD + ESPN",thesportsdb_and_espn:"TheSportsDB + ESPN",bsd_and_thesportsdb_and_espn:"BSD + TheSportsDB + ESPN"};
+const evidence={bsd_only:"BSD apenas",thesportsdb_only:"TheSportsDB apenas",bsd_and_thesportsdb:"BSD + TheSportsDB",espn_only:"ESPN apenas",sportscore_only:"SportScore apenas (fonte única)",bsd_and_sportscore:"BSD + SportScore",thesportsdb_and_sportscore:"TheSportsDB + SportScore",espn_and_sportscore:"ESPN + SportScore",bsd_and_espn:"BSD + ESPN",thesportsdb_and_espn:"TheSportsDB + ESPN",bsd_and_thesportsdb_and_espn:"BSD + TheSportsDB + ESPN"};
 const names={FINAL:"FT registado",PENDING:"Pendente",PROVIDER_ERROR:"Erro do fornecedor",IDENTITY_CONFLICT:"Identidade em conflito",INSUFFICIENT_IDENTITY:"Identidade incompleta",SCORE_CONFLICT:"Marcadores contraditórios",EXPIRED_UNVERIFIED:"Prazo ultrapassado"};
 let games=[];
 function td(tr,text,cls){const cell=document.createElement("td");cell.textContent=String(text??"—");if(cls)cell.className=cls;tr.appendChild(cell);return cell;}
@@ -60,7 +61,7 @@ function render(){
   td(tr,g.kickoff_utc?.replace("T"," ").slice(0,16)||"—");
   td(tr,g.status==="FINAL"?g.home_goals+" – "+g.away_goals:"—");
   const cell=td(tr,g.status==="FINAL"?(evidence[g.evidence]||g.evidence):g.reason||"Por verificar");
-  if(g.status==="FINAL" && /^https:\/\/(sports\.bzzoiro\.com|www\.thesportsdb\.com)\//.test(g.source||"")){
+  if(g.status==="FINAL" && /^https:\/\/(sports\\.bzzoiro\\.com|www\\.thesportsdb\\.com|site\\.api\\.espn\\.com|sportscore\\.com)\//.test(g.source||"")){
    const a=document.createElement("a");a.href=g.source;a.textContent="Consultar fonte";a.target="_blank";a.rel="noopener noreferrer";
    cell.append(" · ",a);
   }
@@ -79,7 +80,7 @@ fetch("./lab/ft-results.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error(
  const c=d.status_counts||{};
 
  const bd=d.bsd_date_search||{};
- node("summary").textContent="Pendentes ainda sem primeira consulta: "+(t.ELIGIBLE_NEVER_QUERIED||0)+" · Novas tentativas disponíveis: "+(t.ELIGIBLE_RETRY_DUE||0)+" · Em intervalo de segurança: "+(t.ELIGIBLE_COOLDOWN||0)+" · Espera de 3h pós-jogo: "+(t.IN_3H_GRACE||0)+" · Verificações ESPN nesta execução: "+((d.espn_scoreboards||{}).confirmed_in_run??"—")+" · Recuperados por data BSD: "+(bd.fallback_results_recovered??"—")+".";
+ node("summary").textContent="Pendentes ainda sem primeira consulta: "+(t.ELIGIBLE_NEVER_QUERIED||0)+" · Novas tentativas disponíveis: "+(t.ELIGIBLE_RETRY_DUE||0)+" · Em intervalo de segurança: "+(t.ELIGIBLE_COOLDOWN||0)+" · Espera de 3h pós-jogo: "+(t.IN_3H_GRACE||0)+" · ESPN FT nesta execução: "+((d.espn_scoreboards||{}).confirmed_in_run??"—")+" · SportScore FT nesta execução: "+((d.sportscore_search||{}).confirmed_in_run??"—")+" · Recuperados por data BSD: "+(bd.fallback_results_recovered??"—")+".";
  node("fresh").textContent=d.last_updated_at?"Última atualização de dados: "+d.last_updated_at+" (UTC)":"Ainda sem verificações de resultados.";
  render();
 }).catch(e=>{node("fresh").textContent="Relatório LAB indisponível ou ainda não publicado. Consulte a Action «Lab - Reconcile FT for all observed matches».";node("visible").textContent="Não foi possível ler os dados.";});
