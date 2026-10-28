@@ -9,7 +9,19 @@ from urllib.error import HTTPError,URLError
 from .lab_identity import EXACT,CORE,IDENTITY_VERSION,core_tokens,pair_level,select_event
 
 API="https://openfootapi.com/v1/matches"
-MAX_DAYS=3
+MAX_DAYS=2
+# Explicit fixture-level pairs evidenced by the authenticated 2026-10-27
+# Cupa Romaniei listing. No wildcard/team-level alias is ever applied.
+REVIEWED_PAIRS={
+  "2026-10-27,95935,1688":(
+      "AFC Progresul Spartac '44","FC Petrolul Ploieşti",
+      "2026-10-27T15:00:00+00:00",
+      "Progresul Spartac","Petrolul Ploiești","comp_cupa_romaniei_ro"),
+  "2026-10-27,22207,24472":(
+      "FCM Uzina Textila Arad (UTA)","FC SA Botoşani",
+      "2026-10-27T17:00:00+00:00",
+      "UTA Arad","Botoșani","comp_cupa_romaniei_ro"),
+}
 
 def utc(value):
     if not isinstance(value,str):return None
@@ -121,15 +133,36 @@ class OpenFootResults:
         if not isinstance(rows,list):
             return None,"openfoot_unavailable"
         e,level,why=candidate(signal,rows)
+        probe=signal
+        reviewed=False
+        if e is None:
+            expected=REVIEWED_PAIRS.get(signal.get("match_key"))
+            if (expected is not None and
+                signal.get("home")==expected[0] and
+                signal.get("away")==expected[1] and
+                utc(signal.get("kickoff_utc"))==utc(expected[2])):
+                probe=dict(signal,home=expected[3],away=expected[4])
+                e,level,why=candidate(probe,rows)
+                if e is not None:
+                    stamp=utc(e.get("kickoffAt"))
+                    if (e.get("competitionId")!=expected[5] or stamp is None
+                        or abs((stamp-utc(expected[2])).total_seconds())>300):
+                        e=None
+                        why="openfoot_reviewed_competition_or_kickoff_mismatch"
+                    else:
+                        reviewed=True
         if e is None:
             self.reasons[why]+=1
             return None,why
-        result,why=verify(signal,e,level)
+        result,why=verify(probe,e,level)
+        if result is not None and reviewed:
+            result["identity_match"]="REVIEWED_PAIR"
+            why="verified_openfoot_ft_reviewed_pair"
         self.reasons[why]+=1
         return result,why
 
     def summary(self):
         return {"configured":bool(self.key),"requests":self.requests,
                 "cached_days":len(self.days),
-                "verified_in_run":self.reasons["verified_openfoot_ft"],
+                "verified_in_run":self.reasons["verified_openfoot_ft"]+self.reasons["verified_openfoot_ft_reviewed_pair"],
                 "reason_counts":dict(sorted(self.reasons.items()))}
