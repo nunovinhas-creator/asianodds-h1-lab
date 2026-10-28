@@ -1,6 +1,12 @@
 name: Lab - Reconcile FT for all observed matches
 on:
   workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: "Origem manual ou watchdog H1 (apenas fallback)"
+        required: false
+        type: string
+        default: manual
   schedule:
     - cron: '12,42 * * * *'
   push:
@@ -102,7 +108,8 @@ jobs:
           GOAL_API_KEY: ${{ secrets.GOAL_API_KEY }}
           OPENFOOT_API_KEY: ${{ secrets.OPENFOOT_API_KEY }}
           LAB_FOTMOB_LICENSED: ${{ vars.LAB_FOTMOB_LICENSED || '0' }}
-          LAB_API_FOOTBALL_SCHEDULED: ${{ github.event_name == 'schedule' }}
+          LAB_API_FOOTBALL_SCHEDULED: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.trigger_source == 'h1-ft-watchdog') }}
+          LAB_FT_WATCHDOG_DISPATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.trigger_source == 'h1-ft-watchdog' }}
           LAB_FT_BACKLOG_ONCE_20261028: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[ft-recovery-v12-once]') }}
           LAB_RESULTS_MAX_CHECKS: ${{ vars.LAB_RESULTS_MAX_CHECKS || '30' }}
           LAB_BSD_DATE_MAX_DAYS: ${{ vars.LAB_BSD_DATE_MAX_DAYS || '3' }}
