@@ -38,6 +38,20 @@ REVIEWED_PUBLIC_FT = {
 #        primary and corroboration URLs. These matches were observed and
 #        PENDING before documentary review, not SOURCE_ORDER_CONFLICT.
 REVIEWED_PENDING_FT = {
+    # 28/10 17:40 UTC manual public comparison; strict original AsianOdds
+    # identity, independently corroborated 90-minute result, no fuzzy alias.
+    "2026-10-27,10030127,75": (
+        "Loughborough University", "Rushden and Diamonds",
+        "2026-10-27T19:45:00+00:00", 1, 0,
+        "https://lborostudentsfc.co.uk/",
+        "https://www.footballwebpages.co.uk/dorchester-town/loughborough-students",
+    ),
+    "2026-10-27,59193,10052416": (
+        "Cerro Largo FC Reserves", "La Luz Reserves",
+        "2026-10-27T18:00:00+00:00", 3, 2,
+        "https://betimate.com/en/football-predictions/cerro-largo-reserves-vs-la-luz-reserves/2026-10-27/game",
+        "https://offsidescores.com/pt/futebol/equipa/cerro-largo-fc-reservas/51da78fd-2f07-4b2d-a089-223d0c583f9b/detalhe",
+    ),
     "2026-10-27,23683,747": (
         "FK Fakel Voronezh", "FK Akhmat Grozny",
         "2026-10-27T15:00:00+00:00", 0, 0,

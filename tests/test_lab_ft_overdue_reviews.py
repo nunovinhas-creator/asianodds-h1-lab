@@ -10,6 +10,8 @@ from h1lab.lab_results import reconcile
 
 NOW = datetime(2026, 10, 28, 12, tzinfo=timezone.utc)
 EXPECTED = {
+    "2026-10-27,10030127,75": (1, 0),
+    "2026-10-27,59193,10052416": (3, 2),
     "2026-10-27,23683,747": (0, 0),
     "2026-10-27,25153,62798": (4, 1),
     "2026-10-27,31960,1154": (1, 1),
@@ -32,7 +34,7 @@ def no_result(signal):
 
 
 class OverdueFTTests(unittest.TestCase):
-    def test_ten_exact_reviewed_scores_not_including_penalties_or_aet(self):
+    def test_twelve_exact_reviewed_scores_not_including_penalties_or_aet(self):
         self.assertEqual(set(REVIEWED_PENDING_FT), set(EXPECTED))
         for key, fixture in REVIEWED_PENDING_FT.items():
             with self.subTest(key=key):
@@ -51,7 +53,7 @@ class OverdueFTTests(unittest.TestCase):
                     changed[field]=value
                     self.assertIsNone(verified_public_ft(changed)[0])
 
-    def test_ten_previously_pending_recovered_with_immutable_audit_urls(self):
+    def test_twelve_previously_pending_recovered_with_immutable_audit_urls(self):
         previous={"schema_version":1,"matches":{}}
         alerts=[]
         for key, row in REVIEWED_PENDING_FT.items():
@@ -64,8 +66,8 @@ class OverdueFTTests(unittest.TestCase):
         original=copy.deepcopy(previous)
         ledger,report,attempted=reconcile({"alerts":alerts,"signals":[]},[],previous,
             now=NOW, bsd_lookup=no_result,tsdb_lookup=no_result,max_checks=30)
-        self.assertEqual(attempted,10)
-        self.assertEqual(report["final_recorded"],10)
+        self.assertEqual(attempted,12)
+        self.assertEqual(report["final_recorded"],12)
         self.assertEqual(previous, original)
         for key, row in REVIEWED_PENDING_FT.items():
             resolved=ledger["matches"][key]
