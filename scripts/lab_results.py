@@ -17,6 +17,8 @@ from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
+from h1lab.lab_goal import GoalResults
+from h1lab.lab_openfoot import OpenFootResults
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
@@ -144,6 +146,18 @@ def main():
                      and now.hour % 2 == 0 and now.minute < 30)))
     api_football = APIFootballResults(key=api_key,
                                       max_days=3 if api_football_poll else 0)
+    one_shot_new = (os.environ.get("LAB_NEW_FT_ONE_SHOT") == "true"
+                    and os.environ.get("GITHUB_WORKFLOW") ==
+                    "LAB - GOAL and OpenFoot one-time FT activation")
+    # 48 scheduled FT runs/day * 2 dates = at most 96 GOAL requests/day
+    # and 96 OpenFoot requests/day (~2,976/month for 31 days).
+    is_scheduled = os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
+    goal_key = os.environ.get("GOAL_API_KEY", "")
+    openfoot_key = os.environ.get("OPENFOOT_API_KEY", "")
+    goal_enabled = bool(goal_key.strip()) and (is_scheduled or one_shot_new)
+    openfoot_enabled = bool(openfoot_key.strip()) and (is_scheduled or one_shot_new)
+    goal = GoalResults(key=goal_key, max_days=2 if goal_enabled else 0)
+    openfoot = OpenFootResults(key=openfoot_key, max_days=2 if openfoot_enabled else 0)
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
     sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
@@ -153,7 +167,10 @@ def main():
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup,
         fotmob_lookup=fotmob.lookup if fotmob_enabled else None,
         api_football_lookup=api_football.lookup if api_football_poll else None,
-        lookup_source_version=10 if api_football_poll else None,
+        goal_lookup=goal.lookup if goal_enabled else None,
+        openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
+        lookup_source_version=(11 if goal_enabled or openfoot_enabled else
+                               10 if api_football_poll else None),
         max_checks=checks)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
@@ -163,6 +180,10 @@ def main():
     report["fotmob_search"] = fotmob.summary()
     report["fotmob_search"]["licensed_automation_enabled"] = fotmob_enabled
     report["api_football_search"] = api_football.summary()
+    report["goal_search"] = goal.summary()
+    report["goal_search"]["poll_enabled"] = goal_enabled
+    report["openfoot_search"] = openfoot.summary()
+    report["openfoot_search"]["poll_enabled"] = openfoot_enabled
     report["api_football_search"]["scheduled_poll_enabled"] = api_football_poll
     report["api_football_search"]["one_shot_activation"] = one_shot
     report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
@@ -177,6 +198,10 @@ def main():
           "monte_core_verified", report["monte_carlos_bsd"]["verified_core_name_in_run"],
           "espn_confirmed", report["espn_scoreboards"]["confirmed_in_run"],
           "espn_requests", report["espn_scoreboards"]["requests"],
+          "goal_verified", report["goal_search"]["verified_in_run"],
+          "goal_requests", report["goal_search"]["requests"],
+          "openfoot_verified", report["openfoot_search"]["verified_in_run"],
+          "openfoot_requests", report["openfoot_search"]["requests"],
           "api_football_verified", report["api_football_search"]["verified_in_run"],
           "api_football_requests", report["api_football_search"]["requests"],
           "fotmob_verified", report["fotmob_search"]["verified_in_run"],
