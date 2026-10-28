@@ -109,7 +109,7 @@ def _score(signal,ev,level):
     if not isinstance(fulltime,dict) or not isinstance(goals,dict):
         return None,"api_football_missing_regulation_score"
     hs,aw=fulltime.get("home"),fulltime.get("away")
-    if (any(type(n) is not int or not 0<=n<=99 for n in (hs,aw))
+    if (any(type(n) is not int or not 0<=n<=99 for n in (hs,aw,goals.get("home"),goals.get("away")))
         or (hs,aw)!=(goals.get("home"),goals.get("away"))):
         return None,"api_football_score_conflict"
     return {"match_key":signal["match_key"],"status":"final",
