@@ -106,6 +106,15 @@ jobs:
           LAB_BSD_DATE_MAX_DAYS: ${{ vars.LAB_BSD_DATE_MAX_DAYS || '3' }}
           LAB_BSD_DATE_MAX_PAGES: ${{ vars.LAB_BSD_DATE_MAX_PAGES || '3' }}
         run: python -m scripts.lab_results
+      # P1 #9: append-only FT transition/evidence stream for ALL LAB games.
+      # Uses the already reconciled ledger; no provider requests.
+      - name: Journal all FT changes and verify chain (V6 shadow)
+        id: v6_ft_events
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_ft_events.py' -v
+          python -m scripts.lab_v6_ft_events
+          python -m scripts.lab_v6_ft_events --verify-only
       - name: Validate published snapshot
         run: |
           python - <<'PY'
@@ -226,6 +235,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json
+          if [ "${{ steps.v6_ft_events.outcome }}" = "success" ]; then
+            git add -f data/lab/v6-ft-events-*.jsonl 2>/dev/null || true
+            if [ -f docs/lab/v6-ft-evidence.json ]; then git add docs/lab/v6-ft-evidence.json; fi
+          fi
           if [ -f data/lab/ft-api-audit.json ]; then git add data/lab/ft-api-audit.json; fi
           if [ -f docs/lab/pattern-research.json ]; then git add docs/lab/pattern-research.json; fi
           if [ -f docs/lab/v6-residual-research.json ]; then git add docs/lab/v6-residual-research.json; fi
