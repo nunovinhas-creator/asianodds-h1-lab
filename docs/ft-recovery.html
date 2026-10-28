@@ -29,6 +29,7 @@ footer{color:#b1c3cf;font-size:.88rem}
 <div id="providers"></div>
 <h3>Datas autorizadas por execução</h3><p class="muted">As datas rotativas gastam orçamento apenas se o adaptador realmente fizer o pedido. Consulta histórica por data; não significa resultado disponível.</p>
 <div id="rotation"></div>
+<div id="id-probe" role="status"></div>
 <p><a href="./lab/ft-provider-identity.json">Registo auditável de IDs confirmados</a> — candidatos aproximados nunca entram automaticamente.</p></section>
 <div class="controls"><div><label for="filter">Filtrar jogos atrasados</label><select id="filter">
 <option value="all">Todos os atrasados</option><option value="never">Nunca consultados</option>
@@ -97,9 +98,14 @@ async function load(){
    for(const [name,details] of Object.entries(q.date_rotation||{})){
     const line=el("p",name+": selecionadas ["+(details.selected_days||[]).join(", ")+
       "] · consultadas ["+(details.requested_days||[]).join(", ")+
-      "] · limite por execução "+fmt(details.date_budget));
+      "] · limite datas "+fmt(details.date_budget)+" · pedidos dirigidos por ID "+fmt(details.id_requests||0));
     dayBox.append(line);
    }
+   const probe=q.goal_id_probe||{};
+   byId("id-probe").textContent="GOAL por ID · candidatos agendados: "+
+     fmt(probe.candidates_planned??"—")+" · pedidos realizados: "+
+     fmt(probe.calls??"—")+" · diagnóstico: "+
+     (Array.isArray(probe.outcome)&&probe.outcome.length?probe.outcome.join(", "):"nenhum");
    render();
  }catch(e){byId("updated").textContent="Não foi possível carregar a fila FT: "+e.message;}
 }
