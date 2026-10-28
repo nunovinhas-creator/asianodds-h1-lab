@@ -6,6 +6,7 @@
 
 | Documento | Função / estado |
 | --- | --- |
+| [MASTER BRAIN V6 — auditoria prospetiva](lab/MASTER-BRAIN-V6.md) | **Sombra P0**: QA de cotações, previsões congeladas, resíduo contra o mercado, INCONCLUSIVO |
 | [Cérebro V5 — como cruza odds, mercados e resultados](lab/CEREBRO-ODDS.md) | **Guia principal do cérebro**, distingue pesquisa de apostas H1 |
 | [Arquitetura canónica](lab/ARCHITECTURE.md) | **Mapa atual** H1, V4, V5, fornecedores, agendamentos, dashboard |
 | [Motor V5 — especificação](lab/PATTERN-ENGINE.md) | Padrões, hipóteses, estatística, OOS, registo append-only |
