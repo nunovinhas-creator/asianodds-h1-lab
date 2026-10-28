@@ -109,6 +109,14 @@ def write_if_changed(path, data):
     return True
 
 
+def backlog_recovery_enabled(env):
+    return (env.get("LAB_FT_BACKLOG_ONCE_20261028") == "true"
+            and env.get("GITHUB_WORKFLOW") ==
+            "Lab - Reconcile FT for all observed matches"
+            and env.get("GITHUB_EVENT_NAME") == "push"
+            and env.get("GITHUB_REF") == "refs/heads/main")
+
+
 def main():
     state = json.loads((ROOT / "data/state.json").read_text(encoding="utf-8"))
     existing = (json.loads(LEDGER.read_text(encoding="utf-8"))
@@ -158,11 +166,9 @@ def main():
                      and os.environ.get("GITHUB_WORKFLOW") ==
                      "LAB - One-time FT recovery 2026-10-28"
                      and os.environ.get("GITHUB_EVENT_NAME") == "push")
-    # This exact tagged main merge is the only eligible push recovery.
-    backlog_once = (os.environ.get("LAB_FT_BACKLOG_ONCE_20261028") == "true"
-                    and os.environ.get("GITHUB_WORKFLOW") ==
-                    "Lab - Reconcile FT for all observed matches"
-                    and os.environ.get("GITHUB_EVENT_NAME") == "push")
+    # A tagged main merge explicitly authorizes exactly one bounded
+    # recovery run. Ordinary push/manual executions cannot bypass cooldown.
+    backlog_once = backlog_recovery_enabled(os.environ)
     recovery_once = recovery_once or backlog_once
     api_football_poll = (bool(api_key.strip()) and (
         one_shot or recovery_once or
