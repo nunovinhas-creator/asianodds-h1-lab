@@ -1,0 +1,101 @@
+name: LAB - One-time FT recovery 2026-10-28
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lab-ft-recovery-once.yml'
+
+permissions:
+  contents: write
+
+# Do not run in parallel with normal scheduled FT reconciliation.
+concurrency:
+  group: asianodds-lab-ft-results
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read latest main and preserve baseline
+        run: |
+          git pull --rebase origin main
+          cp data/lab/ft-ledger.json /tmp/lab_ft_pre_recovery.json
+      - name: Regression gates without real API calls
+        run: |
+          python -m unittest discover -s tests -p 'test_lab_ft_recovery.py' -v
+          python -m unittest discover -s tests -p 'test_lab_source_order.py' -v
+          python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
+          python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
+      - name: Bounded 30-game recovery and independent conflict investigation
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL || secrets.API_FOOTBALL_KEY }}
+          GOAL_API_KEY: ${{ secrets.GOAL_API_KEY }}
+          OPENFOOT_API_KEY: ${{ secrets.OPENFOOT_API_KEY }}
+          LAB_FT_RECOVERY_ONCE: 'true'
+          LAB_RESULTS_MAX_CHECKS: '30'
+          LAB_BSD_DATE_MAX_DAYS: '3'
+          LAB_BSD_DATE_MAX_PAGES: '3'
+          LAB_FOTMOB_LICENSED: '0'
+        run: python -m scripts.lab_results
+      - name: Verify all previously confirmed FT results are immutable
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          before=json.loads(Path("/tmp/lab_ft_pre_recovery.json").read_text())["matches"]
+          after=json.loads(Path("data/lab/ft-ledger.json").read_text())["matches"]
+          report=json.loads(Path("docs/lab/ft-results.json").read_text())
+          audit=json.loads(Path("data/lab/ft-api-audit.json").read_text())
+          prev_final={k:r["result"] for k,r in before.items() if r["status"]=="FINAL"}
+          for k,result in prev_final.items():
+              assert k in after, ("FT_LOST", k)
+              assert after[k]["status"]=="FINAL", ("FT_STATUS_REGRESSION",k)
+              assert after[k]["result"]==result, ("FT_SCORE_OR_SOURCE_CHANGED",k)
+          assert report["final_recorded"]>=len(prev_final)
+          assert report["source_order_audit"]["quarantined_identified"]>=4
+          assert report["source_order_audit"]["recovered_with_independent_ft"] + report["source_order_audit"]["remaining_quarantined"] == report["source_order_audit"]["quarantined_identified"]
+          assert audit["runs"][-1]["trigger"]=="one_time_recovery"
+          assert audit["runs"][-1]["checked_games"]<=30
+          for name in ("api_football","goal","openfoot"):
+              assert audit["runs"][-1]["providers"][name]["requests"]<=3
+          print("LAB_FT_RECOVERY_AUDIT", "previous_final",len(prev_final),
+                "current_final",report["final_recorded"],
+                "investigated",report["source_order_audit"]["quarantined_identified"],
+                "recovered",report["source_order_audit"]["recovered_with_independent_ft"],
+                "blocked",report["source_order_audit"]["remaining_quarantined"],
+                "eligible",report["coverage_diagnostics"]["past_unverified_eligible"])
+          for case in report["source_order_audit"]["cases"]:
+              print("LAB_FT_CASE",case["match_key"],case["status"],
+                    case["reason"])
+          PY
+      - name: Publish LAB-only results and remove this one-time workflow
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/lab-ft-recovery-once.yml
+          git add data/lab/ft-ledger.json docs/lab/ft-results.json data/lab/ft-api-audit.json
+          git commit -m 'data(lab): independently recover and audit FT [skip ci]'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo LAB_FT_RECOVERY_PUBLISHED_AND_WORKFLOW_REMOVED
+              exit 0
+            fi
+            sleep 2
+          done
+          echo LAB_FT_RECOVERY_PUBLISH_FAILED
+          exit 1

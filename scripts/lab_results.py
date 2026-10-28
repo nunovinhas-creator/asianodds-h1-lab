@@ -23,6 +23,7 @@ from h1lab.lab_openfoot import OpenFootResults
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
 REPORT = ROOT / "docs/lab/ft-results.json"
+API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 
 
 def read_v4():
@@ -141,9 +142,16 @@ def main():
     one_shot = (os.environ.get("LAB_API_FOOTBALL_ONE_SHOT") == "true"
                 and os.environ.get("GITHUB_WORKFLOW") ==
                 "LAB - API-Football one-time activation check")
+    # Exactly one self-removing recovery workflow may bypass the normal FT
+    # cooldown. Neither regular pushes nor manual local runs may do so.
+    recovery_once = (os.environ.get("LAB_FT_RECOVERY_ONCE") == "true"
+                     and os.environ.get("GITHUB_WORKFLOW") ==
+                     "LAB - One-time FT recovery 2026-10-28"
+                     and os.environ.get("GITHUB_EVENT_NAME") == "push")
     api_football_poll = (bool(api_key.strip()) and (
-        one_shot or (os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
-                     and now.hour % 2 == 0 and now.minute < 30)))
+        one_shot or recovery_once or
+        (os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
+         and now.hour % 2 == 0 and now.minute < 30)))
     api_football = APIFootballResults(key=api_key,
                                       max_days=3 if api_football_poll else 0)
     one_shot_new = (os.environ.get("LAB_NEW_FT_ONE_SHOT") == "true"
@@ -151,7 +159,7 @@ def main():
                     "LAB - GOAL and OpenFoot one-time FT activation")
     # 48 scheduled FT runs/day * 2 dates = at most 96 GOAL requests/day
     # and 96 OpenFoot requests/day (~2,976/month for 31 days).
-    is_scheduled = os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
+    is_scheduled = os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true" or recovery_once
     goal_key = os.environ.get("GOAL_API_KEY", "")
     openfoot_key = os.environ.get("OPENFOOT_API_KEY", "")
     goal_enabled = bool(goal_key.strip()) and (is_scheduled or one_shot_new)
@@ -171,7 +179,7 @@ def main():
         openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
-        max_checks=checks)
+        max_checks=checks, force_recheck=recovery_once)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
@@ -187,6 +195,43 @@ def main():
     report["api_football_search"]["scheduled_poll_enabled"] = api_football_poll
     report["api_football_search"]["one_shot_activation"] = one_shot
     report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
+    # Persist bounded evidence of real scheduled provider calls. A subsequent
+    # push run can overwrite the dashboard snapshot without erasing this audit.
+    event = os.environ.get("GITHUB_EVENT_NAME", "local")
+    if event == "schedule" or recovery_once:
+        previous_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
+                          if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
+        if (not isinstance(previous_audit, dict) or
+                previous_audit.get("schema_version") != 1 or
+                not isinstance(previous_audit.get("runs"), list)):
+            raise ValueError("Invalid LAB FT API audit history")
+        run_id = os.environ.get("GITHUB_RUN_ID", "")[:32]
+        record = {
+            "utc": now.isoformat(timespec="seconds"),
+            "run_id": run_id,
+            "trigger": "one_time_recovery" if recovery_once else "schedule",
+            "checked_games": queried,
+            "final_recorded": report["final_recorded"],
+            "past_unverified": report["coverage_diagnostics"]["past_unverified_eligible"],
+            "source_order_audit": report["source_order_audit"],
+            "providers": {
+                "api_football": {"enabled": api_football_poll, "requests": report["api_football_search"]["requests"],
+                                 "verified": report["api_football_search"]["verified_in_run"]},
+                "goal": {"enabled": goal_enabled, "requests": report["goal_search"]["requests"],
+                         "verified": report["goal_search"]["verified_in_run"]},
+                "openfoot": {"enabled": openfoot_enabled, "requests": report["openfoot_search"]["requests"],
+                             "verified": report["openfoot_search"]["verified_in_run"]},
+            },
+        }
+        history = [item for item in previous_audit["runs"]
+                   if item.get("run_id") != run_id or not run_id]
+        history.append(record)
+        write_if_changed(API_AUDIT, {"schema_version": 1, "runs": history[-32:]})
+        print("LAB_FT_API_AUDIT", record["trigger"], "checked", queried,
+              "api_football", record["providers"]["api_football"]["requests"],
+              "goal", record["providers"]["goal"]["requests"],
+              "openfoot", record["providers"]["openfoot"]["requests"],
+              "source_conflicts_remaining", report["source_order_audit"]["remaining_quarantined"])
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)
     print("LAB_FT_RESULT_SYNC", "catalog", report["matches"],
