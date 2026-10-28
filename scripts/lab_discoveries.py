@@ -4,6 +4,7 @@ Invoked AFTER pattern research and pattern watch in the existing LAB FT workflow
 H1, Telegram, schedule, odds and existing result ledgers are READ ONLY.
 """
 from __future__ import annotations
+from h1lab.lab_archive import monthly_paths, append_monthly
 
 import argparse
 import json
@@ -57,10 +58,11 @@ def main(argv=None):
             raise ValueError("invalid event month")
         by_month.setdefault(month, []).append(e)
     for month, additions in by_month.items():
-        path = root / "data/lab" / ("discovery-events-" + month + ".jsonl")
         known = {}
-        if path.exists():
-            for line in path.read_text(encoding="utf-8").splitlines():
+        for part in monthly_paths(root, "discovery-events"):
+            if part.name[len("discovery-events")+1:len("discovery-events")+8] != month:
+                continue
+            for line in part.read_text(encoding="utf-8").splitlines():
                 row = json.loads(line)
                 if row["event_id"] in known and known[row["event_id"]] != row:
                     raise ValueError("history duplicate with different content")
@@ -74,10 +76,9 @@ def main(argv=None):
                 fresh.append(item)
                 known[item["event_id"]] = item
         if fresh:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open("a", encoding="utf-8") as stream:
-                for item in fresh:
-                    stream.write(json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n")
+            append_monthly(root, "discovery-events", month, [
+                json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n"
+                for item in fresh])
 
     a = put(root / STATE, state, MAX_STATE_BYTES)
     b = put(root / PUBLIC, public, MAX_PUBLIC_BYTES)

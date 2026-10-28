@@ -5,6 +5,7 @@ state, score or provenance revision. A pre-existing mutable ledger is treated
 as a baseline seen NOW, never as historically reconstructible events.
 """
 from __future__ import annotations
+from .lab_archive import monthly_paths, append_monthly
 
 import hashlib
 import json
@@ -72,7 +73,7 @@ def event_hash(event):
 
 def read_events(root):
     events, seen, last, prior_for = [], set(), ZERO, {}
-    for path in sorted((Path(root) / "data/lab").glob(GLOB)):
+    for path in monthly_paths(root, "v6-ft-events"):
         for raw in path.read_text(encoding="utf-8").splitlines():
             if not raw:
                 raise ValueError("Blank FT evidence event")
@@ -154,12 +155,8 @@ def synchronize(root, ledger, now, *, verify_only=False):
     if verify_only and additions:
         raise ValueError("FT evidence journal diverges from current ledger")
     if additions and not verify_only:
-        path = root / "data/lab" / ("v6-ft-events-" +
-                  now.astimezone(timezone.utc).strftime("%Y-%m") + ".jsonl")
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as handle:
-            for item in additions:
-                handle.write(canonical(item) + "\n")
+        append_monthly(root, "v6-ft-events", now.astimezone(timezone.utc).strftime("%Y-%m"),
+                       [canonical(item) + "\n" for item in additions])
     verified = read_events(root)
     if verify_only and len(verified) != len(existing):
         raise ValueError("FT verify mode changed record count")

@@ -126,6 +126,15 @@ jobs:
         run: |
           python -m scripts.lab_v6_weekly_monitor
           python -m scripts.lab_v6_weekly_monitor --verify-only
+      # P2#14 runs in the existing LAB audit; no cron and no provider calls.
+      # It verifies ALL LAB file sizes, monthly seals and replay of SHA chains.
+      - name: Publish bounded monthly archive inventory (shadow)
+        id: lab_archive
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_lab_archive.py' -v
+          python -m scripts.lab_v6_archive
+          python -m scripts.lab_v6_archive --verify-only
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -135,6 +144,10 @@ jobs:
             if [ -f docs/lab/v4-revisions.json ]; then git add docs/lab/v4-revisions.json; fi
           fi
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
+          if [ "${{ steps.lab_archive.outcome }}" = "success" ]; then
+            git add -f data/lab/v6-archive-index.json
+            git add docs/lab/v6-archive-health.json
+          fi
           if [ "${{ steps.v6_scientific_radar.outcome }}" = "success" ]; then
             if [ -f docs/lab/v6-scientific-radar.json ]; then git add docs/lab/v6-scientific-radar.json; fi
           fi

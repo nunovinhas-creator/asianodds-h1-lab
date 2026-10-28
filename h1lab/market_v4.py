@@ -10,6 +10,7 @@ import subprocess
 from datetime import timezone, datetime
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
+from .lab_archive import monthly_paths, write_monthly_view
 
 NUM=r"[+-]?\d+(?:[.,]\d+)?"
 PAIR=re.compile(r"(?im)^[ \t]*(Was|Now)[ \t]+("+NUM+r")[ \t]+("+NUM+r")(?:[ \t]*[🔴🔵]\ufe0f?)?[ \t]+("+NUM+r")(?:[ \t]*[🔴🔵]\ufe0f?)?[ \t]*$")
@@ -200,11 +201,15 @@ def store(root,records):
         dest=root/"data"/"lab"/("markets-"+month+".jsonl")
         dest.parent.mkdir(parents=True,exist_ok=True)
         prior={}
-        if dest.exists():
-            for line in dest.read_text(encoding="utf-8").splitlines():
+        for part in monthly_paths(root, "markets"):
+            if part.name[len("markets")+1:len("markets")+8] != month:
+                continue
+            for line in part.read_text(encoding="utf-8").splitlines():
                 value=json.loads(line)
                 if not isinstance(value,dict) or not value.get("event_id"):
                     raise ValueError("Invalid existing V4 row")
+                if value["event_id"] in prior:
+                    raise ValueError("Duplicate V4 event across month parts")
                 prior[value["event_id"]]=value
         changed=False
         for item in items:
@@ -215,10 +220,7 @@ def store(root,records):
             changed=True
         if not changed:
             continue
-        temp=dest.with_suffix(".tmp")
-        temp.write_text("".join(json.dumps(v,ensure_ascii=False,sort_keys=True)+"\n"
-                                for v in sorted(prior.values(),
-                                                key=lambda x:(x["observed_at"],x["event_id"]))),
-                        encoding="utf-8")
-        temp.replace(dest)
+        write_monthly_view(root, "markets", month, [
+            json.dumps(v,ensure_ascii=False,sort_keys=True)+"\n"
+            for v in sorted(prior.values(),key=lambda x:(x["observed_at"],x["event_id"]))])
     verify_projection(root)

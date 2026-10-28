@@ -4,6 +4,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from .lab_archive import monthly_paths, write_monthly_view
 
 VERSION=3
 PATTERNS=(
@@ -104,14 +105,15 @@ def store(root,records):
         path=Path(root)/"data"/"lab"/("formats-"+month+".jsonl")
         path.parent.mkdir(parents=True,exist_ok=True)
         existing={}
-        if path.exists():
-            for line in path.read_text(encoding="utf-8").splitlines():
+        for part in monthly_paths(root, "formats"):
+            if part.name[len("formats")+1:len("formats")+8] != month:
+                continue
+            for line in part.read_text(encoding="utf-8").splitlines():
                 try:
                     row=json.loads(line)
                     if row.get("event_id"): existing[row["event_id"]]=row
                 except (ValueError,TypeError,AttributeError): continue
         for item in items: existing[item["event_id"]]=item
         ordered=sorted(existing.values(),key=lambda x:(x["observed_at"],x["event_id"]))
-        temp=path.with_suffix(".tmp")
-        temp.write_text("".join(json.dumps(v,sort_keys=True)+"\n" for v in ordered),encoding="utf-8")
-        temp.replace(path)
+        write_monthly_view(root, "formats", month,
+                           [json.dumps(v,sort_keys=True)+"\n" for v in ordered])

@@ -6,6 +6,7 @@ An imported old row is explicitly a baseline noticed at migration time, not
 proof of the original receipt date or proof that it was never previously edited.
 """
 from __future__ import annotations
+from .lab_archive import monthly_paths, append_monthly
 
 import hashlib
 import json
@@ -46,7 +47,7 @@ def fingerprint(row):
 
 def read_events(root):
     events, previous, ids, per_message = [], ZERO, set(), {}
-    for p in sorted((Path(root) / "data/lab").glob(JOURNAL)):
+    for p in monthly_paths(root, "v4-revisions"):
         for raw in p.read_text(encoding="utf-8").splitlines():
             if not raw:
                 raise ValueError("Blank V4 revision event")
@@ -147,12 +148,8 @@ def append(root, old_rows, incoming_rows, *, now):
         record(row, imported=False)
 
     if additions:
-        p = root / "data/lab" / ("v4-revisions-" +
-             now.astimezone(timezone.utc).strftime("%Y-%m") + ".jsonl")
-        p.parent.mkdir(parents=True, exist_ok=True)
-        with p.open("a", encoding="utf-8") as stream:
-            for e in additions:
-                stream.write(canonical(e) + "\n")
+        append_monthly(root, "v4-revisions", now.astimezone(timezone.utc).strftime("%Y-%m"),
+                       [canonical(e) + "\n" for e in additions])
     verified = read_events(root)
     if len(verified) != before + len(additions):
         raise ValueError("V4 revision write interrupted")
@@ -161,7 +158,7 @@ def append(root, old_rows, incoming_rows, *, now):
 
 def read_latest_projection(root):
     rows = {}
-    for p in sorted((Path(root) / "data/lab").glob("markets-????-??.jsonl")):
+    for p in monthly_paths(root, "markets"):
         for line in p.read_text(encoding="utf-8").splitlines():
             row = json.loads(line)
             key = row["event_id"]

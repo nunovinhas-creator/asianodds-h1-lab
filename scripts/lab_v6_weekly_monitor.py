@@ -13,6 +13,7 @@ from datetime import datetime,timezone
 from pathlib import Path
 
 from h1lab.v6_shadow import canonical, utc
+from h1lab.lab_archive import MAX_BYTES, monthly_paths, append_monthly
 from h1lab.v6_weekly_monitor import build, digest, date_week, STATUS
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -23,27 +24,27 @@ SCHEMA=1
 
 
 def read_snapshots(root):
-    f=Path(root)/PATH
-    if not f.exists():
-        return []
-    out=[]
-    prev=ZERO
-    weeks=set()
-    for line in f.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            raise ValueError("Empty V6 weekly snapshot")
-        e=json.loads(line)
-        week=e.get("monitor_week")
-        if (e.get("schema_version")!=SCHEMA or week in weeks or
-                e.get("previous_sha256")!=prev or
-                e.get("sha256")!=digest({k:v for k,v in e.items() if k!="sha256"}) or
-                e.get("report_sha256")!=digest(e.get("report")) or
-                (e.get("report") or {}).get("monitor_week")!=week or
-                (e.get("report") or {}).get("status")!=STATUS):
-            raise ValueError("V6 weekly journal chain or report invalid")
-        weeks.add(week)
-        prev=e["sha256"]
-        out.append(e)
+    """Replay the legacy file followed by any bounded month partitions."""
+    root = Path(root)
+    legacy = root / PATH
+    paths = ([legacy] if legacy.is_file() else []) + monthly_paths(root, "v6-weekly-snapshots")
+    out, prev, weeks = [], ZERO, set()
+    for f in paths:
+        for line in f.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                raise ValueError("Empty V6 weekly snapshot")
+            e=json.loads(line)
+            week=e.get("monitor_week")
+            if (e.get("schema_version")!=SCHEMA or week in weeks or
+                    e.get("previous_sha256")!=prev or
+                    e.get("sha256")!=digest({k:v for k,v in e.items() if k!="sha256"}) or
+                    e.get("report_sha256")!=digest(e.get("report")) or
+                    (e.get("report") or {}).get("monitor_week")!=week or
+                    (e.get("report") or {}).get("status")!=STATUS):
+                raise ValueError("V6 weekly journal chain or report invalid")
+            weeks.add(week)
+            prev=e["sha256"]
+            out.append(e)
     return out
 
 
@@ -98,8 +99,18 @@ def run(root, now, *, verify_only=False):
     payload["sha256"]=digest(payload)
     p=root/PATH
     p.parent.mkdir(parents=True,exist_ok=True)
-    with p.open("a",encoding="utf-8") as stream:
-        stream.write(canonical(payload)+"\n")
+    row = canonical(payload)+"\n"
+    # Preserve the original legacy file untouched once its byte limit is near.
+    # The first bounded monthly extension starts at the SAME previous SHA.
+    if monthly_paths(root, "v6-weekly-snapshots") or (
+            p.exists() and p.stat().st_size + len(row.encode("utf-8")) > MAX_BYTES):
+        append_monthly(root, "v6-weekly-snapshots",
+                       now.astimezone(timezone.utc).strftime("%Y-%m"), [row])
+    elif len(row.encode("utf-8")) <= MAX_BYTES:
+        with p.open("a",encoding="utf-8") as stream:
+            stream.write(row)
+    else:
+        raise ValueError("Oversized weekly journal event")
     verified=read_snapshots(root)
     if verified[-1]["sha256"]!=payload["sha256"]:
         raise ValueError("V6 weekly journal write failed")
