@@ -14,6 +14,8 @@ MAX_HISTORY_DAYS = 45
 # Conservative ceilings for this FT workflow, not a claim about other API users.
 # These are lower than the free tiers previously established for the project.
 API_FOOTBALL_DAILY_LIMIT = 90
+# Local LAB ceiling; actual GOAL provider allowance remains unverified.
+GOAL_DAILY_LIMIT = 80
 OPENFOOT_MONTHLY_LIMIT = 4500
 
 
@@ -62,7 +64,10 @@ def choose_days(selected_keys, matches, previous, now, enabled):
         if not isinstance(provider_usage, dict) or any(
                 type(v) is not int or v < 0 for v in provider_usage.values()):
             raise ValueError("Malformed provider request accounting")
-        if provider == "api_football":
+        if provider == "goal":
+            cap = min(cap, max(0, GOAL_DAILY_LIMIT -
+                               provider_usage.get(now.date().isoformat(), 0)))
+        elif provider == "api_football":
             cap = min(cap, max(0, API_FOOTBALL_DAILY_LIMIT -
                                provider_usage.get(now.date().isoformat(), 0)))
         elif provider == "openfoot":
@@ -115,5 +120,9 @@ def advance(previous, rotation, requested, now, *, extra_requests=None):
             raise ValueError("Invalid stored request usage")
         today = now.astimezone(timezone.utc).date().isoformat()
         usage[today] = usage.get(today,0) + len(actual) + extra_requests.get(p,0)
+        if p == "goal" and usage[today] > GOAL_DAILY_LIMIT:
+            raise ValueError("GOAL daily LAB ceiling exceeded")
+        if p == "api_football" and usage[today] > API_FOOTBALL_DAILY_LIMIT:
+            raise ValueError("API-Football daily LAB ceiling exceeded")
         out["usage"][p] = {k:v for k,v in sorted(usage.items())[-MAX_HISTORY_DAYS:]}
     return out
