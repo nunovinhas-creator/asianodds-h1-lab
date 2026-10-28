@@ -24,6 +24,7 @@ from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
+from h1lab.lab_api_football_reviewed import plan_reviewed_ids
 from h1lab.lab_goal import GoalResults
 from h1lab.lab_openfoot import OpenFootResults
 
@@ -33,6 +34,7 @@ REPORT = ROOT / "docs/lab/ft-results.json"
 API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
+REVIEWED_API_IDS = ROOT / "data/lab/ft-api-football-reviewed.json"
 DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
 PROVIDER_IDENTITY = ROOT / "data/lab/ft-provider-identity.json"
 PROVIDER_IDENTITY_PUBLIC = ROOT / "docs/lab/ft-provider-identity.json"
@@ -237,6 +239,22 @@ def main():
         goal.target_ids = goal_targets
         goal.max_days = 1
         rotation["goal"] = rotation["goal"][:1]
+    # No IDs are invented or promoted from fuzzy suggestions. Only explicit
+    # human-approved pairs, checked against the persisted review candidate,
+    # can use a batched fixture ID request. Reserve one of the existing 3
+    # API-Football calls for this request.
+    approved = (json.loads(REVIEWED_API_IDS.read_text(encoding="utf-8"))
+                if REVIEWED_API_IDS.exists()
+                else {"schema_version": 1, "pairs": {}})
+    api_today = historical_days.get("usage", {}).get("api_football", {}).get(
+        now.date().isoformat(), 0)
+    approved_targets = (plan_reviewed_ids(
+        preview_keys, _preview_ledger["matches"], previous_review, approved, now)
+        if api_football_poll and api_today < 90 else {})
+    if approved_targets:
+        api_football.reviewed_targets = approved_targets
+        rotation["api_football"] = rotation["api_football"][:min(
+            2, max(0, 89 - api_today))]
     goal.allowed_days = frozenset(rotation["goal"])
     openfoot.allowed_days = frozenset(rotation["openfoot"])
     api_football.allowed_days = frozenset(rotation["api_football"])
@@ -266,6 +284,10 @@ def main():
         for match_key in goal_targets:
             next_ledger["matches"][match_key]["goal_id_last_attempt_at"] = (
                 now.isoformat(timespec="seconds"))
+    if api_football.id_requests:
+        for match_key in approved_targets:
+            next_ledger["matches"][match_key]["api_football_reviewed_id_last_attempt_at"] = (
+                now.isoformat(timespec="seconds"))
     used_days = {
         "goal": sorted(goal.cache),
         "openfoot": sorted(openfoot.days),
@@ -282,14 +304,16 @@ def main():
         for provider in provider_day_rows
     }
     next_rotation = advance(historical_days, rotation, used_days, now,
-                            extra_requests={"goal":goal.id_requests},
+                            extra_requests={"goal":goal.id_requests,
+                                            "api_football":api_football.id_requests},
                             fingerprints=fingerprints)
     report["ft_queue"]["date_rotation"] = {
         provider: {"selected_days": rotation[provider],
                    "requested_days": used_days[provider],
                    "date_budget": (goal.max_days if provider=="goal" else
                                    {"openfoot":2,"api_football":3}[provider]),
-                   "id_requests": goal.id_requests if provider=="goal" else 0}
+                   "id_requests": (goal.id_requests if provider=="goal" else
+                                   api_football.id_requests if provider=="api_football" else 0)}
         for provider in ("goal","openfoot","api_football")
     }
     # ID registry is extracted ONLY from already reconciled confirmed scores;
@@ -303,6 +327,12 @@ def main():
         "calls": goal.id_requests,
         "outcome": ([next_ledger["matches"][key].get("provider_reasons",{}).get("goal")
                      for key in goal_targets] if goal_targets else []),
+    }
+    report["ft_queue"]["api_football_reviewed_id_probe"] = {
+        "approved_selected": len(approved_targets),
+        "id_requests": api_football.id_requests,
+        "outcomes": {key: next_ledger["matches"][key].get(
+            "provider_reasons", {}).get("api_football") for key in approved_targets},
     }
     report["ft_queue"]["confirmed_provider_ids"] = identity_registry["confirmed_ids"]
     report["ft_queue"]["provider_id_collisions"] = identity_registry["collision_ids"]
