@@ -93,6 +93,40 @@ class SportScoreTests(unittest.TestCase):
         self.assertEqual(report["final_recorded"],0)
         self.assertEqual(ledger["matches"][SIG["match_key"]]["status"],"SCORE_CONFLICT")
 
+    def test_old_lab_ledger_gets_one_immediate_upgrade_check(self):
+        st={"alerts":[SIG],"signals":[]}
+        prior={"schema_version":1,"matches":{SIG["match_key"]:{
+            "status":"PENDING","home":SIG["home"],"away":SIG["away"],
+            "kickoff_utc":SIG["kickoff_utc"],"checked_at":"2026-10-28T06:00:00+00:00",
+            "attempts":1,"reason":"no_verified_ft_yet"}}}
+        calls=[]
+        def fourth(signal):
+            calls.append(signal["match_key"])
+            return verified(signal,fixture(),"")
+        first,report,attempts=reconcile(
+            st,[],prior,now=datetime(2026,10,28,7,tzinfo=timezone.utc),
+            bsd_lookup=lambda s:(None,"not_found"),
+            tsdb_lookup=lambda s:(None,"not_found"),
+            sportscore_lookup=fourth)
+        self.assertEqual(attempts,1)
+        self.assertEqual(report["final_recorded"],1)
+        self.assertEqual(len(calls),1)
+        self.assertEqual(first["matches"][SIG["match_key"]]["lookup_source_version"],4)
+
+    def test_new_source_does_not_requery_in_cooldown(self):
+        st={"alerts":[SIG],"signals":[]}
+        old={"schema_version":1,"matches":{SIG["match_key"]:{
+            "status":"PENDING","home":SIG["home"],"away":SIG["away"],
+            "kickoff_utc":SIG["kickoff_utc"],"checked_at":"2026-10-28T06:00:00+00:00",
+            "lookup_source_version":4,"attempts":2}}}
+        def fail(s):
+            raise AssertionError("Cooldown should suppress lookups")
+        _,report,attempts=reconcile(st,[],old,
+            now=datetime(2026,10,28,7,tzinfo=timezone.utc),
+            bsd_lookup=fail,tsdb_lookup=fail,sportscore_lookup=fail)
+        self.assertEqual(attempts,0)
+        self.assertEqual(report["timing_counts"]["ELIGIBLE_COOLDOWN"],1)
+
     def test_fourth_source_alone_is_visible_but_labeled(self):
         st={"alerts":[SIG],"signals":[]}
         ledger,report,_=reconcile(st,[],{"schema_version":1,"matches":{}},
