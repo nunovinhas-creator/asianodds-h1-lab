@@ -173,6 +173,14 @@ jobs:
         with:
           path: data/lab/.cache
           key: lab-pattern-cache-${{ github.run_id }}
+      # ALL V5 hypotheses, not only the published top-40, against the
+      # quality-vetted Total market model. Historical/descriptive ONLY.
+      - name: Evaluate V6 market residual for all hypotheses (shadow)
+        id: v6_residual
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_residual.py' -v
+          python -m scripts.lab_v6_residual
       - name: Refresh prospective V5 movement watch (no API, no betting)
         id: prospective
         continue-on-error: true
@@ -220,6 +228,7 @@ jobs:
           git add data/lab/ft-ledger.json docs/lab/ft-results.json
           if [ -f data/lab/ft-api-audit.json ]; then git add data/lab/ft-api-audit.json; fi
           if [ -f docs/lab/pattern-research.json ]; then git add docs/lab/pattern-research.json; fi
+          if [ -f docs/lab/v6-residual-research.json ]; then git add docs/lab/v6-residual-research.json; fi
           if [ -f data/lab/pattern-registry.json ]; then git add data/lab/pattern-registry.json; fi
           if [ -f docs/lab/pattern-watch.json ]; then git add docs/lab/pattern-watch.json; fi
           if [ -f data/lab/pattern-watch-first-seen.json ]; then git add data/lab/pattern-watch-first-seen.json; fi
