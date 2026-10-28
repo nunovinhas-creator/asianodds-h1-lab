@@ -1,3 +1,5 @@
+> **Atualização de contexto (28/10/2026):** este catálogo de equivalências revisto por jogo é **evidência histórica restrita a jogos identificados**. Não é uma normalização automática universal. A recuperação posterior integrou fontes adicionais e controlo `SOURCE_ORDER_CONFLICT`, e [ft-results.json](ft-results.json) tornou-se a fonte da cobertura corrente. Ver [integridade casa/fora](SOURCE-ORDER-INTEGRITY.md) e [arquitetura](ARCHITECTURE.md).
+
 # LAB — Recuperação de FT por nomes de equipas revistos (28/10/2026)
 
 ## Evidência real e problema identificado
