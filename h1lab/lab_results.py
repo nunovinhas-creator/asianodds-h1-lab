@@ -190,7 +190,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         last = utc(entry.get("checked_at"))
         # A newly added provider may be checked once immediately, without
         # disabling the normal four-hour cooldown on subsequent runs.
-        upgrade = int(entry.get("lookup_source_version", 0)) < source_version
+        upgrade = (entry["status"] != "SOURCE_ORDER_CONFLICT" and
+                   int(entry.get("lookup_source_version", 0)) < source_version)
         alias_due = (key in SPORTSCORE_REVIEWED and
                      entry.get("reviewed_alias_check_version") != 1)
         bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
