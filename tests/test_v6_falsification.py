@@ -17,6 +17,7 @@ def row(match_key, *, registered=True, pattern=True, market=.56, context=None,
         ko="2026-10-29T18:00:00+00:00"):
     return {
         "event_id": "t:" + match_key, "match_key": match_key,
+        "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
         "known_at": ("2026-10-28T15:00:00+00:00" if registered else
                      "2026-10-28T14:00:00+00:00"),
         "observed_at": "2026-10-28T13:45:00+00:00",
