@@ -1,3 +1,5 @@
+> **Histórico de integração (28/10/2026):** os 149 jogos / 13 FT abaixo são a baseline desta etapa, não a cobertura atual. A auditoria posterior detetou URLs SportScore com casa/fora invertidos; não usar esses marcadores sem validação independente. Os quatro conflitos desta fase foram analisados e resolvidos mediante evidência adicional, sem reescrever FT anteriores. Ver [integridade casa/fora](SOURCE-ORDER-INTEGRITY.md), [relatório atual](ft-results.json) e [arquitetura](ARCHITECTURE.md).
+
 # Quarta fonte — SportScore para jogos não cobertos por BSD, TheSportsDB ou ESPN
 
 **Prioridade: reduzir os resultados de jogos já terminados sem inventar ou assumir marcadores.**
