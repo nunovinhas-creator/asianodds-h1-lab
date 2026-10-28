@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T21:16:30+00:00",
+ "generated_at": "2026-10-28T21:21:32+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 113
+  "timelines_published": 114
  },
  "schema_version": 1,
- "source_commit": "1afa748cc4fcac6c3bf9744d5e9dc3490eb3603e",
+ "source_commit": "3c0170d649b64b236e52627b7f747e0d644b2a48",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 372,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 532,
+  "messages": 533,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 273,
+  "messages_on_repeated_matches": 275,
   "messages_v4_only": 0,
-  "messages_with_v4": 458,
-  "movement_episodes_upper_bound": 510,
+  "messages_with_v4": 459,
+  "movement_episodes_upper_bound": 511,
   "possibly_redundant_snapshots": 15,
   "post_kickoff_messages": 16,
   "related_message_pairs": 22,
@@ -50,25 +50,178 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 7
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 113,
+  "repeated_matches": 114,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 723
+   "V4_EXPLICIT": 724
   },
-  "total_line_reversals_on_repeated": 54,
+  "total_line_reversals_on_repeated": 56,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 15,
    "CONTINUOUS": 87,
    "SAME_MOVEMENT_REPEAT": 22,
-   "UNOBSERVED_CHANGE": 36
+   "UNOBSERVED_CHANGE": 37
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 134,
    "one_x_two:AGREE": 131,
-   "total:AGREE": 458
+   "total:AGREE": 459
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50777",
+    "3571094759:51113"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50777",
+     "message_id": 50777,
+     "minutes_to_kickoff": 2112.6,
+     "observed_at": "2026-10-28T07:47:22+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.75,
+        "over_price": 1.87,
+        "under_price": 1.79
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.93,
+        "under_price": 1.74
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51113",
+     "message_id": 51113,
+     "minutes_to_kickoff": 1299.8,
+     "observed_at": "2026-10-28T21:20:12+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.81,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 2.07,
+        "under_price": 1.65
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T07:47:22+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-29T19:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T21:20:12+00:00",
+   "match_key": "2026-10-29,31981,37703",
+   "match_label": "RKAV Volendam vs ROHDA Raalte",
+   "movement_episodes": [
+    [
+     "3571094759:50777"
+    ],
+    [
+     "3571094759:51113"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    48770.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 4.0,
+     "last_observed_line": 3.5,
+     "net_observed_change": -0.5,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.75,
+       "before": 4.0,
+       "event_id": "3571094759:50777",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.5,
+       "before": 4.0,
+       "event_id": "3571094759:51113",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50777",
+       "at_event": "3571094759:51113",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      },
+      {
+       "after_event": "3571094759:51113",
+       "at_event": "3571094759:51113",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50777",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 4.0,
+       "previous_after_line": 3.75,
+       "to": "3571094759:51113",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
