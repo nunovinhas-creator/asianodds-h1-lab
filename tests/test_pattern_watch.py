@@ -93,7 +93,7 @@ class WatchTests(unittest.TestCase):
 
     def test_missing_total_line_stays_unknown(self):
         t = timeline()
-        t["events"][-1]["snapshots"]["total"]["after"].pop("line")
+        t["events"][-1]["snapshots"].pop("total")
         row = inspect(t, NOW)
         self.assertFalse(row["strict_condition"])
         self.assertIsNone(row["total_line_after"])
