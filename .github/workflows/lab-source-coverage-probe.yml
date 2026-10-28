@@ -75,5 +75,29 @@ jobs:
                   if isinstance(v,list):
                       print("SPORTSCORE_SEARCH_LIST",k,"count",len(v),
                             "first_keys",sorted(v[0]) if v and isinstance(v[0],dict) else None)
+          # Approximate recoverable coverage using *exact* original identities.
+          # This is a diagnostic only, not an FT verification.
+          from h1lab.results import norm_team
+          state=json.loads(Path("data/state.json").read_text(encoding="utf-8"))
+          source_matches=(result.get("matches") or result.get("fixtures") or result.get("results") or []) if isinstance(result,dict) else []
+          keys=set()
+          observed={a["match_key"]:a for a in state.get("alerts",[]) if a.get("match_key")}
+          for candidate in source_matches[:200]:
+              if not isinstance(candidate,dict): continue
+              h=candidate.get("home") or candidate.get("home_team")
+              a=candidate.get("away") or candidate.get("away_team")
+              moment=candidate.get("time") or candidate.get("start_time") or candidate.get("kickoff")
+              if not all(isinstance(x,str) for x in (h,a,moment)): continue
+              try:
+                  when=datetime.fromisoformat(moment.replace("Z","+00:00"))
+                  if when.tzinfo is None: continue
+              except ValueError: continue
+              for key, alert in observed.items():
+                  if key in keys: continue
+                  try: kick=datetime.fromisoformat(alert["kickoff_utc"])
+                  except (ValueError,KeyError): continue
+                  if norm_team(h)==norm_team(alert.get("home")) and norm_team(a)==norm_team(alert.get("away")) and abs((kick-when).total_seconds())<=5400:
+                      keys.add(key)
+          print("SPORTSCORE_DIAGNOSTIC_IDENTITIES_MATCHED",len(keys),"of",len(observed))
           print("SPORTSCORE_PROBE_COMPLETE_NO_SETTLEMENT")
           PY
