@@ -146,12 +146,17 @@ def verify(signal,ev,level):
 
 
 class GoalResults:
-    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS):
+    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None):
         if type(max_days) is not int or not 0<=max_days<=MAX_DAYS:
             raise ValueError("GOAL day budget exceeded")
         self.key=(key or "").strip()
         self.getter=getter
         self.max_days=max_days
+        if allowed_days is not None and (len(allowed_days)>max_days or
+                any(not isinstance(day,str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}",day)
+                    for day in allowed_days)):
+            raise ValueError("Unsafe provider day rotation")
+        self.allowed_days = None if allowed_days is None else frozenset(allowed_days)
         self.cache={}
         self.requests=0
         self.reasons=Counter()
@@ -162,6 +167,8 @@ class GoalResults:
         if ko is None:
             return None,"goal_invalid_kickoff"
         day=ko.date().isoformat()
+        if self.allowed_days is not None and day not in self.allowed_days:
+            return None,"goal_day_rotation_deferred"
         if day not in self.cache:
             if self.requests>=self.max_days:
                 return None,"goal_day_budget_deferred"
@@ -183,6 +190,8 @@ class GoalResults:
     def summary(self):
         return {"configured":bool(self.key),"requests":self.requests,
                 "cached_days":len(self.cache),
+                "requested_days":sorted(self.cache),
+                "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
                 "verified_in_run":sum(n for k,n in self.reasons.items()
                                       if k.startswith("verified_goal_ft")),
                 "reason_counts":dict(sorted(self.reasons.items()))}

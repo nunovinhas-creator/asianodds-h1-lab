@@ -108,12 +108,17 @@ def verify(signal,e,level):
             "identity_match":level,"identity_version":IDENTITY_VERSION}, "verified_openfoot_ft"
 
 class OpenFootResults:
-    def __init__(self,key="",*,getter=fetch,max_days=MAX_DAYS):
+    def __init__(self,key="",*,getter=fetch,max_days=MAX_DAYS,allowed_days=None):
         if type(max_days) is not int or not 0<=max_days<=MAX_DAYS:
             raise ValueError("Unsafe OpenFoot budget")
         self.key=(key or "").strip()
         self.getter=getter
         self.max_days=max_days
+        if allowed_days is not None and (len(allowed_days)>max_days or
+                any(not isinstance(day,str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}",day)
+                    for day in allowed_days)):
+            raise ValueError("Unsafe provider day rotation")
+        self.allowed_days = None if allowed_days is None else frozenset(allowed_days)
         self.days={}
         self.requests=0
         self.reasons=Counter()
@@ -123,6 +128,8 @@ class OpenFootResults:
         when=utc(signal.get("kickoff_utc"))
         if when is None:return None,"openfoot_invalid_kickoff"
         day=when.date().isoformat()
+        if self.allowed_days is not None and day not in self.allowed_days:
+            return None,"openfoot_day_rotation_deferred"
         if day not in self.days:
             if self.requests>=self.max_days:
                 return None,"openfoot_day_budget_deferred"
@@ -164,5 +171,7 @@ class OpenFootResults:
     def summary(self):
         return {"configured":bool(self.key),"requests":self.requests,
                 "cached_days":len(self.days),
+                "requested_days":sorted(self.days),
+                "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
                 "verified_in_run":self.reasons["verified_openfoot_ft"]+self.reasons["verified_openfoot_ft_reviewed_pair"],
                 "reason_counts":dict(sorted(self.reasons.items()))}

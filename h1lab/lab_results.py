@@ -10,6 +10,7 @@ import re
 from .lab_reviewed_aliases import SPORTSCORE_REVIEWED, reviewed_provider_pair
 from .lab_reviewed_bsd_ids import REVIEWED_BSD_FIXTURES
 from .lab_sportscore import source_order_conflict
+from .lab_ft_crosswalk import event_id, providers_from_final
 from .lab_ft_reviewed_evidence import (REVIEWED_PUBLIC_FT, REVIEWED_PENDING_FT,
                                        public_evidence_urls, verified_public_ft)
 from collections import Counter
@@ -186,6 +187,18 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 row["reason"] = "sportscore_source_url_reverses_home_away"
                 row.pop("result", None)  # not a valid 90m score assignment
 
+    # Previously confirmed provider IDs belong to one observed match_key.
+    # Never reuse an event ID from a different fixture for new auto settlement.
+    claimed_ids = {}
+    for confirmed_key, confirmed_row in original.items():
+        if not isinstance(confirmed_row, dict) or confirmed_row.get("status") != "FINAL":
+            continue
+        for provider, url in providers_from_final(confirmed_row).items():
+            eid = event_id(provider, url)
+            if eid:
+                identity = (provider, eid)
+                claimed_ids.setdefault(identity, set()).add(confirmed_key)
+
     # Only independent providers can resolve a quarantined SportScore fixture.
     source_order_keys = {key for key in games
                          if entries[key]["status"] == "SOURCE_ORDER_CONFLICT"}
@@ -311,8 +324,17 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 "confirmed": int(old.get("confirmed", 0)) + int(found[provider] is not None),
             }
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
+        collisions = [
+            name for name, evidence in confirmed
+            if (eid := event_id(name, evidence["source"]))
+            and claimed_ids.get((name, eid), set()) - {key}
+        ]
         scores = {(item["home_goals"], item["away_goals"]) for _, item in confirmed}
-        if len(scores) > 1:
+        if collisions:
+            row["status"] = "PENDING"
+            row["reason"] = "provider_event_id_collision_review"
+            row.pop("result", None)
+        elif len(scores) > 1:
             row["status"] = ("SOURCE_ORDER_CONFLICT" if key in source_order_keys
                              else "SCORE_CONFLICT")
             row["reason"] = ("independent_sources_disagree_manual_review"
@@ -324,6 +346,15 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             selected = confirmed[0][1]  # provider priority: BSD, TSDB, ESPN
             names = [name for name, _ in confirmed]
             row["status"] = "FINAL"
+            row["verified_provider_sources"] = {
+                name: {"source": evidence["source"],
+                       "identity_match": evidence.get("identity_match", "EXACT")}
+                for name, evidence in confirmed
+            }
+            for name, evidence in confirmed:
+                eid = event_id(name, evidence["source"])
+                if eid:
+                    claimed_ids.setdefault((name, eid), set()).add(key)
             row["result"] = {"home_goals": selected["home_goals"],
                              "away_goals": selected["away_goals"],
                              "source": selected["source"],

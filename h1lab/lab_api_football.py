@@ -147,12 +147,17 @@ def fetch_date(day,key):
 
 
 class APIFootballResults:
-    def __init__(self,key="",*,fetch=fetch_date,max_days=MAX_DAYS):
+    def __init__(self,key="",*,fetch=fetch_date,max_days=MAX_DAYS,allowed_days=None):
         if not isinstance(max_days,int) or not 0<=max_days<=MAX_DAYS:
             raise ValueError("invalid API-Football budget")
         self.key=(key or "").strip()
         self.fetch=fetch
         self.max_days=max_days
+        if allowed_days is not None and (len(allowed_days)>max_days or
+                any(not isinstance(day,str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}",day)
+                    for day in allowed_days)):
+            raise ValueError("Unsafe provider day rotation")
+        self.allowed_days = None if allowed_days is None else frozenset(allowed_days)
         self.days={}
         self.requests=0
         self.reasons=Counter()
@@ -164,6 +169,8 @@ class APIFootballResults:
         if ko is None:
             return None,"api_football_invalid_kickoff"
         day=ko.date().isoformat()
+        if self.allowed_days is not None and day not in self.allowed_days:
+            return None,"api_football_day_rotation_deferred"
         if day not in self.days:
             if self.requests>=self.max_days:
                 return None,"api_football_day_budget_deferred"
@@ -188,5 +195,7 @@ class APIFootballResults:
     def summary(self):
         return {"configured":bool(self.key),"requests":self.requests,
                 "cached_days":len(self.days),
+                "requested_days":sorted(self.days),
+                "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
                 "verified_in_run":self.reasons["verified_api_football_ft"],
                 "reason_counts":dict(sorted(self.reasons.items()))}
