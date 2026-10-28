@@ -134,9 +134,14 @@ def main():
     # on even UTC hours before :30, at most 3 date calls per eligible run.
     # This prevents an automatic 48 * 3 = 144/day loop.
     api_key = os.environ.get("API_FOOTBALL_KEY", "")
-    api_football_poll = (bool(api_key.strip())
-                         and os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
-                         and now.hour % 2 == 0 and now.minute < 30)
+    # Explicitly scoped one-shot GH workflow for the secret activation check.
+    # Never lets an ordinary push, H1 cron, or local run bypass the free quota.
+    one_shot = (os.environ.get("LAB_API_FOOTBALL_ONE_SHOT") == "true"
+                and os.environ.get("GITHUB_WORKFLOW") ==
+                "LAB - API-Football one-time activation check")
+    api_football_poll = (bool(api_key.strip()) and (
+        one_shot or (os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
+                     and now.hour % 2 == 0 and now.minute < 30)))
     api_football = APIFootballResults(key=api_key,
                                       max_days=3 if api_football_poll else 0)
     mapped_competitions = competitions_by_key(state.get("alerts", []))
@@ -148,6 +153,7 @@ def main():
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup,
         fotmob_lookup=fotmob.lookup if fotmob_enabled else None,
         api_football_lookup=api_football.lookup if api_football_poll else None,
+        lookup_source_version=10 if api_football_poll else None,
         max_checks=checks)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
@@ -158,6 +164,7 @@ def main():
     report["fotmob_search"]["licensed_automation_enabled"] = fotmob_enabled
     report["api_football_search"] = api_football.summary()
     report["api_football_search"]["scheduled_poll_enabled"] = api_football_poll
+    report["api_football_search"]["one_shot_activation"] = one_shot
     report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)

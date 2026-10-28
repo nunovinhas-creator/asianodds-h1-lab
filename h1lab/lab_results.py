@@ -19,7 +19,8 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
-LOOKUP_SOURCE_VERSION = 9  # v9: bounded FotMob 90-minute FT provider for unresolved LAB games
+LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
+API_FOOTBALL_SOURCE_VERSION = 10  # only the official API-enabled LAB run upgrades
 
 
 def utc(value):
@@ -96,7 +97,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, lookup_source_version=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -105,6 +106,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     if now.tzinfo is None:
         raise ValueError("now requires timezone")
     now = now.astimezone(timezone.utc)
+    source_version = LOOKUP_SOURCE_VERSION if lookup_source_version is None else lookup_source_version
+    if type(source_version) is not int or not LOOKUP_SOURCE_VERSION <= source_version <= API_FOOTBALL_SOURCE_VERSION:
+        raise ValueError("Unsupported LAB FT lookup source version")
     if not isinstance(max_checks, int) or not 0 <= max_checks <= MAX_CHECKS_CAP:
         raise ValueError("max_checks outside safe range 0..30")
     if not isinstance(state, dict) or not isinstance(state.get("alerts"), list):
@@ -179,7 +183,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         last = utc(entry.get("checked_at"))
         # A newly added provider may be checked once immediately, without
         # disabling the normal four-hour cooldown on subsequent runs.
-        upgrade = int(entry.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION
+        upgrade = int(entry.get("lookup_source_version", 0)) < source_version
         alias_due = (key in SPORTSCORE_REVIEWED and
                      entry.get("reviewed_alias_check_version") != 1)
         bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
@@ -218,7 +222,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 reasons[provider] = "provider_unavailable"  # never expose credentials/URLs
         attempts += 1
         row["checked_at"] = now.isoformat(timespec="seconds")
-        row["lookup_source_version"] = LOOKUP_SOURCE_VERSION
+        row["lookup_source_version"] = source_version
         if key in SPORTSCORE_REVIEWED:
             row["reviewed_alias_check_version"] = 1
         if key in REVIEWED_BSD_FIXTURES:
