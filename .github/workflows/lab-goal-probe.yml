@@ -1,0 +1,20 @@
+name: LAB - GOAL API FT schema read-only probe
+on:
+  push:
+    branches: [lab/openfoot-ft-probe-20261028]
+    paths: [".github/workflows/lab-goal-probe.yml", "scripts/lab_goal_probe.py"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check GOAL API authentication and result schema with 2 requests
+        env:
+          GOAL_API_KEY: ${{ secrets.GOAL_API_KEY }}
+        run: python -m scripts.lab_goal_probe
