@@ -197,6 +197,7 @@
    NEW_EVIDENCE:["Novos resultados FT","flat"],
    IMPROVED:["Efeito observado aumentou","rise"],
    DEGRADED:["Efeito observado diminuiu","alert"],
+   SIGN_REVERSAL:["Inversão do sinal observado","alert"],
    DATA_REVISION:["Revisão de dados · auditoria","warn"],
    RECALCULATED:["Recalculado, sem novos FT no grupo","warn"],
    CANDIDATE:["Candidata congelada","rise"],
