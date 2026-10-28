@@ -71,6 +71,26 @@ class P0SimulationTests(unittest.TestCase):
         self.assertEqual(result["latest_temporally_consistent_ft_matches"],0)
         self.assertIn("NOT_REGISTERED_PREKICKOFF",result["exceptions"][0]["failure_codes"])
 
+    def test_cli_stores_second_precision_and_replays_exactly(self):
+        from scripts.lab_v6_p0 import main
+        def fake_evaluate(root, now):
+            return {
+                "evaluation_clock":now.isoformat(timespec="seconds"),
+                "evaluation_clock_microsecond":now.microsecond,
+                "gates":{"7_days":{"status":"WARMUP"},"14_days":{"status":"WARMUP"}},
+                "ft_knowledge_timeline":{"latest_temporally_consistent_ft_matches":0},
+                "scientific_state":"INCONCLUSIVO",
+            }
+        fake_null={"null":{"paths":10_000,"ever_hit_at_any_look":38}}
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "scripts.lab_v6_p0.evaluate", side_effect=fake_evaluate), patch(
+                "scripts.lab_v6_p0.run_nulls", return_value=fake_null), patch(
+                "scripts.lab_v6_p0.validate_null"):
+            first=main(["--root",temp])
+            self.assertEqual(first["gates"]["evaluation_clock_microsecond"],0)
+            replay=main(["--root",temp,"--verify-only"])
+            self.assertEqual(first,replay)
+
     def test_seven_day_source_coverage_never_equals_git_delivery_proof(self):
         t={"match_key":"x","identity":{"kickoff_utc":["2026-11-01T13:00:00Z"],
              "kickoff_consistent":True,"team_names_consistent":True,
