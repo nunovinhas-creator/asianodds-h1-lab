@@ -1,0 +1,20 @@
+name: LAB - OpenFoot FT schema read-only probe
+on:
+  push:
+    branches: [lab/openfoot-ft-probe-20261028]
+    paths: [".github/workflows/lab-openfoot-probe.yml", "scripts/lab_openfoot_probe.py"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check OpenFoot secret and two bounded fixture-list responses
+        env:
+          OPENFOOT_API_KEY: ${{ secrets.OPENFOOT_API_KEY }}
+        run: python -m scripts.lab_openfoot_probe
