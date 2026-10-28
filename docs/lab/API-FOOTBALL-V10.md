@@ -21,7 +21,7 @@ API e documentação do fornecedor: https://www.api-football.com/documentation_v
 Existe plano gratuito do fornecedor, até 100 pedidos/dia, com limites por minuto. A cobertura anunciada é superior a 1200 competições; *não assumir* que cada jogo AsianOdds existe nem que FT é sempre disponibilizado.
 
 - `h1lab/lab_api_football.py`: `GET https://v3.football.api-sports.io/fixtures?date=YYYY-MM-DD&timezone=UTC`; cabeçalho `x-apisports-key`. Consulta no máximo **3 dias diferentes por ciclo** com cache por data, sem pedidos repetidos por jogo. **Para respeitar os 100 pedidos/dia da modalidade gratuita**, só são permitidas consultas quando a execução for agendada, em horas UTC pares e antes de :30. Com os crons normais, no máximo 12 ciclos elegíveis por dia × 3 datas = 36 pedidos/dia; execuções manuais e por push não consomem a quota deste fornecedor.
-- Requer o **Secret** `API_FOOTBALL_KEY` do GitHub. Sem ele: zero pedidos, nenhuma falha no pipeline FT.
+- Requer o **Secret** `API_FOOTBALL` (ou `API_FOOTBALL_KEY`, aceite como alternativa) do GitHub. Sem ele: zero pedidos, nenhuma falha no pipeline FT.
 - Identidade `EXACT` ou `CORE_NAME`, jogos únicos na janela ±90 min, casa/fora estritamente orientados, rejeição de duplicados e colisões.
 - Só liquida o estado `fixture.status.short == "FT"`, com marcador `score.fulltime.home/away` inteiro e idêntico ao `goals.home/away`. AET e PEN permanecem pendentes até existir prova adicional dos 90 minutos.
 - Confronta sempre resultados dos restantes fornecedores: qualquer divergência ⇒ `SCORE_CONFLICT` sem gravar FT.
@@ -30,7 +30,11 @@ Existe plano gratuito do fornecedor, até 100 pedidos/dia, com limites por minut
 ### Ativar sem expor credenciais
 
 1. Registar uma chave gratuita no painel oficial API-Sports.
-2. Em GitHub → repositório → Settings → Secrets and variables → Actions → New repository secret, criar **`API_FOOTBALL_KEY`** com o valor da chave. Não colocar a chave em `vars`, commits, relatórios ou no chat.
+2. Em GitHub → repositório → Settings → Secrets and variables → Actions → New repository secret, criar **`API_FOOTBALL`** com o valor da chave. O nome antigo **`API_FOOTBALL_KEY`** também é aceite pelos workflows; não é necessário duplicar secrets. Não colocar a chave em `vars`, commits, relatórios ou no chat.
 3. O LAB passará a usar a nova fonte no próximo ciclo agendado elegível (hora UTC par, antes de :30). O workflow mantém 30 jogos analisados por execução; não é necessário novo cron nem criar branches de trabalho.
 
 **Validação necessária:** após inserir o secret, confirmar em `docs/lab/ft-results.json` que `api_football_search.configured=true` e `scheduled_poll_enabled=true` e contabilizar apenas os `verified_in_run` que entram de facto em `FINAL`. Uma integração sem chave continua funcional, mas não pode reivindicar recuperação empírica por esta fonte.
+
+## Correção de credencial — 28/10/2026
+
+Os workflows do LAB aceitam agora `secrets.API_FOOTBALL` (nome efetivamente configurado pelo utilizador), com fallback para `secrets.API_FOOTBALL_KEY` para instalações antigas. Internamente o Python continua a receber apenas a variável de ambiente `API_FOOTBALL_KEY`. O valor do secret nunca é impresso ou guardado no Git. A alteração não toca nos módulos H1.
