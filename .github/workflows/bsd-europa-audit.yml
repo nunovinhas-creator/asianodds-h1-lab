@@ -1,21 +1,24 @@
-name: Auditar cobertura BSD das 30 ligas europeias ORUSEYE
+name: LAB - BSD Europe 30 manual coverage audit
+
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/bsd-europa-audit
-    paths:
-      - ".github/workflows/bsd-europa-audit.yml"
-      - "tools/bsd_europa_audit.py"
-      - "config/oruseye_europe30.json"
-      - "tests/test_bsd_europa_audit.py"
+    inputs:
+      confirm_request_budget:
+        description: 'Confirmar despesa de aproximadamente 236 pedidos BSD nesta auditoria manual'
+        required: true
+        type: boolean
+        default: false
+
 permissions:
-  contents: write
+  contents: read
+
 concurrency:
-  group: bsd-europa-audit
+  group: bsd-europa-audit-manual
   cancel-in-progress: false
+
 jobs:
   audit:
+    if: ${{ inputs.confirm_request_budget == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -25,30 +28,19 @@ jobs:
           python-version: '3.11'
       - name: Synthetic tests (no network)
         run: python -m unittest tests.test_bsd_europa_audit -v
-      - name: Read-only BSD coverage audit (token never printed)
+      - name: Read-only BSD coverage audit (not H1 or production)
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
           set -o pipefail
           python -m tools.bsd_europa_audit bsd-europa-audit.json 2>&1 | tee bsd-europa-audit.log
-      - name: Upload report
+      - name: Upload audit artifact for manual inspection only
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bsd-europa-audit
-          path: bsd-europa-audit.json
+          path: |
+            bsd-europa-audit.json
+            bsd-europa-audit.log
           if-no-files-found: warn
           retention-days: 30
-      - name: Keep report on this feature branch only (never main)
-        if: always() && github.ref == 'refs/heads/feature/bsd-europa-audit'
-        run: |
-          mkdir -p reports
-          cp bsd-europa-audit.json reports/ 2>/dev/null || true
-          cp bsd-europa-audit.log reports/ 2>/dev/null || true
-          echo "${{ github.run_id }}" > reports/bsd-europa-audit.run_id
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f reports
-          git diff --cached --quiet && exit 0
-          git commit -m "reports: bsd europa audit run ${{ github.run_id }} [skip ci]"
-          git push origin HEAD:feature/bsd-europa-audit
