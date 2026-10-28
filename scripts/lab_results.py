@@ -18,6 +18,8 @@ from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
+from h1lab.lab_ft_rotation import choose_days, advance
+from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_goal import GoalResults
@@ -29,6 +31,9 @@ REPORT = ROOT / "docs/lab/ft-results.json"
 API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
+DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
+PROVIDER_IDENTITY = ROOT / "data/lab/ft-provider-identity.json"
+PROVIDER_IDENTITY_PUBLIC = ROOT / "docs/lab/ft-provider-identity.json"
 
 
 def read_v4():
@@ -190,11 +195,37 @@ def main():
     openfoot_enabled = bool(openfoot_key.strip()) and (is_scheduled or one_shot_new)
     goal = GoalResults(key=goal_key, max_days=2 if goal_enabled else 0)
     openfoot = OpenFootResults(key=openfoot_key, max_days=2 if openfoot_enabled else 0)
+
+    # Dry-run the EXACT current FT selection, with zero HTTP calls and no writes.
+    # Date budgets are then allocated by least-recently-served fixture day,
+    # instead of being monopolised by whichever game was sorted first.
+    historical_days = (json.loads(DAY_ROTATION.read_text(encoding="utf-8"))
+                       if DAY_ROTATION.exists()
+                       else {"schema_version": 1, "providers": {}})
+    catalog_v4 = read_v4()
+    _preview_ledger, preview, _ = reconcile(
+        state, catalog_v4, existing, now=now,
+        bsd_lookup=lambda unused: (None, "preview_only"),
+        tsdb_lookup=lambda unused: (None, "preview_only"),
+        lookup_source_version=(11 if goal_enabled or openfoot_enabled else
+                               10 if api_football_poll else None),
+        max_checks=0, force_recheck=recovery_once,
+        priority_hints=research_hints)
+    preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
+    active = set()
+    if goal_enabled: active.add("goal")
+    if openfoot_enabled: active.add("openfoot")
+    if api_football_poll: active.add("api_football")
+    rotation = choose_days(preview_keys, _preview_ledger["matches"],
+                           historical_days, now, active)
+    goal.allowed_days = frozenset(rotation["goal"])
+    openfoot.allowed_days = frozenset(rotation["openfoot"])
+    api_football.allowed_days = frozenset(rotation["api_football"])
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
     sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
     next_ledger, report, queried = reconcile(
-        state, read_v4(), existing, now=now,
+        state, catalog_v4, existing, now=now,
         bsd_lookup=bsd_with_monte, tsdb_lookup=tsdb.lookup,
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup,
         fotmob_lookup=fotmob.lookup if fotmob_enabled else None,
@@ -205,6 +236,34 @@ def main():
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
         priority_hints=research_hints)
+
+
+    # Fail closed if dry-run queue and real queue unexpectedly diverged.
+    if report["ft_queue"]["selected_keys"] != preview_keys:
+        raise ValueError("FT queue changed between date planning and reconciliation")
+    used_days = {
+        "goal": sorted(goal.cache),
+        "openfoot": sorted(openfoot.days),
+        "api_football": sorted(api_football.days),
+    }
+    next_rotation = advance(historical_days, rotation, used_days, now)
+    report["ft_queue"]["date_rotation"] = {
+        provider: {"selected_days": rotation[provider],
+                   "requested_days": used_days[provider],
+                   "date_budget": {"goal":2,"openfoot":2,"api_football":3}[provider]}
+        for provider in ("goal","openfoot","api_football")
+    }
+    # ID registry is extracted ONLY from already reconciled confirmed scores;
+    # fuzzy candidate queue is explicitly excluded.
+    old_identity = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
+                    if PROVIDER_IDENTITY.exists()
+                    else {"schema_version":1,"entries":{}})
+    identity_registry = build_registry(next_ledger, old_identity)
+    report["ft_queue"]["confirmed_provider_ids"] = identity_registry["confirmed_ids"]
+    report["ft_queue"]["provider_id_collisions"] = identity_registry["collision_ids"]
+    write_if_changed(DAY_ROTATION, next_rotation)
+    write_if_changed(PROVIDER_IDENTITY, identity_registry)
+    write_if_changed(PROVIDER_IDENTITY_PUBLIC, identity_registry)
 
     # Distinguish new automatic confirmations from carried historical evidence.
     previous_matches = existing.get("matches", {})
