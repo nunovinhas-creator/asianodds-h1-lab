@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import re
 from .lab_reviewed_aliases import SPORTSCORE_REVIEWED, reviewed_provider_pair
+from .lab_reviewed_bsd_ids import REVIEWED_BSD_FIXTURES
 from .lab_sportscore import source_order_conflict
 from collections import Counter
 from datetime import datetime, timedelta, timezone
@@ -177,10 +178,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         upgrade = int(entry.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION
         alias_due = (key in SPORTSCORE_REVIEWED and
                      entry.get("reviewed_alias_check_version") != 1)
-        if last and now < last + RETRY and not upgrade and not alias_due:
+        bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
+                      entry.get("reviewed_bsd_id_check_version") != 1)
+        if last and now < last + RETRY and not upgrade and not alias_due and not bsd_id_due:
             continue
-        # Prioritize small, human-reviewed source-name fixes: one-time only.
-        candidates.append((0 if alias_due else 1,
+        # Proven real BSD IDs take precedence for a single immediate check.
+        candidates.append((-1 if bsd_id_due else 0 if alias_due else 1,
                            last or datetime.min.replace(tzinfo=timezone.utc), kickoff, key))
 
     # Oldest attempted first; tie-break by kickoff/key to avoid starved matches.
@@ -210,6 +213,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row["lookup_source_version"] = LOOKUP_SOURCE_VERSION
         if key in SPORTSCORE_REVIEWED:
             row["reviewed_alias_check_version"] = 1
+        if key in REVIEWED_BSD_FIXTURES:
+            row["reviewed_bsd_id_check_version"] = 1
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
@@ -255,6 +260,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["EXPIRED"] += 1
         elif not row.get("checked_at"):
             timing["ELIGIBLE_NEVER_QUERIED"] += 1
+        elif key in REVIEWED_BSD_FIXTURES and row.get("reviewed_bsd_id_check_version") != 1:
+            timing["ELIGIBLE_REVIEWED_BSD_ID"] += 1
         elif key in SPORTSCORE_REVIEWED and row.get("reviewed_alias_check_version") != 1:
             timing["ELIGIBLE_REVIEWED_ALIAS"] += 1
         elif int(row.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION:
@@ -288,6 +295,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "status_counts": dict(sorted(counts.items())),
         "timing_counts": dict(sorted(timing.items())),
         "reviewed_alias_catalog_matches": sum(key in SPORTSCORE_REVIEWED for key in games),
+        "reviewed_bsd_id_catalog_matches": sum(key in REVIEWED_BSD_FIXTURES for key in games),
         "final_recorded": counts["FINAL"], "unverified": len(games) - counts["FINAL"],
         "pending_due_checks": max(0, len(candidates) - attempts),
         "last_updated_at": (now.isoformat(timespec="seconds")
