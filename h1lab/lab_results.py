@@ -198,7 +198,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or force_recheck):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
-        priority = (-2 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
+        priority = (-3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
+                    -2 if force_recheck and last else
                     -1 if bsd_id_due else 0 if alias_due else 1)
         candidates.append((priority, last or datetime.min.replace(tzinfo=timezone.utc),
                            kickoff, key))
