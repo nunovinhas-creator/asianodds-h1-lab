@@ -41,7 +41,7 @@ def classify(metrics, episode_ids):
     count = len(metrics)
     if count < 2:
         return {"original": False, "strict": False, "category": "SINGLE_ALERT"}
-    ds = [m["dlam"] for m in metrics]
+    ds = [m.get("dlam") for m in metrics]
     original = not any(d is not None and d <= -DLAM_EPS for d in ds)
     episode_reps = {}
     for metric, episode in zip(metrics, episode_ids):
@@ -51,7 +51,7 @@ def classify(metrics, episode_ids):
     independent = len(reps) >= 2
     complete = all(d is not None for d in ds)
     strictly_eligible = original and independent and complete
-    d = [m["dlam"] for m in reps if m["dlam"] is not None]
+    d = [m.get("dlam") for m in reps if m.get("dlam") is not None]
     ups = sum(x >= DLAM_EPS for x in d)
     downs = sum(x <= -DLAM_EPS for x in d)
     if not complete:
