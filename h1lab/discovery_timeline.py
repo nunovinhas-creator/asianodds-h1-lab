@@ -112,7 +112,8 @@ def _kind(before, after):
     if new_oos > old_oos:
         return "NEW_EVIDENCE"
     old_n, new_n = before.get("known", 0), after.get("known", 0)
-    if new_n < old_n or after.get("hits", 0) < before.get("hits", 0):
+    if (new_n < old_n or after.get("hits", 0) < before.get("hits", 0) or
+        (new_n == old_n and after.get("hits") != before.get("hits"))):
         return "DATA_REVISION"  # requires inspection, never called new evidence
     if new_n > old_n:
         old_diff, new_diff = before.get("diff"), after.get("diff")
