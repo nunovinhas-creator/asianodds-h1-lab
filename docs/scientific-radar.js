@@ -201,6 +201,31 @@
       }
     }
   }
+
+  async function loadPruning(){
+    const status=$("pruning-status"), target=$("pruning-details");
+    try{
+      const reply=await fetch("./lab/v6-pruning.json",{cache:"no-store"});
+      if(!reply.ok)throw Error("primeira publicação pendente");
+      const r=await reply.json(),s=r.scope||{};
+      if(r.status!=="V6_EXPLORATORY_PODA_NOT_VALIDATED"||
+         s.original_catalog!==800||s.representatives>300||
+         r.selection?.mapping?.length!==800)throw Error("relatório inválido");
+      status.textContent=num(s.original_catalog)+" hipóteses históricas → "+
+         num(s.representatives)+" representantes · exploratório";
+      target.replaceChildren();
+      line(target,"Propostas originais examinadas",num(r.effective_tests.original_proposals_considered));
+      line(target,"Dimensão efetiva (estimativa)",r.effective_tests.estimate);
+      line(target,"Jogos na matriz congelada",num(s.observed_matches_frozen));
+      line(target,"Equivalências exatas/complementares",num(s.exact_or_complement_redundancies));
+      line(target,"Pares correlacionados (|phi| ≥ 0,90)",num(s.pairs_phi_ge_090));
+      line(target,"Variáveis constantes",num(s.constant_columns));
+      line(target,"Estado científico",r.scientific_state);
+    }catch(e){
+      status.textContent="Auditoria P2 n.º 13 indisponível: "+e.message;
+      target.replaceChildren();
+    }
+  }
   // Weekly drift snapshots are derived from already recorded V6 forecasts,
   // FT and Telegram formats. Never display the current incomplete week
   // as a confirmed signal.
@@ -294,6 +319,6 @@
   }
   $("science-query").addEventListener("input",renderGames);
   $("science-filter").addEventListener("change",renderGames);
-  $("radar-refresh").addEventListener("click",()=>{load();loadWeekly()});
-  load();loadWeekly();
+  $("radar-refresh").addEventListener("click",()=>{load();loadWeekly();loadPruning()});
+  load();loadWeekly();loadPruning();
 })();
