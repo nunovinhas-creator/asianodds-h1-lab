@@ -88,7 +88,7 @@ def _validate_result(result, key):
     return {"home_goals": h, "away_goals": a, "source": source}
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -170,7 +170,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         signal = {"match_key": key, **{field: row[field] for field in ("home", "away", "kickoff_utc")}}
         found = {}
         reasons = {}
-        for provider, lookup in (("bsd", bsd_lookup), ("thesportsdb", tsdb_lookup)):
+        providers = [("bsd", bsd_lookup), ("thesportsdb", tsdb_lookup)]
+        if espn_lookup is not None:
+            providers.append(("espn", espn_lookup))
+        for provider, lookup in providers:
             try:
                 candidate, reason = lookup(signal)
                 found[provider] = _validate_result(candidate, key) if candidate is not None else None
@@ -183,20 +186,21 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row["checked_at"] = now.isoformat(timespec="seconds")
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
-        b, t = found["bsd"], found["thesportsdb"]
-        if b and t and (b["home_goals"], b["away_goals"]) != (t["home_goals"], t["away_goals"]):
+        confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
+        scores = {(item["home_goals"], item["away_goals"]) for _, item in confirmed}
+        if len(scores) > 1:
             row["status"] = "SCORE_CONFLICT"
             row["reason"] = "provider_score_conflict_manual_review"
             row.pop("result", None)
-            # Do not silently pick a winning score or auto-retry conflicts.
-        elif b or t:
-            selected = b or t
+            # Any disagreement, including ESPN vs BSD, quarantines the score.
+        elif confirmed:
+            selected = confirmed[0][1]  # provider priority: BSD, TSDB, ESPN
+            names = [name for name, _ in confirmed]
             row["status"] = "FINAL"
             row["result"] = {"home_goals": selected["home_goals"],
                              "away_goals": selected["away_goals"],
                              "source": selected["source"],
-                             "evidence": ("bsd_and_thesportsdb" if b and t else
-                                          "bsd_only" if b else "thesportsdb_only")}
+                             "evidence": ("_and_".join(names) if len(names)>1 else names[0]+"_only")}
             row["reason"] = "ft_recorded_with_source"
         else:
             row["status"] = "PROVIDER_ERROR" if any(
@@ -204,6 +208,31 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             ) else "PENDING"
             row["reason"] = "no_verified_ft_yet"
             row.pop("result", None)
+
+    # Distinguish not-started matches from real provider gaps. The "unverified"
+    # total includes future fixtures and must never be called an overdue backlog.
+    timing = Counter()
+    for key in games:
+        row = entries[key]
+        kickoff = utc(row.get("kickoff_utc"))
+        if row["status"] == "FINAL":
+            timing["FINAL_RECORDED"] += 1
+        elif kickoff is None:
+            timing["IDENTITY_UNKNOWN"] += 1
+        elif now < kickoff:
+            timing["FUTURE"] += 1
+        elif now < kickoff + DELAY:
+            timing["IN_3H_GRACE"] += 1
+        elif row["status"] in ("SCORE_CONFLICT", "IDENTITY_CONFLICT", "INSUFFICIENT_IDENTITY"):
+            timing["BLOCKED_REVIEW"] += 1
+        elif row["status"] == "EXPIRED_UNVERIFIED":
+            timing["EXPIRED"] += 1
+        elif not row.get("checked_at"):
+            timing["ELIGIBLE_NEVER_QUERIED"] += 1
+        elif utc(row.get("checked_at")) and now < utc(row["checked_at"]) + RETRY:
+            timing["ELIGIBLE_COOLDOWN"] += 1
+        else:
+            timing["ELIGIBLE_RETRY_DUE"] += 1
 
     counts = Counter(row.get("status", "UNKNOWN") for key, row in entries.items() if key in games)
     # Do not publish private original channel content; all matches are public fixtures.
@@ -227,6 +256,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "h1_alerts_count": len(state["alerts"]), "invalid_source_rows": input_errors,
         "source_only_v4_matches": sum("H1_ALERT" not in g["sources"] for g in games.values()),
         "status_counts": dict(sorted(counts.items())),
+        "timing_counts": dict(sorted(timing.items())),
         "final_recorded": counts["FINAL"], "unverified": len(games) - counts["FINAL"],
         "pending_due_checks": max(0, len(candidates) - attempts),
         "last_updated_at": (now.isoformat(timespec="seconds")
