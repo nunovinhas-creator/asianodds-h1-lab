@@ -19,7 +19,7 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
-LOOKUP_SOURCE_VERSION = 7  # v7: one-time recheck with fail-closed CORE_NAME identity (lab_identity)
+LOOKUP_SOURCE_VERSION = 8  # v8: one-time LAB FT retry for guarded Monte-Carlos CORE_NAME BSD IDs
 
 
 def utc(value):
