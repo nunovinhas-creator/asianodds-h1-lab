@@ -183,7 +183,6 @@ jobs:
           assert d['last_sha256']==e[-1]['sha256']
           assert d['latest']['overall'] in (
               'INSUFFICIENT_HISTORY','PARTIALLY_EVALUATED_NO_ALERT','SUSPECTED_DRIFT_REVIEW')
-          assert all(x['result']['status'] if False else True for x in [])
           assert all(w['period']=='COMPLETED' for w in d['latest']['weeks']
                      if w['week']!=d['latest']['monitor_week'])
           print('V6_WEEKLY_DRIFT_REAL_SOURCES_OK',d['latest_monitor_week'],
