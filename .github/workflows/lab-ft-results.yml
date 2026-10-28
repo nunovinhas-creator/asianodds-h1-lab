@@ -23,6 +23,9 @@ on:
       - 'h1lab/lab_ft_backlog.py'
       - 'h1lab/lab_fotmob.py'
       - 'h1lab/lab_api_football.py'
+      - 'h1lab/lab_api_football_reviewed.py'
+      - 'tests/test_lab_api_football_reviewed.py'
+      - 'data/lab/ft-api-football-reviewed.json'
       - 'h1lab/lab_goal.py'
       - 'h1lab/lab_openfoot.py'
       - 'tests/test_lab_goal_openfoot.py'
@@ -103,6 +106,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_goal_id_probe.py' -v
           python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
+          python -m unittest discover -s tests -p 'test_lab_api_football_reviewed.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_diagnostics.py' -v
           python -m unittest discover -s tests -p 'test_lab_identity_review.py' -v
@@ -180,6 +184,8 @@ jobs:
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
           assert d['fotmob_search']['requests'] <= 3
           assert d['api_football_search']['requests'] <= 3
+          assert d['api_football_search']['id_requests'] <= 1
+          assert d['api_football_search']['date_requests'] + d['api_football_search']['id_requests'] == d['api_football_search']['requests']
           assert d['goal_search']['requests'] <= 2
           assert d['goal_search']['requests'] == d['goal_search']['date_requests'] + d['goal_search']['id_requests']
           assert d['ft_queue']['goal_id_probe']['calls'] <= 1
