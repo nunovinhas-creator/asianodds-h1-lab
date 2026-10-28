@@ -163,3 +163,8 @@ Após editar o CSV, executar `python -m h1lab.cli render`. Sem resultado `final`
 python -m unittest discover -s tests -v
 python -m h1lab.cli render
 ```
+
+
+### V6.2 — P2 n.º 13: hipóteses redundantes
+
+O catálogo original das 800 hipóteses V5 está arquivado em [data/lab/v6-pruning-catalog-v1.json](data/lab/v6-pruning-catalog-v1.json). A primeira execução fixa a matriz observacional, seleciona até 300 representantes por diversidade e publica um mapa original→representante em [docs/lab/v6-pruning.json](docs/lab/v6-pruning.json). A dimensão efetiva é uma estimativa descritiva, não um ajuste de significância. A escolha não lê FT, ganhos, odds de fecho ou resíduos, nem altera H1, Telegram, memórias ou previsões V6. O Radar Científico apresenta-a como investigação exploratória.
