@@ -1,0 +1,92 @@
+{
+  "data_lineage": {
+    "frozen_records": 214,
+    "ft_memory_events": 0,
+    "sha_chain_verified": true,
+    "timeline_source_errors": 0,
+    "v4_revision_rows": 413
+  },
+  "evaluation_clock": "2026-10-28T17:21:49+00:00",
+  "first_frozen_known_at": "2026-10-28T14:31:19+00:00",
+  "ft_knowledge_timeline": {
+    "assumptions": [
+      "A checked_at must occur >=90 minutes after kickoff and no later than the evidence memory write.",
+      "A confirmed FT must reference the immutable pre-kickoff source SHA and post-registration freeze.",
+      "A journal recorded/write timestamp proves system processing, not a provider-side FT assertion.",
+      "No retroactive FT observations or missing timestamps are invented."
+    ],
+    "chronology_certification": "SOURCE_LEDGER_TIMES_NOT_INDEPENDENT_PROVIDER_PROOF",
+    "counts": {
+      "eligible_match_without_confirmed_ft": 19
+    },
+    "evidence_events_total": 0,
+    "exceptions": [],
+    "exceptions_total": 0,
+    "latest_temporally_consistent_ft_matches": 0,
+    "registered_eligible_finished_matches": 19
+  },
+  "gates": {
+    "14_days": {
+      "all_collector_runs_and_git_pushes_independently_audited": false,
+      "daily_eligible_kickoff_utc": {
+        "2026-10-28": {
+          "captured": 33,
+          "missing": 1,
+          "opportunities": 34
+        }
+      },
+      "elapsed_days_since_first_frozen": 0.1184,
+      "frozen_pre_kickoff": 33,
+      "historical_telegram_message_delivery_at_known_at_proven": false,
+      "interpretation": "SOURCE_ELIGIBLE_UPPER_BOUND_NOT_INGESTION",
+      "missing_count": 1,
+      "missing_match_keys": [
+        "2026-10-28,22198,36287"
+      ],
+      "ratio": 0.9706,
+      "scientific_acceptance": "BLOCKED",
+      "source_eligible": 34,
+      "status": "WARMUP"
+    },
+    "7_days": {
+      "all_collector_runs_and_git_pushes_independently_audited": false,
+      "daily_eligible_kickoff_utc": {
+        "2026-10-28": {
+          "captured": 33,
+          "missing": 1,
+          "opportunities": 34
+        }
+      },
+      "elapsed_days_since_first_frozen": 0.1184,
+      "frozen_pre_kickoff": 33,
+      "historical_telegram_message_delivery_at_known_at_proven": false,
+      "interpretation": "SOURCE_ELIGIBLE_UPPER_BOUND_NOT_INGESTION",
+      "missing_count": 1,
+      "missing_match_keys": [
+        "2026-10-28,22198,36287"
+      ],
+      "ratio": 0.9706,
+      "scientific_acceptance": "BLOCKED",
+      "source_eligible": 34,
+      "status": "WARMUP"
+    }
+  },
+  "limitations": [
+    "Elapsed days are measured from the first real known_at, never from old Telegram observed_at.",
+    "The source denominator is Telegram opportunities already visible, not all scheduled fixtures.",
+    "The SHA chain tests current artifact consistency; only a Git-history audit proves no full rewrite.",
+    "FT timestamps sourced from a mutable ledger are provisional unless independently corroborated.",
+    "No automatic upgrade of gate state, scientific pattern promotion or alerts."
+  ],
+  "registered_at": "2026-10-28T14:41:35+00:00",
+  "schema_version": 1,
+  "scientific_state": "INCONCLUSIVO",
+  "status": "V6_P0_PROSPECTIVE_GATES_NOT_VALIDATED",
+  "unverified_requirements": [
+    "Continuous 7/14 days of audited Git collector runs and successful nonconflicting pushes",
+    "Independent proof of timely Telegram ingestion for every eligible opportunity",
+    "Git commit-by-commit evidence of no retrospective modifications to frozen observations",
+    "Independent FT provider/check chronology for every prospective outcome",
+    "1000 genuine registered prospective FT across >=3 distinct ISO weeks for V6.3"
+  ]
+}
