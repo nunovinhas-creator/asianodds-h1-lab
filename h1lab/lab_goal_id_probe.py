@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from .lab_ft_crosswalk import event_id, providers_from_final
+from .lab_ft_crosswalk import event_id as verified_event_id, providers_from_final
 from .lab_identity import pair_level
 from .lab_results import utc, GOAL_ID_RECHECK_EVIDENCE
 
@@ -39,7 +39,7 @@ def plan_goal_id(selected_keys, matches, review, now):
         if isinstance(row, dict) and row.get("status") == "FINAL":
             for provider, url in providers_from_final(row).items():
                 if provider == "goal":
-                    confirmed_goal_ids.add(event_id(provider, url))
+                    confirmed_goal_ids.add(verified_event_id(provider, url))
     allowed = set(selected_keys)
     choices = []
     for g in games:
