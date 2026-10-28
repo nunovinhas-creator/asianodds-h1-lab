@@ -19,10 +19,14 @@ jobs:
           ref: main
           persist-credentials: true
       - name: Delete only verified unchanged, merged PR heads
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import subprocess
+          import json
+          import os
 
           # Every target's PR #49-53 is independently verified merged;
           # exact SHA protects any new work since its merge.
@@ -47,14 +51,37 @@ jobs:
               print("VERIFIED_UNCHANGED", branch)
               present.append(branch)
 
+          extra = "chore/run-verified-branch-cleanup-20261028"
+          extra_ref = subprocess.check_output(
+              ["git", "ls-remote", "origin", f"refs/heads/{extra}"], text=True).strip()
+          if extra_ref:
+              actual = extra_ref.split()[0]
+              raw = subprocess.check_output(
+                  ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/pulls?state=closed&per_page=100"],
+                  text=True)
+              prs = json.loads(raw)
+              correct = [p for p in prs if p.get("merged_at") and
+                         p.get("base", {}).get("ref") == "main" and
+                         p.get("head", {}).get("ref") == extra and
+                         p.get("head", {}).get("sha") == actual]
+              if len(correct) != 1:
+                  raise SystemExit("STOP_EXTRA_BRANCH_NOT_VERIFIED_MERGED")
+              print("VERIFIED_SELF_BRANCH", extra, correct[0]["number"])
+
           for branch in present:
               subprocess.run(["git", "push", "origin", "--delete", branch], check=True)
               print("DELETED_BRANCH", branch)
+          if extra_ref:
+              subprocess.run(["git", "push", "origin", "--delete", extra], check=True)
+              print("DELETED_SELF_PR_BRANCH", extra)
 
           for branch, _ in targets:
               if subprocess.check_output(
                       ["git", "ls-remote", "origin", f"refs/heads/{branch}"], text=True).strip():
                   raise SystemExit(f"STOP_STILL_EXISTS {branch}")
+          if subprocess.check_output(
+                  ["git", "ls-remote", "origin", f"refs/heads/{extra}"], text=True).strip():
+              raise SystemExit("STOP_EXTRA_BRANCH_STILL_EXISTS")
           for preserved in ("main", "feature/bsd-europa-audit"):
               if not subprocess.check_output(
                       ["git", "ls-remote", "origin", f"refs/heads/{preserved}"],
