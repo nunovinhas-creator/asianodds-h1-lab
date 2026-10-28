@@ -173,3 +173,8 @@ O catálogo original das 800 hipóteses V5 está arquivado em [data/lab/v6-pruni
 ### V6.2 — P2 n.º 14: arquivo mensal verificável
 
 Os diários de observações, revisões V4, resultados FT, previsões V6, cinco memórias científicas e descobertas passam a admitir **partes mensais limitadas a 20.000.000 bytes**, sem reescrever os registos nem alterar a cadeia SHA. As projeções atualizáveis `markets`/`formats` são divididas de modo independente. O [índice de arquivos selados](data/lab/v6-archive-index.json) regista SHA-256 integral de cada parte de meses fechados, e o [relatório de saúde](docs/lab/v6-archive-health.json) verifica o histórico e todos os ficheiros LAB. A verificação não exige novas APIs nem workflows. Consulte [MASTER-BRAIN-V6.md](docs/lab/MASTER-BRAIN-V6.md) para recuperação, limites e semântica temporal. Estado científico: INCONCLUSIVO.
+
+
+### P0 científico V6 — controlo de 7/14 dias, 10 000 nulos e FT cronológico
+
+O [relatório dos gates prospetivos](docs/lab/v6-p0-gates.json) mantém os gates de 7/14 dias bloqueados até cobertura de 99% e revisão independente de logs Git/Telegram. A [simulação científica fixa](docs/lab/v6-p0-null-simulation.json) reproduz a mistura do teste sequencial em 10 000 caminhos nulos e mostra potência sintética por checkpoints, sem se confundir com FT reais ou uma hipótese validada. Implementado em modo LAB sombra; consulte [MASTER-BRAIN-V6.md](docs/lab/MASTER-BRAIN-V6.md). 

@@ -21,6 +21,23 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
+      - name: V6 P0 10,000 null trajectories, power and FT chronological gates (shadow)
+        run: |
+          python -m scripts.lab_v6_p0 --recompute-nulls
+          python -m scripts.lab_v6_p0 --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          sim=json.loads(Path('docs/lab/v6-p0-null-simulation.json').read_text())
+          gate=json.loads(Path('docs/lab/v6-p0-gates.json').read_text())
+          assert sim['null']['paths']==10000
+          assert len(sim['illustrative_power'])==3
+          assert sim['scientific_state']=='INCONCLUSIVO'
+          assert gate['scientific_state']=='INCONCLUSIVO'
+          assert all(g['scientific_acceptance']=='BLOCKED' for g in gate['gates'].values())
+          print('V6_P0_REAL_SMOKE',sim['null']['ever_hit_at_any_look'],
+                gate['gates']['7_days']['status'],gate['gates']['14_days']['status'])
+          PY
       - name: V6.2 P2#14 real LAB monthly archives, all-file limit and SHA replay
         run: |
           python -m scripts.lab_v6_archive

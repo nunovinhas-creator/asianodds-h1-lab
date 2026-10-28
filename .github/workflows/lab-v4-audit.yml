@@ -135,6 +135,15 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_archive.py' -v
           python -m scripts.lab_v6_archive
           python -m scripts.lab_v6_archive --verify-only
+      # P0 nulos: computed once/frozen. Every audit replays science gates only.
+      # No new cron or provider calls; independent Git run-log proof is still required.
+      - name: Publish P0 7/14-day scientific gates and 10k-null fixed experiment
+        id: v6_p0
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_p0_gates.py' -v
+          python -m scripts.lab_v6_p0
+          python -m scripts.lab_v6_p0 --verify-only
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -157,6 +166,9 @@ jobs:
           fi
           if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
           if [ -f docs/lab/v6-readiness.json ]; then git add docs/lab/v6-readiness.json; fi
+          if [ "${{ steps.v6_p0.outcome }}" = "success" ]; then
+            git add docs/lab/v6-p0-null-simulation.json docs/lab/v6-p0-gates.json
+          fi
           # A failed memory step can leave partial local files; never publish them.
           if [ "${{ steps.v6_science_memory.outcome }}" = "success" ]; then
             if [ -f docs/lab/v6-memory.json ]; then git add docs/lab/v6-memory.json; fi
