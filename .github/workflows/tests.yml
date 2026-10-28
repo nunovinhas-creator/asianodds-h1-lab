@@ -21,5 +21,21 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
+      - name: V6 smoke using real repository snapshots (no API / no push)
+        run: |
+          python -m scripts.lab_v6_shadow
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from h1lab.v6_shadow import read_journal
+          root=Path('.')
+          report=json.loads((root/'docs/lab/v6-shadow.json').read_text(encoding='utf-8'))
+          prices=json.loads((root/'docs/lab/v6-price-quality.json').read_text(encoding='utf-8'))
+          assert report['hypothesis']['state'] in ('INCONCLUSIVO','VALIDADO')
+          assert prices['scope']=='HISTORICAL_PRICE_QA_NOT_FORECASTS'
+          assert len(prices['snapshots'])==report['price_quality_historical']['total_snapshots']
+          assert len(read_journal(root))==report['forecasts']['records']
+          print('V6_REAL_INPUT_SMOKE_OK',len(prices['snapshots']))
+          PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs
