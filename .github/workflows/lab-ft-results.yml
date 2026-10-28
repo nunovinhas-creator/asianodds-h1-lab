@@ -12,6 +12,8 @@ on:
       - 'h1lab/lab_espn.py'
       - 'h1lab/lab_sportscore.py'
       - 'h1lab/lab_monte_bsd.py'
+      - 'h1lab/lab_reviewed_bsd_ids.py'
+      - 'tests/test_lab_reviewed_bsd_ids.py'
       - 'tests/test_lab_monte_bsd.py'
       - 'h1lab/lab_reviewed_aliases.py'
       - 'tests/test_lab_reviewed_aliases.py'
@@ -53,6 +55,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_reviewed_aliases.py' -v
           python -m unittest discover -s tests -p 'test_lab_source_order.py' -v
           python -m unittest discover -s tests -p 'test_lab_monte_bsd.py' -v
+          python -m unittest discover -s tests -p 'test_lab_reviewed_bsd_ids.py' -v
       - name: Reconcile all observed fixture identities (bounded, no betting)
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
@@ -76,6 +79,7 @@ jobs:
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
+          assert d['reviewed_bsd_id_catalog_matches'] <= 3
           assert d["sportscore_search"]["requests"] <= 45
           assert d["sportscore_search"]["targeted_searches"] <= 20
           assert d["reviewed_alias_catalog_matches"] <= 16
