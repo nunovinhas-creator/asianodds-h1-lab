@@ -17,7 +17,20 @@ REVIEWED_BSD_FIXTURES = {
         "1. FC Köln", "Union Berlin",
         "2026-10-27T19:45:00+00:00",
         602348, "1. FC Köln", "1. FC Union Berlin"),
-    "2026-10-27,240,227": (
+    # 28/10: three independent provider date catalogs returned the same KO
+    # and orientation for the German cup fixture (BSD, OpenFoot and GOAL).
+    # This ID is a lookup lead only; BSD detail is revalidated before any FT.
+    "2026-10-28,1069,200": (
+        "Paderborn", "VfB Stuttgart 1893",
+        "2026-10-28T17:00:00+00:00",
+        602346, "SC Paderborn 07", "VfB Stuttgart"),
+    # BSD and GOAL independently show same 18:00 UTC event and orientation;
+    # Malmö -> Malmö FF is restricted to THIS fixture and THIS event ID.
+    "2026-10-28,521,159": (
+        "Halmstads BK", "Malmö",
+        "2026-10-28T18:00:00+00:00",
+        46506, "Halmstads BK", "Malmö FF"),
+        "2026-10-27,240,227": (
         "Roma", "Cagliari",
         "2026-10-27T19:45:00+00:00",
         210138, "AS Roma", "Cagliari"),

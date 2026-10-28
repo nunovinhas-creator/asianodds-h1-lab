@@ -90,6 +90,44 @@ class GoalIDProbeTests(unittest.TestCase):
                       id_getter=lambda i,k:dict(event(),apiId="999999"))
         self.assertEqual(p.lookup(MATCH)[1],"goal_id_mismatch")
 
+    def test_actual_goal_evidence_survives_a_later_rotation_deferral(self):
+        from h1lab.lab_results import reconcile
+        state={"alerts":[{k:MATCH[k] for k in
+                          ("match_key","home","away","kickoff_utc")}],"signals":[]}
+        no=lambda signal:(None,"no_match")
+        t1=datetime(2026,10,28,20,30,tzinfo=timezone.utc)
+        t2=datetime(2026,10,29,1,0,tzinfo=timezone.utc)
+        first,_,n=reconcile(state,[],{"schema_version":1,"matches":{}},
+                            now=t1,bsd_lookup=no,tsdb_lookup=no,
+                            goal_lookup=lambda s:(None,"goal_no_regulation_score"),
+                            max_checks=30)
+        self.assertEqual(n,1)
+        self.assertEqual(first["matches"][KEY]["goal_ft_last_evidence"]["reason"],
+                         "goal_no_regulation_score")
+        second,_,n=reconcile(state,[],first,now=t2,bsd_lookup=no,tsdb_lookup=no,
+                             goal_lookup=lambda s:(None,"goal_day_rotation_deferred"),
+                             max_checks=30)
+        self.assertEqual(n,1)
+        row=second["matches"][KEY]
+        self.assertEqual(row["provider_reasons"]["goal"],"goal_day_rotation_deferred")
+        self.assertEqual(row["goal_ft_last_evidence"]["reason"],"goal_no_regulation_score")
+        t3=datetime(2026,10,29,5,30,tzinfo=timezone.utc)
+        self.assertEqual(plan_goal_id([KEY],second["matches"],review(),t3),{KEY:"857151"})
+        changed={"alerts":[{**state["alerts"][0],"home":"Other Club"}],"signals":[]}
+        altered,_,_=reconcile(changed,[],second,now=t3,bsd_lookup=no,tsdb_lookup=no,
+                              max_checks=0)
+        self.assertNotIn("goal_ft_last_evidence",altered["matches"][KEY])
+        self.assertEqual(plan_goal_id([KEY],altered["matches"],review(),t3),{})
+
+    def test_id_probe_24h_cooldown_and_confirmed_id_exclusivity(self):
+        recent={**MATCH,"goal_id_last_attempt_at":"2026-10-28T23:00:00+00:00"}
+        self.assertEqual(plan_goal_id([KEY],{KEY:recent},review(),NOW),{})
+        final={"status":"FINAL","home":"Other","away":"Other Away",
+               "kickoff_utc":"2026-10-28T17:00:00+00:00",
+               "result":{"evidence":"goal_only",
+                         "source":"https://api.goal-api.com/v1/fixtures/857151"}}
+        self.assertEqual(plan_goal_id([KEY],{KEY:MATCH,"other":final},review(),NOW),{})
+
     def test_two_call_ceiling_and_journal_counts_target(self):
         p=GoalResults("key",getter=lambda d,k:[],max_days=1,
                       allowed_days=["2026-10-28"],

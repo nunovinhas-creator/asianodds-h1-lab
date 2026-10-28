@@ -33,6 +33,13 @@ def retry_wait(entry):
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
+# Retain meaningful last-seen GOAL evidence independently from last-attempt
+# telemetry. Rotation deferrals are not a negative finding about a fixture.
+GOAL_ID_RECHECK_EVIDENCE = frozenset({
+    "goal_no_regulation_score", "goal_not_finished_or_unverified",
+    "goal_et_evidence_missing", "goal_penalty_evidence_missing",
+})
+
 API_FOOTBALL_SOURCE_VERSION = 10  # only the official API-enabled LAB run upgrades
 OPEN_RESULT_SOURCES_VERSION = 11  # GOAL and OpenFoot FT coverage verified in the LAB only
 
@@ -153,8 +160,13 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row = entries[key]
         identity = {k: game[k] for k in ("home", "away", "kickoff_utc")}
         old_identity = {k: row.get(k) for k in identity}
-        identity_changed_final = (row.get("status") == "FINAL"
-                                  and any(old_identity[k] != identity[k] for k in identity))
+        identity_changed = any(old_identity[k] not in (None, identity[k])
+                               for k in identity)
+        # A changed H1 identity invalidates the historical GOAL clue.
+        if identity_changed:
+            row.pop("goal_ft_last_evidence", None)
+            row.pop("goal_id_last_attempt_at", None)
+        identity_changed_final = (row.get("status") == "FINAL" and identity_changed)
         if identity_changed_final:
             row["status"] = "IDENTITY_CONFLICT"  # quarantine prior result
             row.pop("result", None)
@@ -311,6 +323,11 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["reviewed_public_ft_check_version"] = 1
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
+        if reasons.get("goal") in GOAL_ID_RECHECK_EVIDENCE:
+            row["goal_ft_last_evidence"] = {
+                "reason": reasons["goal"],
+                "observed_at": now.isoformat(timespec="seconds"),
+            }
         # Counters mean adapter invocations, not necessarily remote HTTP calls:
         # adapters may use day caches or return an unsupported-competition reason.
         history = row.setdefault("provider_attempts", {})

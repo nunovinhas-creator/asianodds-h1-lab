@@ -17,8 +17,8 @@ def detail(key):
             "event_date":v[2],"home_score":2,"away_score":0}
 
 class ReviewedBSDIDsTests(unittest.TestCase):
-    def test_all_three_verified_events_direct_without_monte_archive(self):
-        self.assertEqual(len(REVIEWED_BSD_FIXTURES),3)
+    def test_all_five_verified_events_direct_without_monte_archive(self):
+        self.assertEqual(len(REVIEWED_BSD_FIXTURES),5)
         for key in REVIEWED_BSD_FIXTURES:
             with self.subTest(key=key):
                 target=REVIEWED_BSD_FIXTURES[key][3]
@@ -44,6 +44,50 @@ class ReviewedBSDIDsTests(unittest.TestCase):
                         {**base,"away":"Other"},
                         {**base,"kickoff_utc":"2026-10-28T19:45:00+00:00"}):
             self.assertIsNone(reviewed_bsd_fixture(changed))
+
+    def test_new_oct28_ids_are_strictly_fixture_scoped(self):
+        for key in ("2026-10-28,1069,200","2026-10-28,521,159"):
+            with self.subTest(key=key):
+                original=signal(key)
+                candidate=REVIEWED_BSD_FIXTURES[key]
+                self.assertEqual(reviewed_bsd_fixture(original),
+                                 (candidate[3], candidate[4], candidate[5]))
+                for modified in (
+                    {**original,"match_key":"2026-10-28,99999,99998"},
+                    {**original,"home":candidate[4]},
+                    {**original,"away":"Unknown Women"},
+                    {**original,"kickoff_utc":"2026-10-28T19:30:00+00:00"},
+                    {**original,"home":original["away"],"away":original["home"]},
+                ):
+                    if modified==original:
+                        continue
+                    self.assertIsNone(reviewed_bsd_fixture(modified))
+
+    def test_new_reviewed_ids_get_one_safe_check_within_grace_and_budget(self):
+        no=lambda _: (None,"not_found")
+        now=datetime(2026,10,28,22,30,tzinfo=timezone.utc)
+        for key in ("2026-10-28,1069,200","2026-10-28,521,159"):
+            with self.subTest(key=key):
+                s=signal(key)
+                prior={"schema_version":1,"matches":{key:{
+                    **s,"status":"PENDING","attempts":2,
+                    "checked_at":"2026-10-28T21:46:17+00:00",
+                    "lookup_source_version":11}}}
+                calls=[]
+                def bsd(sig):
+                    calls.append(sig["match_key"])
+                    return None,"bsd_regulation_unverified"
+                first,_,n=reconcile({"alerts":[s],"signals":[]},[],prior,now=now,
+                      bsd_lookup=bsd,tsdb_lookup=no,max_checks=30)
+                self.assertEqual(n,1)
+                self.assertEqual(calls,[key])
+                self.assertEqual(first["matches"][key]["status"],"PENDING")
+                self.assertEqual(first["matches"][key]["reviewed_bsd_id_check_version"],1)
+                _,_,n2=reconcile({"alerts":[s],"signals":[]},[],first,now=now,
+                      bsd_lookup=lambda _:(_ for _ in ()).throw(
+                          AssertionError("must not recheck")),
+                      tsdb_lookup=no,max_checks=30)
+                self.assertEqual(n2,0)
 
     def test_wrong_event_id_or_team_or_kickoff_are_rejected(self):
         key="2026-10-27,240,227"
