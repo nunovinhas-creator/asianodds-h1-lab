@@ -1,18 +1,18 @@
 {
   "classification": {
-    "future": 142,
-    "in_3h_grace": 63,
-    "past_due_unverified": 62,
+    "future": 138,
+    "in_3h_grace": 66,
+    "past_due_unverified": 65,
     "verified_ft": 95
   },
   "last_attempt_obstacles": [
     {
-      "games": 62,
+      "games": 65,
       "provider": "bsd",
       "reason": "monte_no_exact_archive_match"
     },
     {
-      "games": 62,
+      "games": 65,
       "provider": "espn",
       "reason": "espn_unsupported_competition"
     },
@@ -27,7 +27,7 @@
       "reason": "goal_identity_no_core_match"
     },
     {
-      "games": 57,
+      "games": 60,
       "provider": "sportscore",
       "reason": "sportscore_no_exact_match"
     },
@@ -42,7 +42,7 @@
       "reason": "tsdb_limited_this_run"
     },
     {
-      "games": 28,
+      "games": 30,
       "provider": "thesportsdb",
       "reason": "no_event"
     },
@@ -70,6 +70,11 @@
       "games": 1,
       "provider": "sportscore",
       "reason": "source_home_away_conflict"
+    },
+    {
+      "games": 1,
+      "provider": "thesportsdb",
+      "reason": "home_team_mismatch"
     }
   ],
   "last_run_providers": {
@@ -91,46 +96,39 @@
       "date_list_requests": 1,
       "fallback_results_recovered": 0,
       "lookup_reason_counts": {
-        "bsd_no_exact_match_in_date": 22
+        "bsd_no_exact_match_in_date": 3
       }
     },
     "goal": {
-      "cached_days": 1,
+      "cached_days": 0,
       "configured": true,
-      "poll_enabled": true,
-      "reason_counts": {
-        "goal_identity_no_core_match": 18,
-        "verified_goal_ft": 4
-      },
-      "requests": 1,
-      "verified_in_run": 4
+      "poll_enabled": false,
+      "reason_counts": {},
+      "requests": 0,
+      "verified_in_run": 0
     },
     "openfoot": {
-      "cached_days": 1,
+      "cached_days": 0,
       "configured": true,
-      "poll_enabled": true,
-      "reason_counts": {
-        "openfoot_identity_no_core_match": 21,
-        "verified_openfoot_ft": 1
-      },
-      "requests": 1,
-      "verified_in_run": 1
+      "poll_enabled": false,
+      "reason_counts": {},
+      "requests": 0,
+      "verified_in_run": 0
     },
     "sportscore": {
-      "cached_date_team_queries": 9,
+      "cached_date_team_queries": 2,
       "confirmed_in_run": 0,
       "reason_counts": {
-        "sportscore_no_exact_match": 22
+        "sportscore_no_exact_match": 3
       },
-      "requests": 29,
+      "requests": 5,
       "reviewed_alias_ft_in_run": 0,
-      "targeted_searches": 20
+      "targeted_searches": 3
     },
     "thesportsdb": {
-      "http_429": 1,
-      "no_event": 10,
-      "requested": 11,
-      "suppressed_after_429": 11
+      "home_team_mismatch": 1,
+      "no_event": 2,
+      "requested": 3
     }
   },
   "limitations": [
@@ -140,7 +138,7 @@
     "No missing FT becomes a loss, an invented score, or an H1 settlement.",
     "A single observed result is not an independently corroborated source."
   ],
-  "measured_at": "2026-10-28T19:01:24+00:00",
+  "measured_at": "2026-10-28T19:32:03+00:00",
   "overdue_by_kickoff_utc_day": {
     "2026-10-27": {
       "last_check_without_provider": {
@@ -151,11 +149,13 @@
     },
     "2026-10-28": {
       "last_check_without_provider": {
-        "api_football": 17,
-        "fotmob": 54
+        "api_football": 20,
+        "fotmob": 57,
+        "goal": 3,
+        "openfoot": 3
       },
       "never_checked": 0,
-      "overdue": 54
+      "overdue": 57
     }
   },
   "overdue_games": [
@@ -1257,10 +1257,55 @@
       "last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,336,335",
       "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Ruch Chorzow",
+      "home": "MKS Znicz Pruszków",
+      "kickoff_utc": "2026-10-28T16:30:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T19:32:03+00:00",
+      "match_key": "2026-10-28,28354,23552",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Soroksár SK KF",
+      "home": "Kozármisleny SE",
+      "kickoff_utc": "2026-10-28T16:30:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "no_event"
+      },
+      "last_checked_at": "2026-10-28T19:32:03+00:00",
+      "match_key": "2026-10-28,28511,28515",
+      "status": "PENDING"
+    },
+    {
+      "attempts": 1,
+      "away": "Wisła Płock",
+      "home": "Puszcza Niepolomice",
+      "kickoff_utc": "2026-10-28T16:30:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "home_team_mismatch"
+      },
+      "last_checked_at": "2026-10-28T19:32:03+00:00",
+      "match_key": "2026-10-28,36192,993",
+      "status": "PENDING"
     }
   ],
   "overdue_omitted": 0,
   "schema_version": 1,
   "status": "FT_BACKLOG_AUDIT_OBSERVATION_ONLY",
-  "total_matches": 362
+  "total_matches": 364
 }
