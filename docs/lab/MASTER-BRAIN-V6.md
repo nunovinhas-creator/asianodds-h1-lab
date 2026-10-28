@@ -10,7 +10,7 @@ O Pattern Watch resulta da condição histórica **G_MULTI_ALERT AND NOT M_IMPLI
 
 ## P0 implementado
 
-**1. Price quality por evento:** h1lab/v6_shadow.py calcula, para cada Total explícito, as margens Before/After, se alguma odd repetiu durante mudança de linha, margens negativas, preços inválidos e margens elevadas (>15%, limite heurístico). Os casos suspeitos são **assinalados, não apagados**. Uma cotação After duvidosa não produz baseline V6. docs/lab/v6-price-quality.json enumera os resultados de QA por evento, incluindo os históricos, sem os transformar em previsões.
+**1. Price quality por evento:** h1lab/v6_shadow.py calcula, para cada Total explícito, as margens Before/After, se alguma odd repetiu durante mudança de linha, margens negativas, preços inválidos e margens elevadas (>12%, limite heurístico na política Q2; registos antigos Q1 não são reescritos). Os casos suspeitos são **assinalados, não apagados**. Uma cotação After duvidosa não produz baseline V6. docs/lab/v6-price-quality.json enumera os resultados de QA por evento, incluindo os históricos, sem os transformar em previsões.
 
 **2. Pergunta certa:** na avaliação, resíduo por jogo = resultado Over 2,5 real (0/1) menos probabilidade-modelo de Over 2,5 estimada do Total asiático. O relatório separa o grupo com padrão histórico e os restantes jogos prospetivos congelados. A probabilidade vem de uma inversão Poisson, **não** de uma odd Over 2,5 efetivamente transacionável. Não há EV nem ROI.
 
@@ -35,3 +35,17 @@ O registo começa apenas quando o workflow executar após a integração. Não s
 Executar testes unitários de V6, testes de regressão integrais, compileall e a Action real após merge; inspecionar known_at anterior ao kickoff, idempotência, falhas sinalizadas e ausência de modificações em ficheiros H1/Telegram. Se houver erro, desligar apenas o passo V6, **sem eliminar** os diários já recolhidos.
 
 **Limitações:** mercado selecionado por alertas, amostra reduzida, dados de Total não contínuos, qualidade dos snapshots incerta, modelação Poisson, FT incompletos e ausência de prova de rentabilidade.
+
+## Complemento V6.0 — perguntas corrigidas em todas as hipóteses
+
+O motor complementar `h1lab/v6_residual.py` percorre **todas** as hipóteses geradas pelo V5, não apenas as 40 apresentadas no Radar, e mede por jogo `Over_2_5_observado - p_mercado` com **último snapshot Total pré-início e preço classificado**. A análise de preços anteriores é retrospetiva e **NUNCA conta como previsão OOS**. A amostra limpa, exclusões, desvio face ao mercado e intervalo exploratório por bootstrap de dias são publicados em `docs/lab/v6-residual-research.json` após `lab-ft-results.yml`. Sem pelo menos três jornadas não se apresenta intervalo; sem três semanas distintas marca-se diversidade temporal insuficiente. BTTS fica sem baseline de mercado, claramente identificado.
+
+Os antigos rankings e critérios V5 mantêm-se para não alterar silenciosamente significado histórico ou invalidar as séries passadas. **Não** constituem evidência confirmatória V6 e não podem promover apostas automaticamente.
+
+A hipótese Pattern Watch da auditoria fica formalmente documentada no registo imutável `data/lab/v6-hypotheses.jsonl`, com hash, instante histórico *de seleção* atribuído pela auditoria (11:16 UTC), instante *real de registo* e proveniência `POST_HOC`. O registo novo nunca é falsamente retrodatado.
+
+A verificação da versão das hipóteses antigas foi corrigida em `pattern_engine.load_registry`: cada definição é validada com a sua própria `feature_version`. Não se alterou o catálogo atual.
+
+### Estado dos P1–P3 do plano original Claude
+
+Este complemento **não** significa que as cinco memórias completas, o motor de falsificação com 10 testes, FEATURE_VERSION 2, journal de revisões V4/FT, Radar completo, drift semanal e ML/LLM tenham sido implementados. Esses componentes exigem branches, gates e provas de regressão separados; P3 exige ≥1000 FT OOS. Um conjunto de resultados historicamente calculado nunca substitui validação futura.

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from h1lab.v6_shadow import run, STATUS, snapshot_quality_rows
+from h1lab.v6_hypotheses import ensure_registered
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,6 +21,7 @@ def main(argv=None):
            if args.now else datetime.now(timezone.utc))
     if now.tzinfo is None:
         raise SystemExit("timezone required")
+    registration, registered = ensure_registered(args.root, now)
     report, added = run(args.root, now)
     if report["status"] != STATUS:
         raise SystemExit("unexpected V6 status")
@@ -40,7 +42,7 @@ def main(argv=None):
         cmp = dict(report)
         cmp.pop("generated_at", None)
         if old == cmp:
-            print("V6_SHADOW_UNCHANGED", "forecasts_added", added)
+            print("V6_SHADOW_UNCHANGED", "forecasts_added", added, "hypothesis_registered", registered)
             return report
     target.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
                       encoding="utf-8")

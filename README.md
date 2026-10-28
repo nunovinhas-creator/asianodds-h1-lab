@@ -10,7 +10,7 @@ Observatório experimental de odds asiáticas: recolhe alertas estruturados de u
 
 ## MASTER BRAIN V6 — controlo de qualidade e validação prospetiva (sombra)
 
-O V6 acrescenta auditoria por snapshot, quarentena de cotações suspeitas e um **diário de previsões registadas antes do início** com hora real `known_at` e cadeia de hashes. Compara o Over 2,5 real com o **baseline implícito pelo mercado** (resíduo), sem treino ML/LLM nem substituição de alertas Telegram. A condição Pattern Watch de 28/10/2026 é **pós-hoc**, permanece separada da sua variante estrita, e tem estado `INCONCLUSIVO` até validação prospetiva suficiente. [Decisões, especificação e limites do V6](docs/lab/MASTER-BRAIN-V6.md). Os JSON públicos (`docs/lab/v6-shadow.json` e `docs/lab/v6-price-quality.json`) só surgem após a primeira execução da auditoria V6.
+O V6 acrescenta auditoria por snapshot, quarentena de cotações suspeitas e um **diário de previsões registadas antes do início** com hora real `known_at` e cadeia de hashes. Compara o Over 2,5 real com o **baseline implícito pelo mercado** (resíduo), sem treino ML/LLM nem substituição de alertas Telegram. A condição Pattern Watch de 28/10/2026 é **pós-hoc**, permanece separada da sua variante estrita, e tem estado `INCONCLUSIVO` até validação prospetiva suficiente. [Decisões, especificação e limites do V6](docs/lab/MASTER-BRAIN-V6.md). O complemento V6 analisa também **todas as hipóteses exploratórias vs a referência do mercado** (não só o top-40), publicando `docs/lab/v6-residual-research.json` após a execução FT; não confundir exploração retrospetiva com OOS congelado. A auditoria publicou já `docs/lab/v6-shadow.json` e `docs/lab/v6-price-quality.json` após a primeira execução.
 
 ## Cronologia de descobertas — Fase 2
 

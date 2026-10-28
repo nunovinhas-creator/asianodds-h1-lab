@@ -83,6 +83,7 @@ jobs:
           if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
           if [ -f docs/lab/v6-price-quality.json ]; then git add docs/lab/v6-price-quality.json; fi
           git add -f data/lab/v6-forecasts-*.jsonl 2>/dev/null || true
+          if [ -f data/lab/v6-hypotheses.jsonl ]; then git add -f data/lab/v6-hypotheses.jsonl; fi
           if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
           if [ -f docs/lab/trajectory-research.json ]; then git add docs/lab/trajectory-research.json; fi
           if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
