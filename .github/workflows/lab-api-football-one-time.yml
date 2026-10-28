@@ -29,7 +29,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
       - name: Verify API-Football authentication and parse a historical date safely
         env:
-          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL || secrets.API_FOOTBALL_KEY }}
         run: |
           python - <<'PY'
           import os, sys
@@ -51,7 +51,7 @@ jobs:
       - name: Reconcile eligible backlog with official API-Football once
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL || secrets.API_FOOTBALL_KEY }}
           LAB_API_FOOTBALL_ONE_SHOT: 'true'
           LAB_API_FOOTBALL_SCHEDULED: 'false'
           LAB_FOTMOB_LICENSED: '0'
