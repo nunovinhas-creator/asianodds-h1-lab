@@ -8,6 +8,9 @@ from pathlib import Path
 
 from h1lab.v6_shadow import run, STATUS, snapshot_quality_rows
 from h1lab.v6_hypotheses import ensure_registered
+from h1lab.v6_readiness import measure
+from h1lab.v6_shadow import read_journal
+from h1lab.timeline import read_sources, collect_timelines
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,6 +28,16 @@ def main(argv=None):
     report, added = run(args.root, now)
     if report["status"] != STATUS:
         raise SystemExit("unexpected V6 status")
+    # Source-eligible coverage is explicit; never claim Telegram delivery
+    # time from observed_at alone. The 7/14-day windows start with real known_at.
+    alerts, v4, errors = read_sources(args.root)
+    timelines, _, _ = collect_timelines(alerts, v4, source_errors=errors)
+    readiness = measure(timelines, read_journal(args.root), now)
+    readiness_path = args.root / "docs/lab/v6-readiness.json"
+    readiness_text = json.dumps(readiness, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    if not readiness_path.exists() or readiness_path.read_text(encoding="utf-8") != readiness_text:
+        readiness_path.parent.mkdir(parents=True, exist_ok=True)
+        readiness_path.write_text(readiness_text, encoding="utf-8")
     # Every historical Telegram Total receives a per-event quality assessment,
     # explicitly NOT a retroactive or frozen forecast.
     quality_path = args.root / "docs/lab/v6-price-quality.json"
