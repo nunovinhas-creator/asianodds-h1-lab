@@ -49,3 +49,13 @@ A verificação da versão das hipóteses antigas foi corrigida em `pattern_engi
 ### Estado dos P1–P3 do plano original Claude
 
 Este complemento **não** significa que as cinco memórias completas, o motor de falsificação com 10 testes, FEATURE_VERSION 2, journal de revisões V4/FT, Radar completo, drift semanal e ML/LLM tenham sido implementados. Esses componentes exigem branches, gates e provas de regressão separados; P3 exige ≥1000 FT OOS. Um conjunto de resultados historicamente calculado nunca substitui validação futura.
+
+## V6.0 — controlo de cobertura prospetiva (7/14 dias)
+
+O relatório derivado `docs/lab/v6-readiness.json` compara, nos jogos **cujo início já passou**, quantos tinham pelo menos uma mensagem do canal observada antes do início e quantos possuem `known_at` real anterior ao início no diário congelado. Publica também as causas de ausência de Total/preço utilizável e os IDs dos jogos potencialmente perdidos.
+
+**Atenção:** o `observed_at` da mensagem não prova que tenha sido lida pelo coletor antes do início. A cobertura calculada é uma estimativa sobre **oportunidades observáveis no canal**; o estado `SOURCE_COVERAGE_PASS_PENDING_EXTERNAL_VERIFICATION` **não** certifica ingestão em tempo real. Não se passa para V6.1 sem examinar Git, logs das Actions e preservar continuidade das previsões.
+
+- Gate P0: pelo menos 7 dias desde o primeiro `known_at`, amostra não vazia e ≥99% de cobertura sobre oportunidades observáveis.
+- Gate reforçado V6.1: pelo menos 14 dias sob a mesma medição.
+- Até decorrer o período exigido o estado é `WARMUP`; evidência estatística/probabilística continua `INCONCLUSIVO`.
