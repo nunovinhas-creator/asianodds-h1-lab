@@ -8,6 +8,10 @@ Observatório experimental de odds asiáticas: recolhe alertas estruturados de u
 
 **Referências técnicas:** [Centro de controlo](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Sinais H1](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1) · [Cérebro V5 / investigação](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) · [Resultados de todos os jogos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-results.html) · [Auditoria V4](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-v4-audit.html).
 
+## MASTER BRAIN V6 — controlo de qualidade e validação prospetiva (sombra)
+
+O V6 acrescenta auditoria por snapshot, quarentena de cotações suspeitas e um **diário de previsões registadas antes do início** com hora real `known_at` e cadeia de hashes. Compara o Over 2,5 real com o **baseline implícito pelo mercado** (resíduo), sem treino ML/LLM nem substituição de alertas Telegram. A condição Pattern Watch de 28/10/2026 é **pós-hoc**, permanece separada da sua variante estrita, e tem estado `INCONCLUSIVO` até validação prospetiva suficiente. [Decisões, especificação e limites do V6](docs/lab/MASTER-BRAIN-V6.md). Os JSON públicos (`docs/lab/v6-shadow.json` e `docs/lab/v6-price-quality.json`) só surgem após a primeira execução da auditoria V6.
+
 ## Cronologia de descobertas — Fase 2
 
 O **Radar** inclui agora uma cronologia de mudanças do V5: resultados FT acrescentados, diferenças entre taxas, inversões de efeito, alterações de estados, evolução por padrão com datas UTC reais e resultados dos jogos detetados prospetivamente. A primeira execução estabelece uma **baseline** sem reconstruir falsos acontecimentos passados.

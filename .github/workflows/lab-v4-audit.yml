@@ -31,6 +31,14 @@ jobs:
         run: |
           git pull --rebase origin main
           echo "LAB_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      # V6 is append-only and shadow-only. It records the actual processing
+      # time, never a backdated Telegram timestamp, before any FT analysis.
+      # Failure does not block the established V4/Golden or H1 pipelines.
+      - name: Freeze V6 market baselines and audit price quality (shadow)
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_shadow.py' -v
+          python -m scripts.lab_v6_shadow
       - name: Validate V4 audit tests before publication
         run: |
           python -m unittest discover -s tests -p 'test_v4_audit.py' -v
@@ -72,6 +80,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json docs/lab/golden-priority.json
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
+          if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
+          if [ -f docs/lab/v6-price-quality.json ]; then git add docs/lab/v6-price-quality.json; fi
+          git add -f data/lab/v6-forecasts-*.jsonl 2>/dev/null || true
           if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
           if [ -f docs/lab/trajectory-research.json ]; then git add docs/lab/trajectory-research.json; fi
           if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
