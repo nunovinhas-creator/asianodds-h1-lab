@@ -28,12 +28,17 @@ def observe_shadow(text, when, message_id, channel_id, legacy_parsed, rows, mark
     except Exception as exc:
         print("LAB_SHADOW_INSPECT_FAILED:", type(exc).__name__)
 
-def observe_market_v4(text, when, message_id, channel_id, legacy_event, market_rows):
+def observe_market_v4(text, when, message_id, channel_id, legacy_event, market_rows, edit_date=None):
     """Independent parser; any failure is confined to shadow mode."""
     try:
         from .market_v4 import parse
         result=parse(text,when,message_id,channel_id,legacy_event)
-        if result: market_rows.append(result)
+        if result:
+            # Telethon's message.date is the original post time; edit_date is
+            # separate evidence and must never backdate the collector's clock.
+            if edit_date is not None:
+                result["telegram_edit_at"]=edit_date.astimezone(timezone.utc).isoformat(timespec="seconds")
+            market_rows.append(result)
     except Exception as exc:
         print("LAB_MARKET_V4_INSPECT_FAILED:",type(exc).__name__)
 
@@ -88,6 +93,7 @@ async def poll(state):
         parsed=[]
         shadow_rows=[]
         market_v4_rows=[]
+        inspected_ids=set()
         inspected=0
         new_messages=0
         fresh_diagnostics=[]
@@ -96,6 +102,7 @@ async def poll(state):
         # skipped by an older parser. Keep duplicate protection in incorporate.
         async for msg in client.iter_messages(entity,min_id=max(0,last-1),reverse=True,limit=batch_limit):
             inspected+=1
+            inspected_ids.add(msg.id)
             if msg.id>original_last:
                 new_messages+=1
             last=max(last,msg.id)
@@ -106,7 +113,8 @@ async def poll(state):
             combined=raw_text+"\n"+"\n".join(links)
             event=parse_alert(combined,msg.date,msg.id,str(entity.id))
             observe_shadow(combined,msg.date,msg.id,str(entity.id),event is not None,shadow_rows)
-            observe_market_v4(combined,msg.date,msg.id,str(entity.id),event,market_v4_rows)
+            observe_market_v4(combined,msg.date,msg.id,str(entity.id),event,market_v4_rows,
+                              edit_date=getattr(msg,"edit_date",None))
             if event:
                 parsed.append(event)
             elif msg.id not in diagnosed:
@@ -115,6 +123,30 @@ async def poll(state):
                 diagnostics.append(diagnostic)
                 fresh_diagnostics.append(diagnostic)
                 diagnosed.add(msg.id)
+        # Telegram edits to older messages are invisible to min_id=last-1.
+        # An independent bounded V4-only revisit covers the 80 most recent
+        # channel messages. No old message is passed to H1 incorporate(),
+        # shadow formats, tickets or notification generation.
+        # Messages older than the window may still be edited undetected.
+        older_edit_rechecks=0
+        try:
+            legacy_by_id={x.get("event_id"):x for x in state["alerts"]
+                          if isinstance(x,dict) and x.get("event_id")}
+            async for previous_msg in client.iter_messages(entity,limit=80):
+                if previous_msg.id in inspected_ids or not getattr(previous_msg,"edit_date",None):
+                    continue
+                older_edit_rechecks+=1
+                prior_raw=previous_msg.raw_text or ""
+                prior_links=[getattr(e,"url","") for e in (previous_msg.entities or [])]
+                prior_links=[url for url in prior_links if url and "asianodds.com" in url]
+                prior_combined=prior_raw+"\n"+"\n".join(prior_links)
+                event_id=str(entity.id)+":"+str(previous_msg.id)
+                observe_market_v4(prior_combined,previous_msg.date,previous_msg.id,str(entity.id),
+                                  legacy_by_id.get(event_id),market_v4_rows,
+                                  edit_date=previous_msg.edit_date)
+        except Exception as exc:
+            print("LAB_V4_EDIT_RECHECK_FAILED:",type(exc).__name__)
+        print("LAB_V4_EDIT_RECHECK",older_edit_rechecks,"recent_limit",80)
         # Shadow persistence is best effort and never affects H1 state/checkpoints.
         persist_shadow(shadow_rows)
         persist_market_v4(market_v4_rows)

@@ -97,11 +97,24 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_outcome_readiness.py' -v
           python -m scripts.lab_outcome_readiness
+      # V4 revision journal is written during the H1 collector's V4-only
+      # shadow persistence; this step only replays it. Never reconstruct
+      # edits from an updated latest-view row.
+      - name: Rebuild and verify immutable V4 edit history (shadow)
+        id: v4_revisions
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v4_revisions.py' -v
+          python -m scripts.lab_v4_revisions
+          python -m scripts.lab_v4_revisions --verify-only
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json docs/lab/golden-priority.json
+          if [ "${{ steps.v4_revisions.outcome }}" = "success" ]; then
+            if [ -f docs/lab/v4-revisions.json ]; then git add docs/lab/v4-revisions.json; fi
+          fi
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
           if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
           if [ -f docs/lab/v6-readiness.json ]; then git add docs/lab/v6-readiness.json; fi
