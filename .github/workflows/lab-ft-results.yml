@@ -22,6 +22,8 @@ on:
       - 'tests/test_lab_api_football.py'
       - 'tests/test_lab_fotmob.py'
       - 'h1lab/lab_ft_diagnostics.py'
+      - 'h1lab/lab_identity_review.py'
+      - 'tests/test_lab_identity_review.py'
       - 'tests/test_lab_ft_diagnostics.py'
       - 'scripts/lab_results.py'
       - 'tests/test_lab_results.py'
@@ -90,6 +92,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_diagnostics.py' -v
+          python -m unittest discover -s tests -p 'test_lab_identity_review.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_search.py' -v
           python -m unittest discover -s tests -p 'test_lab_espn.py' -v
           python -m unittest discover -s tests -p 'test_lab_sportscore.py' -v
@@ -262,6 +265,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
+          if [ -f docs/lab/ft-identity-review.json ]; then git add docs/lab/ft-identity-review.json; fi
           if [ "${{ steps.v6_ft_events.outcome }}" = "success" ]; then
             git add -f data/lab/v6-ft-events-*.jsonl 2>/dev/null || true
             if [ -f docs/lab/v6-ft-evidence.json ]; then git add docs/lab/v6-ft-evidence.json; fi

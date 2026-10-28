@@ -17,6 +17,7 @@ from h1lab.lab_sportscore import SportScoreResults
 from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
+from h1lab.lab_identity_review import build_queue
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_goal import GoalResults
@@ -27,6 +28,7 @@ LEDGER = ROOT / "data/lab/ft-ledger.json"
 REPORT = ROOT / "docs/lab/ft-results.json"
 API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
+IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
 
 
 def read_v4():
@@ -269,6 +271,27 @@ def main():
               "goal", record["providers"]["goal"]["requests"],
               "openfoot", record["providers"]["openfoot"]["requests"],
               "source_conflicts_remaining", report["source_order_audit"]["remaining_quarantined"])
+    # The review queue reads ONLY the provider date caches already populated
+    # above. Its fuzzy diagnostics must never feed back into FT reconciliation.
+    try:
+        prior_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
+                        if IDENTITY_REVIEW.exists() else None)
+        review = build_queue(next_ledger, now, {
+            "api_football": api_football.days,
+            "goal": goal.cache,
+            "openfoot": openfoot.days,
+            "bsd": bsd_finder.days,
+            "sportscore": sportscore.day_cache,
+        }, previous=prior_review)
+        write_if_changed(IDENTITY_REVIEW, review)
+        print("LAB_FT_IDENTITY_REVIEW", "eligible", review["total_eligible"],
+              "with_candidates", review["counts_by_review_flag"].get(
+                  "PROVIDER_IDENTITY_CANDIDATES_TO_REVIEW", 0),
+              "possible_duplicates", review["counts_by_review_flag"].get(
+                  "POSSIBLE_DUPLICATE_OBSERVATION", 0),
+              "omitted", review["omitted"])
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
+        print("LAB_FT_IDENTITY_REVIEW_UNAVAILABLE", type(exc).__name__)
     changed_backlog = write_if_changed(BACKLOG, backlog)
     print("LAB_FT_BACKLOG", "overdue",
           backlog["classification"].get("past_due_unverified", 0),
