@@ -14,6 +14,8 @@ on:
     paths:
       - 'h1lab/lab_results.py'
       - 'h1lab/lab_ft_crosswalk.py'
+      - 'h1lab/lab_goal_id_probe.py'
+      - 'tests/test_lab_goal_id_probe.py'
       - 'h1lab/lab_ft_rotation.py'
       - 'tests/test_lab_ft_rotation.py'
       - 'h1lab/lab_ft_backlog.py'
@@ -95,6 +97,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_fair_queue.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_rotation.py' -v
+          python -m unittest discover -s tests -p 'test_lab_goal_id_probe.py' -v
           python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
@@ -175,6 +178,8 @@ jobs:
           assert d['fotmob_search']['requests'] <= 3
           assert d['api_football_search']['requests'] <= 3
           assert d['goal_search']['requests'] <= 2
+          assert d['goal_search']['requests'] == d['goal_search']['date_requests'] + d['goal_search']['id_requests']
+          assert d['ft_queue']['goal_id_probe']['calls'] <= 1
           assert d['openfoot_search']['requests'] <= 2
           assert d['fotmob_search']['verified_in_run'] <= 30
           assert d['monte_carlos_bsd']['verified_core_name_in_run'] <= d['monte_carlos_bsd']['core_name_event_id_candidates']
