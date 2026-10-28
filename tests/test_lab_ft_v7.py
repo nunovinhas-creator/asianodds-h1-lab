@@ -51,14 +51,52 @@ class V7Tests(unittest.TestCase):
         two, _, n2 = scan(one, NOW + timedelta(hours=5), FakeAPI())
         row2 = two["matches"][GAME["match_key"]]
         self.assertEqual(n2, 1)  # a visit, NOT an effective attempt
-        self.assertEqual(row2["evidence_checked_at"], stamp)
+        self.assertNotEqual(row2["evidence_checked_at"], stamp)
+        self.assertEqual(row2["stable_confirmations"], 1)
+        self.assertEqual(row2["examined_against"]["api_football"]["stable_confirmations"], 1)
         self.assertEqual(row2["evidence_attempts"], 1)
         self.assertEqual(row2["attempts"], 1)
-        three, _, n3 = scan(two, NOW + timedelta(hours=6), FakeAPI("FT"))
+        # A changed list resets the stability streak, but only when due.
+        _, _, skipped = scan(two, NOW + timedelta(hours=6), FakeAPI("FT"))
+        self.assertEqual(skipped, 0)
+        three, _, n3 = scan(two, NOW + timedelta(hours=17), FakeAPI("FT"))
         row3 = three["matches"][GAME["match_key"]]
         self.assertEqual(n3, 1)
         self.assertEqual(row3["evidence_attempts"], 2)
+        self.assertEqual(row3["stable_confirmations"], 0)
         self.assertNotEqual(row3["evidence_checked_at"], stamp)
+
+    def test_24h_immutable_list_triggers_three_scans_not_45min_polling(self):
+        previous = {"schema_version": 1, "matches": {}}
+        calls = []
+        for half_hour in range(48):
+            when = NOW + timedelta(minutes=30 * half_hour)
+            api = FakeAPI()
+            ledger, _, checked = scan(previous, when, api)
+            if checked:
+                calls.append(half_hour * 0.5)
+            previous = ledger
+        self.assertEqual(calls, [0, 4, 16])
+        final = previous["matches"][GAME["match_key"]]
+        self.assertEqual(final["evidence_attempts"], 1)
+        self.assertEqual(final["stable_confirmations"], 2)
+        self.assertEqual(final["attempts"], 1)
+        self.assertEqual(retry_wait(final), timedelta(hours=24))
+        self.assertEqual(final["examined_against"]["api_football"]["stable_confirmations"], 2)
+
+    def test_missing_or_failed_list_does_not_count_as_stable(self):
+        class FailedAPI(FakeAPI):
+            def __init__(self):
+                self.days = {"2026-10-27": None}
+        prior = {"schema_version": 1, "matches": {}}
+        one, _, n1 = scan(prior, NOW, FailedAPI())
+        self.assertEqual(n1, 1)
+        two, _, n2 = scan(one, NOW + timedelta(minutes=45), FailedAPI())
+        self.assertEqual(n2, 0)
+        three, _, n3 = scan(two, NOW + timedelta(hours=4), FailedAPI())
+        self.assertEqual(n3, 1)
+        self.assertNotIn("stable_confirmations", three["matches"][GAME["match_key"]])
+        self.assertNotIn("evidence_checked_at", three["matches"][GAME["match_key"]])
 
     def test_push_reconciliation_never_ages_evidence(self):
         prior = {"schema_version": 1, "matches": {
@@ -78,6 +116,10 @@ class V7Tests(unittest.TestCase):
                          timedelta(hours=4))
         self.assertEqual(retry_wait({"attempts": 12}),
                          timedelta(hours=24))  # legacy compatibility
+        self.assertEqual(retry_wait({"evidence_attempts": 1, "stable_confirmations": 1}),
+                         timedelta(hours=12))
+        self.assertEqual(retry_wait({"evidence_attempts": 1, "stable_confirmations": 2}),
+                         timedelta(hours=24))
 
     def test_backlog_does_not_claim_push_as_effective_check(self):
         previous = {"schema_version": 1, "matches": {

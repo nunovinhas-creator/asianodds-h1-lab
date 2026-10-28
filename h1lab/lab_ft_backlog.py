@@ -85,6 +85,14 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
                                else item.get("checked_at")),
             "legacy_last_checked_at": item.get("checked_at") if evidence_retry else None,
             "evidence_attempts": item.get("evidence_attempts", 0),
+            "stable_confirmations": item.get("stable_confirmations", 0),
+            "last_stable_at": item.get("last_stable_at"),
+            "examined_provider_days": {
+                p: {"day": v.get("day"), "stable_confirmations": v.get("stable_confirmations", 0),
+                    "last_confirmed_at": v.get("last_confirmed_at")}
+                for p, v in (item.get("examined_against") or {}).items()
+                if isinstance(v, dict)
+            },
             "next_eligible_at": (next_eligible.isoformat(timespec="seconds")
                                  if item.get("status") != "EXPIRED_UNVERIFIED" else None),
             "queue_state": queue_state,
@@ -121,7 +129,9 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
             "FUTURE and IN_3H_GRACE games are NOT overdue.",
             "last_attempt_provider_reasons are NOT lifetime provider-attempt counters.",
             "provider_attempts counts adapter invocations, including cache hits; not HTTP requests.",
-            "V7 evidence_attempts and last_checked_at exclude repeated or failed authenticated snapshots when evidence_retry is enabled.",
+            "V7 evidence_attempts counts NEW authenticated evidence, not repeated snapshots.",
+            "V7 last_checked_at/evidence_checked_at includes valid stable confirmations; failures and uncredentialed pushes are excluded.",
+            "V7 stable_confirmations backs off identical complete lists 4h -> 12h -> 24h.",
             "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",
             "Providers are never assumed to cover every competition.",
             "No missing FT becomes a loss, an invented score, or an H1 settlement.",

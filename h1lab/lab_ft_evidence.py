@@ -68,3 +68,51 @@ def fingerprint(lookup, provider, signal):
                          separators=(",", ":")).encode("utf-8")
     return {"day": day, "fingerprint": hashlib.sha256(payload).hexdigest(),
             "candidate_count": len(rows), "complete": True}
+
+
+def day_fingerprint(provider, rows):
+    """Hash a COMPLETE provider-day list without retaining scores or raw rows.
+
+    None is reserved for failed/incomplete responses. Empty complete lists
+    legitimately produce a deterministic hash. Never use this for FT matching.
+    """
+    if provider not in ("api_football", "goal", "openfoot") or not isinstance(rows, list):
+        return None
+    records = []
+    for item in rows:
+        if not isinstance(item, dict):
+            return None
+        if provider == "api_football":
+            when = api_time(item)
+            home, away = api_name(item, "home"), api_name(item, "away")
+            fixture = item.get("fixture") or {}
+            if not isinstance(fixture, dict):
+                return None
+            status = fixture.get("status") or {}
+            status = status.get("short") if isinstance(status, dict) else None
+            identifier = fixture.get("id")
+            teams = item.get("teams") or {}
+            if not isinstance(teams, dict):
+                return None
+            ids = [(teams.get(side) or {}).get("id") for side in ("home", "away")]
+        elif provider == "goal":
+            when = goal_time(item)
+            home, away = goal_name(item, "homeTeam"), goal_name(item, "awayTeam")
+            status = [item.get("matchStatus"), item.get("matchPeriod"),
+                      item.get("homeTeamFtScore") is not None,
+                      item.get("awayTeamFtScore") is not None]
+            identifier = item.get("apiId")
+            ids = []
+        else:
+            when = open_time(item.get("kickoffAt"))
+            home, away = open_names(item)
+            status = item.get("status")
+            identifier = item.get("id")
+            ids = []
+        if when is None:
+            return None
+        records.append([str(identifier or ""), str(home or "")[:120],
+                        str(away or "")[:120], when.isoformat(), status, ids])
+    records.sort(key=lambda x: json.dumps(x, sort_keys=True, ensure_ascii=False, default=str))
+    return hashlib.sha256(json.dumps(records, sort_keys=True, ensure_ascii=False,
+                          default=str, separators=(",", ":")).encode("utf-8")).hexdigest()
