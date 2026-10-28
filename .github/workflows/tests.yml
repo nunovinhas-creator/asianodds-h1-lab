@@ -119,5 +119,30 @@ jobs:
           assert d['matches']==len(l['matches'])
           print('V6_FT_ALL_MATCHES_REAL_INPUT_OK',d['matches'],d['events_total'])
           PY
+      - name: V4 revision real-data migration and replay smoke (temporary root)
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          import tempfile
+          from pathlib import Path
+          from h1lab.market_v4 import store
+          from h1lab.v4_revisions import read_events, verify_projection
+          from scripts.lab_v4_revisions import main
+          with tempfile.TemporaryDirectory() as tmp:
+              folder=Path(tmp)/'data/lab'
+              folder.mkdir(parents=True)
+              for file in Path('data/lab').glob('markets-????-??.jsonl'):
+                  shutil.copyfile(file,folder/file.name)
+              # Never manufacture earlier revisions from the latest view.
+              store(tmp, [])
+              d=main(['--root',tmp])
+              main(['--root',tmp,'--verify-only'])
+              assert verify_projection(tmp)
+              assert d['messages']>0
+              assert d['kinds']['HISTORICAL_BASELINE_IMPORT']==d['messages']
+              assert d['revision_events']==len(read_events(tmp))
+              print('V4_REVISION_REAL_MIGRATION_OK',d['messages'])
+          PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs
