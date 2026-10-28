@@ -165,13 +165,15 @@
       "code": "F09_MATCHED_MARKET_PEERS",
       "diagnostics": {
         "match_method": "fixed scales, greedy, no control reuse",
-        "matched_mean_residual_difference": null
+        "matched_mean_residual_difference": 0.9954
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 0,
+      "n": 1,
       "required": "30 no-reuse peers within lambda 0.25 and lead time 6h",
       "result": "INSUFFICIENT_N",
-      "source_match_keys": []
+      "source_match_keys": [
+        "2026-10-28,10045949,10017417"
+      ]
     },
     {
       "code": "F10_PROSPECTIVE_CONFIRMATION",
@@ -194,19 +196,19 @@
     }
   ],
   "data_lineage": {
-    "confirmed_evidence_events": 3,
+    "confirmed_evidence_events": 7,
     "excluded_reasons": {
       "captured_before_formal_registration": 39,
-      "ft_missing_or_quarantined": 41,
+      "ft_missing_or_quarantined": 37,
       "no_clean_market_probability": 12,
-      "not_completed_prospective_freeze": 125
+      "not_completed_prospective_freeze": 126
     },
-    "forecast_journal_tail": "095e99cf7e6745fabd1a1e41cc96c8d073a270dc5fffd8f71d9add87ee9fe9d4",
-    "frozen_records": 251,
-    "memory_evidence_tail": "c0a0f0b05c2de832f70de333f2aa5a584cf68ae32757dc52b13ce14b0bf40403",
+    "forecast_journal_tail": "8b4f392a313977957bc63cb3c7198168068a299faf7e7546e5671ff79fa79037",
+    "frozen_records": 252,
+    "memory_evidence_tail": "e2b69fa4f55251412851fde93d87aa597402e358875daace522ef6851f71ba79",
     "source": "frozen forecasts + append-only V6 FT evidence; no historical V5 backfill"
   },
-  "evaluation_clock": "2026-10-28T20:01:26+00:00",
+  "evaluation_clock": "2026-10-28T20:06:22+00:00",
   "hypothesis_definition_sha256": "3a2ad8c8a23443e1eb20e83bb5d753279ba93762c2efcb2947a1b5dd3e8900a0",
   "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
   "limitations": [
@@ -220,9 +222,9 @@
   "overall": "INCONCLUSIVO",
   "registered_at": "2026-10-28T14:41:35+00:00",
   "sample": {
-    "controls_scored": 0,
+    "controls_scored": 4,
     "eligible_completed": 42,
-    "eligible_scored": 1,
+    "eligible_scored": 5,
     "selected_completed": 8,
     "selected_scored": 1
   },
