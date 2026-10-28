@@ -1,3 +1,5 @@
+> **Registo técnico/histórico:** não ativar recolha regular FotMob sem licença/autorização adequada. O pipeline LAB usa a variável `LAB_FOTMOB_LICENSED`; as regras atuais das fontes e dos resultados estão na [arquitetura](ARCHITECTURE.md) e no [relatório FT](ft-results.json). Os números abaixo são da fase V9 e não representam a cobertura atual.
+
 # Recuperação FT V9 — FotMob por data (LAB isolado)
 
 **Diagnóstico empírico, 28/10/2026.** A BSD + Monte-Carlos encontrou 0 IDs para os jogos pesquisados; ESPN não tem mapeamento para numerosas taças/reservas; SportScore marcou 14 resultados de taça como `cup_regulation_unverified`; TheSportsDB atingiu HTTP 429.
