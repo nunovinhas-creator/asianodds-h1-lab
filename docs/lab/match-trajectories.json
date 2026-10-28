@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T19:23:08+00:00",
+ "generated_at": "2026-10-28T19:31:34+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 112
  },
  "schema_version": 1,
- "source_commit": "c623167a9b11923631aef9d09b2d3ce3a7718fa5",
+ "source_commit": "01d2163d52f95d36c85e9b465dfa7c4daa673024",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 364,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 521,
+  "messages": 522,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 269,
+  "messages_on_repeated_matches": 270,
   "messages_v4_only": 0,
-  "messages_with_v4": 447,
-  "movement_episodes_upper_bound": 499,
+  "messages_with_v4": 448,
+  "movement_episodes_upper_bound": 500,
   "possibly_redundant_snapshots": 15,
   "post_kickoff_messages": 15,
   "related_message_pairs": 22,
@@ -53,22 +53,488 @@
   "repeated_matches": 112,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 706
+   "V4_EXPLICIT": 709
   },
   "total_line_reversals_on_repeated": 51,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 15,
-   "CONTINUOUS": 85,
+   "CONTINUOUS": 86,
    "SAME_MOVEMENT_REPEAT": 22,
    "UNOBSERVED_CHANGE": 35
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 131,
-   "one_x_two:AGREE": 128,
-   "total:AGREE": 447
+   "asian_handicap:AGREE": 132,
+   "one_x_two:AGREE": 129,
+   "total:AGREE": 448
   }
  },
  "timelines": [
+  {
+   "event_count": 5,
+   "event_ids": [
+    "3571094759:50770",
+    "3571094759:50924",
+    "3571094759:50959",
+    "3571094759:50960",
+    "3571094759:51102"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50770",
+     "message_id": 50770,
+     "minutes_to_kickoff": 766.7,
+     "observed_at": "2026-10-28T06:58:17+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.75,
+        "over_price": 2.03,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 4.5,
+        "over_price": 1.91,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50924",
+     "message_id": 50924,
+     "minutes_to_kickoff": 532.2,
+     "observed_at": "2026-10-28T10:52:49+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 5.0,
+        "over_price": 1.99,
+        "under_price": 1.92
+       },
+       "before": {
+        "line": 4.75,
+        "over_price": 1.92,
+        "under_price": 2.05
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50959",
+     "message_id": 50959,
+     "minutes_to_kickoff": 443.9,
+     "observed_at": "2026-10-28T12:21:07+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 1.89,
+        "home_price": 2.04,
+        "line": -3.5
+       },
+       "before": {
+        "away_price": 2.04,
+        "home_price": 1.89,
+        "line": -3.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 1.06,
+        "before": 1.05
+       },
+       "2": {
+        "after": 34.25,
+        "before": 39.84
+       },
+       "X": {
+        "after": 15.98,
+        "before": 17.97
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 5.0,
+        "over_price": 2.05,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 5.0,
+        "over_price": 2.0,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": -14.4,
+     "trigger_market": "1x2",
+     "trigger_selection": "2",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50960",
+     "message_id": 50960,
+     "minutes_to_kickoff": 443.2,
+     "observed_at": "2026-10-28T12:21:48+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.75,
+        "over_price": 1.86,
+        "under_price": 2.0
+       },
+       "before": {
+        "line": 5.0,
+        "over_price": 2.0,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51102",
+     "message_id": 51102,
+     "minutes_to_kickoff": 19.2,
+     "observed_at": "2026-10-28T19:25:50+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 1.93,
+        "home_price": 2.04,
+        "line": -3.25
+       },
+       "before": {
+        "away_price": 1.88,
+        "home_price": 2.03,
+        "line": -3.25
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 1.07,
+        "before": 1.08
+       },
+       "2": {
+        "after": 40.11,
+        "before": 36.13
+       },
+       "X": {
+        "after": 11.5,
+        "before": 11.62
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 4.75,
+        "over_price": 2.01,
+        "under_price": 1.93
+       },
+       "before": {
+        "line": 4.75,
+        "over_price": 2.01,
+        "under_price": 1.89
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": 11.3,
+     "trigger_market": "1x2",
+     "trigger_selection": "2",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T06:58:17+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T19:45:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T19:25:50+00:00",
+   "match_key": "2026-10-28,198,1738",
+   "match_label": "Bayern München vs 1. FC Magdeburg",
+   "movement_episodes": [
+    [
+     "3571094759:50770"
+    ],
+    [
+     "3571094759:50924"
+    ],
+    [
+     "3571094759:50959"
+    ],
+    [
+     "3571094759:50960"
+    ],
+    [
+     "3571094759:51102"
+    ]
+   ],
+   "movement_episodes_upper_bound": 5,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    14072.0,
+    5298.0,
+    41.0,
+    25442.0
+   ],
+   "trajectory": {
+    "asian_handicap": {
+     "first_observed_line": -3.5,
+     "last_observed_line": -3.25,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": -3.5,
+       "before": -3.5,
+       "event_id": "3571094759:50959",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": -3.25,
+       "before": -3.25,
+       "event_id": "3571094759:51102",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50959",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": -3.25,
+       "previous_after_line": -3.5,
+       "to": "3571094759:51102",
+       "unobserved_direction": "UP"
+      }
+     ]
+    },
+    "one_x_two": {
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "1": [
+        1.05,
+        1.06
+       ],
+       "2": [
+        39.84,
+        34.25
+       ],
+       "X": [
+        17.97,
+        15.98
+       ],
+       "event_id": "3571094759:50959",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "1": [
+        1.08,
+        1.07
+       ],
+       "2": [
+        36.13,
+        40.11
+       ],
+       "X": [
+        11.62,
+        11.5
+       ],
+       "event_id": "3571094759:51102",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "transitions": [
+      {
+       "changed_selections": [
+        "1",
+        "X",
+        "2"
+       ],
+       "from": "3571094759:50959",
+       "prices": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51102"
+      }
+     ]
+    },
+    "total": {
+     "first_observed_line": 4.5,
+     "last_observed_line": 4.75,
+     "net_observed_change": 0.25,
+     "observations": 5,
+     "origins": {
+      "V4_EXPLICIT": 5
+     },
+     "points": [
+      {
+       "after": 4.75,
+       "before": 4.5,
+       "event_id": "3571094759:50770",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 5.0,
+       "before": 4.75,
+       "event_id": "3571094759:50924",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 5.0,
+       "before": 5.0,
+       "event_id": "3571094759:50959",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.75,
+       "before": 5.0,
+       "event_id": "3571094759:50960",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.75,
+       "before": 4.75,
+       "event_id": "3571094759:51102",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50924",
+       "at_event": "3571094759:50960",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50770",
+       "line": "CONTINUOUS",
+       "next_before_line": 4.75,
+       "previous_after_line": 4.75,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:50924"
+      },
+      {
+       "from": "3571094759:50924",
+       "line": "CONTINUOUS",
+       "next_before_line": 5.0,
+       "previous_after_line": 5.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:50959"
+      },
+      {
+       "from": "3571094759:50959",
+       "line": "CONTINUOUS",
+       "next_before_line": 5.0,
+       "previous_after_line": 5.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:50960"
+      },
+      {
+       "from": "3571094759:50960",
+       "line": "CONTINUOUS",
+       "next_before_line": 4.75,
+       "previous_after_line": 4.75,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51102"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 5,
    "event_ids": [
@@ -11693,339 +12159,6 @@
        "previous_after_line": 3.25,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:50961"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 4,
-   "event_ids": [
-    "3571094759:50770",
-    "3571094759:50924",
-    "3571094759:50959",
-    "3571094759:50960"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50770",
-     "message_id": 50770,
-     "minutes_to_kickoff": 766.7,
-     "observed_at": "2026-10-28T06:58:17+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 4.75,
-        "over_price": 2.03,
-        "under_price": 1.88
-       },
-       "before": {
-        "line": 4.5,
-        "over_price": 1.91,
-        "under_price": 1.88
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:50924",
-     "message_id": 50924,
-     "minutes_to_kickoff": 532.2,
-     "observed_at": "2026-10-28T10:52:49+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 5.0,
-        "over_price": 1.99,
-        "under_price": 1.92
-       },
-       "before": {
-        "line": 4.75,
-        "over_price": 1.92,
-        "under_price": 2.05
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:50959",
-     "message_id": 50959,
-     "minutes_to_kickoff": 443.9,
-     "observed_at": "2026-10-28T12:21:07+00:00",
-     "snapshots": {
-      "asian_handicap": {
-       "after": {
-        "away_price": 1.89,
-        "home_price": 2.04,
-        "line": -3.5
-       },
-       "before": {
-        "away_price": 2.04,
-        "home_price": 1.89,
-        "line": -3.5
-       },
-       "origin": "V4_EXPLICIT"
-      },
-      "one_x_two": {
-       "1": {
-        "after": 1.06,
-        "before": 1.05
-       },
-       "2": {
-        "after": 34.25,
-        "before": 39.84
-       },
-       "X": {
-        "after": 15.98,
-        "before": 17.97
-       },
-       "origin": "V4_EXPLICIT"
-      },
-      "total": {
-       "after": {
-        "line": 5.0,
-        "over_price": 2.05,
-        "under_price": 1.88
-       },
-       "before": {
-        "line": 5.0,
-        "over_price": 2.0,
-        "under_price": 1.88
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_displayed_pct_unvalidated": -14.4,
-     "trigger_market": "1x2",
-     "trigger_selection": "2",
-     "v4_vs_h1_record": {
-      "asian_handicap": {
-       "fields": [],
-       "status": "AGREE"
-      },
-      "one_x_two": {
-       "fields": [],
-       "status": "AGREE"
-      },
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:50960",
-     "message_id": 50960,
-     "minutes_to_kickoff": 443.2,
-     "observed_at": "2026-10-28T12:21:48+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 4.75,
-        "over_price": 1.86,
-        "under_price": 2.0
-       },
-       "before": {
-        "line": 5.0,
-        "over_price": 2.0,
-        "under_price": 1.88
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-28T06:58:17+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-28T19:45:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-28T12:21:48+00:00",
-   "match_key": "2026-10-28,198,1738",
-   "match_label": "Bayern München vs 1. FC Magdeburg",
-   "movement_episodes": [
-    [
-     "3571094759:50770"
-    ],
-    [
-     "3571094759:50924"
-    ],
-    [
-     "3571094759:50959"
-    ],
-    [
-     "3571094759:50960"
-    ]
-   ],
-   "movement_episodes_upper_bound": 4,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    14072.0,
-    5298.0,
-    41.0
-   ],
-   "trajectory": {
-    "asian_handicap": {
-     "first_observed_line": -3.5,
-     "last_observed_line": -3.5,
-     "net_observed_change": 0.0,
-     "observations": 1,
-     "origins": {
-      "V4_EXPLICIT": 1
-     },
-     "points": [
-      {
-       "after": -3.5,
-       "before": -3.5,
-       "event_id": "3571094759:50959",
-       "move": "FLAT",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [],
-     "transitions": []
-    },
-    "one_x_two": {
-     "observations": 1,
-     "origins": {
-      "V4_EXPLICIT": 1
-     },
-     "points": [
-      {
-       "1": [
-        1.05,
-        1.06
-       ],
-       "2": [
-        39.84,
-        34.25
-       ],
-       "X": [
-        17.97,
-        15.98
-       ],
-       "event_id": "3571094759:50959",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "transitions": []
-    },
-    "total": {
-     "first_observed_line": 4.5,
-     "last_observed_line": 4.75,
-     "net_observed_change": 0.25,
-     "observations": 4,
-     "origins": {
-      "V4_EXPLICIT": 4
-     },
-     "points": [
-      {
-       "after": 4.75,
-       "before": 4.5,
-       "event_id": "3571094759:50770",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 5.0,
-       "before": 4.75,
-       "event_id": "3571094759:50924",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 5.0,
-       "before": 5.0,
-       "event_id": "3571094759:50959",
-       "move": "FLAT",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 4.75,
-       "before": 5.0,
-       "event_id": "3571094759:50960",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [
-      {
-       "after_event": "3571094759:50924",
-       "at_event": "3571094759:50960",
-       "evidence": "intra",
-       "from": "UP",
-       "to": "DOWN"
-      }
-     ],
-     "transitions": [
-      {
-       "from": "3571094759:50770",
-       "line": "CONTINUOUS",
-       "next_before_line": 4.75,
-       "previous_after_line": 4.75,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:50924"
-      },
-      {
-       "from": "3571094759:50924",
-       "line": "CONTINUOUS",
-       "next_before_line": 5.0,
-       "previous_after_line": 5.0,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:50959"
-      },
-      {
-       "from": "3571094759:50959",
-       "line": "CONTINUOUS",
-       "next_before_line": 5.0,
-       "previous_after_line": 5.0,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:50960"
       }
      ]
     }
