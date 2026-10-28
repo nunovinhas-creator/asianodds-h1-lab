@@ -13,6 +13,9 @@ on:
     branches: [main]
     paths:
       - 'h1lab/lab_results.py'
+      - 'h1lab/lab_ft_crosswalk.py'
+      - 'h1lab/lab_ft_rotation.py'
+      - 'tests/test_lab_ft_rotation.py'
       - 'h1lab/lab_ft_backlog.py'
       - 'h1lab/lab_fotmob.py'
       - 'h1lab/lab_api_football.py'
@@ -91,6 +94,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_fair_queue.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_rotation.py' -v
           python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
@@ -151,6 +155,13 @@ jobs:
           assert b['classification'].get('past_due_unverified',0)==d['coverage_diagnostics']['past_unverified_eligible']
           assert b['overdue_omitted']==0
           assert d['ft_queue']['never_checked_deferred'] >= 0
+          assert d['ft_queue']['provider_id_collisions'] >= 0
+          registry=json.loads(Path('docs/lab/ft-provider-identity.json').read_text())
+          assert registry['schema_version']==1
+          assert registry['confirmed_ids'] == d['ft_queue']['confirmed_provider_ids']
+          for provider, value in d['ft_queue']['date_rotation'].items():
+              assert len(value['requested_days']) <= value['date_budget']
+              assert set(value['requested_days']).issubset(value['selected_days'])
           assert d['ft_queue']['selected'] <= 30
           assert d['ft_queue']['selected'] + d['ft_queue']['deferred_by_capacity'] == d['ft_queue']['eligible']
           print('LAB_FT_BACKLOG_VALID',b['classification'].get('past_due_unverified',0),
@@ -271,6 +282,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
+          git add data/lab/ft-provider-day-rotation.json data/lab/ft-provider-identity.json docs/lab/ft-provider-identity.json
           if [ -f docs/lab/ft-identity-review.json ]; then git add docs/lab/ft-identity-review.json; fi
           if [ "${{ steps.v6_ft_events.outcome }}" = "success" ]; then
             git add -f data/lab/v6-ft-events-*.jsonl 2>/dev/null || true
