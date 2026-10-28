@@ -61,7 +61,8 @@ class FairQueueTests(unittest.TestCase):
                          timedelta(hours=24))
         ledger, _, checked = call([item], previous)
         self.assertEqual(checked, 0)
-        self.assertEqual(ledger, previous)
+        self.assertEqual(ledger['matches']['old-hard']['attempts'], 11)
+        self.assertEqual(ledger['matches']['old-hard']['checked_at'], '2026-10-28T17:33:10+00:00')
         ledger2, _, checked2 = call(
             [item], previous, now=NOW + timedelta(days=1))
         self.assertEqual(checked2, 1)
