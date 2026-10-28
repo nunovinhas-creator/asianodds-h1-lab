@@ -1,9 +1,6 @@
 name: Testar destino Telegram Bot
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - ".github/workflows/bot-smoke.yml"
 permissions:
   contents: read
 jobs:
@@ -19,33 +16,6 @@ jobs:
         run: |
           python - <<'PY'
           from h1lab.bot import send_message
-          import json
-          from datetime import datetime, timezone
-          from pathlib import Path
-          hist = json.loads(Path("data/lab/pattern-watch-first-seen.json").read_text(encoding="utf-8"))["entries"]
-          ledger = json.loads(Path("data/pattern-notifications.json").read_text(encoding="utf-8"))["entries"]
-          if len(hist) != 13 or len({r["match_key"] for r in hist}) != 13:
-              raise SystemExit("Expected exactly the original 13 historical games")
-          if not all(ledger.get(r["match_key"], {}).get("status") == "suppressed_at_activation" for r in hist):
-              raise SystemExit("Historical digest already sent or baseline inconsistent")
-          labels = {"RISING_WITH_FLAT": "subidas/estabilidade", "RISING_EACH_EPISODE": "subidas sucessivas",
-                    "FLAT_EACH_EPISODE": "estabilidade"}
-          now = datetime.now(timezone.utc)
-          lines = ["🧠 MASTER BRAIN — OS 13 JOGOS DETETADOS",
-                   "📋 Resumo histórico solicitado; não são novos alertas em tempo real.", ""]
-          for i, r in enumerate(sorted(hist, key=lambda e: (e["kickoff_utc"], e["match_key"])), 1):
-              kickoff = datetime.fromisoformat(r["kickoff_utc"].replace("Z", "+00:00"))
-              direction = labels.get(r["category_at_first_detection"], "categoria desconhecida")
-              episodes = len({e["episode"] for e in r["observations_at_first_detection"]})
-              when = kickoff.strftime("%d/%m %H:%M UTC")
-              status = "já começou" if kickoff <= now else "futuro"
-              lines += [f"{i}. {r['match_label']}",
-                        f"   {when} · {status} · {episodes} episódios · {direction}"]
-          lines += ["", "⚠️ Padrão exploratório NÃO validado. Não é aposta nem recomendação.",
-                    "🔎 https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html"]
-          msg = "\n".join(lines)
-          if len(msg.encode("utf-8")) > 4000:
-              raise SystemExit("Digest too long")
-          msg_id = send_message(msg)
-          print("MASTER_BRAIN_13_HISTORICAL_GAMES_SENT", "count=13", "telegram_message_id=", msg_id)
+          send_message("✅ MASTER BRAIN — teste de ligação ao bot concluído. Só as novas observações rigorosas do padrão prospetivo serão notificadas neste chat; Under H1 e triplas estão silenciados.")
+          print("BOT_SMOKE_SUCCESS: Telegram confirmed message delivery to configured chat")
           PY
