@@ -50,7 +50,7 @@ REVIEWED_PENDING_FT = {
         "Cerro Largo FC Reserves", "La Luz Reserves",
         "2026-10-27T18:00:00+00:00", 3, 2,
         "https://betimate.com/en/football-predictions/cerro-largo-reserves-vs-la-luz-reserves/2026-10-27/game",
-        "https://m.aiscore.com/team-la-luz-reserves/o07dni13xwt9knx/matches",
+        "https://offsidescores.com/pt/futebol/equipa/cerro-largo-fc-reservas/51da78fd-2f07-4b2d-a089-223d0c583f9b/detalhe",
     ),
     "2026-10-27,23683,747": (
         "FK Fakel Voronezh", "FK Akhmat Grozny",
