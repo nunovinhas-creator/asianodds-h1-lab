@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T12:21:28+00:00",
+  "generated_at": "2026-10-28T12:26:29+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 47,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 67.1
+      "matches": 48,
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 67.6
     },
     "both_total_and_1x2": {
-      "matches": 50,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 71.4
+      "matches": 51,
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 71.8
     },
     "opposing_intra_alert_directions": {
-      "matches": 14,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 20.0
+      "matches": 15,
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 21.1
     },
     "with_ambiguous_repeats": {
       "matches": 8,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 11.4
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 11.3
     },
     "with_identical_total_snapshots": {
       "matches": 12,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 17.1
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 16.9
     },
     "with_mixed_origin_total": {
       "matches": 15,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 21.4
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 21.1
     },
     "with_only_legacy_total": {
       "matches": 10,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 14.3
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 14.1
     },
     "with_only_v4_total": {
-      "matches": 45,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 64.3
+      "matches": 46,
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 64.8
     },
     "with_post_kickoff_alerts": {
       "matches": 6,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 8.6
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 8.5
     },
     "with_related_alerts": {
       "matches": 18,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 25.7
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 25.4
     },
     "with_unobserved_line_gaps": {
       "matches": 14,
-      "of_repeated_matches_analysed": 70,
-      "percentage_descriptive": 20.0
+      "of_repeated_matches_analysed": 71,
+      "percentage_descriptive": 19.7
     }
   },
   "opposing_direction_examples": [
@@ -115,6 +115,23 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,1290,1507",
       "match_label": "AEL Larisa vs OFI Crete"
+    },
+    {
+      "directions": [
+        "UP",
+        "UP",
+        "FLAT",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50770",
+        "3571094759:50924",
+        "3571094759:50959",
+        "3571094759:50960"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-28,198,1738",
+      "match_label": "Bayern München vs 1. FC Magdeburg"
     },
     {
       "directions": [
@@ -250,51 +267,38 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-29,1178,46490",
       "match_label": "SC de Braga vs FC Famalicão"
-    },
-    {
-      "directions": [
-        "UP",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50648",
-        "3571094759:50666"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-27,10068586,24722",
-      "match_label": "SPG Wels vs Wolfsberger AC"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 284,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 164,
-    "messages_in_source": 378,
-    "repeated_matches_analysed": 70,
-    "repeated_matches_in_source": 70,
+    "events_analysed": 168,
+    "messages_in_source": 381,
+    "repeated_matches_analysed": 71,
+    "repeated_matches_in_source": 71,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "6713f9c22c86966cbe3c5d747431eb3aad0cf370",
-  "source_generated_at": "2026-10-28T12:21:28+00:00",
+  "source_commit": "c36689e8e21838d0fcffee2bed76d290a61df601",
+  "source_generated_at": "2026-10-28T12:26:28+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 6,
       "T_0_TO_60": 32,
-      "T_360_TO_1440": 24,
-      "T_60_TO_360": 28,
+      "T_360_TO_1440": 25,
+      "T_60_TO_360": 29,
       "T_OVER_1440": 9,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 8,
       "T_0_TO_60": 53,
-      "T_360_TO_1440": 45,
-      "T_60_TO_360": 42,
+      "T_360_TO_1440": 48,
+      "T_60_TO_360": 43,
       "T_OVER_1440": 16,
       "UNKNOWN": 0
     },
@@ -303,22 +307,22 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 38,
-      "V4_EXPLICIT": 126
+      "V4_EXPLICIT": 130
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.4,
+      "DOWN": 36.3,
       "FLAT": 22.6,
-      "UP": 42.1
+      "UP": 41.1
     },
-    "down": 58,
-    "flat": 37,
-    "messages_with_total": 164,
+    "down": 61,
+    "flat": 38,
+    "messages_with_total": 168,
     "up": 69,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 9,
-    "continuous": 51,
+    "continuous": 54,
     "identical_total_pairs": 12,
     "related_pairs": 18,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
