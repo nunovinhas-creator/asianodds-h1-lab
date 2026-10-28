@@ -53,7 +53,13 @@ test("LAB: search and related/reversal/V4 filters do not fabricate records",()=>
   assert.equal(model.filteredTimelines(tl,"unknown","all").length,0);
 });
 test("Static page: IDs exist, dedicated LAB entry and data endpoints are reachable by relative path",()=>{
-  const html=fs.readFileSync(path.join(root,"docs/index.html"),"utf8");
+  // Legacy H1 remains fully functional but is no longer the main entry.
+  const html=fs.readFileSync(path.join(root,"docs/h1.html"),"utf8");
+  const master=fs.readFileSync(path.join(root,"docs/index.html"),"utf8");
+  assert.match(master,/<title>MASTER BRAIN/);
+  assert.match(master,/id="page-radar"/);
+  assert.match(master,/id="page-futuros"/);
+  assert.match(master,/href="\.\/h1\.html#h1"/);
   const js=fs.readFileSync(path.join(root,"docs/dashboard.js"),"utf8");
   const css=fs.readFileSync(path.join(root,"docs/dashboard.css"),"utf8");
   for(const name of ["overview","h1","triples","market","quality"]){

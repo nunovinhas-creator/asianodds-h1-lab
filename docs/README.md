@@ -1,6 +1,6 @@
-# Documentação UNDER TESTE — índice e estado
+# Documentação MASTER BRAIN — índice e estado
 
-**Referência viva:** [README principal](../README.md) · [Dashboard](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html). **Estado técnico:** usar o código na main e os JSON publicados; valores de relatórios com data são fotografias históricas, não indicadores de hoje.
+**Referência viva:** [README principal](../README.md) · [Radar do cérebro](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Futuros](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#futuros) · [Padrões](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html#padroes) · [Under H1 (arquivo)](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1). **Estado técnico:** usar o código na main e os JSON publicados; valores de relatórios com data são fotografias históricas, não indicadores de hoje.
 
 ## Documentos canónicos e operacionais
 
