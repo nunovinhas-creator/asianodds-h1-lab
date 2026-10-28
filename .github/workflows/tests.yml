@@ -144,5 +144,26 @@ jobs:
               assert d['revision_events']==len(read_events(tmp))
               print('V4_REVISION_REAL_MIGRATION_OK',d['messages'])
           PY
+      - name: V6.2 Scientific Radar proof and real-data smoke
+        run: |
+          python -m scripts.lab_v6_scientific_radar
+          python -m scripts.lab_v6_scientific_radar --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('docs/lab/v6-scientific-radar.json').read_text(encoding='utf-8'))
+          assert d['status']=='V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED'
+          assert 1<=d['active_hypotheses']<=10
+          assert all(h['state']!='VALIDADO' for h in d['hypotheses'])
+          assert d['totals']['unique_matches']==sum(len(h['games']) for h in d['hypotheses'])
+          assert all(x['forecast']['sha256'] and x['forecast']['memory_observation_sha256']
+                     and x['forecast']['memory_pattern_sha256'] for h in d['hypotheses'] for x in h['games'])
+          assert all(x['source_v4']['status']!='V4_VERSION_VERIFIED_BEFORE_FREEZE' or
+                     x['source_v4']['known_at']<=x['frozen_known_at']
+                     for h in d['hypotheses'] for x in h['games'])
+          print('V6_SCIENTIFIC_RADAR_PROOF_OK',d['totals']['unique_matches'])
+          PY
+      - name: Scientific Radar browser syntax
+        run: node --check docs/scientific-radar.js
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs
