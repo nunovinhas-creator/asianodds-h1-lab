@@ -1,0 +1,54 @@
+name: One-time cleanup of verified merged branches
+'on':
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-merged-branches-once.yml'
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Delete only verified obsolete branch refs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner, repo=context.repo.repo;
+            if(context.ref !== 'refs/heads/main' || context.eventName !== 'push') throw Error('Run only upon workflow path merged to main');
+            const whitelist={"docs/claude-handoff-under-teste-20261027":{"sha":"f7e21f72e3ea38148bbb2a61265e6e52c27530ae","pr":17},"feature/golden-risk-priority-coverage":{"sha":"1add8d0859e586c416069e9f9b7edc71855baa74","pr":15},"feature/golden-set-manual-ground-truth":{"sha":"c368e607118bddfbb9d6dbf18f02d20c88a958a0","pr":10},"feature/golden-user-attestation-and-next-batch":{"sha":"a0b1f7b9b5664317f643d3d0de370ff83a76e240","pr":13},"feature/lab-structured-capture-v3":{"sha":"15dc8e09a6d0c9fac26d638c8c680e6254f663b7","pr":4},"feature/lab-v4-production-audit":{"sha":"de75c55a4198d8e250ebfcde749fe00007795547","pr":7},"feature/market-intelligence-v1":{"sha":"7127e5328729631d772347ba44159b803a47b018","pr":1},"feature/market-parser-v2-shadow":{"sha":"3938e8b7f7fcb2bed3aeba29c0c49fd97a4f498a","pr":2},"feature/market-v4-shadow-parser":{"sha":"b15aa7d76fb575b214e2b70a09ded451cf5f1c22","pr":6},"fix/lab-format-family-counts":{"sha":"81f9fc3060f1510a3986fb9b0d75dd8175743049","pr":3},"fix/lab-numeric-tokens-v3":{"sha":"680d94f6556e18fb44967e82ded0251d09d7a2f8","pr":5},"fix/lab-v4-actions-log-verification":{"sha":"2ee6c85da221c9005188e0c3be6ba7598bc0cc3d","pr":8},"fix/lab-v4-review-p0":{"sha":"8dc00984e4f9648f1e347d72c1baf5d6af75138f","pr":9},"fix/lab-v4-strict-telegram-table-rows":{"sha":"fec0e8e926ac7a52985c1361a7f35b4943f5bf12","pr":16},"golden/review-r1-50671":{"sha":"69a9cdfde4f68f18c7b375cb72c81b6ba9c62946","pr":11},"golden/source-text-corroboration-50671":{"sha":"d39160282e2fa168831bd9059c5cc192dc29a29a","pr":12},"golden/telegram-transcripts-50655-50656-50658":{"sha":"42f3fde8c631dfea6481c1abe5b3f8210b5c181a","pr":14},"lab/all-observed-ft-reconciliation":{"sha":"c61155c3c5d8274a55ff55cf9e68afbf9d0475ba","pr":27},"lab/bsd-date-fallback-v2":{"sha":"22891b53591bb54a505af102133b96cf2631d7a8","pr":28},"lab/bsd-id-discovery-probe":{"sha":"295bf1b72c693e24cfd7bd3c06e60a4f9c0c5feb","pr":38},"lab/entry-page":{"sha":"de5305763ecf24d285d4491e6f89debfe08a11ef","pr":23},"lab/ft-coverage-urgent-v3":{"sha":"08a30a91a63b33f408af182afec802bb7f226751","pr":29},"lab/ft-forensic-identity-v1":{"sha":"66dc4caca6f6cf1b31cb432e8e2375ecfae1d312","pr":33},"lab/ft-source-order-integrity":{"sha":"5c53425f4f7cc389f593798cdb995266b2175d8e","pr":35},"lab/ft-targeted-coverage-expansion":{"sha":"092474a814c0bc059d0633061fcc6ca4e3d49645","pr":36},"lab/golden-consolidation":{"sha":"cd5e957ea1470af68c2c02cb8bf930c76010a01f","pr":22},"lab/match-timeline":{"sha":"f73549722072e9ffbae87b65431e86c11400b47b","pr":20},"lab/monte-carlos-bsd-crosswalk":{"sha":"74e212aab9026d02fd67d5dec2a67b9f1019bacf","pr":37},"lab/outcome-readiness-preregister":{"sha":"b84f8560326cf255902413978ba8489f3d1739a0","pr":26},"lab/repeated-alert-empirical-study":{"sha":"9a7adbb306ea89c60c10583d97ba52d24a1babda","pr":25},"lab/reviewed-alias-ft-backfill":{"sha":"b81f3141b5f15202c2fc6b60cf80a2d186644a92","pr":34},"lab/reviewed-bsd-id-ft":{"sha":"1754569f818f0cac369e0d247698414253fb8bc3","pr":39},"lab/source-coverage-probe-trigger-v2":{"sha":"c3d710240da297fa749b42bbf57426abb4b9ddeb","pr":31},"lab/source-coverage-probe-v1":{"sha":"f63d8d81d8f27d23086efb9b2bdb2b90a2fbfde6","pr":30},"lab/sportscore-ft-fourth-source":{"sha":"2e3bfffe58481c0a069a3558eab9fb88d06de953","pr":32},"lab/v4-quality-dimensions":{"sha":"852f47a14e16e88b98990db94ecd554a941afb12","pr":21},"lab/v4-store-preserve-provenance":{"sha":"32f9207d8dccf1dc33f565b99d1a59f91ca74461","pr":19},"lab/v5-pattern-engine":{"sha":"00d0fd18fd50feab285ba4f082750fb411df6268","pr":40},"ui/unified-monitoring-dashboard":{"sha":"b2675e947655b722e17ae6567c42c919c728621a","pr":24}};
+            const selfName="chore/cleanup-merged-branches-20261028";
+            const [{data:info}, allBranches, allPRs]=await Promise.all([github.rest.repos.get({owner,repo}),github.paginate(github.rest.repos.listBranches,{owner,repo,per_page:100}),github.paginate(github.rest.pulls.list,{owner,repo,state:'all',per_page:100})]);
+            if(info.default_branch!=='main')throw Error('Default branch differs from main');
+            const live=new Map(allBranches.map(b=>[b.name,b]));
+            const byNumber=new Map(allPRs.map(p=>[p.number,p]));
+            const openNames=new Set(allPRs.filter(p=>p.state==='open').map(p=>p.head.ref));
+            const candidates=[]; const errors=[]; const alreadyGone=[];
+            for(const [name,rule] of Object.entries(whitelist)){
+              const b=live.get(name),p=byNumber.get(rule.pr);
+              if(!b){alreadyGone.push(name);continue;}
+              if(name==='main'||name==='feature/bsd-europa-audit'||b.protected||openNames.has(name)||b.commit.sha!==rule.sha||!p||p.head.ref!==name||p.head.sha!==rule.sha||p.base.ref!=='main'){errors.push('Blocked safety check: '+name);continue;}
+              if(rule.pr===36){
+                const successor=byNumber.get(37);
+                if(p.state!=='closed'||p.merged_at||!successor?.merged_at||!p.body?.includes('Substituída pela PR #37')){errors.push('Supersession unverified: '+name);continue;}
+              }else if(!p.merged_at){errors.push('Not merged: '+name);continue;}
+              candidates.push(name);
+            }
+            const self=live.get(selfName);
+            if(self){
+              const selfPR=allPRs.find(p=>p.head.ref===selfName&&p.head.sha===self.commit.sha&&p.base.ref==='main'&&p.merged_at);
+              if(!selfPR||self.protected||openNames.has(selfName)){errors.push('Cleanup PR self branch cannot be verified');}
+              else candidates.push(selfName);
+            }
+            if(Object.keys(whitelist).length!==39||errors.length){core.error(errors.join('; '));throw Error('Preflight rejected cleanup; no branches deleted');}
+            core.info('SAFE_PREVIEW '+JSON.stringify({targets:candidates.length,alreadyGone,keep:['main','feature/bsd-europa-audit'],names:candidates}));
+            const deleted=[],failed=[];
+            for(const name of candidates){
+              try{await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});deleted.push(name);core.info('DELETED '+name);}
+              catch(e){failed.push({name,status:e.status||'unknown'});core.warning('DELETE_FAILED '+name+' HTTP '+(e.status||'?'));}
+            }
+            await core.summary.addHeading('Cleanup verified').addTable([['Metric','Count'],['Deleted',String(deleted.length)],['Already absent',String(alreadyGone.length)],['Failed',String(failed.length)],['Preserved','main, feature/bsd-europa-audit']]).write();
+            core.info('CLEANUP_RESULT '+JSON.stringify({deleted,alreadyGone,failed}));
+            if(failed.length)throw Error('Some branch deletions failed; retry after reviewing logs');
