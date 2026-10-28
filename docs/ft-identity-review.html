@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MASTER BRAIN — Fila de revisão de identidades FT</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}*{box-sizing:border-box}
+body{margin:0;background:#f3f6f5;color:#18252b;line-height:1.55}
+header,main,footer{max-width:1140px;margin:auto;padding:20px}
+header{background:#163e42;color:white;max-width:none}header>div{max-width:1100px;margin:auto}
+header a{color:#d9f6e9}h1{font-size:clamp(1.5rem,3vw,2.3rem);margin:.4em 0}
+main{min-height:55vh}.intro{max-width:85ch}.meta{color:#485c61}
+.summary{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}.summary strong{display:block;font-size:1.5rem}
+.summary div{flex:1;min-width:155px;border:1px solid #ced9d7;border-radius:9px;padding:12px;background:white}
+label{display:block;font-weight:600;margin-bottom:6px}select{min-width:240px;max-width:100%;padding:10px;font:inherit}
+article{background:white;border:1px solid #ccd8d4;border-radius:10px;margin:15px 0;padding:17px}
+h2{font-size:1.1rem;margin:0 0 7px}h3{font-size:.95rem}small,code{overflow-wrap:anywhere}
+code{background:#e9efed;padding:2px 4px;border-radius:4px}.flag{display:inline-block;border:1px solid #acb8b6;border-radius:12px;padding:2px 9px;margin:4px 5px 4px 0;font-size:.8rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:9px;border-bottom:1px solid #d7dfdc;vertical-align:top}
+.scroll{overflow-x:auto}a{color:#145c64}footer{color:#46585e}
+@media(prefers-color-scheme:dark){body{background:#101c21;color:#e5efed}.meta{color:#adc1bd}.summary div,article{background:#1b2c31;border-color:#354a4c}code{background:#354a4c}th,td{border-color:#354a4c}a{color:#9ddacf}header{background:#092c32}}
+</style></head><body>
+<header><div><a href="./index.html">MASTER BRAIN · Painel principal</a>
+<h1>Fila de revisão de identidades FT</h1>
+<p>Possíveis correspondências entre fornecedores. Nenhuma sugestão aqui liquida um jogo ou confirma golos.</p></div></header>
+<main><p class="intro">Mostra jogos que ultrapassaram três horas após o início sem FT confirmado. Os candidatos provêm <strong>exclusivamente de dados de APIs já consultadas</strong> pelo ciclo FT. Uma semelhança de nomes, um identificador ou uma URL não provam o resultado dos 90 minutos.</p>
+<div class="summary" id="stats" aria-live="polite"></div>
+<p class="meta" id="updated">A carregar dados da fila…</p>
+<label for="filter">Mostrar jogos</label>
+<select id="filter"><option value="all">Todos os atrasados</option><option value="candidate">Com candidato de fornecedor</option><option value="duplicate">Possíveis duplicados internos</option><option value="regulation">Regulamentar por confirmar</option><option value="empty">Sem candidatos ainda</option></select>
+<div id="list" aria-live="polite"></div>
+<p><a href="./lab/ft-identity-review.json">Abrir dados JSON auditáveis</a> · <a href="./lab/ft-backlog.json">Consultar fila FT geral</a></p></main>
+<footer>Estado: revisão humana obrigatória · Não certifica previsões V6 nem rentabilidade.</footer>
+<script>
+"use strict";
+const $=id=>document.getElementById(id), E=(tag,txt)=>{const e=document.createElement(tag);if(txt!=null)e.textContent=String(txt);return e};
+function count(n,title){const d=E("div");d.append(E("strong",n),E("span",title));return d}
+function render(d){
+  $("updated").textContent="Gerado: "+(d.generated_at||"sem data")+" · "+d.status+" · Sem novas consultas à API";
+  const g=Array.isArray(d.games)?d.games:[];
+  $("stats").replaceChildren(count(d.total_eligible,"FT atrasados elegíveis"),count(g.filter(x=>x.candidates?.length).length,"Com candidato de fornecedor"),count(g.filter(x=>x.possible_duplicates?.length).length,"Possíveis duplicados"),count(d.omitted||0,"Omitidos do relatório"));
+  const f=$("filter").value;
+  const rows=g.filter(x=>f==="all"||(f==="candidate"&&x.candidates?.length)||(f==="duplicate"&&x.possible_duplicates?.length)||(f==="regulation"&&x.review_flags?.includes("REGULATION_90M_UNVERIFIED"))||(f==="empty"&&!x.candidates?.length));
+  const root=$("list");root.replaceChildren();
+  if(!rows.length){root.append(E("p","Nenhum jogo nesta categoria."));return}
+  for(const game of rows){
+    const a=E("article");a.append(E("h2",game.home+" — "+game.away));
+    const meta=E("p");meta.className="meta";meta.append(E("span","Início: "+game.kickoff_utc+" · Estado: "+game.ft_status+" · Consultas: "+game.attempts+" · Última: "+(game.last_checked_at||"nunca")));a.append(meta);
+    const key=E("code",game.match_key);a.append(key);
+    const flags=E("p");
+    for(const code of game.review_flags||[]){const span=E("span",code);span.className="flag";flags.append(span)}a.append(flags);
+    if(game.possible_duplicates?.length){a.append(E("h3","Outros IDs com equipa coincidente no mesmo início (não fundir)"));for(const x of game.possible_duplicates)a.append(E("p",x.match_key+" · "+x.home+" — "+x.away+" · "+x.status))}
+    if(game.candidates?.length){a.append(E("h3","Possíveis correspondências para revisão documental"));
+      const box=E("div");box.className="scroll";const table=E("table"),head=E("tr");
+      for(const x of ["Fornecedor","Jogo da fonte","KO / competição","Identificador / contexto"])head.append(E("th",x));const thead=E("thead");thead.append(head);table.append(thead);
+      const body=E("tbody");
+      for(const c of game.candidates){const tr=E("tr");
+        tr.append(E("td",c.provider+(c.observed_this_run?" · atual":" · registo anterior")));
+        tr.append(E("td",c.provider_home+" — "+c.provider_away));
+        tr.append(E("td",c.provider_kickoff_utc+" · "+(c.provider_competition||"competição desconhecida")));
+        const col=E("td");col.append(E("code",c.provider_event_id||"sem ID"),E("p",c.orientation+" · similaridade diagnóstica "+c.name_similarity_diagnostic));
+        if(c.reference_url?.startsWith("https://")){const link=E("a","Fonte");link.href=c.reference_url;link.rel="noopener noreferrer";link.target="_blank";col.append(link)}tr.append(col);body.append(tr)}
+      table.append(body);box.append(table);a.append(box)
+    }else a.append(E("p","Nenhum candidato guardado em caches disponíveis. Isto não demonstra ausência do jogo nos fornecedores."));
+    const why=Object.entries(game.last_attempt_reasons||{}).map(([p,r])=>p+": "+r).join(" · ");
+    if(why)a.append(E("p","Últimos diagnósticos: "+why));root.append(a)
+  }
+}
+let data=null;
+$("filter").addEventListener("change",()=>{if(data)render(data)});
+fetch("./lab/ft-identity-review.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Não publicado");return r.json()}).then(d=>{if(d.status!=="FT_IDENTITY_REVIEW_ONLY_NO_AUTOMATIC_MATCH")throw Error("Formato inesperado");data=d;render(d)}).catch(e=>{$("updated").textContent="Fila ainda indisponível. Será publicada após a primeira reconciliação FT com esta versão.";});
+</script></body></html>
