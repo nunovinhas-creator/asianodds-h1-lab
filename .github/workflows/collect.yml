@@ -16,6 +16,7 @@ on:
     - cron: '2-57/5 * * * *'
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: asianodds-h1-write
   cancel-in-progress: false
@@ -58,3 +59,12 @@ jobs:
             git pull --rebase origin main
             git push origin main
           fi
+      # A missing GitHub schedule can starve authenticated FT lookups.
+      # Runs ONLY after H1 has persisted alerts and notifications.
+      # Does not modify H1/Telegram or block data publication on failure.
+      - name: Wake overdue LAB FT workflow (nonblocking watchdog)
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python -m scripts.lab_ft_watchdog

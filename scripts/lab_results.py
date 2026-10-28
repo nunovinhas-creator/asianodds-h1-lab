@@ -229,7 +229,11 @@ def main():
     # Persist bounded evidence of real scheduled provider calls. A subsequent
     # push run can overwrite the dashboard snapshot without erasing this audit.
     event = os.environ.get("GITHUB_EVENT_NAME", "local")
-    if event == "schedule" or recovery_once:
+    watchdog_dispatch = (event == "workflow_dispatch"
+                         and os.environ.get("LAB_FT_WATCHDOG_DISPATCH") == "true"
+                         and os.environ.get("GITHUB_WORKFLOW") ==
+                         "Lab - Reconcile FT for all observed matches")
+    if event == "schedule" or recovery_once or watchdog_dispatch:
         previous_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
                           if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
         if (not isinstance(previous_audit, dict) or
@@ -241,7 +245,8 @@ def main():
             "utc": now.isoformat(timespec="seconds"),
             "run_id": run_id,
             "trigger": ("one_time_backlog_recovery_v12" if backlog_once
-                        else "one_time_recovery" if recovery_once else "schedule"),
+                        else "one_time_recovery" if recovery_once
+                        else "h1_ft_watchdog" if watchdog_dispatch else "schedule"),
             "checked_games": queried,
             "final_recorded": report["final_recorded"],
             "past_unverified": report["coverage_diagnostics"]["past_unverified_eligible"],
