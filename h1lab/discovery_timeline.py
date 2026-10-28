@@ -60,6 +60,35 @@ def _published(report):
                 "temporal_stability": o.get("temporal_stability"),
                 "ft_coverage": o.get("ft_coverage"), "evidence": o.get("evidence"),
             }
+    # A frozen hypothesis may fall out of the limited top-40 ranking. Its
+    # discovery sample is fixed and its out-of-sample sample MUST be separate.
+    for frozen in report.get("frozen") or []:
+        target = frozen.get("outcome")
+        if target not in TARGETS or not frozen.get("id"):
+            continue
+        key = frozen["id"] + "|" + target
+        discovery = frozen.get("discovery") or {}
+        if key not in result:
+            result[key] = {
+                "id": frozen["id"], "label": frozen.get("label", frozen["id"]),
+                "target": target, "definition": frozen.get("definition"),
+                "matches": frozen.get("discovery_matches"),
+                "known": discovery.get("known", 0), "hits": discovery.get("hits", 0),
+                "misses": None, "rate": discovery.get("rate"),
+                "reference_known": discovery.get("reference_known"),
+                "reference_rate": discovery.get("reference_rate"),
+                "diff": discovery.get("diff"), "ci95": None,
+                "diff_ci95": discovery.get("diff_ci95"),
+                "p_two_sided": discovery.get("p_two_sided"),
+                "q_bh": discovery.get("q_bh"), "temporal_stability": None,
+                "ft_coverage": None, "evidence": "FROZEN_DISCOVERY",
+                "state": frozen["state"],
+            }
+        result[key]["state"] = frozen["state"]
+        result[key]["frozen_at"] = frozen.get("frozen_at")
+        result[key]["out_of_sample"] = frozen.get("out_of_sample")
+        result[key]["oos_halves"] = frozen.get("oos_halves")
+        result[key]["degradation_flag"] = frozen.get("degradation_flag", False)
     return result
 
 
@@ -68,6 +97,12 @@ def _kind(before, after):
         return "NEW_PATTERN"
     if before["state"] != after["state"]:
         return IMPORTANT.get(after["state"], "STATE_CHANGE")
+    old_oos = (before.get("out_of_sample") or {}).get("known", 0)
+    new_oos = (after.get("out_of_sample") or {}).get("known", 0)
+    if new_oos < old_oos:
+        return "DATA_REVISION"
+    if new_oos > old_oos:
+        return "NEW_EVIDENCE"
     old_n, new_n = before.get("known", 0), after.get("known", 0)
     if new_n < old_n or after.get("hits", 0) < before.get("hits", 0):
         return "DATA_REVISION"  # requires inspection, never called new evidence
@@ -113,7 +148,10 @@ def _event(before, after, kind, stamp, previous_id=None):
         "current": {k: after.get(k) for k in fields},
         "changes": changes,
         "ft_delta": (after.get("known", 0) - before.get("known", 0)) if before else None,
+        "oos_ft_delta": ((after.get("out_of_sample") or {}).get("known", 0) -
+                         (before.get("out_of_sample") or {}).get("known", 0)) if before else None,
         "state": after["state"], "explanation": notes[kind],
+        "out_of_sample": after.get("out_of_sample"), "frozen_at": after.get("frozen_at"),
         "evidence": "docs/lab/pattern-research.json",
         "provenance": {"source": "V5_PUBLISHED_RESEARCH", "definition": after["definition"],
                        "rule": "absolute_diff_threshold_0.05_only_after_new_ft",
@@ -206,7 +244,8 @@ def build(report, first_seen, ledger, old=None):
         if not points or (before != row and kind != "NO_CHANGE"):
             points.append({"at_utc": stamp, "known": row["known"], "hits": row["hits"],
                            "rate": row["rate"], "diff": row["diff"], "q_bh": row["q_bh"],
-                           "state": row["state"], "kind": "BASELINE" if not points else kind})
+                           "state": row["state"], "oos_known": (row.get("out_of_sample") or {}).get("known"),
+                           "kind": "BASELINE" if not points else kind})
         patterns[key] = {"latest": row, "points": points[-MAX_POINTS:]}
     settled = _settled(first_seen, ledger, old.get("prospective_settled", {}))
     feed = (feed + new)[-MAX_FEED:]
