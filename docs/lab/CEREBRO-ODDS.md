@@ -1,6 +1,6 @@
-# Cérebro UNDER TESTE — como são cruzadas odds, padrões e resultados
+# Cérebro MASTER BRAIN — como são cruzadas odds, padrões e resultados
 
-**Estado:** motor de investigação V5 integrado no LAB e com relatório público; **não executa apostas**, **não escolhe picks para o H1** e **não calcula ROI ou EV**. É possível ver os resultados em [Análise técnica LAB / cérebro V5](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html). Código: [pattern_engine.py](../../h1lab/pattern_engine.py); especificação completa: [PATTERN-ENGINE.md](PATTERN-ENGINE.md).
+**Estado:** motor de investigação V5 integrado no LAB e com relatório público; **não executa apostas**, **não escolhe picks para o H1** e **não calcula ROI ou EV**. A página inicial é agora [MASTER BRAIN — Radar](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html), com separadores para padrões, jogos futuros e validação. O painel detalhado permanece em [Análise técnica LAB / cérebro V5](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html). Código: [pattern_engine.py](../../h1lab/pattern_engine.py); especificação completa: [PATTERN-ENGINE.md](PATTERN-ENGINE.md).
 
 ## 1. H1, V4 e V5 são coisas diferentes
 
