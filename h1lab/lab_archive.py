@@ -93,7 +93,7 @@ def append_monthly(root, prefix, month, rows):
     if any(p.name[len(prefix)+1:len(prefix)+8] > month for p in paths):
         raise ValueError("Cannot append earlier than a later monthly journal")
     current = [p for p in paths if p.name[len(prefix)+1:len(prefix)+8] == month]
-    part = len(current) - 1
+    part = max(0, len(current) - 1)
     active = current[-1] if current else directory / (prefix + "-" + month + ".jsonl")
     size = active.stat().st_size if active.exists() else 0
     result = []
