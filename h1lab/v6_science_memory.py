@@ -11,6 +11,7 @@ previous observations. Every output view is deterministically reconstructible.
 NOT a new betting model, V5 promotion, proof of realtime intake, or FT authority.
 """
 from __future__ import annotations
+from .lab_archive import monthly_paths, append_monthly
 
 import csv
 import hashlib
@@ -40,7 +41,7 @@ def event_hash(row):
 def journal_paths(root, kind):
     if kind not in KINDS:
         raise ValueError("unknown V6 memory stream")
-    return sorted((Path(root) / "data/lab").glob("v6-memory-" + kind + "-????-??.jsonl"))
+    return monthly_paths(root, "v6-memory-" + kind)
 
 
 def read_stream(root, kind):
@@ -69,8 +70,7 @@ def append_events(root, kind, now, rows):
     previous_by_id = {r["id"]: r for r in existing}
     seen = set(previous_by_id)
     previous = existing[-1]["sha256"] if existing else ZERO
-    path = Path(root) / "data/lab" / ("v6-memory-" + kind + "-"
-                                  + now.astimezone(timezone.utc).strftime("%Y-%m") + ".jsonl")
+    month = now.astimezone(timezone.utc).strftime("%Y-%m")
     new = []
     for candidate in rows:
         if candidate["id"] in seen:
@@ -89,10 +89,8 @@ def append_events(root, kind, now, rows):
         seen.add(item["id"])
         new.append(item)
     if new:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as stream:
-            for item in new:
-                stream.write(canonical(item) + "\n")
+        append_monthly(root, "v6-memory-" + kind, month,
+                       [canonical(item) + "\n" for item in new])
     read_stream(root, kind)  # fail closed if write/replay is inconsistent
     return len(new)
 

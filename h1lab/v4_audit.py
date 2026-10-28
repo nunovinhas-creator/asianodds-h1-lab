@@ -1,5 +1,6 @@
 """Read-only V4 vs legacy audit. No imports from H1 betting or collection code."""
 from __future__ import annotations
+from .lab_archive import monthly_paths
 
 import json
 import math
@@ -554,7 +555,7 @@ def quality_dimensions(state, markets, *, now, phases):
 def read_jsonl(root, prefix):
     records, errors = [], []
     directory = root / "data" / "lab"
-    for path in sorted(directory.glob(prefix + "-????-??.jsonl")):
+    for path in monthly_paths(root, prefix):
         try:
             lines = path.read_bytes().splitlines()
         except OSError as exc:

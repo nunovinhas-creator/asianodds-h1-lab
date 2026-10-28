@@ -10,6 +10,7 @@ requires review; insufficient sample is never a PASS, or proof of no drift.
 This module does not approve hypotheses, generate bets, notify, or call APIs.
 """
 from __future__ import annotations
+from .lab_archive import monthly_paths
 
 import hashlib
 import json
@@ -97,7 +98,7 @@ def format_family(row):
 
 def load_formats(root):
     records={}
-    for path in sorted((Path(root)/"data/lab").glob("formats-????-??.jsonl")):
+    for path in monthly_paths(root, "formats"):
         for raw in path.read_text(encoding="utf-8").splitlines():
             if not raw.strip():
                 raise ValueError("Blank Telegram format observation")

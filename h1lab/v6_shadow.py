@@ -5,6 +5,7 @@ Only the timestamp at which this process FIRST saw a still-future fixture is
 a prospective 'known_at'. Historic Telegram timestamps never backdate a forecast.
 """
 from __future__ import annotations
+from .lab_archive import monthly_paths, append_monthly
 
 import csv
 import hashlib
@@ -103,7 +104,7 @@ def _payload_hash(record):
 def read_journal(root):
     """Fail closed on modified/reordered JSONL; Git commits anchor tail history."""
     records, previous = [], ZERO_HASH
-    for path in sorted((Path(root) / "data/lab").glob(JOURNAL_GLOB)):
+    for path in monthly_paths(root, "v6-forecasts"):
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 raise ValueError("blank line in V6 journal " + str(path))
@@ -121,29 +122,24 @@ def read_journal(root):
 
 
 def append_journal(root, now, additions):
-    """Only append to the current UTC month, never rewrite historical records."""
+    """Bounded append while retaining each original forecast event/hash."""
     root = Path(root)
     existing = read_journal(root)
     seen = {(r["match_key"], r["event_id"]) for r in existing}
     previous = existing[-1]["sha256"] if existing else ZERO_HASH
-    filename = "v6-forecasts-" + now.astimezone(timezone.utc).strftime("%Y-%m") + ".jsonl"
-    path = root / "data/lab" / filename
-    count = 0
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        for row in additions:
-            key = row["match_key"], row["event_id"]
-            if key in seen:
-                continue
-            row = dict(row, schema_version=SCHEMA, previous_sha256=previous)
-            row["sha256"] = _payload_hash(row)
-            handle.write(canonical(row) + "\n")
-            previous = row["sha256"]
-            seen.add(key)
-            count += 1
-    # Check both the previous chain and the newly appended content.
+    lines = []
+    for original in additions:
+        key = original["match_key"], original["event_id"]
+        if key in seen:
+            continue
+        row = dict(original, schema_version=SCHEMA, previous_sha256=previous)
+        row["sha256"] = _payload_hash(row)
+        lines.append(canonical(row) + "\n")
+        previous = row["sha256"]
+        seen.add(key)
+    append_monthly(root, "v6-forecasts", now.astimezone(timezone.utc).strftime("%Y-%m"), lines)
     read_journal(root)
-    return count
+    return len(lines)
 
 
 def _competition_type(value):
@@ -255,7 +251,7 @@ def captures(timelines, now, competitions=None):
 def _retrospective_quality(root):
     """Diagnostic only: prior messages are not treated as future forecasts."""
     counts, n, sample = Counter(), 0, 0
-    for path in sorted((Path(root) / "data/lab").glob("markets-????-??.jsonl")):
+    for path in monthly_paths(root, "markets"):
         for line in path.read_text(encoding="utf-8").splitlines():
             row = json.loads(line)
             t = (row.get("markets") or {}).get("total")
@@ -273,7 +269,7 @@ def _retrospective_quality(root):
 def snapshot_quality_rows(root):
     """QA evidence by source event: *retrospective diagnostics*, never forecasts."""
     rows = []
-    for path in sorted((Path(root) / "data/lab").glob("markets-????-??.jsonl")):
+    for path in monthly_paths(root, "markets"):
         for raw in path.read_text(encoding="utf-8").splitlines():
             item = json.loads(raw)
             total = (item.get("markets") or {}).get("total")

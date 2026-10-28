@@ -18,6 +18,7 @@ Layers kept separate on purpose:
 This module imports nothing from the H1 production modules.
 """
 from __future__ import annotations
+from .lab_archive import monthly_paths
 
 import json
 import math
@@ -533,7 +534,7 @@ def read_sources(root):
     if not isinstance(state, dict) or not isinstance(state.get("alerts"), list):
         raise ValueError("state.json must contain an alerts list")
     rows, errors = [], []
-    for path in sorted((root / "data" / "lab").glob("markets-????-??.jsonl")):
+    for path in monthly_paths(root, "markets"):
         r, e = read_jsonl(path)
         rows += r
         errors += e
