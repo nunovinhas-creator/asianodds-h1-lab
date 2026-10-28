@@ -1,3 +1,5 @@
+> **Atualização de contexto (28/10/2026):** esta análise do reconciliador BSD do repositório Monte-Carlos permanece uma **referência técnica histórica**, não um segundo motor de liquidação H1. O [LAB FT](../../.github/workflows/lab-ft-results.yml) conserva verificações de identidade e limites próprios; a [ponte de resultados](../../h1lab/lab_promotion.py) importa FT verificados para H1. Não trocar automaticamente IDs de eventos BSD por `match_key` AsianOdds nem assumir cobertura universal. Ver [arquitetura canónica](ARCHITECTURE.md).
+
 # LAB — integração do reconciliador BSD do Monte-Carlos
 
 **Repositório original do utilizador:** https://github.com/nunovinhas-creator/Monte-Carlos
