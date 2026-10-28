@@ -23,6 +23,7 @@ from urllib.error import HTTPError, URLError
 
 from .bsd import ROOT, BSDProviderError, matches_identity, request_json, regulation_result
 from .results import norm_team
+from .lab_reviewed_bsd_ids import reviewed_bsd_fixture
 
 SOURCE_URL = "https://raw.githubusercontent.com/nunovinhas-creator/Monte-Carlos/main/predictions.db"
 MAX_ARCHIVE_BYTES = 4000000
@@ -246,27 +247,37 @@ class MonteBSDCrosswalk:
     def lookup(self, signal):
         if not self.token:
             return None,"bsd_not_configured"
-        self._load()
-        if self.load_reason!="read_only_loaded":
-            return None,"monte_"+self.load_reason
-        try:
-            kickoff=datetime.fromisoformat(signal["kickoff_utc"].replace("Z","+00:00"))
-            if kickoff.tzinfo is None:
+        reviewed=reviewed_bsd_fixture(signal)
+        using_reviewed=reviewed is not None
+        if using_reviewed:
+            event_id, home, away = reviewed
+            # The approved BSD names belong ONLY to the original match_key
+            # and original kickoff; they are never general aliases.
+            checking_signal={**signal,"home":home,"away":away}
+            self.matched_keys.add(signal["match_key"])
+        else:
+            self._load()
+            if self.load_reason!="read_only_loaded":
+                return None,"monte_"+self.load_reason
+            try:
+                kickoff=datetime.fromisoformat(signal["kickoff_utc"].replace("Z","+00:00"))
+                if kickoff.tzinfo is None:
+                    return None,"monte_invalid_kickoff"
+                kickoff=kickoff.astimezone(timezone.utc)
+            except (ValueError,TypeError,KeyError):
                 return None,"monte_invalid_kickoff"
-            kickoff=kickoff.astimezone(timezone.utc)
-        except (ValueError,TypeError,KeyError):
-            return None,"monte_invalid_kickoff"
-        key=(norm_team(signal.get("home")),norm_team(signal.get("away")),kickoff.date().isoformat())
-        candidates={event_id for event_id,dt in self.index.get(key,[])
-                    if abs((dt-kickoff).total_seconds()) <= 90*60}
-        if not candidates:
-            self.reasons["no_exact_archive_match"]+=1
-            return None,"monte_no_exact_archive_match"
-        if len(candidates)!=1:
-            self.reasons["ambiguous_archive_match"]+=1
-            return None,"monte_ambiguous_archive_match"
-        self.matched_keys.add(signal["match_key"])
-        event_id=candidates.pop()
+            key=(norm_team(signal.get("home")),norm_team(signal.get("away")),kickoff.date().isoformat())
+            candidates={eid for eid,dt in self.index.get(key,[])
+                        if abs((dt-kickoff).total_seconds()) <= 90*60}
+            if not candidates:
+                self.reasons["no_exact_archive_match"]+=1
+                return None,"monte_no_exact_archive_match"
+            if len(candidates)!=1:
+                self.reasons["ambiguous_archive_match"]+=1
+                return None,"monte_ambiguous_archive_match"
+            self.matched_keys.add(signal["match_key"])
+            event_id=candidates.pop()
+            checking_signal=signal
         visited=set()
         for _ in range(MAX_REDIRECTS):
             if event_id in visited:
@@ -275,11 +286,15 @@ class MonteBSDCrosswalk:
             data,reason=self._event(event_id)
             if data is None:
                 return None,reason
+            if type(data.get("id")) is not int or data["id"]!=event_id:
+                return None,"monte_bsd_detail_id_mismatch"
             next_id=_redirect(data)
             if next_id and next_id!=event_id:
                 event_id=next_id
                 continue
-            result,reason=validated_result(signal,data)
+            result,reason=validated_result(checking_signal,data)
+            if result and using_reviewed:
+                reason="verified_bsd_ft_from_reviewed_id"
             self.reasons[reason]+=1
             return result,reason
         return None,"monte_replaced_by_limit"
@@ -290,6 +305,8 @@ class MonteBSDCrosswalk:
                 "catalog_matchday_groups":len(self.index or {}),
                 "exact_event_id_candidates":len(self.matched_keys),
                 "bsd_direct_event_requests":self.events_requested,
-                "verified_in_run":self.reasons["verified_bsd_ft_from_monte_id"],
+                "verified_in_run":(self.reasons["verified_bsd_ft_from_monte_id"]+
+                                   self.reasons["verified_bsd_ft_from_reviewed_id"]),
+                "reviewed_bsd_ids_verified":self.reasons["verified_bsd_ft_from_reviewed_id"],
                 "rate_limited":self.rate_limited,
                 "reason_counts":dict(sorted(self.reasons.items()))}
