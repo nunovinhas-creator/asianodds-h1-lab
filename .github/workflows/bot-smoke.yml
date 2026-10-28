@@ -1,21 +1,70 @@
 name: Testar destino Telegram Bot
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/bot-smoke.yml"
 permissions:
   contents: read
 jobs:
-  smoke:
+  historical-lines-once:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Send one Telegram destination test
+      - name: Enviar 13 linhas historicas confirmadas (uma unica vez)
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
           python - <<'PY'
+          import json
+          import math
+          from datetime import datetime, timezone
+          from pathlib import Path
           from h1lab.bot import send_message
-          send_message("✅ MASTER BRAIN — teste de ligação ao bot concluído. Só as novas observações rigorosas do padrão prospetivo serão notificadas neste chat; Under H1 e triplas estão silenciados.")
-          print("BOT_SMOKE_SUCCESS: Telegram confirmed message delivery to configured chat")
+
+          history = json.loads(Path("data/lab/pattern-watch-first-seen.json").read_text(encoding="utf-8"))["entries"]
+          ledger = json.loads(Path("data/pattern-notifications.json").read_text(encoding="utf-8"))["entries"]
+          alert_rows = json.loads(Path("data/state.json").read_text(encoding="utf-8"))["alerts"]
+          alerts = {item["event_id"]: item for item in alert_rows}
+          assert len(history) == 13 and len({e["match_key"] for e in history}) == 13
+          assert all(ledger[e["match_key"]]["status"] == "historical_digest_sent" for e in history)
+          assert not any(ledger[e["match_key"]].get("historical_lines_digest_message_id") for e in history)
+          def line(value):
+              if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                  raise ValueError("Missing Total goal line")
+              if abs(value * 4 - round(value * 4)) > 1e-7:
+                  raise ValueError("Invalid Total quarter goal line")
+              return ("%.2f" % value).rstrip("0").rstrip(".").replace(".", ",")
+
+          now = datetime.now(timezone.utc)
+          lines = [
+              "🧠 MASTER BRAIN — 13 JOGOS + LINHA DE GOLOS",
+              "📋 Atualização solicitada dos 13 alertas históricos; NÃO são novos sinais.",
+              "Linhas Total O/U observadas no último alerta registado na primeira deteção.",
+              "",
+          ]
+          for idx, item in enumerate(sorted(history, key=lambda r: (r["kickoff_utc"], r["match_key"])), 1):
+              seen = item["observations_at_first_detection"][-1]
+              row = alerts.get(seen["event_id"])
+              if not row or row["match_key"] != item["match_key"] or row["observed_at"] != seen["observed_at"]:
+                  raise ValueError("Missing or conflicting historical Total snapshot")
+              before, after = line(row.get("total_before")), line(row.get("total_after"))
+              kickoff = datetime.fromisoformat(item["kickoff_utc"].replace("Z", "+00:00"))
+              status = "já iniciado" if kickoff <= now else "futuro"
+              movement = before + " → " + after if before != after else after + " (sem alteração)"
+              lines.append(str(idx) + ". " + item["match_label"])
+              lines.append("   ⚽ Total O/U " + movement + " | " + kickoff.strftime("%d/%m %H:%M UTC") + " | " + status)
+          lines.extend([
+              "",
+              "⚠️ Padrão experimental NÃO validado. Isto não é uma aposta nem recomendação.",
+              "https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html",
+          ])
+          message = "\n".join(lines)
+          if len(message.encode("utf-8")) > 4000:
+              raise ValueError("Telegram message exceeds safe size")
+          msg_id = send_message(message)
+          print("MASTER_BRAIN_HISTORICAL_LINES_SENT count=13 message_id=" + str(msg_id))
           PY
