@@ -76,7 +76,7 @@ def choose_days(selected_keys, matches, previous, now, enabled):
     return result
 
 
-def advance(previous, rotation, requested, now):
+def advance(previous, rotation, requested, now, *, extra_requests=None):
     """Record only days actually attempted by the provider adapter.
 
     Failed responses still spend free-tier calls and therefore consume a
@@ -84,6 +84,9 @@ def advance(previous, rotation, requested, now):
     """
     if now.tzinfo is None:
         raise ValueError("UTC aware clock required")
+    extra_requests = extra_requests or {}
+    if any(p not in CAPS or type(n) is not int or n < 0 for p,n in extra_requests.items()):
+        raise ValueError("Invalid supplementary request count")
     old = previous.get("providers", {})
     out = {"schema_version": SCHEMA, "providers": {}, "usage": {}}
     old_usage = previous.get("usage", {})
@@ -98,7 +101,7 @@ def advance(previous, rotation, requested, now):
         actual = sorted(set(requested.get(p, [])))
         if not set(actual).issubset(permitted):
             raise ValueError("Provider queried an unplanned date")
-        if len(actual) > CAPS[p]:
+        if len(actual) + extra_requests.get(p,0) > CAPS[p]:
             raise ValueError("Provider date quota exceeded")
         for day in actual:
             row = days.get(day, {})
@@ -111,6 +114,6 @@ def advance(previous, rotation, requested, now):
         if any(type(v) is not int or v < 0 for v in usage.values()):
             raise ValueError("Invalid stored request usage")
         today = now.astimezone(timezone.utc).date().isoformat()
-        usage[today] = usage.get(today,0) + len(actual)
+        usage[today] = usage.get(today,0) + len(actual) + extra_requests.get(p,0)
         out["usage"][p] = {k:v for k,v in sorted(usage.items())[-MAX_HISTORY_DAYS:]}
     return out
