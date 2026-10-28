@@ -64,6 +64,15 @@ class ReviewedBatchTests(unittest.TestCase):
                               id_fetch=lambda ids, key: self.fail("No ID calls"))
         self.assertEqual(p.id_requests, 0)
 
+    def test_disabled_adapter_cannot_query_even_approved_ids(self):
+        matches, review, approved = fixtures()
+        targets = plan_reviewed_ids(list(matches), matches, review, approved, NOW)
+        p = APIFootballResults(key="present-but-disabled", max_days=0,
+                              reviewed_targets=targets,
+                              id_fetch=lambda ids, key: self.fail("Disabled adapter called"))
+        self.assertEqual(p.lookup(signal(1))[1], "api_football_reviewed_id_disabled")
+        self.assertEqual(p.id_requests, 0)
+
     def test_three_human_approved_ids_one_batch_and_strict_90min_ft(self):
         matches, review, approved = fixtures()
         targets = plan_reviewed_ids(list(matches), matches, review, approved, NOW)
