@@ -78,7 +78,7 @@ jobs:
       - name: Reconcile all observed fixture identities (bounded, no betting)
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL || secrets.API_FOOTBALL_KEY }}
           LAB_FOTMOB_LICENSED: ${{ vars.LAB_FOTMOB_LICENSED || '0' }}
           LAB_API_FOOTBALL_SCHEDULED: ${{ github.event_name == 'schedule' }}
           LAB_RESULTS_MAX_CHECKS: ${{ vars.LAB_RESULTS_MAX_CHECKS || '30' }}
