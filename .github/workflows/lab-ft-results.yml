@@ -9,6 +9,9 @@ on:
       - 'h1lab/lab_results.py'
       - 'h1lab/lab_fotmob.py'
       - 'h1lab/lab_api_football.py'
+      - 'h1lab/lab_goal.py'
+      - 'h1lab/lab_openfoot.py'
+      - 'tests/test_lab_goal_openfoot.py'
       - 'tests/test_lab_api_football.py'
       - 'tests/test_lab_fotmob.py'
       - 'h1lab/lab_ft_diagnostics.py'
@@ -66,6 +69,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
           python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
+          python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_diagnostics.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_search.py' -v
           python -m unittest discover -s tests -p 'test_lab_espn.py' -v
@@ -79,6 +83,8 @@ jobs:
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL || secrets.API_FOOTBALL_KEY }}
+          GOAL_API_KEY: ${{ secrets.GOAL_API_KEY }}
+          OPENFOOT_API_KEY: ${{ secrets.OPENFOOT_API_KEY }}
           LAB_FOTMOB_LICENSED: ${{ vars.LAB_FOTMOB_LICENSED || '0' }}
           LAB_API_FOOTBALL_SCHEDULED: ${{ github.event_name == 'schedule' }}
           LAB_RESULTS_MAX_CHECKS: ${{ vars.LAB_RESULTS_MAX_CHECKS || '30' }}
@@ -105,6 +111,8 @@ jobs:
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
           assert d['fotmob_search']['requests'] <= 3
           assert d['api_football_search']['requests'] <= 3
+          assert d['goal_search']['requests'] <= 2
+          assert d['openfoot_search']['requests'] <= 2
           assert d['fotmob_search']['verified_in_run'] <= 30
           assert d['monte_carlos_bsd']['verified_core_name_in_run'] <= d['monte_carlos_bsd']['core_name_event_id_candidates']
           assert d['reviewed_bsd_id_catalog_matches'] <= 3
