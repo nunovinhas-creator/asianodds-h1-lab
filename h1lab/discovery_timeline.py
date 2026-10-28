@@ -84,6 +84,14 @@ def _published(report):
                 "ft_coverage": None, "evidence": "FROZEN_DISCOVERY",
                 "state": frozen["state"],
             }
+        # Replace live discovery stats with the immutable FROZEN discovery sample.
+        # Otherwise post-freeze FT would leak into both the in-sample and OOS rows.
+        for field in ("known", "hits", "rate", "reference_known", "reference_rate",
+                      "diff", "diff_ci95", "p_two_sided", "q_bh"):
+            if field in discovery:
+                result[key][field] = discovery[field]
+        if discovery.get("known") is not None and discovery.get("hits") is not None:
+            result[key]["misses"] = discovery["known"] - discovery["hits"]
         result[key]["state"] = frozen["state"]
         result[key]["frozen_at"] = frozen.get("frozen_at")
         result[key]["out_of_sample"] = frozen.get("out_of_sample")
@@ -109,6 +117,8 @@ def _kind(before, after):
     if new_n > old_n:
         old_diff, new_diff = before.get("diff"), after.get("diff")
         if isinstance(old_diff, (int, float)) and isinstance(new_diff, (int, float)):
+            if old_diff * new_diff < 0 and min(abs(old_diff), abs(new_diff)) >= 0.03:
+                return "SIGN_REVERSAL"
             change = abs(new_diff) - abs(old_diff)
             # Improvement is a larger ABSOLUTE contrast, not a better ranking.
             # It does not imply statistical significance or profitable odds.
@@ -125,7 +135,8 @@ def _kind(before, after):
 
 def _event(before, after, kind, stamp, previous_id=None):
     fields = ("matches", "known", "hits", "misses", "rate", "reference_rate", "diff",
-              "ci95", "diff_ci95", "p_two_sided", "q_bh", "temporal_stability", "state")
+              "ci95", "diff_ci95", "p_two_sided", "q_bh", "temporal_stability", "state",
+              "out_of_sample", "frozen_at")
     changes = {k: {"from": before.get(k) if before else None, "to": after.get(k)}
                for k in fields if before is None or before.get(k) != after.get(k)}
     code = _digest([previous_id, after["id"], after["target"], kind, changes])
@@ -134,6 +145,7 @@ def _event(before, after, kind, stamp, previous_id=None):
         "NEW_EVIDENCE": "Entraram novos resultados FT; a associação continua sob investigação.",
         "IMPROVED": "A diferença absoluta observada aumentou pelo menos cinco pontos percentuais após novos FT; não prova vantagem.",
         "DEGRADED": "A diferença absoluta observada diminuiu pelo menos cinco pontos percentuais após novos FT.",
+        "SIGN_REVERSAL": "O sinal da diferença entre grupos inverteu-se após novos FT; não classificar como melhoria.",
         "DATA_REVISION": "O universo/resultado observado foi revisto; exige auditoria, não é melhoria.",
         "RECALCULATED": "Mudou a comparação com o grupo de referência, sem novos FT no grupo.",
         "CANDIDATE": "Hipótese passou a candidata segundo as regras V5; requer evidência independente.",
@@ -162,6 +174,22 @@ def _event(before, after, kind, stamp, previous_id=None):
 def _settled(first_seen, ledger, previous):
     """Immutable prospective FT; no after-kickoff classification or lookahead."""
     stored = dict(previous)
+    incoming = {e["match_key"]: e for e in first_seen.get("entries", [])}
+    if not set(stored).issubset(incoming):
+        raise ValueError("prospective first-detection history was removed")
+    for key, value in stored.items():
+        first = incoming[key]
+        if (first.get("category_at_first_detection") != value["category_at_first_detection"] or
+            _iso(first.get("first_detected_at")) != _iso(value["first_detected_at"]) or
+            _iso(first.get("kickoff_utc")) != _iso(value["kickoff_utc"])):
+            raise ValueError("immutable prospective detection was modified: " + key)
+        record = (ledger.get("matches") or {}).get(key, {})
+        if record.get("status") == "FINAL":
+            result = record.get("result") or {}
+            pair = (result.get("home_goals"), result.get("away_goals"))
+            if all(isinstance(n, int) and not isinstance(n, bool) for n in pair):
+                if pair != (value["home_goals"], value["away_goals"]):
+                    raise ValueError("immutable prospective FT conflict: " + key)
     for entry in first_seen.get("entries", []):
         key = entry.get("match_key")
         if not key or key in stored:
