@@ -1,3 +1,5 @@
+> **Atualização 28/10/2026:** o LAB já utiliza BSD, TheSportsDB e fornecedores complementares (ESPN, SportScore com salvaguardas, API-Football, GOAL, OpenFoot e evidência documental específica), com quotas e verificações por jogo; `FINAL` não equivale a certificação estatística. FotMob só sob autorização apropriada. Na fotografia do ficheiro [ft-results.json](ft-results.json) às 11:15 UTC: 267 jogos observados, **63 FT**, 204 sem FT (169 futuros, 24 ainda na margem de 3 h, 11 no cooldown). **A ponte [lab_promotion.py](../../h1lab/lab_promotion.py) foi integrada na PR #53** e importa FT FINAL com identidade/proveniência estrita para liquidar H1 já existente, sem tocar na seleção H1. Este documento nasceu na fase inicial de dois fornecedores; as listas antigas abaixo são históricas. Ver [arquitetura canónica](ARCHITECTURE.md) e [cérebro V5](CEREBRO-ODDS.md).
+
 # LAB — resultados FT de TODOS os jogos observados
 
 **Objetivo:** desligar a cobertura de resultados FT da seleção de sinais H1, sem modificar o H1 nem criar prognósticos/apostas.
