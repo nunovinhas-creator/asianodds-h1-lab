@@ -21,6 +21,7 @@ HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
 API_FOOTBALL_SOURCE_VERSION = 10  # only the official API-enabled LAB run upgrades
+OPEN_RESULT_SOURCES_VERSION = 11  # GOAL and OpenFoot FT coverage verified in the LAB only
 
 
 def utc(value):
@@ -92,12 +93,12 @@ def _validate_result(result, key):
         return None
     out = {"home_goals": h, "away_goals": a, "source": source}
     # Provenance of the team-name identity rule (absent = exact legacy rule).
-    if result.get("identity_match") in ("EXACT", "CORE_NAME"):
+    if result.get("identity_match") in ("EXACT", "CORE_NAME", "REVIEWED_PAIR"):
         out["identity_match"] = result["identity_match"]
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, lookup_source_version=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -107,7 +108,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         raise ValueError("now requires timezone")
     now = now.astimezone(timezone.utc)
     source_version = LOOKUP_SOURCE_VERSION if lookup_source_version is None else lookup_source_version
-    if type(source_version) is not int or not LOOKUP_SOURCE_VERSION <= source_version <= API_FOOTBALL_SOURCE_VERSION:
+    if type(source_version) is not int or not LOOKUP_SOURCE_VERSION <= source_version <= OPEN_RESULT_SOURCES_VERSION:
         raise ValueError("Unsupported LAB FT lookup source version")
     if not isinstance(max_checks, int) or not 0 <= max_checks <= MAX_CHECKS_CAP:
         raise ValueError("max_checks outside safe range 0..30")
@@ -211,6 +212,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("fotmob", fotmob_lookup))
         if api_football_lookup is not None:
             providers.append(("api_football", api_football_lookup))
+        if goal_lookup is not None:
+            providers.append(("goal", goal_lookup))
+        if openfoot_lookup is not None:
+            providers.append(("openfoot", openfoot_lookup))
         for provider, lookup in providers:
             try:
                 candidate, reason = lookup(signal)
