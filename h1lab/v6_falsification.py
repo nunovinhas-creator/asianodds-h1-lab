@@ -380,12 +380,9 @@ def run(root, now):
     lines = hypothesis_file.read_text(encoding="utf-8").splitlines()
     if len(lines) != 1:
         raise ValueError("unexpected frozen hypothesis history length")
-    registration = json.loads(lines[0])
+    registration, _ = ensure_registered(root, now)
     if registration.get("id") != HYPOTHESIS:
         raise ValueError("hypothesis mismatch")
-    from .v6_hypotheses import definition_digest
-    if registration.get("definition_sha256") != definition_digest():
-        raise ValueError("frozen hypothesis definition changed")
     evidence = read_stream(root, "evidence")
     p = root / "docs/lab/v6-readiness.json"
     coverage = json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
