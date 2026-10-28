@@ -91,7 +91,7 @@ class ReviewedAliasTests(unittest.TestCase):
         self.assertEqual(checked,0)
         self.assertEqual(third,nxt)
 
-    def test_priority_aliases_before_other_cooldown_eligible_matches(self):
+    def test_first_checks_before_reviewed_alias_when_budget_one(self):
         key="2026-10-27,1734,1137"
         other={"match_key":"2026-10-27,1,2","home":"Sample","away":"Other",
                "kickoff_utc":"2026-10-27T17:00:00+00:00"}
@@ -105,7 +105,7 @@ class ReviewedAliasTests(unittest.TestCase):
             now=datetime(2026,10,28,8,tzinfo=timezone.utc),
             bsd_lookup=no,tsdb_lookup=lambda s:(None,"none"),max_checks=1)
         self.assertEqual(checked,1)
-        self.assertEqual(seen,[key])
+        self.assertEqual(seen,[other['match_key']])
 
 if __name__ == "__main__":
     unittest.main()
