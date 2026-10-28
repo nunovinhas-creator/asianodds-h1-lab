@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from h1lab.lab_results import reconcile
+from h1lab.lab_ft_backlog import audit as audit_ft_backlog
 from h1lab.v6_ft_events import priority_hints as v6_priority_hints
 from h1lab.lab_espn import ESPNResults
 from h1lab.lab_sportscore import SportScoreResults
@@ -25,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
 REPORT = ROOT / "docs/lab/ft-results.json"
 API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
+BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 
 
 def read_v4():
@@ -156,6 +158,12 @@ def main():
                      and os.environ.get("GITHUB_WORKFLOW") ==
                      "LAB - One-time FT recovery 2026-10-28"
                      and os.environ.get("GITHUB_EVENT_NAME") == "push")
+    # This exact tagged main merge is the only eligible push recovery.
+    backlog_once = (os.environ.get("LAB_FT_BACKLOG_ONCE_20261028") == "true"
+                    and os.environ.get("GITHUB_WORKFLOW") ==
+                    "Lab - Reconcile FT for all observed matches"
+                    and os.environ.get("GITHUB_EVENT_NAME") == "push")
+    recovery_once = recovery_once or backlog_once
     api_football_poll = (bool(api_key.strip()) and (
         one_shot or recovery_once or
         (os.environ.get("LAB_API_FOOTBALL_SCHEDULED") == "true"
@@ -204,6 +212,14 @@ def main():
     report["api_football_search"]["scheduled_poll_enabled"] = api_football_poll
     report["api_football_search"]["one_shot_activation"] = one_shot
     report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
+    backlog = audit_ft_backlog(next_ledger, now, provider_summary={
+        "api_football": report["api_football_search"],
+        "goal": report["goal_search"],
+        "openfoot": report["openfoot_search"],
+        "bsd": report["bsd_date_search"],
+        "sportscore": report["sportscore_search"],
+        "thesportsdb": report["thesportsdb_search"],
+    })
     # Persist bounded evidence of real scheduled provider calls. A subsequent
     # push run can overwrite the dashboard snapshot without erasing this audit.
     event = os.environ.get("GITHUB_EVENT_NAME", "local")
@@ -218,7 +234,8 @@ def main():
         record = {
             "utc": now.isoformat(timespec="seconds"),
             "run_id": run_id,
-            "trigger": "one_time_recovery" if recovery_once else "schedule",
+            "trigger": ("one_time_backlog_recovery_v12" if backlog_once
+                        else "one_time_recovery" if recovery_once else "schedule"),
             "checked_games": queried,
             "final_recorded": report["final_recorded"],
             "past_unverified": report["coverage_diagnostics"]["past_unverified_eligible"],
@@ -241,6 +258,12 @@ def main():
               "goal", record["providers"]["goal"]["requests"],
               "openfoot", record["providers"]["openfoot"]["requests"],
               "source_conflicts_remaining", report["source_order_audit"]["remaining_quarantined"])
+    changed_backlog = write_if_changed(BACKLOG, backlog)
+    print("LAB_FT_BACKLOG", "overdue",
+          backlog["classification"].get("past_due_unverified", 0),
+          "never_checked", backlog["classification"].get("past_due_never_checked", 0),
+          "date_groups", len(backlog["overdue_by_kickoff_utc_day"]),
+          "report_changed", changed_backlog)
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)
     print("LAB_FT_RESULT_SYNC", "catalog", report["matches"],

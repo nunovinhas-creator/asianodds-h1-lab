@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - 'h1lab/lab_results.py'
+      - 'h1lab/lab_ft_backlog.py'
       - 'h1lab/lab_fotmob.py'
       - 'h1lab/lab_api_football.py'
       - 'h1lab/lab_goal.py'
@@ -102,6 +103,7 @@ jobs:
           OPENFOOT_API_KEY: ${{ secrets.OPENFOOT_API_KEY }}
           LAB_FOTMOB_LICENSED: ${{ vars.LAB_FOTMOB_LICENSED || '0' }}
           LAB_API_FOOTBALL_SCHEDULED: ${{ github.event_name == 'schedule' }}
+          LAB_FT_BACKLOG_ONCE_20261028: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[ft-recovery-v12-once]') }}
           LAB_RESULTS_MAX_CHECKS: ${{ vars.LAB_RESULTS_MAX_CHECKS || '30' }}
           LAB_BSD_DATE_MAX_DAYS: ${{ vars.LAB_BSD_DATE_MAX_DAYS || '3' }}
           LAB_BSD_DATE_MAX_PAGES: ${{ vars.LAB_BSD_DATE_MAX_PAGES || '3' }}
@@ -242,7 +244,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/lab/ft-ledger.json docs/lab/ft-results.json
+          git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
           if [ "${{ steps.v6_ft_events.outcome }}" = "success" ]; then
             git add -f data/lab/v6-ft-events-*.jsonl 2>/dev/null || true
             if [ -f docs/lab/v6-ft-evidence.json ]; then git add docs/lab/v6-ft-evidence.json; fi
