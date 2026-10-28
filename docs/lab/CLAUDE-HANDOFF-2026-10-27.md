@@ -1,3 +1,5 @@
+> **ARQUIVO / HANDOFF DE 27/10, NÃO É O ESTADO ATUAL.** Desde esta fotografia foram integrados os módulos FT universais, os adaptadores API-Football/GOAL/OpenFoot, o **cérebro V5** (49 padrões, combinações e validação fora da amostra) e a [ponte de resultados LAB → H1](../../h1lab/lab_promotion.py). Os trabalhos anteriores descritos como «P0 pendente» podem já estar integrados; **não executar estas instruções sem verificar a `main` atual**. Começar no [README principal](../../README.md), [arquitetura](ARCHITECTURE.md) e [cérebro](CEREBRO-ODDS.md).
+
 # UNDER TESTE — ponto de situação e passagem de trabalho para o Claude
 
 **Atualizado:** 2026-10-27, ~20:32 UTC. Este é um **instantâneo** de auditoria: ler novamente a `main`, as Actions e os JSON atuais antes de alterar código.
