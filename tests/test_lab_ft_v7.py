@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from h1lab.lab_results import reconcile, retry_wait
 from h1lab.lab_ft_rotation import choose_days, advance, GOAL_DAILY_LIMIT
+from h1lab.lab_ft_backlog import audit
 from scripts.lab_ft_watchdog import plan
 
 NOW = datetime(2026, 10, 28, 20, 0, tzinfo=timezone.utc)
@@ -77,6 +78,18 @@ class V7Tests(unittest.TestCase):
                          timedelta(hours=4))
         self.assertEqual(retry_wait({"attempts": 12}),
                          timedelta(hours=24))  # legacy compatibility
+
+    def test_backlog_does_not_claim_push_as_effective_check(self):
+        previous = {"schema_version": 1, "matches": {
+            GAME["match_key"]: {**GAME, "status": "PENDING", "attempts": 12,
+                                "checked_at": "2026-10-28T17:00:00+00:00"}}}
+        result = audit(previous, NOW, evidence_retry=True)
+        self.assertEqual(result["classification"]["past_due_never_checked"], 1)
+        game = result["overdue_games"][0]
+        self.assertIsNone(game["last_checked_at"])
+        self.assertEqual(game["legacy_last_checked_at"],
+                         "2026-10-28T17:00:00+00:00")
+        self.assertEqual(game["evidence_attempts"], 0)
 
     def test_watchdog_ignores_recent_push(self):
         runs = [{"created_at": "2026-10-28T19:58:00Z", "event": "push"},

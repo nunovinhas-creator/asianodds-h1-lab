@@ -23,8 +23,8 @@ from .lab_results import DELAY, utc
 SCHEMA = 1
 STATUS = "FT_IDENTITY_REVIEW_ONLY_NO_AUTOMATIC_MATCH"
 MAX_GAMES = 500
-MAX_PER_PROVIDER = 2
-MAX_CANDIDATES = 6
+MAX_PER_PROVIDER = 3
+MAX_CANDIDATES = 9
 WINDOW_SECONDS = 90 * 60
 AGE_RE = re.compile(r"^u(?:1[5-9]|2[0-3])$")
 ALLOWED = frozenset({"api_football", "goal", "openfoot", "bsd", "sportscore"})
@@ -149,7 +149,12 @@ def _candidates(signal, provider, rows, now):
                    _similarity(signal["away"], home))
         orient = "REVERSED_TO_REVIEW" if min(reverse) >= 0.73 and sum(reverse) > sum(straight) else "SAME_ORDER"
         scores = reverse if orient == "REVERSED_TO_REVIEW" else straight
-        if not (min(scores) >= 0.70 and sum(scores) >= 1.53):
+        strong = min(scores) >= 0.70 and sum(scores) >= 1.53
+        # Broaden DISCOVERY for human review ONLY. This is not an identity
+        # match or permission to settle FT. Keep qualifiers and kickoff hard.
+        weak = ((max(scores) >= 0.96 and min(scores) >= 0.33)
+                or (min(scores) >= 0.48 and sum(scores) >= 1.02))
+        if not (strong or weak):
             continue
         found.append({
             "provider": provider, "provider_event_id": identifier,
@@ -159,6 +164,7 @@ def _candidates(signal, provider, rows, now):
             "reference_url": source,
             "orientation": orient,
             "name_similarity_diagnostic": round(sum(scores) / 2, 3),
+            "match_strength": "STRONG" if strong else "WEAK_REVIEW_ONLY",
             "kickoff_delta_minutes": round(gap / 60, 1),
             "first_seen_at": now.isoformat(timespec="seconds"),
             "last_seen_at": now.isoformat(timespec="seconds"),
@@ -280,6 +286,8 @@ def build_queue(ledger, now, caches, previous=None):
             flags.append("PROVIDER_OR_IDENTITY_CONFLICT")
         if candidates:
             flags.append("PROVIDER_IDENTITY_CANDIDATES_TO_REVIEW")
+        if any(c.get("match_strength") == "WEAK_REVIEW_ONLY" for c in candidates):
+            flags.append("WEAK_IDENTITY_CANDIDATE")
         if not flags:
             flags.append("NO_MATCH_FOUND_IN_AVAILABLE_CACHES")
         game.update({

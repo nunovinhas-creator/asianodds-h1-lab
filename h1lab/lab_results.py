@@ -487,7 +487,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         record = {"match_key": key, "home": row.get("home"), "away": row.get("away"),
                   "kickoff_utc": row.get("kickoff_utc"), "status": row["status"],
                   "evidence": (row.get("result") or {}).get("evidence"),
-                  "reason": row.get("reason"), "last_checked_at": row.get("checked_at"),
+                  "reason": row.get("reason"),
+                  "last_checked_at": row.get("evidence_checked_at" if evidence_retry else "checked_at"),
+                  "legacy_last_checked_at": row.get("checked_at") if evidence_retry else None,
+                  "evidence_attempts": row.get("evidence_attempts", 0),
                   "observed_alerts": row.get("observed_alerts", 0)}
         if row["status"] == "FINAL":
             record["home_goals"] = row["result"]["home_goals"]

@@ -56,6 +56,25 @@ class IdentityQueue(unittest.TestCase):
                         {"goal": {"2026-10-27": [goal("Benfica U21", "Sporting U19")]}})
         self.assertFalse(d["games"][0]["candidates"])
 
+    def test_alias_like_names_reach_human_review_without_ft(self):
+        examples = (
+            ("Express Red Eagles", "Kataka FC", "Express", "Kataka"),
+            ("FC Pyunik Yerevan", "FC Ararat Yerevan", "Pyunik", "Ararat"),
+            ("FBC Unione Venezia", "Internazionale", "Venezia", "Inter"),
+        )
+        for i, (home, away, api_home, api_away) in enumerate(examples):
+            with self.subTest(pair=(home, away)):
+                k = f"2026-10-27,9900{i},8800{i}"
+                ledger = {"matches": {k: row(k, home, away)}}
+                d = build_queue(ledger, NOW, {"goal": {
+                    "2026-10-27": [goal(api_home, api_away)]}})
+                self.assertTrue(d["games"][0]["candidates"])
+                self.assertEqual(d["games"][0]["review_state"],
+                                 "HUMAN_REVIEW_REQUIRED_NO_SCORE")
+                self.assertEqual(d["games"][0]["ft_status"], "PENDING")
+                self.assertNotIn("home_goals", json.dumps(d))
+                self.assertTrue(d["games"][0]["candidates"][0]["review_only"])
+
     def test_duplicate_possible_but_no_merge(self):
         a, b = "2026-10-27,25158,84806", "2026-10-27,10017282,84806"
         data = {"matches": {a: row(a, "Mersin Idmanyurdu SK"),
