@@ -1,3 +1,5 @@
+> **Atualização 28/10/2026:** esta página é **apenas histórica** (V1/V2, inativos para decisão). O motor atual de cruzamento de odds e resultados é o [**cérebro V5**](lab/CEREBRO-ODDS.md), implementado em [pattern_engine.py](../h1lab/pattern_engine.py) e descrito em [PATTERN-ENGINE.md](lab/PATTERN-ENGINE.md). Não usar o protótipo V1 como se fosse o motor atual.
+
 > **Documento histórico.** Descreve os protótipos V1 (`intelligence.py`) e V2 (`market_v2.py`). A arquitetura atual (V4, Golden Set, cronologia por jogo) está em [`docs/lab/ARCHITECTURE.md`](lab/ARCHITECTURE.md).
 
 # Market Intelligence V1 — investigação separada
