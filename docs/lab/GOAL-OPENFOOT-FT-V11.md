@@ -27,3 +27,12 @@ O relatório FT adiciona `goal_search`, `openfoot_search` com `configured`, `pol
 - https://openfootapi.com/docs
 
 **Antes de declarar ganhos**, consultar o workflow de ativação pós-merge e comparar o `data/lab/ft-ledger.json` com o snapshot anterior. Um fornecedor validado e 294 jogos disponíveis não são prova de 294 resultados AsianOdds.
+
+## Dois pares revistos estritamente (não são aliases gerais)
+
+O catálogo autenticado da OpenFoot para a Taça da Roménia de 27/10/2026 permite rever apenas estes dois eventos, ambos presentes como **PENDING** no LAB antes da V11:
+
+- `2026-10-27,95935,1688`: AsianOdds `AFC Progresul Spartac '44` – `FC Petrolul Ploieşti` (15:00 UTC), OpenFoot `Progresul Spartac` – `Petrolul Ploiești`.
+- `2026-10-27,22207,24472`: AsianOdds `FCM Uzina Textila Arad (UTA)` – `FC SA Botoşani` (17:00 UTC), OpenFoot `UTA Arad` – `Botoșani`.
+
+A exceção exige a identidade exata original, a chave `match_key`, o horário original, os nomes OpenFoot exatos, `competitionId=comp_cupa_romaniei_ro`, início com desvio máximo de cinco minutos, ausência de outros clubes/jogos na janela e FT explícito. A proveniência aparece como `REVIEWED_PAIR`; **não aplicar estas variantes a outros jogos, dias ou competições**.
