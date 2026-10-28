@@ -35,3 +35,14 @@
 - [Auditoria de chamadas autenticadas](../../data/lab/ft-api-audit.json)
 - [Issue de acompanhamento V6](https://github.com/nunovinhas-creator/asianodds-h1-lab/issues/63)
 - [Workflow FT e quotas](../../.github/workflows/lab-ft-results.yml)
+
+## Fallback automático do cron FT — H1 watchdog
+
+O GitHub `schedule` é best-effort e não assegura que um job a cada meia hora seja iniciado atempadamente. O `scripts/lab_ft_watchdog.py`, integrado como **último passo** do workflow H1, consulta exclusivamente a API GitHub de execuções do LAB FT e só solicita `workflow_dispatch` se **não existir nenhuma execução iniciada há 35 minutos**. Considera execuções em fila, em curso e falhadas, sem disparar uma duplicação imediata. Um erro HTTP/JSON/token bloqueia o disparo e não altera ficheiros.
+
+- Não altera o coletor Telegram, as notificações H1, ROI FIFO ou triplas; o passo H1 é `continue-on-error: true` e executa apenas **depois** do commit/push dos dados H1.
+- Não cria novo cron Cloudflare ou workflow agendado; utiliza a recolha H1 que já é executada.
+- Apenas o próprio workflow H1 em `main` pode executar o watchdog com `GITHUB_TOKEN` Actions:write; nunca publica o token ou as respostas do servidor em logs.
+- Uma execução FT despachada com `trigger_source=h1-ft-watchdog` está identificada na auditoria `data/lab/ft-api-audit.json` como `h1_ft_watchdog`, habilita as mesmas APIs que um `schedule` regular e está sujeita às **mesmas quotas e às mesmas condições de 30 jogos / 3h pós-KO / cooldown 4h**.
+- Os falsos positivos de dispatch são minimizados pela janela de 35 minutos; a execução FT tem mutex independente `asianodds-lab-ft-results` e nunca é um pré-requisito do H1. Se a recolha H1 não executar, o fallback também não opera; é necessário verificar o cron Cloudflare já instalado.
+- **Prova operacional obrigatória:** observar `FT_WATCHDOG_RECENT_RUN` ou `FT_WATCHDOG_DISPATCH_ACCEPTED` nas execuções reais H1, e, quando o cron FT estiver ausente por mais de 35 minutos, um run FT `workflow_dispatch` com relatório de providers e entrada `h1_ft_watchdog` no audit. A CI apenas confirma o comportamento sintético.
