@@ -20,6 +20,7 @@ from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
 from h1lab.lab_ft_crosswalk import build_registry
+from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_goal import GoalResults
@@ -218,6 +219,16 @@ def main():
     if api_football_poll: active.add("api_football")
     rotation = choose_days(preview_keys, _preview_ledger["matches"],
                            historical_days, now, active)
+    # Only a previously observed, unique, aligned GOAL candidate may receive
+    # a strict id verification. Substitute one date request; never add calls.
+    previous_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
+                       if IDENTITY_REVIEW.exists() else {})
+    goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
+                                 previous_review, now) if goal_enabled else {})
+    if goal_targets:
+        goal.target_ids = goal_targets
+        goal.max_days = 1
+        rotation["goal"] = rotation["goal"][:1]
     goal.allowed_days = frozenset(rotation["goal"])
     openfoot.allowed_days = frozenset(rotation["openfoot"])
     api_football.allowed_days = frozenset(rotation["api_football"])
@@ -246,11 +257,14 @@ def main():
         "openfoot": sorted(openfoot.days),
         "api_football": sorted(api_football.days),
     }
-    next_rotation = advance(historical_days, rotation, used_days, now)
+    next_rotation = advance(historical_days, rotation, used_days, now,
+                            extra_requests={"goal":goal.id_requests})
     report["ft_queue"]["date_rotation"] = {
         provider: {"selected_days": rotation[provider],
                    "requested_days": used_days[provider],
-                   "date_budget": {"goal":2,"openfoot":2,"api_football":3}[provider]}
+                   "date_budget": (goal.max_days if provider=="goal" else
+                                   {"openfoot":2,"api_football":3}[provider]),
+                   "id_requests": goal.id_requests if provider=="goal" else 0}
         for provider in ("goal","openfoot","api_football")
     }
     # ID registry is extracted ONLY from already reconciled confirmed scores;
@@ -259,6 +273,12 @@ def main():
                     if PROVIDER_IDENTITY.exists()
                     else {"schema_version":1,"entries":{}})
     identity_registry = build_registry(next_ledger, old_identity)
+    report["ft_queue"]["goal_id_probe"] = {
+        "candidates_planned": len(goal_targets),
+        "calls": goal.id_requests,
+        "outcome": ([next_ledger["matches"][key].get("provider_reasons",{}).get("goal")
+                     for key in goal_targets] if goal_targets else []),
+    }
     report["ft_queue"]["confirmed_provider_ids"] = identity_registry["confirmed_ids"]
     report["ft_queue"]["provider_id_collisions"] = identity_registry["collision_ids"]
     write_if_changed(DAY_ROTATION, next_rotation)

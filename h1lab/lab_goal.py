@@ -74,6 +74,31 @@ def fetch_date(day,key):
     # Unexpected partial pagination cannot be used for unique matching.
     return rows
 
+def fetch_fixture_by_id(event_id, key):
+    """Official GOAL /fixtures/:id; bounded and fail-closed."""
+    if not isinstance(event_id, str) or not re.fullmatch(r"[0-9]{3,12}", event_id) or not key:
+        raise ValueError("Invalid GOAL fixture id")
+    req = Request("https://api.goal-api.com/v1/fixtures/" + event_id,
+                  headers={"Authorization": "Bearer " + key,
+                           "Accept": "application/json",
+                           "User-Agent": "AsianOdds-LAB-FT/1.0"})
+    try:
+        with urlopen(req, timeout=18) as resp:
+            if resp.status != 200:
+                raise OSError("GOAL ID unavailable")
+            data = resp.read(2_000_001)
+            if len(data) > 2_000_000:
+                raise ValueError("GOAL ID response too large")
+            body = json.loads(data)
+    except (HTTPError, URLError, OSError, TimeoutError, ValueError):
+        raise OSError("GOAL ID unavailable") from None
+    if not isinstance(body, dict) or body.get("success") is not True:
+        raise ValueError("Invalid GOAL ID envelope")
+    event = body.get("data")
+    if not isinstance(event, dict) or str(event.get("apiId", "")) != event_id:
+        raise ValueError("GOAL ID response identity mismatch")
+    return event
+
 
 def choose(signal, rows):
     ev,level,reason=select_event(signal, rows,
@@ -146,7 +171,7 @@ def verify(signal,ev,level):
 
 
 class GoalResults:
-    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None):
+    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None,target_ids=None,id_getter=fetch_fixture_by_id):
         if type(max_days) is not int or not 0<=max_days<=MAX_DAYS:
             raise ValueError("GOAL day budget exceeded")
         self.key=(key or "").strip()
@@ -159,6 +184,12 @@ class GoalResults:
         self.allowed_days = None if allowed_days is None else frozenset(allowed_days)
         self.cache={}
         self.requests=0
+        self.id_requests=0
+        self.target_ids=dict(target_ids or {})
+        if len(self.target_ids)>1 or any(not isinstance(k,str) or not re.fullmatch(r"[0-9]{3,12}",str(v))
+                                         for k,v in self.target_ids.items()):
+            raise ValueError("Unsafe GOAL fixture ID targets")
+        self.id_getter=id_getter
         self.reasons=Counter()
     def lookup(self,signal):
         if not self.key:
@@ -166,6 +197,32 @@ class GoalResults:
         ko=_utc(signal.get("kickoff_utc"))
         if ko is None:
             return None,"goal_invalid_kickoff"
+        target = self.target_ids.get(signal.get("match_key"))
+        if target is not None:
+            if self.id_requests >= 1:
+                return None,"goal_id_budget_deferred"
+            # This one ID call replaces one of two date calls, never adds a third.
+            if self.requests + self.id_requests >= MAX_DAYS:
+                return None,"goal_id_budget_deferred"
+            self.id_requests += 1
+            try:
+                event = self.id_getter(str(target), self.key)
+            except (OSError, ValueError):
+                self.reasons["goal_id_unavailable"] += 1
+                return None,"goal_id_unavailable"
+            if not isinstance(event,dict) or str(event.get("apiId","")) != str(target):
+                self.reasons["goal_id_mismatch"] += 1
+                return None,"goal_id_mismatch"
+            # A fixture ID is a locator. Re-apply the strict, public 90m
+            # verifier after selecting exactly the matching team pair.
+            chosen,level,why=choose(signal,[event])
+            if chosen is None:
+                self.reasons["goal_id_"+why] += 1
+                return None,"goal_id_"+why
+            result,reason=verify(signal,chosen,level)
+            self.reasons[reason]+=1
+            return result,reason
+
         day=ko.date().isoformat()
         if self.allowed_days is not None and day not in self.allowed_days:
             return None,"goal_day_rotation_deferred"
@@ -188,7 +245,8 @@ class GoalResults:
         self.reasons[why]+=1
         return result,why
     def summary(self):
-        return {"configured":bool(self.key),"requests":self.requests,
+        return {"configured":bool(self.key),"requests":self.requests+self.id_requests,
+                "date_requests":self.requests,"id_requests":self.id_requests,
                 "cached_days":len(self.cache),
                 "requested_days":sorted(self.cache),
                 "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
