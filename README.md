@@ -23,7 +23,7 @@ A atualização reutiliza `lab-ft-results.yml`, sem novos pedidos API, cron ou a
 
 ## O cérebro que cruza odds, mercados e resultados (V5)
 
-**Observatório de jogos futuros:** [padrão de múltiplos alertas, subidas e estabilidade dos golos implícitos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html). Distingue episódios independentes de mensagens repetidas, com dados Total válidos; **não altera as hipóteses estatísticas V5 nem produz apostas**.
+**Observatório de jogos futuros e alertas Telegram:** [padrão de múltiplos alertas, subidas e estabilidade dos golos implícitos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html). Distingue episódios independentes de mensagens repetidas, com dados Total válidos; **não altera as hipóteses estatísticas V5 nem produz apostas**.
 
 **O cérebro já existe e está operacional em modo LAB exploratório**: [guia acessível do cérebro V5](docs/lab/CEREBRO-ODDS.md), [especificação e validação](docs/lab/PATTERN-ENGINE.md), [código principal](h1lab/pattern_engine.py), [investigação visual](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) e [relatório estruturado](docs/lab/pattern-research.json).
 
@@ -65,9 +65,9 @@ Telegram → collect.yml
 - ✅ Triplas FIFO: o terceiro sinal cria um bilhete se todos os jogos ainda começarem no futuro (margem mínima de 10 min), sem substituições.
 - ✅ Liquidação asiática: vitória, derrota, meia vitória, meia derrota, devolução.
 - ✅ Dashboard estático em `docs/index.html`, com ROI das singles e das triplas, calculado apenas sobre bilhetes já liquidados.
-- ✅ Envio das triplas para as **Mensagens Guardadas** da tua própria conta Telegram com `python -m h1lab.notify`.
+- ✅ Os alertas Telegram são exclusivamente do **padrão prospetivo rigoroso** do MASTER BRAIN: ≥2 episódios independentes de alertas pré-jogo, sem queda de λ ≤ −0,05 e com Total válido em todos os alertas. O bot envia no máximo um aviso por jogo, como **observação exploratória, não aposta**. Motor `h1lab/pattern_notify.py`.
 - ✅ Recolha real com Telethon de cinco em cinco minutos, disparada pelo Cloudflare Workers Cron (ver secção seguinte). O GitHub pode atrasar/omitir os seus próprios ticks.
-- ℹ️ As triplas são dirigidas às *Mensagens Guardadas* (configuração existente). Verificar os recibos e os logs de cada execução; Mensagens Guardadas não garantem notificação push.
+- ℹ️ **Under H1 e triplas FIFO continuam a ser calculados, publicados e liquidados**, mas **já não produzem alertas Telegram**. Os avisos do cérebro são enviados pelo Bot API para `TG_CHAT_ID`; `data/pattern-notifications.json` guarda os recibos. Na primeira execução, os jogos já identificados formam a baseline e não são reenviados.
 - ✅ Reconciliação horária H1 por BSD Football v2 e TheSportsDB, seguida de **importação estrita de FT FINAL do LAB** via `h1lab/lab_promotion.py`. A publicação preserva os resultados H1 existentes e atualiza o ROI. O LAB procura FT para **todos os jogos observados**, usando vários fornecedores com limites de pedidos; sem correspondência segura, os jogos continuam pendentes.
 
 ## Agendamento de 5 minutos — estado verificado (27/10/2026)
@@ -83,7 +83,7 @@ O laboratório **não altera o H1** e não cria apostas. Mapa de componentes, re
 
 ## Como funciona
 
-`canal AsianOdds → Telethon (conta subscritora) → alertas numéricos → primeiro H1 por jogo → fila cronológica de 3 jogos futuros → Saved Messages`
+`canal AsianOdds → Telethon (conta subscritora) → V4/V5 → episódios independentes → padrão sem queda relevante de λ → Bot Telegram (observação exploratória)`
 
 Em paralelo, `h1lab/results.py` verifica resultados FT na BSD e TheSportsDB, e `h1lab/lab_promotion.py` acrescenta FT finais compatíveis confirmados pelo LAB; ambos alimentam `data/results.csv` e a proveniência em `data/result_audit.json`. O CSV alimenta o dashboard com retorno bruto por aposta de 1 unidade. Múltiplas são o produto dos retornos dos três Under asiáticos, incluindo meias liquidações. A odd combinada é **teórica**: as três cotações podem não estar simultaneamente disponíveis para uma aposta real.
 
@@ -99,7 +99,7 @@ Em paralelo, `h1lab/results.py` verifica resultados FT na BSD e TheSportsDB, e `
 
 ## Dados
 
-- `data/state.json`: histórico estruturado de alertas, sinais e triplas, com checkpoint de ID Telegram e recibos de notificações.
+- `data/state.json`: histórico estruturado de alertas, sinais e triplas e checkpoint de ID Telegram; os novos recibos de Telegram ficam em `data/pattern-notifications.json`.
 - `data/results.csv`: resultados finais confirmados pela BSD, TheSportsDB, pela ponte de FT FINAL do LAB ou por intervenção manual documentada, com URL de origem (nunca estimados).
 - `data/result_audit.json`: última pesquisa automática por jogo, estado e motivo da não liquidação; sem credenciais.
 - `h1lab/results.py`: reconciliação H1 de FT via BSD / TheSportsDB, com identidade, data/hora, proveniência e regras de período regulamentar.
@@ -110,7 +110,8 @@ Em paralelo, `h1lab/results.py` verifica resultados FT na BSD e TheSportsDB, e `
 - `docs/data.json`: visão pública de sinais, triplas e ROI.
 - `h1lab/core.py`: regras e liquidação, completamente testáveis sem Telegram.
 - `h1lab/cli.py`: leitor Telegram e atualização do dashboard.
-- `h1lab/notify.py`: mensagens com as triplas simuladas.
+- `h1lab/notify.py`: módulo legado das triplas simuladas, **desativado no workflow de recolha**.
+- `h1lab/pattern_notify.py`: único notificador ativo no `collect.yml`, reutiliza `pattern_watch.inspect`, sem depender de novos pedidos API; recibos em `data/pattern-notifications.json`.
 - `scripts/authorize.py`: criação interativa da sessão na tua máquina.
 
 ### Configurar a BSD
