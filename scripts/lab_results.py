@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from h1lab.lab_results import reconcile
+from h1lab.v6_ft_events import priority_hints as v6_priority_hints
 from h1lab.lab_espn import ESPNResults
 from h1lab.lab_sportscore import SportScoreResults
 from h1lab.lab_monte_bsd import MonteBSDCrosswalk
@@ -112,6 +113,13 @@ def main():
                 if LEDGER.exists() else {"schema_version": 1, "matches": {}})
     checks = int(os.environ.get("LAB_RESULTS_MAX_CHECKS", "30"))
     now = datetime.now(timezone.utc)
+    # Read only frozen, pre-kickoff V6 captures; never contact an API here.
+    # If scientific memory is unavailable, revert to the original FT queue.
+    try:
+        research_hints = v6_priority_hints(ROOT)
+    except (ValueError, OSError, KeyError, TypeError) as exc:
+        research_hints = {}
+        print("V6_FT_PRIORITY_FALLBACK", type(exc).__name__)
     bsd_finder = BSDDateFallback(
         token=os.environ.get("BSD_API_KEY", ""),
         max_days=int(os.environ.get("LAB_BSD_DATE_MAX_DAYS", "3")),
@@ -179,7 +187,8 @@ def main():
         openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
-        max_checks=checks, force_recheck=recovery_once)
+        max_checks=checks, force_recheck=recovery_once,
+        priority_hints=research_hints)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
