@@ -21,6 +21,20 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
+      - name: V6.2 P2#14 real LAB monthly archives, all-file limit and SHA replay
+        run: |
+          python -m scripts.lab_v6_archive
+          python -m scripts.lab_v6_archive --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('docs/lab/v6-archive-health.json').read_text(encoding='utf-8'))
+          assert report['status']=='V6_LAB_ARCHIVE_INTEGRITY_SHADOW'
+          assert report['scientific_state']=='INCONCLUSIVO'
+          assert report['largest_file_bytes'] <= 20_000_000
+          assert report['replay']['v6_forecasts'] >= 1
+          print('V6_ARCHIVE_REAL_SMOKE_OK',report['lab_files_checked'],report['monthly_parts'])
+          PY
       - name: V6.2 P2#13 real observations, frozen catalogue, replay and integrity
         run: |
           python -m scripts.lab_v6_hypothesis_pruning

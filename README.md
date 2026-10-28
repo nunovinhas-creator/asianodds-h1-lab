@@ -168,3 +168,8 @@ python -m h1lab.cli render
 ### V6.2 — P2 n.º 13: hipóteses redundantes
 
 O catálogo original das 800 hipóteses V5 está arquivado em [data/lab/v6-pruning-catalog-v1.json](data/lab/v6-pruning-catalog-v1.json). A primeira execução fixa a matriz observacional, seleciona até 300 representantes por diversidade e publica um mapa original→representante em [docs/lab/v6-pruning.json](docs/lab/v6-pruning.json). A dimensão efetiva é uma estimativa descritiva, não um ajuste de significância. A escolha não lê FT, ganhos, odds de fecho ou resíduos, nem altera H1, Telegram, memórias ou previsões V6. O Radar Científico apresenta-a como investigação exploratória.
+
+
+### V6.2 — P2 n.º 14: arquivo mensal verificável
+
+Os diários de observações, revisões V4, resultados FT, previsões V6, cinco memórias científicas e descobertas passam a admitir **partes mensais limitadas a 20.000.000 bytes**, sem reescrever os registos nem alterar a cadeia SHA. As projeções atualizáveis `markets`/`formats` são divididas de modo independente. O [índice de arquivos selados](data/lab/v6-archive-index.json) regista SHA-256 integral de cada parte de meses fechados, e o [relatório de saúde](docs/lab/v6-archive-health.json) verifica o histórico e todos os ficheiros LAB. A verificação não exige novas APIs nem workflows. Consulte [MASTER-BRAIN-V6.md](docs/lab/MASTER-BRAIN-V6.md) para recuperação, limites e semântica temporal. Estado científico: INCONCLUSIVO.
