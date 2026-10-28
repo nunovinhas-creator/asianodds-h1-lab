@@ -27,6 +27,7 @@ on:
       - 'h1lab/lab_reviewed_aliases.py'
       - 'tests/test_lab_reviewed_aliases.py'
       - 'tests/test_lab_source_order.py'
+      - 'tests/test_lab_ft_recovery.py'
       - 'tests/test_lab_sportscore.py'
       - 'tests/test_lab_espn.py'
       - 'h1lab/lab_bsd_search.py'
@@ -76,6 +77,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_sportscore.py' -v
           python -m unittest discover -s tests -p 'test_lab_reviewed_aliases.py' -v
           python -m unittest discover -s tests -p 'test_lab_source_order.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_recovery.py' -v
           python -m unittest discover -s tests -p 'test_lab_monte_bsd.py' -v
           python -m unittest discover -s tests -p 'test_lab_identity.py' -v
           python -m unittest discover -s tests -p 'test_lab_reviewed_bsd_ids.py' -v
@@ -163,6 +165,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json
+          if [ -f data/lab/ft-api-audit.json ]; then git add data/lab/ft-api-audit.json; fi
           if [ -f docs/lab/pattern-research.json ]; then git add docs/lab/pattern-research.json; fi
           if [ -f data/lab/pattern-registry.json ]; then git add data/lab/pattern-registry.json; fi
           if git diff --cached --quiet; then
