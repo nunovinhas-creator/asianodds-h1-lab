@@ -61,6 +61,36 @@ def is_reviewed_alias(signal, match):
         norm_team(_str(match.get("away"))) != norm_team(signal.get("away")))
 
 
+def source_order_conflict(source, home, away):
+    """Reject only provably reversed labels in SportScore's own match URL.
+
+    Never infer a score from the URL. If the slug's teams can be read
+    unambiguously and are in the reverse order of the source response,
+    the API's home/away score association is not trustworthy.
+    """
+    if not isinstance(source, str):
+        return False
+    parsed = urlparse(source)
+    if parsed.scheme != "https" or parsed.netloc != "sportscore.com":
+        return False
+    pieces = [x for x in parsed.path.split("/") if x]
+    if "match" not in pieces:
+        return False
+    index = pieces.index("match") + 1
+    if index >= len(pieces):
+        return False
+    slug = pieces[index]
+    if slug.count("-vs-") != 1:
+        return False
+    left, right = slug.split("-vs-", 1)
+    if not left or not right:
+        return False
+    normal_home, normal_away = norm_team(home), norm_team(away)
+    slug_home, slug_away = norm_team(left), norm_team(right)
+    return (slug_home == normal_away and slug_away == normal_home
+            and (slug_home, slug_away) != (normal_home, normal_away))
+
+
 def verified(signal,match,competition=""):
     if not isinstance(match,dict):return None,"invalid_match"
     if not teams_match(signal,match):
@@ -86,6 +116,8 @@ def verified(signal,match,competition=""):
     source=_source_url(match.get("url"))
     if not source:
         return None,"missing_source_url"
+    if source_order_conflict(source, _str(match.get("home")), _str(match.get("away"))):
+        return None,"source_home_away_conflict"
     return {"match_key":signal["match_key"],"status":"final",
             "home_goals":int(h),"away_goals":int(a),"source":source},(
                 "verified_sportscore_ft_reviewed_alias" if is_reviewed_alias(signal,match)
