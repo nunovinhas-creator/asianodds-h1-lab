@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from h1lab.v6_shadow import run, STATUS
+from h1lab.v6_shadow import run, STATUS, snapshot_quality_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,6 +23,14 @@ def main(argv=None):
     report, added = run(args.root, now)
     if report["status"] != STATUS:
         raise SystemExit("unexpected V6 status")
+    # Every historical Telegram Total receives a per-event quality assessment,
+    # explicitly NOT a retroactive or frozen forecast.
+    quality_path = args.root / "docs/lab/v6-price-quality.json"
+    qa_text = json.dumps(snapshot_quality_rows(args.root), ensure_ascii=False,
+                         sort_keys=True, separators=(",", ":")) + "\n"
+    if not quality_path.exists() or quality_path.read_text(encoding="utf-8") != qa_text:
+        quality_path.parent.mkdir(parents=True, exist_ok=True)
+        quality_path.write_text(qa_text, encoding="utf-8")
     target = args.root / "docs/lab/v6-shadow.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     # Report is derived and safely replaceable. Journal is append-only.
