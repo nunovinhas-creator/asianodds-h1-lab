@@ -17,76 +17,70 @@
     "date_list_requests": 1,
     "fallback_results_recovered": 0,
     "lookup_reason_counts": {
-      "bsd_no_exact_match_in_date": 2,
-      "bsd_primary_unavailable": 1
+      "bsd_no_exact_match_in_date": 5
     }
   },
   "coverage_diagnostics": {
     "blocked_review": 0,
-    "ft_confirmed": 53,
-    "future": 168,
+    "ft_confirmed": 58,
+    "future": 170,
     "grace": 23,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
       "No unresolved game is treated as an incorrect pick or a settled bet."
     ],
-    "past_unverified_eligible": 21,
+    "past_unverified_eligible": 16,
     "provider_obstacles": [
       {
-        "matches": 21,
+        "matches": 16,
         "provider": "api_football",
         "reason": "api_football_identity_no_core_match"
       },
       {
-        "matches": 21,
+        "matches": 16,
         "provider": "bsd",
         "reason": "monte_no_exact_archive_match"
       },
       {
-        "matches": 21,
+        "matches": 16,
         "provider": "goal",
         "reason": "goal_identity_no_core_match"
       },
       {
-        "matches": 21,
+        "matches": 16,
         "provider": "openfoot",
         "reason": "openfoot_identity_no_core_match"
       },
       {
-        "matches": 17,
+        "matches": 14,
         "provider": "espn",
         "reason": "espn_unsupported_competition"
       },
       {
-        "matches": 16,
+        "matches": 14,
         "provider": "sportscore",
         "reason": "sportscore_no_exact_match"
       },
       {
-        "matches": 13,
+        "matches": 9,
         "provider": "thesportsdb",
         "reason": "tsdb_limited_this_run"
       },
       {
-        "matches": 7,
+        "matches": 6,
         "provider": "thesportsdb",
         "reason": "no_event"
       },
       {
-        "matches": 5,
-        "provider": "sportscore",
-        "reason": "cup_regulation_unverified"
-      },
-      {
-        "matches": 3,
+        "matches": 2,
         "provider": "espn",
         "reason": "espn_no_exact_match"
       },
       {
-        "matches": 1,
-        "provider": "espn",
-        "reason": "extra_time_penalties_unverified"
+        "matches": 2,
+        "provider": "sportscore",
+        "reason": "cup_regulation_unverified"
       },
       {
         "matches": 1,
@@ -97,19 +91,21 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 212
+      "PENDING": 209
     }
   },
-  "displayed_matches": 265,
+  "displayed_matches": 267,
   "espn_scoreboards": {
-    "cached_league_days": 0,
+    "cached_league_days": 1,
     "confirmed_in_run": 0,
     "reason_counts": {
+      "espn_no_exact_match": 1,
+      "extra_time_penalties_unverified": 1,
       "unsupported_competition": 3
     },
-    "requests": 0
+    "requests": 1
   },
-  "final_recorded": 53,
+  "final_recorded": 58,
   "fotmob_search": {
     "cached_days": 0,
     "licensed_automation_enabled": false,
@@ -1395,6 +1391,17 @@
       "status": "PENDING"
     },
     {
+      "away": "Fenerbahçe SK Women",
+      "evidence": null,
+      "home": "Real Sociedad Women",
+      "kickoff_utc": "2026-10-28T18:00:00+00:00",
+      "last_checked_at": null,
+      "match_key": "2026-10-28,29287,10047786",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "Feyenoord Women",
       "evidence": null,
       "home": "VfL Wolfsburg Women",
@@ -1864,6 +1871,17 @@
       "last_checked_at": null,
       "match_key": "2026-10-28,25147,10017284",
       "observed_alerts": 3,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "Kutahyaspor",
+      "evidence": null,
+      "home": "Adana 1954 FK",
+      "kickoff_utc": "2026-10-28T12:00:00+00:00",
+      "last_checked_at": null,
+      "match_key": "2026-10-28,10055256,84215",
+      "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -2341,14 +2359,17 @@
     },
     {
       "away": "Longford Town FC",
-      "evidence": null,
+      "away_goals": 0,
+      "evidence": "reviewed_public_only",
       "home": "University College Dublin AFC",
+      "home_goals": 2,
       "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:13:26+00:00",
       "match_key": "2026-10-27,327,326",
       "observed_alerts": 2,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://www.rte.ie/sport/soccer/2026/1027/1597020-ucd-dispatch-longford-to-book-semi-final-date-with-bray/",
+      "status": "FINAL"
     },
     {
       "away": "Clyde FC",
@@ -2640,25 +2661,31 @@
     },
     {
       "away": "SC Cambuur Leeuwarden",
-      "evidence": null,
+      "away_goals": 2,
+      "evidence": "reviewed_public_only",
       "home": "vv Kloetinge",
+      "home_goals": 0,
       "kickoff_utc": "2026-10-27T19:00:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:13:26+00:00",
       "match_key": "2026-10-27,38744,1566",
       "observed_alerts": 1,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://www.sofascore.com/it/football/match/vv-kloetinge-sc-cambuur/vjbsNjb",
+      "status": "FINAL"
     },
     {
       "away": "RKC Waalwijk",
-      "evidence": null,
+      "away_goals": 1,
+      "evidence": "reviewed_public_only",
       "home": "BVV Barendrecht",
+      "home_goals": 1,
       "kickoff_utc": "2026-10-27T19:00:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:13:26+00:00",
       "match_key": "2026-10-27,31960,1154",
       "observed_alerts": 1,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://www.omroepbrabant.nl/nieuws/6032644/rkc-waalwijk-wint-na-strafschoppen-in-knvb-beker",
+      "status": "FINAL"
     },
     {
       "away": "Al Hilal (KSA)",
@@ -2829,14 +2856,17 @@
     },
     {
       "away": "12 Bingol spor",
-      "evidence": null,
+      "away_goals": 1,
+      "evidence": "reviewed_public_only",
       "home": "Alanyaspor",
+      "home_goals": 4,
       "kickoff_utc": "2026-10-27T17:30:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:13:26+00:00",
       "match_key": "2026-10-27,25153,62798",
       "observed_alerts": 2,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://www.alanyaspor.org.tr/Haber/corendon-alanyasporumuz--12-bingolspor-4-1",
+      "status": "FINAL"
     },
     {
       "away": "Lazio",
@@ -3077,14 +3107,17 @@
     },
     {
       "away": "FK Akhmat Grozny",
-      "evidence": null,
+      "away_goals": 0,
+      "evidence": "reviewed_public_only",
       "home": "FK Fakel Voronezh",
+      "home_goals": 0,
       "kickoff_utc": "2026-10-27T15:00:00+00:00",
-      "last_checked_at": "2026-10-28T11:01:55+00:00",
+      "last_checked_at": "2026-10-28T11:13:26+00:00",
       "match_key": "2026-10-27,23683,747",
       "observed_alerts": 1,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://www.flashfootball.com/match/akhmat-grozny-bJGqkoet/fakel-voronezh-KK7VWueJ/",
+      "status": "FINAL"
     },
     {
       "away": "Niki Volou",
@@ -3201,10 +3234,10 @@
     "requests": 0,
     "verified_in_run": 0
   },
-  "h1_alerts_count": 351,
+  "h1_alerts_count": 353,
   "h1_signals_count_in_state": 82,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-28T11:07:45+00:00",
+  "last_updated_at": "2026-10-28T11:13:26+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -3212,7 +3245,7 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 265,
+  "matches": 267,
   "matches_omitted_from_display": 0,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": "2cbd8e5e106a72c5",
@@ -3223,7 +3256,7 @@
     "exact_event_id_candidates": 0,
     "rate_limited": false,
     "reason_counts": {
-      "no_exact_archive_match": 2
+      "no_exact_archive_match": 5
     },
     "reviewed_bsd_ids_verified": 0,
     "verified_core_name_in_run": 0,
@@ -3243,89 +3276,38 @@
   "schema_version": 1,
   "source_only_v4_matches": 0,
   "source_order_audit": {
-    "cases": [
-      {
-        "away": "Albion FC Reserves",
-        "checked_at": "2026-10-28T11:07:45+00:00",
-        "home": "Montevideo City Torque Reserve",
-        "match_key": "2026-10-27,10102013,10048381",
-        "provider_reasons": {
-          "bsd": "monte_no_exact_archive_match",
-          "espn": "espn_unsupported_competition",
-          "reviewed_public": "reviewed_two_independent_public_ft",
-          "sportscore": "quarantined_source_not_reused",
-          "thesportsdb": "no_event"
-        },
-        "reason": "independent_ft_resolved_source_order_conflict",
-        "recovered_from": [
-          "reviewed_public"
-        ],
-        "status": "FINAL"
-      },
-      {
-        "away": "Kigezi Homeboys FC",
-        "checked_at": "2026-10-28T11:07:45+00:00",
-        "home": "Uganda Police FC",
-        "match_key": "2026-10-27,58630,10024258",
-        "provider_reasons": {
-          "bsd": "monte_no_exact_archive_match",
-          "espn": "espn_unsupported_competition",
-          "reviewed_public": "reviewed_two_independent_public_ft",
-          "sportscore": "quarantined_source_not_reused",
-          "thesportsdb": "no_event"
-        },
-        "reason": "independent_ft_resolved_source_order_conflict",
-        "recovered_from": [
-          "reviewed_public"
-        ],
-        "status": "FINAL"
-      },
-      {
-        "away": "PFC Dobrudzha Dobrich",
-        "checked_at": "2026-10-28T11:07:45+00:00",
-        "home": "FK Ludogorets Razgrad B",
-        "match_key": "2026-10-27,70933,35866",
-        "provider_reasons": {
-          "bsd": "bsd_primary_unavailable",
-          "espn": "espn_unsupported_competition",
-          "reviewed_public": "reviewed_two_independent_public_ft",
-          "sportscore": "quarantined_source_not_reused",
-          "thesportsdb": "no_event"
-        },
-        "reason": "independent_ft_resolved_source_order_conflict",
-        "recovered_from": [
-          "reviewed_public"
-        ],
-        "status": "FINAL"
-      }
-    ],
-    "quarantined_identified": 3,
-    "recovered_with_independent_ft": 3,
+    "cases": [],
+    "quarantined_identified": 0,
+    "recovered_with_independent_ft": 0,
     "remaining_quarantined": 0
   },
   "sportscore_search": {
-    "cached_date_team_queries": 0,
+    "cached_date_team_queries": 2,
     "confirmed_in_run": 0,
-    "reason_counts": {},
-    "requests": 0,
+    "reason_counts": {
+      "cup_regulation_unverified": 3,
+      "sportscore_no_exact_match": 2
+    },
+    "requests": 5,
     "reviewed_alias_ft_in_run": 0,
-    "targeted_searches": 0
+    "targeted_searches": 3
   },
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
-    "FINAL": 53,
-    "PENDING": 212
+    "FINAL": 58,
+    "PENDING": 209
   },
   "thesportsdb_search": {
-    "no_event": 3,
-    "requested": 3
+    "no_event": 4,
+    "not_confirmed_ft": 1,
+    "requested": 5
   },
   "timing_counts": {
-    "ELIGIBLE_COOLDOWN": 21,
-    "FINAL_RECORDED": 53,
-    "FUTURE": 168,
+    "ELIGIBLE_COOLDOWN": 16,
+    "FINAL_RECORDED": 58,
+    "FUTURE": 170,
     "IN_3H_GRACE": 23
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 212
+  "unverified": 209
 }
