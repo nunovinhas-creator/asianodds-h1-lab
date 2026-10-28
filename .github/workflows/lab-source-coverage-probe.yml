@@ -1,0 +1,79 @@
+name: Lab - One-time SportScore coverage probe (no raw exports)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lab-source-coverage-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Probe documented public API and validate usefulness before any integration
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          from collections import Counter
+          from urllib.error import HTTPError,URLError
+          from urllib.request import Request,urlopen
+          from urllib.parse import urlencode
+          import json
+          from pathlib import Path
+
+          ROOT="https://sportscore.com/api/v1/"
+          def fetch(endpoint, params):
+              url=ROOT+endpoint+"?"+urlencode(params)
+              req=Request(url,headers={"Accept":"application/json",
+                      "User-Agent":"AsianOdds-LAB-FT-Probe/1.0"})
+              try:
+                  with urlopen(req,timeout=13) as r:
+                      if r.status!=200: raise OSError("Unexpected status")
+                      return json.loads(r.read(1500000))
+              except HTTPError as e:
+                  print("SPORTSCORE_HTTP_STATUS",e.code,endpoint)
+              except (OSError,ValueError,URLError,TimeoutError):
+                  print("SPORTSCORE_PROVIDER_UNAVAILABLE",endpoint)
+              return None
+
+          # Only schema and aggregate counts. No fixtures dumped or persisted.
+          result=fetch("fixtures/",{"sport":"football","date":"2026-10-27",
+                                    "status":"finished","limit":200})
+          print("SPORTSCORE_ENVELOPE",type(result).__name__,
+                sorted(result) if isinstance(result,dict) else "not_object")
+          if isinstance(result,dict):
+              for field,value in result.items():
+                  if isinstance(value,list):
+                      print("SPORTSCORE_LIST",field,"len",len(value),
+                            "first_schema",sorted(value[0]) if value and isinstance(value[0],dict) else None)
+                  elif isinstance(value,(int,float,bool,type(None))):
+                      print("SPORTSCORE_SCALAR",field,value)
+                  elif isinstance(value,str):
+                      print("SPORTSCORE_TEXT_FIELD",field,"len",len(value))
+              # Never assert complete coverage based on a 200-row free-tier result.
+              for field,value in result.items():
+                  if not isinstance(value,list) or not value or not isinstance(value[0],dict):
+                      continue
+                  sample=value[0]
+                  allowed=("home","away","home_team","away_team","home_score","away_score",
+                           "status","time","start_time","kickoff","slug","id")
+                  print("SPORTSCORE_SAMPLE_ALLOWED_FIELDS",{k:sample.get(k) for k in allowed if k in sample})
+                  break
+          # Explore documented team-search contract; do not send private details.
+          search=fetch("search/",{"sport":"football","q":"Sporting","limit":4})
+          print("SPORTSCORE_SEARCH_SCHEMA",sorted(search) if isinstance(search,dict) else type(search).__name__)
+          if isinstance(search,dict):
+              for k,v in search.items():
+                  if isinstance(v,list):
+                      print("SPORTSCORE_SEARCH_LIST",k,"count",len(v),
+                            "first_keys",sorted(v[0]) if v and isinstance(v[0],dict) else None)
+          print("SPORTSCORE_PROBE_COMPLETE_NO_SETTLEMENT")
+          PY
