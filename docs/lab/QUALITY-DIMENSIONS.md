@@ -1,3 +1,5 @@
+> **Atualização de leitura 28/10/2026:** o diagnóstico de gates e contagens de 27/10 abaixo é uma **fotografia histórica**. A fonte atual é [v4-audit.json](v4-audit.json), que às 11:46 UTC ainda marcava `PENDING`, embora `coverage_99` e `data_integrity` fossem verdadeiros. O Golden Set permanece `NOT_CERTIFIED`; a concordância entre parsers não valida as mensagens originais. O [cérebro V5](CEREBRO-ODDS.md) é uma investigação de padrões separada e **não certifica automaticamente o V4**.
+
 # Qualidade V4 — dimensões separadas e critérios estatísticos
 
 Bloco `quality_dimensions` em `docs/lab/v4-audit.json`. **É informativo: não altera `acceptance_gates` nem `status`.** Os gates oficiais continuam exatamente como estavam.
