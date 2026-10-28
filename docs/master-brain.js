@@ -216,6 +216,7 @@
    const all=d.timeline||[];
    const filtered=all.filter(x=>current==="all" ||
      (current==="states"&&["CANDIDATE","VALIDATED","REJECTED","STATE_CHANGE"].includes(x.kind)) ||
+     (current==="NEW_EVIDENCE"&&(x.ft_delta>0||x.oos_ft_delta>0)) ||
      x.kind===current);
    put("discovery-count",num(filtered.length)+" de "+num(all.length)+" acontecimentos recentes");
    if(!filtered.length){
