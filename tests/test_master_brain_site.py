@@ -100,6 +100,16 @@ class MasterBrainSiteTests(unittest.TestCase):
         self.assertIn("EXPLORATORIO", (DOCS / "index.html").read_text(encoding="utf-8") +
                       js.replace("EXPLORATÓRIO", "EXPLORATORIO"))
 
+    def test_discovery_radar_has_real_data_source_and_no_betting_actions(self):
+        doc = parse("index.html")
+        self.assertTrue({"r-discovery", "discovery-filter", "r-detail", "r-prospective"} <= doc.ids)
+        self.assertTrue((DOCS / "lab" / "discoveries.json").is_file())
+        js = (DOCS / "master-brain.js").read_text(encoding="utf-8")
+        for item in ("discoveries.json", "renderChronology()", "renderProspective()",
+                     "showEvidence(", "first_detected_at", "out_of_sample"):
+            self.assertIn(item, js)
+        self.assertIn("SIGN_REVERSAL", js)
+
     @unittest.skipUnless(shutil.which("node"), "node unavailable")
     def test_javascript_syntax(self):
         for path in ("master-brain.js", "dashboard.js"):
