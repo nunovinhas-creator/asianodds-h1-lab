@@ -7,6 +7,7 @@ produces a verified match.
 """
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
@@ -34,6 +35,7 @@ class BSDDateFallback:
         self.days = {}  # day -> (list of events, diagnostic); never persisted
         self.date_requests = 0
         self.details_requested = 0
+        self.diagnostics = Counter()
 
     @staticmethod
     def _kickoff(signal):
@@ -91,6 +93,12 @@ class BSDDateFallback:
         return self.days[day]
 
     def lookup(self, signal):
+        """Lookup one game and record the diagnostic for coverage reporting."""
+        result, reason = self._lookup(signal)
+        self.diagnostics[reason] += 1
+        return result, reason
+
+    def _lookup(self, signal):
         """Prefer established strict team-name lookup, then date fallback."""
         if not self.token:
             return None, "bsd_not_configured"
@@ -136,4 +144,6 @@ def summary(search: BSDDateFallback):
             "date_list_requests": search.date_requests,
             "date_detail_requests": search.details_requested,
             "date_complete_days": sum(s == "complete" for _, s in search.days.values()),
-            "date_incomplete_days": sum(s != "complete" for _, s in search.days.values())}
+            "date_incomplete_days": sum(s != "complete" for _, s in search.days.values()),
+            "lookup_reason_counts": dict(sorted(search.diagnostics.items())),
+            "fallback_results_recovered": search.diagnostics["verified_bsd_ft_via_date"]}
