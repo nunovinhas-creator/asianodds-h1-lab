@@ -19,6 +19,7 @@ def row(key="2026-10-28,1,2", last_at=None, category="RISING_WITH_FLAT"):
         "kickoff_utc": (NOW + timedelta(hours=3)).isoformat(),
         "last_alert_at": last_at, "messages": 2, "episodes": 2,
         "strict_condition": True, "category": category,
+        "total_line_before": 2.5, "total_line_after": 2.75,
         "observations": [
             {"event_id": "123:1", "delta_lambda": .10},
             {"event_id": "123:2", "delta_lambda": -.01},
@@ -47,6 +48,8 @@ class PatternNotifyTests(unittest.TestCase):
         self.assertEqual(ledger["entries"][r["match_key"]]["telegram_message_id"], 875)
         self.assertIn("NÃO validada", msgs[0])
         self.assertIn("2 episódios independentes", msgs[0])
+        self.assertIn("Linha de golos Total (Over/Under): 2,75", msgs[0])
+        self.assertIn("Último movimento da linha: 2,5 → 2,75", msgs[0])
         ledger, stats = process([r], ledger, NOW+timedelta(minutes=10), sender, True)
         self.assertEqual(stats["sent"], 0)
         self.assertEqual(len(msgs), 1)
@@ -80,6 +83,29 @@ class PatternNotifyTests(unittest.TestCase):
     def test_bad_category_refused(self):
         with self.assertRaises(ValueError):
             message_for_pattern(row(category="FALLING"))
+
+    def test_unchanged_line_is_included_without_imagined_movement(self):
+        r = row()
+        r["total_line_before"] = 2.25
+        r["total_line_after"] = 2.25
+        message = message_for_pattern(r)
+        self.assertIn("Linha de golos Total (Over/Under): 2,25", message)
+        self.assertIn("Linha inalterada no último alerta", message)
+        self.assertNotIn("2,5 → 2,75", message)
+
+    def test_missing_line_does_not_notify_or_consume_receipt(self):
+        r = row()
+        r["total_line_after"] = None
+        ledger = new_ledger([], [], NOW)
+        calls = []
+        ledger, stats = process([r], ledger, NOW + timedelta(minutes=4),
+                                lambda msg: calls.append(msg) or 9, True)
+        self.assertEqual(stats["sent"], 0)
+        self.assertEqual(stats["missing_total_line"], 1)
+        self.assertNotIn(r["match_key"], ledger["entries"])
+        self.assertEqual(calls, [])
+        with self.assertRaises(ValueError):
+            message_for_pattern(r)
 
     def test_first_run_bootstraps_then_next_fresh_candidate_delivered(self):
         with tempfile.TemporaryDirectory() as d:

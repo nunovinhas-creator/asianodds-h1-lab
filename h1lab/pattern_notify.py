@@ -6,6 +6,7 @@ separate from the immutable Pattern Watch first-seen research registry.
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,16 +26,30 @@ CATEGORY_LABELS = {
 }
 
 
+def _total_line(value):
+    """Format the real Asian Total line in Portuguese; do not estimate it."""
+    if (isinstance(value, bool) or not isinstance(value, (int, float)) or
+            not math.isfinite(value) or abs(value * 4 - round(value * 4)) > 1e-7):
+        raise ValueError("missing or invalid Total line in the observed snapshot")
+    return ("%0.2f" % value).rstrip("0").rstrip(".").replace(".", ",")
+
+
 def message_for_pattern(row):
-    """Describe observed movements; not an Over 2.5 recommendation."""
+    """Describe observed movements and latest O/U line; not an Over 2.5 pick."""
     if not row.get("strict_condition") or row.get("category") not in CATEGORY_LABELS:
         raise ValueError("not a strict prospective pattern")
+    last_line = _total_line(row.get("total_line_after"))
+    previous_line = _total_line(row.get("total_line_before"))
+    movement = ("🔁 Último movimento da linha: " + previous_line + " → " + last_line
+                if previous_line != last_line else "🔁 Linha inalterada no último alerta")
     kickoff = utc(row["kickoff_utc"])
     deltas = ["%+.3f" % obs["delta_lambda"] for obs in row["observations"]]
     return "\n".join([
         "🧠 MASTER BRAIN — PADRÃO EM OBSERVAÇÃO",
         "⚽ " + row["match_label"],
         "🕒 Início: " + kickoff.strftime("%d/%m/%Y %H:%M UTC"),
+        "⚽ Linha de golos Total (Over/Under): " + last_line + " (último alerta observado)",
+        movement,
         "🔎 Múltiplos alertas sem qualquer queda significativa (exclui Δλ ≤ −0,05).",
         "📊 " + str(row["messages"]) + " alertas / " + str(row["episodes"]) + " episódios independentes",
         "📈 " + CATEGORY_LABELS[row["category"]],
@@ -74,6 +89,14 @@ def process(rows, ledger, now, sender, enabled):
         if not enabled:
             stats["unconfigured"] += 1
             continue
+        # Never send a pattern alert if its actual Total line is absent or malformed.
+        # Keep it eligible for a later cycle instead of fabricating a price/line.
+        try:
+            message = message_for_pattern(row)
+        except ValueError:
+            stats.setdefault("missing_total_line", 0)
+            stats["missing_total_line"] += 1
+            continue
         detail = {
             "status": "delivery_uncertain", "detected_at": now.isoformat(timespec="seconds"),
             "kickoff_utc": row["kickoff_utc"], "category": row["category"],
@@ -84,7 +107,7 @@ def process(rows, ledger, now, sender, enabled):
         # Mark in-memory before sending. The workflow commits after delivery.
         ledger["entries"][key] = detail
         try:
-            message_id = sender(message_for_pattern(row))
+            message_id = sender(message)
             if not isinstance(message_id, int) or isinstance(message_id, bool):
                 raise BotDeliveryError("TELEGRAM_DELIVERY_UNCERTAIN: missing message ID")
             detail["status"] = "sent"
