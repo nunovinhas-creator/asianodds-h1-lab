@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T11:21:25+00:00",
+ "generated_at": "2026-10-28T11:26:23+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 67
  },
  "schema_version": 1,
- "source_commit": "c808923beef709966db3989e58102ba0beb30341",
+ "source_commit": "8fd2a5c1bd335f3208d36fd9e7512187be497a43",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 271,
+  "matches": 272,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 359,
+  "messages": 361,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 155,
+  "messages_on_repeated_matches": 156,
   "messages_v4_only": 0,
-  "messages_with_v4": 285,
-  "movement_episodes_upper_bound": 343,
+  "messages_with_v4": 287,
+  "movement_episodes_upper_bound": 345,
   "possibly_redundant_snapshots": 10,
   "post_kickoff_messages": 9,
   "related_message_pairs": 16,
@@ -53,27 +53,28 @@
   "repeated_matches": 67,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 421
+   "V4_EXPLICIT": 425
   },
   "total_line_reversals_on_repeated": 26,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 8,
-   "CONTINUOUS": 48,
+   "CONTINUOUS": 49,
    "SAME_MOVEMENT_REPEAT": 16,
    "UNOBSERVED_CHANGE": 16
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 69,
-   "one_x_two:AGREE": 67,
-   "total:AGREE": 285
+   "asian_handicap:AGREE": 70,
+   "one_x_two:AGREE": 68,
+   "total:AGREE": 287
   }
  },
  "timelines": [
   {
-   "event_count": 2,
+   "event_count": 3,
    "event_ids": [
     "3571094759:50923",
-    "3571094759:50939"
+    "3571094759:50939",
+    "3571094759:50940"
    ],
    "events": [
     {
@@ -215,6 +216,38 @@
        "status": "AGREE"
       }
      }
+    },
+    {
+     "event_id": "3571094759:50940",
+     "message_id": 50940,
+     "minutes_to_kickoff": 52.5,
+     "observed_at": "2026-10-28T11:22:27+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 2.04,
+        "under_price": 1.79
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.93,
+        "under_price": 1.9
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
     }
    ],
    "first_observed_at": "2026-10-28T10:49:33+00:00",
@@ -226,7 +259,7 @@
     "per_message_conflicts": [],
     "team_names_consistent": true
    },
-   "last_observed_at": "2026-10-28T11:20:39+00:00",
+   "last_observed_at": "2026-10-28T11:22:27+00:00",
    "match_key": "2026-10-28,26736,1460",
    "match_label": "Persib Bandung vs Melbourne Victory FC",
    "movement_episodes": [
@@ -235,14 +268,18 @@
     ],
     [
      "3571094759:50939"
+    ],
+    [
+     "3571094759:50940"
     ]
    ],
-   "movement_episodes_upper_bound": 2,
+   "movement_episodes_upper_bound": 3,
    "possibly_redundant_event_ids": [],
    "post_kickoff_messages": 0,
    "related_messages": [],
    "seconds_between_messages": [
-    1866.0
+    1866.0,
+    108.0
    ],
    "trajectory": {
     "asian_handicap": {
@@ -335,11 +372,11 @@
     },
     "total": {
      "first_observed_line": 2.5,
-     "last_observed_line": 2.5,
-     "net_observed_change": 0.0,
-     "observations": 2,
+     "last_observed_line": 2.75,
+     "net_observed_change": 0.25,
+     "observations": 3,
      "origins": {
-      "V4_EXPLICIT": 2
+      "V4_EXPLICIT": 3
      },
      "points": [
       {
@@ -355,6 +392,13 @@
        "event_id": "3571094759:50939",
        "move": "FLAT",
        "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.75,
+       "before": 2.5,
+       "event_id": "3571094759:50940",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
       }
      ],
      "reversals": [],
@@ -366,6 +410,14 @@
        "previous_after_line": 2.5,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:50939"
+      },
+      {
+       "from": "3571094759:50939",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.5,
+       "previous_after_line": 2.5,
+       "prices_at_line": "UNCHANGED",
+       "to": "3571094759:50940"
       }
      ]
     }
