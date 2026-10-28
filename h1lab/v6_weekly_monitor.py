@@ -160,7 +160,7 @@ def week_summary(key, current, market_rows, format_rows, scored):
              for i in range(5)]
     brier=r(sum((p-y)**2 for p,y in scored)/calibration_n) if calibration_n else None
     ece=r(sum(len(v)/calibration_n*abs(sum(p for p,y in v)/len(v)-sum(y for p,y in v)/len(v))
-              for v in bins.values())) if calibration_n else None
+              for v in bins.values() if v)) if calibration_n else None
     n=len(market_rows)
     return {
         "week":key,"period":"CURRENT_INCOMPLETE" if current else "COMPLETED",
