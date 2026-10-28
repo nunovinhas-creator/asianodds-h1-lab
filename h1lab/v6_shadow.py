@@ -26,6 +26,8 @@ HYPOTHESIS = "V6-POSTHOC-20261028-NO-DOWN"
 MIN_OOS_FT = 1000
 ALPHA = 0.005
 MIN_EDGE = 0.05
+QUALITY_POLICY = "V6-Q2-MARGIN12-20261028"
+MAX_OVERROUND = 0.12
 ALT_EDGES = (0.05, 0.10, 0.20)  # fixed BEFORE observing OOS outcomes
 ZERO_HASH = "0" * 64
 
@@ -55,7 +57,7 @@ def quality(total):
 
     Cross-line repeated prices and negative margin are suspicious, NOT proof
     of corruption. Only clean after quotes become model baselines. Threshold
-    15% for overround is explicitly a quality heuristic, not a bookmaker fact.
+    12% for overround is explicitly a quality heuristic, not a bookmaker fact.
     """
     if not isinstance(total, dict):
         return {"status": "NO_TOTAL", "flags": ["no_total"], "before": None,
@@ -71,7 +73,7 @@ def quality(total):
             flags.append("invalid_" + name + "_quote")
         elif m < 0:
             flags.append("negative_" + name + "_margin")
-        elif m > 0.15:
+        elif m > MAX_OVERROUND:
             flags.append("high_" + name + "_margin")
         sides[name] = {"line": line, "over_price": o, "under_price": u,
                        "margin": round(m, 5) if m is not None else None}
@@ -176,7 +178,7 @@ def captures(timelines, now):
             "observed_at": last["observed_at"], "known_at": stamp(now),
             "message_count_at_capture": len(events),
             "total_origin": ((last.get("snapshots") or {}).get("total") or {}).get("origin"),
-            "price_quality": q,
+            "price_quality": q, "quality_policy_version": QUALITY_POLICY,
             "market_probability_over_2_5": q["p_over_2_5"],
             "pattern_original_posthoc": bool(watch and watch["original_condition"]),
             "pattern_strict_posthoc": bool(watch and watch["strict_condition"]),
@@ -315,6 +317,9 @@ def report(root, records, now):
         "comparisons": {"pattern_posthoc_original": sel, "other_observed": metrics(other),
                         "all_scored": metrics(scored)},
         "price_quality_historical": _retrospective_quality(root),
+        "price_quality_policy": {"version": QUALITY_POLICY, "max_overround": MAX_OVERROUND,
+                                 "applies_to_new_forecasts_only": True,
+                                 "existing_forecasts_remain_frozen": True},
         "limitations": [
             "Market baseline is a Poisson model from Asian Total, not a traded O2.5 price.",
             "Historical pattern selection is post-hoc; no historical game validates it.",
