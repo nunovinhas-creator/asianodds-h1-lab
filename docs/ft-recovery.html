@@ -65,6 +65,10 @@ function render(){
   const pill=el("span",fmt(g.queue_state));pill.className="tag";status.append(pill);a.append(status);
   a.append(el("p","ID: "+g.match_key+" · KO: "+fmt(g.kickoff_utc)+" · Atraso: "+fmt(g.overdue_hours)+" horas"));
   a.append(el("p","Tentativas: "+fmt(g.attempts)+" · Última: "+fmt(g.last_checked_at||"nunca")+" · Próxima: "+fmt(g.next_eligible_at)));
+  const meaningful=g.goal_last_substantive_evidence||{};
+  if(meaningful.reason)a.append(el("p","Última evidência útil GOAL: "+fmt(meaningful.reason)+
+     " · observada: "+fmt(meaningful.observed_at)+
+     " · último pedido por ID: "+fmt(g.goal_id_last_attempt_at||"nunca")));
   const hist=g.provider_attempts||{}, reasons=g.last_attempt_provider_reasons||{};
   for(const p of [...new Set([...Object.keys(hist),...Object.keys(reasons)])].sort()){
    const h=hist[p]||{},row=el("div",p+": "+fmt(reasons[p]||h.last_reason||"sem diagnóstico")+" · invocações registadas: "+fmt(h.invocations??"não instrumentado"));
