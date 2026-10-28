@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#090f19">
+ <meta name="description" content="MASTER BRAIN: Radar Científico V6.2. Da hipótese formal até à observação, previsão e resultado verificado.">
+ <title>Radar Científico V6.2 · MASTER BRAIN</title>
+ <link rel="stylesheet" href="./master-brain.css">
+ <link rel="stylesheet" href="./scientific-radar.css">
+ <script defer src="./scientific-radar.js"></script>
+</head>
+<body>
+ <a class="skip-link" href="#main">Saltar para o conteúdo</a>
+ <div class="app">
+  <aside class="rail" aria-label="Navegação MASTER BRAIN">
+   <a class="brand" href="./index.html"><span class="brain-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><span class="brand-name">MASTER <span>BRAIN</span></span><small class="brand-caption">FOOTBALL INTELLIGENCE LAB</small></span></a>
+   <div class="rail-tag">INTELIGÊNCIA · INVESTIGAÇÃO</div>
+   <nav class="rail-nav" aria-label="Páginas principais">
+    <a class="nav-link active" aria-current="page" href="./scientific-radar.html"><span class="nav-symbol">◉</span>Radar Científico V6</a>
+    <a class="nav-link" href="./index.html"><span class="nav-symbol">⌘</span>Descobertas do Cérebro</a>
+    <a class="nav-link" href="./index.html#futuros"><span class="nav-symbol">↗</span>Jogos futuros</a>
+    <a class="nav-link" href="./index.html#padroes"><span class="nav-symbol">◇</span>Pesquisa exploratória V5</a>
+    <a class="nav-link" href="./lab-results.html"><span class="nav-symbol">▥</span>Resultados FT do LAB</a>
+   </nav>
+   <div class="rail-tag side-archive">SISTEMAS SECUNDÁRIOS</div>
+   <nav class="rail-nav archive-nav">
+    <a class="nav-link" href="./h1.html#h1">Under / H1</a>
+    <a class="nav-link" href="./h1.html#triples">Triplas H1</a>
+    <a class="nav-link" href="./lab.html">Auditoria LAB V4</a>
+   </nav>
+   <div class="rail-bottom"><strong>INVESTIGAÇÃO · NÃO É UMA APOSTA</strong><p>Uma previsão congelada não é uma previsão vencedora. FT em falta não contam como derrotas.</p></div>
+  </aside>
+  <main class="work" id="main">
+   <div class="topbar"><div class="breadcrumb"><b>MASTER BRAIN</b><em>/</em><span>Radar Científico V6.2</span></div><div class="tools"><span class="stamp" id="radar-updated">A verificar memórias…</span><button type="button" class="refresh" id="radar-refresh" title="Atualizar" aria-label="Atualizar relatório">↻</button></div></div>
+   <div class="hero scientific-hero"><div class="kicker">V6.2 · RASTREABILIDADE CIENTÍFICA</div><h1>Do que o cérebro conclui ao que realmente observou.</h1><p>Explora as hipóteses formalmente registadas, as previsões congeladas antes do jogo e a evidência FT. Uma origem não comprovada é mostrada como tal; os resultados não são inventados.</p><div class="science-flag" id="science-flag">Em observação · validação pendente</div></div>
+   <div id="science-error" class="wide-message" role="alert" hidden></div>
+   <div class="metrics" aria-label="Cobertura do Radar">
+     <div class="metric"><span class="metric-title">Hipóteses formalizadas</span><strong id="sc-hyp">—</strong><small>Máximo 10 ativas</small></div>
+     <div class="metric"><span class="metric-title">Capturas congeladas</span><strong id="sc-frozen">—</strong><small>SHA verificável, pré-jogo</small></div>
+     <div class="metric"><span class="metric-title">Jogos distintos</span><strong id="sc-games">—</strong><small>Unidade de análise</small></div>
+     <div class="metric"><span class="metric-title">Com FT comprovado</span><strong id="sc-ft">—</strong><small>Depois do início, com fonte</small></div>
+   </div>
+   <div class="section-head"><div><h2>Hipóteses em investigação</h2><p>Somente hipóteses com registo formal e hash. As centenas de padrões exploratórios V5 não aparecem aqui como validados.</p></div></div>
+   <div id="science-hypotheses" class="science-hypotheses" aria-live="polite"><p class="empty">A carregar registo científico…</p></div>
+   <section id="science-workspace" hidden aria-labelledby="science-workspace-title">
+     <div class="section-head"><div><h2 id="science-workspace-title">Linha de evidência</h2><p>Seleciona um jogo: observação → previsão congelada → resultados e falsificação. A cadeia completa cabe em dois passos.</p></div></div>
+     <div class="science-layout">
+       <div class="panel science-list-panel">
+         <label class="science-search-label" for="science-query">Procurar jogo ou identificador</label><input type="search" id="science-query" placeholder="Equipa, jogo ou match_key…" autocomplete="off">
+         <label class="science-search-label" for="science-filter">Filtrar evidência</label><select id="science-filter"><option value="all">Todos os jogos congelados</option><option value="selected">Condição original presente</option><option value="strict">Condição rigorosa</option><option value="ft">FT com verificação temporal</option><option value="missing">Sem FT verificado</option><option value="source">Mensagem V4 historicamente comprovada</option></select>
+         <p class="science-count" id="science-visible">—</p>
+         <div class="science-games" id="science-games" aria-label="Jogos associados à hipótese"></div>
+       </div>
+       <div class="panel science-detail" id="science-detail" aria-live="polite"><p class="empty">Seleciona um jogo para ver as três etapas da prova.</p></div>
+     </div>
+     <div class="section-head"><div><h2>Dez tentativas de contrariar a hipótese</h2><p>PASS/FAIL são verificações descritivas. Sem amostra adequada, fica INSUFFICIENT_N.</p></div></div>
+     <div class="panel" id="science-tests"></div>
+     <div class="section-head"><div><h2>Proveniência da informação</h2><p>O JSON é uma projeção. Os diários encadeados com hashes continuam a ser a fonte de verdade.</p></div></div>
+     <div class="panel"><div id="science-sources" class="science-sources"></div><p class="note">Algumas versões antigas V4 não estavam preservadas antes da previsão. Nesses casos a ligação histórica fica assinalada como não comprovada. Os links do GitHub apontam à versão atual do diário; o SHA identifica cada registo.</p></div>
+   </section>
+   <footer class="footer">MASTER BRAIN · Radar Científico V6.2 · <a href="./index.html">Radar e descobertas V5</a> · <a href="./lab.html">Auditoria</a> · Sem apostas automáticas.</footer>
+  </main>
+ </div>
+</body>
+</html>

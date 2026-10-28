@@ -107,6 +107,16 @@ jobs:
           python -m unittest discover -s tests -p 'test_v4_revisions.py' -v
           python -m scripts.lab_v4_revisions
           python -m scripts.lab_v4_revisions --verify-only
+      # V6.2: a bounded scientific proof view, rebuilt from 5 memory streams,
+      # immutable forecast registration and independent universal FT event journal.
+      - name: Build verified V6.2 Scientific Radar (shadow-only)
+        id: v6_scientific_radar
+        if: steps.v6_science_memory.outcome == 'success' && steps.v6_falsification.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_scientific_radar.py' -v
+          python -m scripts.lab_v6_scientific_radar
+          python -m scripts.lab_v6_scientific_radar --verify-only
       - name: Commit only shadow audit artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -116,6 +126,9 @@ jobs:
             if [ -f docs/lab/v4-revisions.json ]; then git add docs/lab/v4-revisions.json; fi
           fi
           if [ -f data/lab/v4-runchecks.jsonl ]; then git add data/lab/v4-runchecks.jsonl; fi
+          if [ "${{ steps.v6_scientific_radar.outcome }}" = "success" ]; then
+            if [ -f docs/lab/v6-scientific-radar.json ]; then git add docs/lab/v6-scientific-radar.json; fi
+          fi
           if [ -f docs/lab/v6-shadow.json ]; then git add docs/lab/v6-shadow.json; fi
           if [ -f docs/lab/v6-readiness.json ]; then git add docs/lab/v6-readiness.json; fi
           # A failed memory step can leave partial local files; never publish them.

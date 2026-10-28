@@ -1,0 +1,44 @@
+/* V6.2 — Scientific evidence trail, respectful of existing MASTER BRAIN palette */
+.scientific-hero{margin-bottom:18px;background:linear-gradient(135deg,#0e2736,#14242b 60%,#0b1928);border:1px solid #31515c}
+.science-flag{display:inline-flex;margin-top:16px;padding:8px 13px;border:1px solid #4b6872;border-radius:7px;color:#e5ceb0;background:#243437;font-size:12px;font-weight:700;letter-spacing:.04em}
+.science-hypotheses{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin:15px 0 27px}
+.science-hypothesis,.science-game{appearance:none;font:inherit;text-align:left;cursor:pointer;color:inherit;border:1px solid var(--line);background:var(--panel);border-radius:11px;display:flex;flex-direction:column;gap:8px;padding:16px;width:100%;transition:border-color .12s,background .12s}
+.science-hypothesis:hover,.science-game:hover,.science-hypothesis:focus-visible,.science-game:focus-visible{border-color:var(--aqua);outline-offset:3px}
+.science-hypothesis.selected,.science-game.selected{background:#15303c;border-color:#50b9ba}
+.science-hyp-top{display:flex;align-items:center;gap:9px;justify-content:space-between;flex-wrap:wrap}
+.science-hyp-top strong{font-size:15px}
+.science-badge{display:inline-block;border:1px solid #3d5868;background:#1a303d;color:#c7d5da;border-radius:5px;font-size:10px;letter-spacing:.02em;font-weight:700;padding:4px 6px;white-space:normal}
+.science-badge.warn{border-color:#76603d;color:#edd6a4;background:#3d3424}
+.science-badge.ok{border-color:#3e7161;color:#b0e4ce;background:#1d3c36}
+.science-badge.accent{border-color:#3b7287;color:#b7e7f3;background:#153746}
+.science-small{font-size:12px;color:var(--soft);line-height:1.6;overflow-wrap:anywhere}
+.science-monospace{font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--aqua);overflow-wrap:anywhere}
+.science-layout{display:grid;grid-template-columns:minmax(240px,340px) minmax(0,1fr);gap:14px;align-items:start}
+.science-list-panel{padding:15px;position:sticky;top:12px;max-height:86vh;display:flex;flex-direction:column;gap:8px}
+.science-search-label{font-size:12px;color:var(--soft);font-weight:600}
+.science-list-panel input,.science-list-panel select{box-sizing:border-box;width:100%;border-radius:8px;background:var(--raised);border:1px solid var(--line);color:var(--text);padding:10px;font:inherit;font-size:13px}
+.science-list-panel input:focus-visible,.science-list-panel select:focus-visible{outline:2px solid var(--aqua)}
+.science-count{font-size:12px;color:var(--soft);margin:5px 0}
+.science-games{display:flex;flex-direction:column;overflow-y:auto;gap:8px;min-height:100px}
+.science-game{padding:11px;gap:5px;min-height:60px}
+.science-game strong{font-size:13px}
+.science-game-tags{display:flex;gap:5px;flex-wrap:wrap}
+.science-detail{min-width:0;padding:18px;scroll-margin-top:18px}
+.science-detail h2{font-size:19px;margin:0 0 4px}
+.science-proof-step{padding:17px 0;border-top:1px solid var(--line);margin-top:17px}
+.science-proof-step h3{font-size:15px;color:var(--aqua);margin:0 0 12px}
+.science-pair{display:grid;grid-template-columns:minmax(110px,42%) minmax(0,1fr);gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12px;line-height:1.5}
+.science-pair span{color:var(--soft)}
+.science-pair strong{font-weight:600;overflow-wrap:anywhere}
+.science-note{color:var(--soft);line-height:1.55;font-size:12px;border-left:2px solid #556e78;margin:13px 0 0;padding:7px 11px}
+.science-trail{color:var(--aqua);font-size:12px;margin:18px 0 4px}
+.science-test{padding:13px 4px;border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;align-items:center}
+.science-test div{display:flex;flex-direction:column;gap:5px}
+.science-test strong{font-size:13px}
+.science-test small{font-size:11px;color:var(--soft)}
+.science-test-requirement{grid-column:1 / -1}
+.science-source-row{display:flex;justify-content:space-between;gap:9px;align-items:center;border-bottom:1px solid var(--line-soft);padding:10px 0;font-size:12px}
+.science-link{color:var(--aqua);text-decoration:underline;text-underline-offset:3px}
+.science-link:focus-visible{outline:2px solid var(--aqua)}
+@media(max-width:960px){.science-layout{grid-template-columns:1fr}.science-list-panel{position:static;max-height:none}.science-games{max-height:315px}.science-detail{scroll-margin-top:12px}}
+@media(max-width:600px){.science-hypotheses{grid-template-columns:1fr}.science-pair{grid-template-columns:1fr;gap:2px}.science-source-row{align-items:flex-start;flex-direction:column}.scientific-hero h1{font-size:30px}}
