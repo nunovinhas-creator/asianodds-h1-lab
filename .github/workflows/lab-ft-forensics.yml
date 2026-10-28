@@ -1,0 +1,91 @@
+name: Lab - FT identity and regulation forensic probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lab-ft-forensics.yml'
+permissions:
+  contents: read
+jobs:
+  examine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Inspect only public candidate identities and full-time detail
+        run: |
+          python - <<'PY'
+          import json,re
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from difflib import SequenceMatcher
+          from urllib.parse import urlparse
+          from h1lab.lab_sportscore import fetch,_dt,_source_url
+          from h1lab.results import norm_team
+          ledger=json.loads(Path('data/lab/ft-ledger.json').read_text())['matches']
+          candidates=[(k,v) for k,v in ledger.items() if v['status']!='FINAL' and v.get('kickoff_utc','').startswith('2026-10-27')]
+          print('FT_FORENSIC_UNRESOLVED_27',len(candidates))
+          try:
+              p=fetch('fixtures/',{'sport':'football','date':'2026-10-27','status':'finished','limit':200})
+              matches=p.get('matches') or []
+          except (OSError,ValueError):
+              print('FT_FORENSIC_DAY_UNAVAILABLE')
+              matches=[]
+          print('FT_FORENSIC_DAY_ROWS',len(matches))
+          exact=[]
+          near=[]
+          for key,row in candidates:
+              kickoff=_dt(row.get('kickoff_utc'))
+              if not kickoff:continue
+              for ev in matches:
+                  stamp=_dt(ev.get('time'))
+                  if not stamp or abs((stamp-kickoff).total_seconds())>5400:continue
+                  a,b=norm_team(row.get('home')),norm_team(row.get('away'))
+                  c,d=norm_team(ev.get('home')),norm_team(ev.get('away'))
+                  if a==c and b==d:exact.append((key,row,ev))
+                  else:
+                      hs=SequenceMatcher(None,a,c).ratio()
+                      aw=SequenceMatcher(None,b,d).ratio()
+                      if min(hs,aw)>.62 and (hs+aw)>1.54:
+                          near.append((key,row,ev,round(hs,2),round(aw,2)))
+          print('FT_FORENSIC_EXACT_PAIRS',len(exact),'NEAR_PAIRS',len(near))
+          # Individual public fixture names are displayed for human review,
+          # never converted into canonical aliases automatically.
+          for key,row,ev,hs,aw in sorted(near,key=lambda q:-(q[3]+q[4]))[:16]:
+              print('FT_ALIAS_REVIEW',key,repr(row['home']),repr(row['away']),
+                    '=>',repr(ev.get('home')),repr(ev.get('away')),
+                    'scores',hs,aw,'status',ev.get('status_text'))
+          details=0
+          for key,row,ev in exact:
+              if not ('cup' in str(row.get('reason','')).lower() or
+                      str(row.get('provider_reasons',{}).get('sportscore',''))=='cup_regulation_unverified'):
+                  continue
+              print('FT_CUP_CANDIDATE',key,'status',repr(ev.get('status_text')),
+                    'score',ev.get('home_score'),ev.get('away_score'),
+                    'competition',repr(ev.get('competition')))
+              url=_source_url(ev.get('url'))
+              if not url or details>=5:continue
+              slug=urlparse(url).path.rstrip('/').split('/')[-1]
+              if not re.fullmatch(r'[a-zA-Z0-9-]{3,150}',slug):continue
+              details+=1
+              try:
+                  d=fetch('match/',{'sport':'football','slug':slug})
+              except (OSError,ValueError):
+                  print('FT_CUP_DETAIL_UNAVAILABLE',key);continue
+              print('FT_CUP_DETAIL_KEYS',key,sorted(d))
+              for field,value in d.items():
+                  if field.lower() in {'events','periods','timeline','score','home_score','away_score','status','status_text','match','fixture'}:
+                      if isinstance(value,dict):
+                          print('FT_CUP_DETAIL_SCHEMA',key,field,'keys',sorted(value))
+                      elif isinstance(value,list):
+                          print('FT_CUP_DETAIL_SCHEMA',key,field,'count',len(value),
+                                'first_keys',sorted(value[0]) if value and isinstance(value[0],dict) else None)
+                      else:
+                          print('FT_CUP_DETAIL_VALUE',key,field,str(value)[:90])
+              print('FT_CUP_DETAIL_END',key)
+          print('FT_FORENSIC_COMPLETE_WITHOUT_SETTLEMENT')
+          PY
