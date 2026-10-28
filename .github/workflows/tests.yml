@@ -165,5 +165,28 @@ jobs:
           PY
       - name: Scientific Radar browser syntax
         run: node --check docs/scientific-radar.js
+      - name: "Weekly V6.2 drift monitor: source, fixed thresholds and replay"
+        run: |
+          python -m scripts.lab_v6_weekly_monitor
+          python -m scripts.lab_v6_weekly_monitor --verify-only
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from h1lab.v6_weekly_monitor import STATUS
+          from scripts.lab_v6_weekly_monitor import read_snapshots
+          root=Path('.')
+          d=json.loads((root/'docs/lab/v6-weekly-drift.json').read_text(encoding='utf-8'))
+          e=read_snapshots(root)
+          assert d['status']==STATUS
+          assert d['latest_monitor_week']==e[-1]['monitor_week']
+          assert d['latest_snapshot_at']==e[-1]['report']['as_of']
+          assert d['last_sha256']==e[-1]['sha256']
+          assert d['latest']['overall'] in (
+              'INSUFFICIENT_HISTORY','PARTIALLY_EVALUATED_NO_ALERT','SUSPECTED_DRIFT_REVIEW')
+          assert all(w['period']=='COMPLETED' for w in d['latest']['weeks']
+                     if w['week']!=d['latest']['monitor_week'])
+          print('V6_WEEKLY_DRIFT_REAL_SOURCES_OK',d['latest_monitor_week'],
+                'source_forecasts',d['latest']['input']['forecasts_total'])
+          PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs

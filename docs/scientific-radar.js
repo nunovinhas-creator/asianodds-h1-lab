@@ -201,6 +201,72 @@
       }
     }
   }
+  // Weekly drift snapshots are derived from already recorded V6 forecasts,
+  // FT and Telegram formats. Never display the current incomplete week
+  // as a confirmed signal.
+  const driftName={quality:"Cotações suspeitas",formats:"Formatos Telegram",
+                   market:"Probabilidades do mercado",calibration:"Calibração FT"};
+  const driftState={
+    INSUFFICIENT_HISTORY:"Sem semanas comparáveis",
+    INSUFFICIENT_N:"Amostra insuficiente",
+    SUSPECTED_DRIFT_REVIEW:"Alteração suspeita · rever",
+    NO_THRESHOLD_CROSSED:"Sem ultrapassar o limiar",
+  };
+  async function loadWeekly(){
+    const status=$("weekly-status"),where=$("weekly-signals"),weeks=$("weekly-weeks");
+    if(!status||!where||!weeks)return;
+    try{
+      const res=await fetch("./lab/v6-weekly-drift.json",{cache:"no-store"});
+      if(!res.ok)throw Error("Relatório ainda não publicado");
+      const json=await res.json();
+      if(json.status!=="V6_WEEKLY_DRIFT_MONITOR_SHADOW"||!json.latest)
+        throw Error("Relatório incompleto");
+      const d=json.latest;
+      status.textContent="Última fotografia: "+date(json.latest_snapshot_at)+
+        " · semana "+json.latest_monitor_week+" · "+
+        (d.overall==="SUSPECTED_DRIFT_REVIEW"?"REVISÃO NECESSÁRIA":
+          "Sem evidência suficiente para declarar drift");
+      where.replaceChildren();
+      for(const [key,label] of Object.entries(driftName)){
+        const c=d.comparisons?.[key]||{};
+        const b=node("article",null,"weekly-drift-card");
+        b.append(node("h3",label));
+        b.append(badge(driftState[c.status]||"Sem avaliação",
+                       c.status==="SUSPECTED_DRIFT_REVIEW"?"warn":"muted"));
+        const v=c.value;
+        let formatted="Sem métrica comparável";
+        if(typeof v==="number")formatted=(key==="quality"?
+          (v*100).toLocaleString("pt-PT",{maximumFractionDigits:1})+" pp":
+          v.toLocaleString("pt-PT",{maximumFractionDigits:4}));
+        b.append(node("strong",formatted,"weekly-value"));
+        b.append(node("small","Amostras: "+num(c.reference_n)+" / "+num(c.comparison_n)+
+                            " · limiar: "+(c.review_threshold??"não disponível"),"science-small"));
+        where.append(b);
+      }
+      weeks.replaceChildren();
+      const head=node("h3","Últimas semanas observadas");
+      weeks.append(head);
+      const table=node("div",null,"weekly-week-grid");
+      for(const w of (d.weeks||[]).slice(-6)){
+        const box=node("div",null,"weekly-week");
+        box.append(node("strong",w.week+(w.period==="CURRENT_INCOMPLETE"?" · parcial":"")));
+        box.append(node("span","Observações: "+num(w.quality.n)));
+        box.append(node("span","Cotação inutilizável: "+(
+          w.quality.unusable_rate===null?"—":pcent(w.quality.unusable_rate))));
+        box.append(node("span","Formatos: "+num(w.formats.n)+" · famílias: "+num(w.formats.distinct_families)));
+        box.append(node("span","FT para calibração: "+num(w.calibration.n)));
+        box.append(node("span","Brier: "+(w.calibration.brier_score===null?
+          "não calculável":w.calibration.brier_score.toLocaleString("pt-PT",{maximumFractionDigits:4}))));
+        table.append(box);
+      }
+      if(!table.children.length)table.append(node("p","Ainda não existem observações semanais."));
+      weeks.append(table);
+    }catch(e){
+      status.textContent="Monitor semanal ainda indisponível: "+e.message+
+        ". Não serão inferidas alterações a partir de relatórios ausentes.";
+      where.replaceChildren();weeks.replaceChildren();
+    }
+  }
   async function load(){
     const button=$("radar-refresh");button.disabled=true;
     try{
@@ -228,6 +294,6 @@
   }
   $("science-query").addEventListener("input",renderGames);
   $("science-filter").addEventListener("change",renderGames);
-  $("radar-refresh").addEventListener("click",load);
-  load();
+  $("radar-refresh").addEventListener("click",()=>{load();loadWeekly()});
+  load();loadWeekly();
 })();
