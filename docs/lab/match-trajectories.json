@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T08:36:25+00:00",
+ "generated_at": "2026-10-28T08:41:23+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 47
+  "timelines_published": 48
  },
  "schema_version": 1,
- "source_commit": "a9e36bb1a9e729615445d75683aab02bb1e8655b",
+ "source_commit": "7d9b6c7eaaef4b30c6855b8373826e4d1e944114",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 165,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 3,
-  "messages": 222,
+  "messages": 223,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 104,
+  "messages_on_repeated_matches": 106,
   "messages_v4_only": 0,
-  "messages_with_v4": 148,
-  "movement_episodes_upper_bound": 212,
+  "messages_with_v4": 149,
+  "movement_episodes_upper_bound": 213,
   "possibly_redundant_snapshots": 7,
   "post_kickoff_messages": 8,
   "related_message_pairs": 10,
@@ -50,25 +50,163 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 3
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 47,
+  "repeated_matches": 48,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 234
+   "V4_EXPLICIT": 235
   },
   "total_line_reversals_on_repeated": 15,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 5,
    "CONTINUOUS": 34,
    "SAME_MOVEMENT_REPEAT": 10,
-   "UNOBSERVED_CHANGE": 8
+   "UNOBSERVED_CHANGE": 9
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 44,
    "one_x_two:AGREE": 42,
-   "total:AGREE": 148
+   "total:AGREE": 149
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50730",
+    "3571094759:50803"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50730",
+     "message_id": 50730,
+     "minutes_to_kickoff": 717.5,
+     "observed_at": "2026-10-27T23:02:33+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.92,
+        "under_price": 1.94
+       },
+       "before": {
+        "line": 2.25,
+        "over_price": 1.77,
+        "under_price": 1.91
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50803",
+     "message_id": 50803,
+     "minutes_to_kickoff": 143.0,
+     "observed_at": "2026-10-28T08:37:02+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.85,
+        "under_price": 1.84
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.93,
+        "under_price": 1.78
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-27T23:02:33+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T11:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T08:37:02+00:00",
+   "match_key": "2026-10-28,10017124,26965",
+   "match_label": "Lernayin Artsakh FC vs FC Shirak Gyumri",
+   "movement_episodes": [
+    [
+     "3571094759:50730"
+    ],
+    [
+     "3571094759:50803"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    34469.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.25,
+     "last_observed_line": 3.25,
+     "net_observed_change": 1.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.5,
+       "before": 2.25,
+       "event_id": "3571094759:50730",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:50803",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50730",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.0,
+       "previous_after_line": 2.5,
+       "to": "3571094759:50803",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
