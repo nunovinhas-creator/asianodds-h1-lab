@@ -14,6 +14,7 @@ from h1lab.lab_espn import ESPNResults
 from h1lab.lab_sportscore import SportScoreResults
 from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
+from h1lab.lab_ft_diagnostics import coverage_diagnostics
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
@@ -136,6 +137,7 @@ def main():
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
     report["espn_scoreboards"] = espn.summary()
     report["sportscore_search"] = sportscore.summary()
+    report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)
     print("LAB_FT_RESULT_SYNC", "catalog", report["matches"],
