@@ -11,6 +11,7 @@ from pathlib import Path
 
 from h1lab.lab_results import reconcile
 from h1lab.lab_espn import ESPNResults
+from h1lab.lab_sportscore import SportScoreResults
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -109,14 +110,17 @@ def main():
         max_pages=int(os.environ.get("LAB_BSD_DATE_MAX_PAGES", "3")),
     )
     tsdb = PacedTSDB()
-    espn = ESPNResults(competitions_by_key(state.get("alerts", [])), max_scoreboards=12)
+    mapped_competitions = competitions_by_key(state.get("alerts", []))
+    espn = ESPNResults(mapped_competitions, max_scoreboards=12)
+    sportscore = SportScoreResults(mapped_competitions, max_requests=24,max_team_searches=8)
     next_ledger, report, queried = reconcile(
         state, read_v4(), existing, now=datetime.now(timezone.utc),
         bsd_lookup=bsd_finder.lookup, tsdb_lookup=tsdb.lookup,
-        espn_lookup=espn.lookup, max_checks=checks)
+        espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup, max_checks=checks)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
     report["espn_scoreboards"] = espn.summary()
+    report["sportscore_search"] = sportscore.summary()
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)
     print("LAB_FT_RESULT_SYNC", "catalog", report["matches"],
@@ -124,6 +128,8 @@ def main():
           "queried", queried, "bsd_date_pages", report["bsd_date_search"]["date_list_requests"],
           "espn_confirmed", report["espn_scoreboards"]["confirmed_in_run"],
           "espn_requests", report["espn_scoreboards"]["requests"],
+          "sportscore_ft", report["sportscore_search"]["confirmed_in_run"],
+          "sportscore_requests", report["sportscore_search"]["requests"],
           "tsdb_requests", report["thesportsdb_search"].get("requested", 0),
           "pending_due", report["pending_due_checks"],
           "ledger_written", changed_ledger, "report_written", changed_report)

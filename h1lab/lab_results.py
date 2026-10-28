@@ -16,6 +16,7 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
+LOOKUP_SOURCE_VERSION = 4  # one upgrade check for the newly-added fourth provider
 
 
 def utc(value):
@@ -88,7 +89,7 @@ def _validate_result(result, key):
     return {"home_goals": h, "away_goals": a, "source": source}
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -158,7 +159,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         if now < kickoff + DELAY:
             continue
         last = utc(entry.get("checked_at"))
-        if last and now < last + RETRY:
+        # A newly added provider may be checked once immediately, without
+        # disabling the normal four-hour cooldown on subsequent runs.
+        upgrade = int(entry.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION
+        if last and now < last + RETRY and not upgrade:
             continue
         candidates.append((last or datetime.min.replace(tzinfo=timezone.utc), kickoff, key))
 
@@ -173,6 +177,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         providers = [("bsd", bsd_lookup), ("thesportsdb", tsdb_lookup)]
         if espn_lookup is not None:
             providers.append(("espn", espn_lookup))
+        if sportscore_lookup is not None:
+            providers.append(("sportscore", sportscore_lookup))
         for provider, lookup in providers:
             try:
                 candidate, reason = lookup(signal)
@@ -184,6 +190,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 reasons[provider] = "provider_unavailable"  # never expose credentials/URLs
         attempts += 1
         row["checked_at"] = now.isoformat(timespec="seconds")
+        row["lookup_source_version"] = LOOKUP_SOURCE_VERSION
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
@@ -229,6 +236,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["EXPIRED"] += 1
         elif not row.get("checked_at"):
             timing["ELIGIBLE_NEVER_QUERIED"] += 1
+        elif int(row.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION:
+            timing["ELIGIBLE_SOURCE_UPGRADE"] += 1
         elif utc(row.get("checked_at")) and now < utc(row["checked_at"]) + RETRY:
             timing["ELIGIBLE_COOLDOWN"] += 1
         else:
