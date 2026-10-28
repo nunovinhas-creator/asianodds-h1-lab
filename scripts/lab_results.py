@@ -16,6 +16,7 @@ from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_fotmob import FotMobResults
+from h1lab.lab_api_football import APIFootballResults
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
@@ -126,7 +127,9 @@ def main():
         return (second, second_reason) if second is not None else (None, second_reason)
 
     tsdb = PacedTSDB()
-    fotmob = FotMobResults(max_days=3)
+    fotmob_enabled = os.environ.get('LAB_FOTMOB_LICENSED', '0') == '1'
+    fotmob = FotMobResults(max_days=3 if fotmob_enabled else 0)
+    api_football = APIFootballResults(key=os.environ.get('API_FOOTBALL_KEY', ''), max_days=3)
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
     sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
@@ -134,13 +137,17 @@ def main():
         state, read_v4(), existing, now=datetime.now(timezone.utc),
         bsd_lookup=bsd_with_monte, tsdb_lookup=tsdb.lookup,
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup,
-        fotmob_lookup=fotmob.lookup, max_checks=checks)
+        fotmob_lookup=fotmob.lookup if fotmob_enabled else None,
+        api_football_lookup=api_football.lookup if api_football.key else None,
+        max_checks=checks)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
     report["espn_scoreboards"] = espn.summary()
     report["sportscore_search"] = sportscore.summary()
     report["fotmob_search"] = fotmob.summary()
+    report["fotmob_search"]["licensed_automation_enabled"] = fotmob_enabled
+    report["api_football_search"] = api_football.summary()
     report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
     changed_ledger = write_if_changed(LEDGER, next_ledger)
     changed_report = write_if_changed(REPORT, report)
@@ -153,6 +160,8 @@ def main():
           "monte_core_verified", report["monte_carlos_bsd"]["verified_core_name_in_run"],
           "espn_confirmed", report["espn_scoreboards"]["confirmed_in_run"],
           "espn_requests", report["espn_scoreboards"]["requests"],
+          "api_football_verified", report["api_football_search"]["verified_in_run"],
+          "api_football_requests", report["api_football_search"]["requests"],
           "fotmob_verified", report["fotmob_search"]["verified_in_run"],
           "fotmob_requests", report["fotmob_search"]["requests"],
           "sportscore_ft", report["sportscore_search"]["confirmed_in_run"],
