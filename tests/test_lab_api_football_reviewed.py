@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from h1lab.lab_api_football import APIFootballResults, fetch_ids
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
+from h1lab.lab_ft_day_identity import build_index
 
 NOW = datetime(2026, 10, 29, 12, tzinfo=timezone.utc)
 KO = "2026-10-27T16:00:00+00:00"
@@ -29,7 +30,7 @@ def approval(i, fixture_id):
             "status": "APPROVED", "provider_fixture_id": fixture_id,
             "provider_home_team_id": 300 + i, "provider_away_team_id": 400 + i,
             "provider_competition_id": 77,
-            "provider_kickoff_utc": KO,
+            "provider_kickoff_utc": KO, "competition_anchor_fixture_id": 6000,
             "reviewed_by": "human-reviewer",
             "reviewed_at_utc": "2026-10-28T12:00:00+00:00"}
 
@@ -41,6 +42,27 @@ def event(i, fixture_id, status="FT", h=1, a=2):
                       "away": {"id": 400 + i, "name": "Kataka"}},
             "goals": {"home": h, "away": a},
             "score": {"fulltime": {"home": h, "away": a}}}
+
+
+def _proof():
+    # Synthetic complete provider list with a separate settled fixture in
+    # the same competition; each team only plays once in the 90m window.
+    rows = [event(i, 5000+i) for i in (1, 2, 3)]
+    rows.append(event(10, 6000))
+    day_index = build_index({"schema_version": 1, "days": {}},
+                            {"2026-10-27": rows}, NOW)
+    registry = {"schema_version": 1, "entries": {
+        "api_football:6000": {"match_key": "previous-verified",
+                              "status": "CONFIRMED_FT_SOURCE_ID"}}}
+    return day_index, registry
+
+
+def checked_plan(keys, matches, review, approved, now=NOW, *,
+                 day_index=None, registry=None):
+    basic_index, basic_registry = _proof()
+    return plan_reviewed_ids(keys, matches, review, approved, now,
+                             day_index=day_index if day_index is not None else basic_index,
+                             confirmed_registry=registry if registry is not None else basic_registry)
 
 
 def fixtures():
@@ -57,7 +79,7 @@ def fixtures():
 class ReviewedBatchTests(unittest.TestCase):
     def test_no_approval_no_calls_and_no_automatic_alias_match(self):
         matches, review, _ = fixtures()
-        ids = plan_reviewed_ids(list(matches), matches, review,
+        ids = checked_plan(list(matches), matches, review,
                                 {"schema_version": 1, "pairs": {}}, NOW)
         self.assertEqual(ids, {})
         p = APIFootballResults(key="dummy", max_days=0, reviewed_targets=ids,
@@ -66,7 +88,7 @@ class ReviewedBatchTests(unittest.TestCase):
 
     def test_disabled_adapter_cannot_query_even_approved_ids(self):
         matches, review, approved = fixtures()
-        targets = plan_reviewed_ids(list(matches), matches, review, approved, NOW)
+        targets = checked_plan(list(matches), matches, review, approved, NOW)
         p = APIFootballResults(key="present-but-disabled", max_days=0,
                               reviewed_targets=targets,
                               id_fetch=lambda ids, key: self.fail("Disabled adapter called"))
@@ -75,7 +97,7 @@ class ReviewedBatchTests(unittest.TestCase):
 
     def test_three_human_approved_ids_one_batch_and_strict_90min_ft(self):
         matches, review, approved = fixtures()
-        targets = plan_reviewed_ids(list(matches), matches, review, approved, NOW)
+        targets = checked_plan(list(matches), matches, review, approved, NOW)
         self.assertEqual(len(targets), 3)
         calls = []
         def fetch(ids, key):
@@ -94,7 +116,7 @@ class ReviewedBatchTests(unittest.TestCase):
 
     def test_reviewed_id_does_not_override_team_orientation_and_competition(self):
         matches, review, approved = fixtures()
-        targets = plan_reviewed_ids(list(matches), matches, review, approved, NOW)
+        targets = checked_plan(list(matches), matches, review, approved, NOW)
         for bad in ("reverse", "league", "aet", "kickoff"):
             with self.subTest(bad=bad):
                 e = event(1, 5001)
@@ -117,21 +139,68 @@ class ReviewedBatchTests(unittest.TestCase):
         mutant = copy.deepcopy(approved)
         mutant["pairs"][signal(2)["match_key"]]["provider_fixture_id"] = 5001
         self.assertNotIn(signal(1)["match_key"],
-                         plan_reviewed_ids(list(matches), matches, review, mutant, NOW))
+                         checked_plan(list(matches), matches, review, mutant, NOW))
         approved["pairs"][signal(1)["match_key"]]["provider_home_team_id"] = 999
         self.assertNotIn(signal(1)["match_key"],
-                         plan_reviewed_ids(list(matches), matches, review, approved, NOW))
+                         checked_plan(list(matches), matches, review, approved, NOW))
         approved["pairs"][signal(1)["match_key"]]["provider_home_team_id"] = 301
         review["games"][0]["possible_duplicates"] = [{"match_key": "potential"}]
         self.assertNotIn(signal(1)["match_key"],
-                         plan_reviewed_ids(list(matches), matches, review, approved, NOW))
+                         checked_plan(list(matches), matches, review, approved, NOW))
+
+    def test_day_list_must_be_complete_and_fixture_from_same_provider(self):
+        matches, review, approved = fixtures()
+        empty = {"schema_version": 1, "days": {}}
+        self.assertEqual(checked_plan(list(matches), matches, review, approved,
+                                     day_index=empty), {})
+        partial, reg = _proof()
+        partial["days"]["2026-10-27"]["status"] = "INCOMPLETE"
+        self.assertEqual(checked_plan(list(matches), matches, review, approved,
+                                     day_index=partial, registry=reg), {})
+
+    def test_same_team_twice_in_90min_blocks_reviewed_fixture(self):
+        matches, review, approved = fixtures()
+        day_index, registry = _proof()
+        rows = day_index["days"]["2026-10-27"]["fixtures"]
+        clash = dict(rows[0], fixture_id=7000, away_team_id=777,
+                     away="Other opponent")
+        rows.append(clash)
+        day_index["days"]["2026-10-27"]["total_fixtures"] += 1
+        self.assertNotIn(signal(1)["match_key"],
+            checked_plan(list(matches), matches, review, approved,
+                         day_index=day_index, registry=registry))
+
+    def test_unproven_competition_and_confirmed_registry_collision_block(self):
+        matches, review, approved = fixtures()
+        approved["pairs"][signal(1)["match_key"]]["competition_anchor_fixture_id"] = 8000
+        self.assertNotIn(signal(1)["match_key"],
+                         checked_plan(list(matches), matches, review, approved))
+        approved["pairs"][signal(1)["match_key"]]["competition_anchor_fixture_id"] = 6000
+        index, registry = _proof()
+        registry["entries"]["api_football:5001"] = {
+            "match_key": "another-final", "status": "CONFIRMED_FT_SOURCE_ID"}
+        self.assertNotIn(signal(1)["match_key"],
+                         checked_plan(list(matches), matches, review, approved,
+                                      day_index=index, registry=registry))
+
+    def test_reserves_cannot_be_approved_against_senior_or_u21(self):
+        matches, review, approved = fixtures()
+        key = signal(1)["match_key"]
+        matches[key]["home"] = "Express 1 Reserves"
+        review["games"][0]["home"] = "Express 1 Reserves"
+        approved["pairs"][key]["home"] = "Express 1 Reserves"
+        self.assertNotIn(key, checked_plan(list(matches), matches, review, approved))
+        matches[key]["home"] = "Express 1 U21"
+        review["games"][0]["home"] = "Express 1 U21"
+        approved["pairs"][key]["home"] = "Express 1 U21"
+        self.assertNotIn(key, checked_plan(list(matches), matches, review, approved))
 
     def test_reuse_of_already_confirmed_ft_fixture_id_is_blocked(self):
         matches, review, approved = fixtures()
         matches["old-confirmed"] = {"status": "FINAL", "result": {
             "evidence": "api_football_only",
             "source": "https://v3.football.api-sports.io/fixtures?id=5001"}}
-        targets = plan_reviewed_ids(list(matches), matches, review, approved, NOW)
+        targets = checked_plan(list(matches), matches, review, approved, NOW)
         self.assertNotIn(signal(1)["match_key"], targets)
 
     def test_batch_more_than_twenty_or_duplicate_ids_rejected(self):
@@ -140,7 +209,7 @@ class ReviewedBatchTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     fetch_ids(ids, "fake-key")
         with self.assertRaises(ValueError):
-            plan_reviewed_ids([], {}, {}, {"schema_version": 2, "pairs": {}}, NOW)
+            checked_plan([], {}, {}, {"schema_version": 2, "pairs": {}}, NOW)
 
 
 if __name__ == "__main__":
