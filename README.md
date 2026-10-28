@@ -178,3 +178,8 @@ Os diários de observações, revisões V4, resultados FT, previsões V6, cinco 
 ### P0 científico V6 — controlo de 7/14 dias, 10 000 nulos e FT cronológico
 
 O [relatório dos gates prospetivos](docs/lab/v6-p0-gates.json) mantém os gates de 7/14 dias bloqueados até cobertura de 99% e revisão independente de logs Git/Telegram. A [simulação científica fixa](docs/lab/v6-p0-null-simulation.json) reproduz a mistura do teste sequencial em 10 000 caminhos nulos e mostra potência sintética por checkpoints, sem se confundir com FT reais ou uma hipótese validada. Implementado em modo LAB sombra; consulte [MASTER-BRAIN-V6.md](docs/lab/MASTER-BRAIN-V6.md). 
+
+
+### LAB FT: recuperação de resultados e auditoria dos atrasados (V12)
+
+A [fila FT verificável](docs/lab/ft-backlog.json) distingue finais confirmados, jogos futuros, intervalo de 3 horas após o KO, casos em revisão e **jogos efetivamente atrasados**. Por data UTC expõe pendentes nunca consultados e, separadamente, fornecedores **ausentes da última tentativa** (isto NÃO é uma prova de que nunca tenham sido usados). A [documentação de recuperação](docs/lab/FT-BACKLOG-RECOVERY-V12.md) explica a execução limitada de um único merge, a utilização das chaves API-Football/GOAL/OpenFoot, quotas e a necessidade de confirmar disparos reais do cron no GitHub. Nenhum marcador é inventado; H1 e FIFO ficam intactos.

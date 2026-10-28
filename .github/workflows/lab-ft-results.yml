@@ -130,6 +130,16 @@ jobs:
           assert all(x['match_key'] in ledger['matches'] for x in d['games'])
           assert all(x.get('home_goals') is None for x in d['games'] if x['status']!='FINAL')
           assert d['matches_omitted_from_display']+d['displayed_matches']==d['matches']
+          b=json.loads(Path('docs/lab/ft-backlog.json').read_text())
+          assert b['status']=='FT_BACKLOG_AUDIT_OBSERVATION_ONLY'
+          assert b['total_matches']==d['matches']
+          assert b['classification'].get('verified_ft',0)==d['final_recorded']
+          assert sum(b['classification'].values())-b['classification'].get('past_due_never_checked',0)-b['classification'].get('past_due_expired',0)==d['matches']
+          assert b['classification'].get('past_due_unverified',0)==d['coverage_diagnostics']['past_unverified_eligible']
+          assert b['overdue_omitted']==0
+          print('LAB_FT_BACKLOG_VALID',b['classification'].get('past_due_unverified',0),
+                b['classification'].get('past_due_never_checked',0))
+
           c=d['coverage_diagnostics']
           assert c['ft_confirmed']+c['future']+c['grace']+c['blocked_review']+c['past_unverified_eligible']==d['matches']
           assert sum(d["timing_counts"].values())==d["matches"]
