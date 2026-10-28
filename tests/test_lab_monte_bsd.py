@@ -168,5 +168,62 @@ class MonteBSDTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             exact_catalog(b"SQLite format 3\x00"+"x".encode()*4000001)
 
+    def test_unique_core_name_archive_id_verified_by_fresh_bsd(self):
+        raw=database([("600100","AS Roma","Cagliari",TIMESTAMP)])
+        original={**SIGNAL,"home":"Roma","away":"Cagliari"}
+        calls=[]
+        def fetch(url,token):
+            calls.append(url)
+            return event(home="AS Roma",away="Cagliari")
+        f=MonteBSDCrosswalk(token="test",downloader=lambda:raw,fetch=fetch)
+        result,why=f.lookup(original)
+        self.assertEqual(why,"verified_bsd_ft_from_monte_core_name")
+        self.assertEqual(result["identity_match"],"CORE_NAME")
+        self.assertEqual(result["home_goals"],2)
+        self.assertEqual(calls,[ROOT+"600100/"])
+        self.assertEqual(f.summary()["core_name_event_id_candidates"],1)
+        self.assertEqual(f.summary()["verified_core_name_in_run"],1)
+        self.assertEqual(f.summary()["exact_event_id_candidates"],0)
+
+    def test_core_name_rejects_duplicate_same_club_and_reverse_before_network(self):
+        original={**SIGNAL,"home":"Roma","away":"Cagliari"}
+        variants=(
+            (database([("600100","AS Roma","Cagliari",TIMESTAMP),
+                       ("600101","Roma","Cagliari",TIMESTAMP)]),
+             "monte_core_ambiguous_match"),
+            (database([("600100","AS Roma","Cagliari",TIMESTAMP),
+                       ("600101","AS Roma","Lazio",TIMESTAMP)]),
+             "monte_core_side_collision"),
+            (database([("600100","AS Roma","Cagliari",TIMESTAMP),
+                       ("600101","Cagliari","AS Roma",TIMESTAMP)]),
+             "monte_core_reversed_order"),
+            (database([("600100","Cagliari","AS Roma",TIMESTAMP)]),
+             "monte_core_reversed_order"),
+        )
+        for raw,expected in variants:
+            with self.subTest(expected=expected,sha=hash(raw)):
+                f=MonteBSDCrosswalk(token="test",downloader=lambda:raw,
+                    fetch=lambda u,t: (_ for _ in ()).throw(AssertionError("Unexpected API request")))
+                self.assertEqual(f.lookup(original)[1],expected)
+                self.assertEqual(f.events_requested,0)
+
+    def test_core_name_never_drops_youth_or_reserve_qualifiers(self):
+        raw=database([("600100","AS Roma U21","Cagliari",TIMESTAMP)])
+        sig={**SIGNAL,"home":"Roma","away":"Cagliari"}
+        f=MonteBSDCrosswalk(token="test",downloader=lambda:raw,
+            fetch=lambda u,t: (_ for _ in ()).throw(AssertionError("Unexpected API request")))
+        self.assertEqual(f.lookup(sig)[1],"monte_no_exact_archive_match")
+
+    def test_core_name_detail_mismatch_not_a_verified_ft(self):
+        raw=database([("600100","AS Roma","Cagliari",TIMESTAMP)])
+        sig={**SIGNAL,"home":"Roma","away":"Cagliari"}
+        f=MonteBSDCrosswalk(token="test",downloader=lambda:raw,
+                            fetch=lambda u,t:event(home="Other Roma",away="Cagliari"))
+        result,reason=f.lookup(sig)
+        self.assertIsNone(result)
+        self.assertEqual(reason,"monte_bsd_identity_mismatch")
+        self.assertEqual(f.summary()["verified_core_name_in_run"],0)
+
+
 if __name__=="__main__":
     unittest.main()
