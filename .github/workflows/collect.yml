@@ -8,6 +8,7 @@ on:
         type: string
         default: manual
   push:
+    branches: [main]
     paths:
       - ".github/workflows/collect.yml"
   schedule:
@@ -38,17 +39,19 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
-      # Real delivery is enabled only with the two dedicated Bot API secrets.
-      - name: Notify new H1 triples to configured bot chat
+      # Only prospective strict Pattern Watch observations are sent to Telegram.
+      # H1 singles and FIFO triples are still collected and settled, never notified.
+      - name: Notify new MASTER BRAIN strict patterns (experimental, not betting)
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python -m h1lab.notify
+        run: python -m h1lab.pattern_notify
       - name: Store data for dashboard
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/state.json docs/data.json
+          if [ -f data/pattern-notifications.json ]; then git add data/pattern-notifications.json; fi
           if [ -d data/lab ]; then git add data/lab; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data: collect and notify H1 [skip ci]'
