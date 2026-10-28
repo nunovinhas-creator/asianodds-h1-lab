@@ -1,3 +1,5 @@
+> **Documento preparatório/histórico (atualização 28/10/2026).** A verificação de prontidão descrita abaixo continua um relatório **descritivo**, não o motor atual de associação com resultados. A ligação FT para todos os jogos e os testes de padrões/Over 2,5/BTTS existem agora no [cérebro V5](CEREBRO-ODDS.md) e em [PATTERN-ENGINE.md](PATTERN-ENGINE.md); o V5 da fotografia de 11:16 UTC avaliou 800 hipóteses, nenhuma certificada. `outcome-readiness.json` não deve ser interpretado como resultado de backtest V5. Ver [arquitetura atual](ARCHITECTURE.md).
+
 # UNDER TESTE — fase seguinte: prontidão para validação por resultados
 
 **Estado:** preparação **sem testar resultados**. O script `h1lab/outcome_readiness.py` lê a cronologia de jogos repetidos e os ficheiros de liquidação H1 existentes, **sem modificar nenhuma destas fontes**. Executável: `python -m scripts.lab_outcome_readiness`. Saída: `docs/lab/outcome-readiness.json`.
