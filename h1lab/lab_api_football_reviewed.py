@@ -75,6 +75,8 @@ def plan_reviewed_ids(selected, matches, review, approved, now, *,
         game = matches.get(key)
         reviewed = indexed.get(key)
         if (not isinstance(row, dict) or row.get("status") != "APPROVED"
+                or row.get("match_key") != key
+                or row.get("provider") != "api_football"
                 or not isinstance(game, dict)
                 or game.get("status") not in ("PENDING", "PROVIDER_ERROR")
                 or not isinstance(reviewed, dict)
@@ -97,8 +99,8 @@ def plan_reviewed_ids(selected, matches, review, approved, now, *,
             continue
         linked = registry.get(f"api_football:{ids[0]}")
         if (collision[ids[0]] != 1 or str(ids[0]) in final_ids
-                or (isinstance(linked, dict) and
-                    linked.get("match_key") != key)):
+                or (linked is not None and
+                    (not isinstance(linked, dict) or linked.get("match_key") != key))):
             continue
         provider_ko = utc(row.get("provider_kickoff_utc"))
         observed_ko = utc(game["kickoff_utc"])
