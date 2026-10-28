@@ -48,6 +48,17 @@ jobs:
           python -m unittest discover -s tests -p 'test_v6_science_memory.py' -v
           python -m scripts.lab_v6_memory
           python -m scripts.lab_v6_memory --verify-only
+      # V6 hypothesis falsification reads ONLY frozen forecasts and
+      # verified FT evidence from the scientific memory (never H1 decisions).
+      # Missing or old context => INSUFFICIENT_N, not retroactive inference.
+      - name: Investigate V6 hypothesis with ten falsification screens (shadow)
+        id: v6_falsification
+        if: steps.v6_science_memory.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_v6_falsification.py' -v
+          python -m scripts.lab_v6_falsification
+          python -m scripts.lab_v6_falsification --verify-only
       - name: Validate V4 audit tests before publication
         run: |
           python -m unittest discover -s tests -p 'test_v4_audit.py' -v
@@ -95,6 +106,9 @@ jobs:
           if [ "${{ steps.v6_science_memory.outcome }}" = "success" ]; then
             if [ -f docs/lab/v6-memory.json ]; then git add docs/lab/v6-memory.json; fi
             git add -f data/lab/v6-memory-*.jsonl 2>/dev/null || true
+          fi
+          if [ "${{ steps.v6_falsification.outcome }}" = "success" ]; then
+            if [ -f docs/lab/v6-falsification.json ]; then git add docs/lab/v6-falsification.json; fi
           fi
           if [ -f docs/lab/v6-price-quality.json ]; then git add docs/lab/v6-price-quality.json; fi
           git add -f data/lab/v6-forecasts-*.jsonl 2>/dev/null || true
