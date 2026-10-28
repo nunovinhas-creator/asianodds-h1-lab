@@ -6,6 +6,8 @@ Observatório experimental de odds asiáticas: recolhe alertas estruturados de u
 
 ## O cérebro que cruza odds, mercados e resultados (V5)
 
+**Observatório de jogos futuros:** [padrão de múltiplos alertas, subidas e estabilidade dos golos implícitos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html). Distingue episódios independentes de mensagens repetidas, com dados Total válidos; **não altera as hipóteses estatísticas V5 nem produz apostas**.
+
 **O cérebro já existe e está operacional em modo LAB exploratório**: [guia acessível do cérebro V5](docs/lab/CEREBRO-ODDS.md), [especificação e validação](docs/lab/PATTERN-ENGINE.md), [código principal](h1lab/pattern_engine.py), [investigação visual](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) e [relatório estruturado](docs/lab/pattern-research.json).
 
 | Motor | O que faz | Cria apostas? |

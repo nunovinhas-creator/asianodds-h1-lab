@@ -97,7 +97,11 @@ O V5 **não envia hipóteses, odds ou novas apostas para o H1**. A ligação `h1
 
 A pesquisa V5 é executada depois da reconciliação FT no [workflow LAB](../../.github/workflows/lab-ft-results.yml), em modo `continue-on-error`: uma falha do cérebro não pode bloquear a liquidação nem criar decisões silenciosas.
 
-## 7. Código, testes e documentação
+## 7. Observação prospetiva de jogos futuros
+
+O [painel de movimentos futuros](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html) distingue subidas em episódios independentes, subidas com movimentos praticamente estáveis, estabilidade e movimentos verdadeiramente opostos. Usa o mesmo λ e limiar ±0,05 do V5, mas exige **dois episódios independentes** e **Total válido em todas as mensagens pré-jogo observadas**. Mensagens repetidas ou incompletas ficam em grupo próprio. A primeira deteção rigorosa por jogo é preservada no registo `data/lab/pattern-watch-first-seen.json` antes do início; não é uma hipótese estatisticamente validada nem uma aposta.
+
+## 8. Código, testes e documentação
 
 - `h1lab/pattern_features.py` — criação de características/padrões;
 - `h1lab/market_math.py` — comparação de linhas asiáticas por λ;

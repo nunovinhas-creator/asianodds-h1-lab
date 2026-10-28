@@ -44,6 +44,11 @@ on:
       - 'h1lab/lab_stats.py'
       - 'scripts/lab_pattern_research.py'
       - 'tests/test_pattern_engine.py'
+      - 'h1lab/pattern_watch.py'
+      - 'scripts/lab_pattern_watch.py'
+      - 'tests/test_pattern_watch.py'
+      - 'docs/lab-research.html'
+      - 'docs/lab-pattern-watch.html'
       - '.github/workflows/lab-ft-results.yml'
 
 permissions:
@@ -165,6 +170,27 @@ jobs:
         with:
           path: data/lab/.cache
           key: lab-pattern-cache-${{ github.run_id }}
+      - name: Refresh prospective V5 movement watch (no API, no betting)
+        id: prospective
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_pattern_watch.py' -v
+          python -m scripts.lab_pattern_watch
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('docs/lab/pattern-watch.json').read_text(encoding='utf-8'))
+          history=json.loads(Path('data/lab/pattern-watch-first-seen.json').read_text(encoding='utf-8'))
+          assert d['status']=='PROSPECTIVE_OBSERVATION_NOT_VALIDATED_NOT_BETTING'
+          assert len(d['future_strict'])==d['summary']['strict_eligible']
+          assert len(history['entries'])==d['summary']['total_historical_first_detections']
+          assert all(x['strict_condition'] and x['original_condition'] for x in d['future_strict'])
+          assert all(x['episodes']>=2 and x['messages']==x['valid_total_messages']
+                     and x['category'] in ('RISING_EACH_EPISODE','RISING_WITH_FLAT','FLAT_EACH_EPISODE')
+                     for x in d['future_strict'])
+          assert Path('docs/lab/pattern-watch.json').stat().st_size<180000
+          print('V5_WATCH_VALID',d['summary'])
+          PY
       - name: Commit only LAB FT artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -173,6 +199,8 @@ jobs:
           if [ -f data/lab/ft-api-audit.json ]; then git add data/lab/ft-api-audit.json; fi
           if [ -f docs/lab/pattern-research.json ]; then git add docs/lab/pattern-research.json; fi
           if [ -f data/lab/pattern-registry.json ]; then git add data/lab/pattern-registry.json; fi
+          if [ -f docs/lab/pattern-watch.json ]; then git add docs/lab/pattern-watch.json; fi
+          if [ -f data/lab/pattern-watch-first-seen.json ]; then git add data/lab/pattern-watch-first-seen.json; fi
           if git diff --cached --quiet; then
             echo LAB_FT_NO_CHANGE
             exit 0
