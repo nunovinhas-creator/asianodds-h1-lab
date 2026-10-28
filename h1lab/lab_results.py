@@ -10,6 +10,8 @@ import re
 from .lab_reviewed_aliases import SPORTSCORE_REVIEWED, reviewed_provider_pair
 from .lab_reviewed_bsd_ids import REVIEWED_BSD_FIXTURES
 from .lab_sportscore import source_order_conflict
+from .lab_ft_reviewed_evidence import (REVIEWED_PUBLIC_FT, public_evidence_urls,
+                                       verified_public_ft)
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -197,7 +199,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                      entry.get("reviewed_alias_check_version") != 1)
         bsd_id_due = (key in REVIEWED_BSD_FIXTURES and
                       entry.get("reviewed_bsd_id_check_version") != 1)
-        if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or force_recheck):
+        public_due = (entry["status"] == "SOURCE_ORDER_CONFLICT" and
+                      key in REVIEWED_PUBLIC_FT and
+                      entry.get("reviewed_public_ft_check_version") != 1)
+        if last and now < last + RETRY and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
         priority = (-3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
@@ -229,6 +234,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("goal", goal_lookup))
         if openfoot_lookup is not None:
             providers.append(("openfoot", openfoot_lookup))
+        if key in source_order_keys and key in REVIEWED_PUBLIC_FT:
+            providers.append(("reviewed_public", verified_public_ft))
         for provider, lookup in providers:
             try:
                 candidate, reason = lookup(signal)
@@ -245,6 +252,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["reviewed_alias_check_version"] = 1
         if key in REVIEWED_BSD_FIXTURES:
             row["reviewed_bsd_id_check_version"] = 1
+        if key in source_order_keys and key in REVIEWED_PUBLIC_FT:
+            row["reviewed_public_ft_check_version"] = 1
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
@@ -270,9 +279,13 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 row["result"]["identity_match"] = "+".join(methods)
             if key in source_order_keys:
                 row["source_order_resolution"] = {
-                    "method": "independent_non_sportscore_90m_ft",
+                    "method": ("reviewed_two_independent_public_ft"
+                               if "reviewed_public" in names else
+                               "independent_non_sportscore_90m_ft"),
                     "verified_by": names,
                     "verified_at_utc": now.isoformat(timespec="seconds"),
+                    "corroboration_urls": (public_evidence_urls(key)
+                                          if "reviewed_public" in names else []),
                 }
                 row["reason"] = "independent_ft_resolved_source_order_conflict"
             else:
