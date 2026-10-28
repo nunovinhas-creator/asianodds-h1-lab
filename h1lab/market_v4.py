@@ -174,33 +174,51 @@ def substance(record):
     return {k:v for k,v in record.items() if k not in VOLATILE}
 
 def store(root,records):
-    """Write per-month shadow snapshots by event ID. Never touches H1."""
+    """Persist current V4 view and journal every *observed* content revision.
+
+    Journaling happens BEFORE current-view projection changes, so a replaced
+    Telegram message can never destroy the prior observed version. An old
+    market row encountered at installation is marked a migration baseline.
+    Existing consumers still get one current V4 row per event_id.
+    """
+    from .v4_revisions import append, read_latest_projection, verify_projection
+    root=Path(root)
+    existing=read_latest_projection(root)
     months={}
     for item in records:
-        if not item:continue
-        months.setdefault(item["observed_at"][:7],[]).append(item)
+        if not item:
+            continue
+        month=item.get("observed_at","")[:7]
+        if not re.fullmatch(r"\d{4}-\d{2}",month):
+            raise ValueError("Invalid V4 monthly observation")
+        months.setdefault(month,[]).append(item)
+    # First imported historical observations stay distinguishable from new ones.
+    # Even with no newly parsed rows the first run indexes the legacy V4 view.
+    append(root,existing,[row for rows in months.values() for row in rows],
+           now=datetime.now(timezone.utc))
     for month,items in months.items():
-        if not re.fullmatch(r"\d{4}-\d{2}",month):continue
-        dest=Path(root)/"data"/"lab"/("markets-"+month+".jsonl")
+        dest=root/"data"/"lab"/("markets-"+month+".jsonl")
         dest.parent.mkdir(parents=True,exist_ok=True)
         prior={}
         if dest.exists():
-            for line in dest.read_text(encoding="utf-8",errors="replace").splitlines():
-                try:
-                    value=json.loads(line)
-                    if isinstance(value,dict) and value.get("event_id"):
-                        prior[value["event_id"]]=value
-                except ValueError:continue
+            for line in dest.read_text(encoding="utf-8").splitlines():
+                value=json.loads(line)
+                if not isinstance(value,dict) or not value.get("event_id"):
+                    raise ValueError("Invalid existing V4 row")
+                prior[value["event_id"]]=value
+        changed=False
         for item in items:
-            # The collector re-reads the previous checkpoint every poll. An
-            # identical re-observation must not rewrite the first record's
-            # provenance (parser_commit is the checkout HEAD, new each run).
             old=prior.get(item["event_id"])
             if old is not None and substance(old)==substance(item):
                 continue
             prior[item["event_id"]]=item
+            changed=True
+        if not changed:
+            continue
         temp=dest.with_suffix(".tmp")
-        temp.write_text("".join(json.dumps(v,ensure_ascii=False,sort_keys=True)+"\n" for v in
-                                sorted(prior.values(),key=lambda x:(x["observed_at"],x["event_id"]))),
+        temp.write_text("".join(json.dumps(v,ensure_ascii=False,sort_keys=True)+"\n"
+                                for v in sorted(prior.values(),
+                                                key=lambda x:(x["observed_at"],x["event_id"]))),
                         encoding="utf-8")
         temp.replace(dest)
+    verify_projection(root)
