@@ -44,6 +44,7 @@ Só depois de verificar manualmente o mesmo jogo, na fonte independente ou
 competição oficial, acrescentar um registo **real** a `pairs`, indexado pelo
 `match_key` AsianOdds, com estes campos:
 
+- `match_key`: a mesma chave usada na tabela `pairs` e no ledger
 - `status: "APPROVED"` e `provider: "api_football"` (fornecedor aprovado do par)
 - `home`, `away`, `kickoff_utc`: identidade original imutável do ledger
 - `provider_fixture_id`, `provider_home_team_id`, `provider_away_team_id`,
