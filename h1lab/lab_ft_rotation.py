@@ -6,7 +6,7 @@ adapter's existing per-run budget remains the ultimate safety cap.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 SCHEMA = 1
 CAPS = {"goal": 2, "openfoot": 2, "api_football": 3}
@@ -17,6 +17,29 @@ API_FOOTBALL_DAILY_LIMIT = 90
 # Local LAB ceiling; actual GOAL provider allowance remains unverified.
 GOAL_DAILY_LIMIT = 80
 OPENFOOT_MONTHLY_LIMIT = 4500
+RETRY_VERSION = 7
+
+
+def _day_wait(row):
+    if row.get("last_fetch_status") != "COMPLETE":
+        return timedelta(hours=4)
+    stable = max(0, int(row.get("stable_confirmations", 0)))
+    return timedelta(hours=24 if stable >= 2 else 12 if stable >= 1 else 4)
+
+
+def _eligible_day(row, now):
+    if not isinstance(row, dict) or row.get("retry_version") != RETRY_VERSION:
+        return True  # migrate legacy date rotation on the next real request
+    stamp = row.get("last_requested_at")
+    if not isinstance(stamp, str):
+        return True
+    try:
+        when = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError:
+        return False  # malformed V7 journal: fail closed
+    if when.tzinfo is None:
+        return False
+    return now >= when.astimezone(timezone.utc) + _day_wait(row)
 
 
 def choose_days(selected_keys, matches, previous, now, enabled):
@@ -74,14 +97,16 @@ def choose_days(selected_keys, matches, previous, now, enabled):
             month = now.date().isoformat()[:7]
             used = sum(v for day,v in provider_usage.items() if day.startswith(month))
             cap = min(cap, max(0, OPENFOOT_MONTHLY_LIMIT - used))
-        result[provider] = sorted(counts, key=lambda d: (
+        available = [day for day in counts
+                     if _eligible_day(days.get(day), now)]
+        result[provider] = sorted(available, key=lambda d: (
             days.get(d, {}).get("last_requested_at", "") if isinstance(days.get(d, {}), dict) else "",
             -counts[d], d
         ))[:cap]
     return result
 
 
-def advance(previous, rotation, requested, now, *, extra_requests=None):
+def advance(previous, rotation, requested, now, *, extra_requests=None, fingerprints=None):
     """Record only days actually attempted by the provider adapter.
 
     Failed responses still spend free-tier calls and therefore consume a
@@ -90,6 +115,11 @@ def advance(previous, rotation, requested, now, *, extra_requests=None):
     if now.tzinfo is None:
         raise ValueError("UTC aware clock required")
     extra_requests = extra_requests or {}
+    fingerprints = fingerprints or {}
+    if (not isinstance(fingerprints, dict) or
+            any(p not in CAPS or not isinstance(value, dict)
+                for p, value in fingerprints.items())):
+        raise ValueError("Invalid provider-day fingerprints")
     if any(p not in CAPS or type(n) is not int or n < 0 for p,n in extra_requests.items()):
         raise ValueError("Invalid supplementary request count")
     old = previous.get("providers", {})
@@ -108,10 +138,26 @@ def advance(previous, rotation, requested, now, *, extra_requests=None):
             raise ValueError("Provider queried an unplanned date")
         if len(actual) + extra_requests.get(p,0) > CAPS[p]:
             raise ValueError("Provider date quota exceeded")
+        provided = fingerprints.get(p, {})
+        if not set(provided).issubset(actual):
+            raise ValueError("Fingerprint for a date not requested")
         for day in actual:
             row = days.get(day, {})
+            new_hash = provided.get(day)
+            if new_hash is not None and (not isinstance(new_hash, str) or
+                    len(new_hash) != 64 or any(c not in "0123456789abcdef" for c in new_hash)):
+                raise ValueError("Invalid provider day fingerprint")
             row["requests"] = int(row.get("requests", 0)) + 1
             row["last_requested_at"] = now.astimezone(timezone.utc).isoformat(timespec="seconds")
+            row["retry_version"] = RETRY_VERSION
+            if new_hash is None:
+                # A failed/incomplete fetch spends quota but is NOT stability.
+                row["last_fetch_status"] = "UNAVAILABLE"
+            else:
+                stable = row.get("last_fetch_status") == "COMPLETE" and row.get("fingerprint") == new_hash
+                row["stable_confirmations"] = (int(row.get("stable_confirmations", 0)) + 1 if stable else 0)
+                row["fingerprint"] = new_hash
+                row["last_fetch_status"] = "COMPLETE"
             days[day] = row
         ordered = sorted(days.items(), key=lambda kv: (kv[1].get("last_requested_at", ""), kv[0]))
         out["providers"][p] = dict(ordered[-MAX_HISTORY_DAYS:])
