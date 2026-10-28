@@ -1,0 +1,97 @@
+name: Maintenance - retire BSD audit feature branch once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/retire-bsd-europa-branch-once.yml'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: asianodds-h1-write
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Verify merged PR 55, unchanged feature SHA, and archive in main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          branch = "feature/bsd-europa-audit"
+          raw = subprocess.check_output(
+              ["gh", "api", f"repos/{repo}/pulls/55"], text=True)
+          pr = json.loads(raw)
+          if not (pr["state"] == "closed" and pr["merged"] and
+                  pr.get("merged_at") and pr["base"]["ref"] == "main" and
+                  pr["head"]["ref"] == branch and
+                  pr["head"]["repo"]["full_name"] == repo):
+              raise SystemExit("STOP_BSD_PR55_NOT_MERGED_IN_MAIN")
+          actual = subprocess.check_output(
+              ["git", "ls-remote", "origin", f"refs/heads/{branch}"],
+              text=True).strip()
+          if not actual:
+              print("BSD_BRANCH_ALREADY_DELETED")
+          else:
+              sha = actual.split()[0]
+              if sha != pr["head"]["sha"]:
+                  raise SystemExit("STOP_BSD_BRANCH_CHANGED_AFTER_MERGE")
+          for path in (
+              "reports/bsd-europa-audit.json",
+              "reports/README.md",
+              "config/oruseye_europe30.json",
+              "tools/bsd_europa_audit.py",
+              "tests/test_bsd_europa_audit.py",
+          ):
+              if not Path(path).is_file():
+                  raise SystemExit(f"STOP_MISSING_MAIN_ARCHIVE {path}")
+          print("BSD_PR55_AND_ARCHIVE_VERIFIED")
+          if actual:
+              subprocess.run(["git", "push", "origin", "--delete", branch], check=True)
+              print("BSD_FEATURE_BRANCH_DELETED", branch)
+          still = subprocess.check_output(
+              ["git", "ls-remote", "origin", f"refs/heads/{branch}"],
+              text=True).strip()
+          if still:
+              raise SystemExit("STOP_BSD_FEATURE_BRANCH_STILL_EXISTS")
+          for preserved in ("main",):
+              if not subprocess.check_output(
+                  ["git", "ls-remote", "origin", f"refs/heads/{preserved}"],
+                  text=True).strip():
+                  raise SystemExit("STOP_MAIN_MISSING")
+          print("BSD_FEATURE_RETIREMENT_SUCCEEDED")
+          PY
+      - name: Self-remove one-time cleanup and publish to main
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/retire-bsd-europa-branch-once.yml
+          git commit -m 'chore: remove completed BSD feature branch cleanup [skip ci]'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo BSD_CLEANUP_ONE_SHOT_REMOVED
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
