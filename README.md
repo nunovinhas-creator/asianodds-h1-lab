@@ -8,6 +8,19 @@ Observatório experimental de odds asiáticas: recolhe alertas estruturados de u
 
 **Referências técnicas:** [Centro de controlo](https://nunovinhas-creator.github.io/asianodds-h1-lab/index.html) · [Sinais H1](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1) · [Cérebro V5 / investigação](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-research.html) · [Resultados de todos os jogos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-results.html) · [Auditoria V4](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-v4-audit.html).
 
+## Cronologia de descobertas — Fase 2
+
+O **Radar** inclui agora uma cronologia de mudanças do V5: resultados FT acrescentados, diferenças entre taxas, inversões de efeito, alterações de estados, evolução por padrão com datas UTC reais e resultados dos jogos detetados prospetivamente. A primeira execução estabelece uma **baseline** sem reconstruir falsos acontecimentos passados.
+
+- Fonte pública: [cronologia de descobertas](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab/discoveries.json).
+- Motor incremental: `h1lab/discovery_timeline.py` e `scripts/lab_discoveries.py`.
+- Arquivos imutáveis por mês: `data/lab/discovery-events-YYYY-MM.jsonl`; o frontend mantém apenas a janela recente.
+- O histórico de primeiras deteções é **pré-kickoff** e os desfechos são associados apenas após FT confirmado. Os jogos sem FT não contam como derrotas.
+- A amostra de descoberta nunca é confundida com a amostra posterior **fora da amostra (OOS)**. Nenhuma taxa ou tendência é apresentada como rentabilidade garantida.
+- O motor acompanha os padrões individuais, cruzamentos publicados e hipóteses congeladas; não afirma acompanhar todos os 800 testes internos. Ver [documentação completa](docs/lab/DISCOVERY-TIMELINE.md).
+
+A atualização reutiliza `lab-ft-results.yml`, sem novos pedidos API, cron ou alterações ao H1/Telegram.
+
 ## O cérebro que cruza odds, mercados e resultados (V5)
 
 **Observatório de jogos futuros:** [padrão de múltiplos alertas, subidas e estabilidade dos golos implícitos](https://nunovinhas-creator.github.io/asianodds-h1-lab/lab-pattern-watch.html). Distingue episódios independentes de mensagens repetidas, com dados Total válidos; **não altera as hipóteses estatísticas V5 nem produz apostas**.

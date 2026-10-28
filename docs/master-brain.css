@@ -79,3 +79,32 @@
 @media(max-width:930px){.app{grid-template-columns:1fr}.rail{height:auto;position:relative;padding:15px 18px;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:4px 3px}.rail-tag,.rail-bottom,.rail .side-archive{display:none}.rail-nav{flex-direction:row;overflow-x:auto;margin-top:10px;padding-bottom:4px;gap:5px}.nav-btn,.nav-link{width:auto;white-space:nowrap;min-height:42px;padding:9px 12px;flex-shrink:0}.nav-count{display:none}.archive-nav{border-top:1px solid var(--line-soft);margin-top:7px;padding-top:6px;display:flex;flex-direction:row;gap:3px;overflow-x:auto}.work{padding:0 20px 38px}.topbar{min-height:65px}}
 @media(max-width:670px){.work{padding:0 15px 35px}.page{padding-top:24px}.page-heading{flex-direction:column}.page h1{font-size:32px}.hero{padding:24px 20px}.hero h1{font-size:34px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.metric{padding:13px}.card-grid,.link-grid{grid-template-columns:1fr}.toolbar{align-items:stretch}.toolbar label{width:100%}.toolbar input,.toolbar select{width:100%;min-width:0}.toolbar .count{margin:0}.topbar .stamp{max-width:155px;font-size:10px}.section-head h2{font-size:17px}.columns.half{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Master Brain Fase 2: chronological evidence cards, not a betting widget. */
+.discovery-stream{display:grid;gap:10px}
+.discovery-item{display:grid;grid-template-columns:130px minmax(0,1fr);gap:18px;padding:16px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--aqua);border-radius:12px}
+.discovery-item.improved{border-left-color:var(--mint)}
+.discovery-item.degraded,.discovery-item.rejected{border-left-color:var(--rose)}
+.discovery-time{font-variant-numeric:tabular-nums;color:var(--dim);font-size:12px}
+.discovery-item h3{margin:5px 0;font-size:15px;line-height:1.35}
+.discovery-item p{margin:6px 0;color:var(--soft);font-size:12px;line-height:1.5}
+.discovery-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:8px}
+.discovery-actions button{border:1px solid #3d6373;border-radius:8px;background:#173340;color:var(--aqua);padding:6px 10px;font-weight:700}
+.discovery-values{display:flex;gap:14px;flex-wrap:wrap;color:var(--soft);font-size:12px}
+.discovery-detail{margin:12px 0 20px;scroll-margin-top:22px}
+.discovery-detail h3{margin:0 0 8px}
+.discovery-detail .detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.detail-grid div{background:var(--raised);border-radius:9px;padding:12px;min-width:0}
+.detail-grid strong{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.detail-grid span{display:block;color:var(--soft);font-size:11px}
+.discovery-graph{width:100%;height:150px;overflow:visible}
+.discovery-graph polyline{fill:none;stroke:var(--mint);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.discovery-graph circle{fill:var(--aqua)}
+.discovery-point-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.discovery-point-list small{padding:7px 9px;background:var(--raised);border-radius:7px;color:var(--soft)}
+.prospective-summary{display:flex;gap:12px;flex-wrap:wrap}
+.prospective-summary .tag{font-variant-numeric:tabular-nums}
+.prospective-row{border-top:1px solid var(--line-soft);padding:10px 0}
+.prospective-row strong{display:block;font-size:13px}
+.prospective-row small{color:var(--soft);display:block}
+@media(max-width:670px){.discovery-item{grid-template-columns:1fr;gap:5px}.discovery-detail .detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.discovery-values{gap:7px 14px}}
