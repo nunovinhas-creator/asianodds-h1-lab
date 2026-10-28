@@ -10,19 +10,49 @@ Para cada candidato do API-Football, a fila de revisão publica apenas os dados
 de identidade (ID do jogo, IDs de ambas as equipas, ID da competição, nomes,
 KO e orientação). Não publica resultados de jogos pendentes.
 
+## Prova de identidade proveniente da lista completa
+
+O ficheiro `data/lab/ft-api-football-day-index.json` é produzido **somente**
+a partir da lista completa do dia já consultada na execução autenticada. Só
+contém IDs dos jogos e das duas equipas, nomes, ID/nome da competição, hora
+UTC, data da consulta e SHA-256 da lista. Não armazena golos nem odds.
+
+Se a lista original estiver incompleta, contiver jogos sem identidade
+verificável ou houver IDs duplicados, o dia fica `INCOMPLETE` e **nenhuma**
+aprovação por IDs nesse dia é autorizada. Um pedido HTTP falhado não altera
+a última prova completa.
+
+O planeador exige `competition_anchor_fixture_id` de **outro** jogo
+anteriormente FINAL, presente em `ft-provider-identity.json` com o mesmo
+fornecedor, e cuja competição no índice completo tenha exatamente o mesmo
+ID. Exige ainda que nenhum ID de qualquer das equipas surja noutro jogo
+no intervalo de 90 minutos antes ou depois do KO e que reservas, séniores,
+U21 e futebol feminino nunca sejam confundidos.
+
+Para `Express Red Eagles–Kataka FC`, exige também um
+`opponent_anchor_fixture_id` de outro jogo FINAL com o mesmo ID de Kataka
+ou `independent_public_ft` (URL HTTPS de uma segunda fonte pública
+independente e golos casa/fora aos 90 minutos, previamente revistos). Quando
+a segunda opção é usada, o resultado final da API deve coincidir exatamente
+com essa prova, ou a liquidação é recusada. O código não confirma o conteúdo
+do URL sozinho; a autenticidade dessa segunda fonte é responsabilidade da
+revisão humana antes de inserir o par.
+
 ## Aprovação humana por jogo
 
 Só depois de verificar manualmente o mesmo jogo, na fonte independente ou
 competição oficial, acrescentar um registo **real** a `pairs`, indexado pelo
 `match_key` AsianOdds, com estes campos:
 
-- `status: "APPROVED"`
+- `status: "APPROVED"` e `provider: "api_football"` (fornecedor aprovado do par)
 - `home`, `away`, `kickoff_utc`: identidade original imutável do ledger
 - `provider_fixture_id`, `provider_home_team_id`, `provider_away_team_id`,
   `provider_competition_id`, `provider_kickoff_utc`: valores exatos de um
   candidato da fila de revisão previamente observado
 - `reviewed_by`: identificador não vazio do revisor
 - `reviewed_at_utc`: data/hora da aprovação real em UTC
+- `competition_anchor_fixture_id`: ID de jogo do mesmo fornecedor com FT confirmado e igual ID de competição
+- no Express–Kataka, `opponent_anchor_fixture_id` ou `independent_public_ft` com URL e resultado aos 90 minutos
 
 O planeador recusa qualquer diferença entre a aprovação, a identidade
 original e o candidato persistido; recusa também duplicados, colisões com
