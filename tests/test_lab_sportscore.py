@@ -2,7 +2,7 @@
 import unittest
 from datetime import datetime,timezone
 from h1lab.lab_sportscore import SportScoreResults, verified
-from h1lab.lab_results import reconcile
+from h1lab.lab_results import reconcile, LOOKUP_SOURCE_VERSION
 
 SIG={"match_key":"2026-10-27,1,2","home":"Sporting CP","away":"CS Maritimo",
      "kickoff_utc":"2026-10-27T20:15:00+00:00"}
@@ -111,14 +111,14 @@ class SportScoreTests(unittest.TestCase):
         self.assertEqual(attempts,1)
         self.assertEqual(report["final_recorded"],1)
         self.assertEqual(len(calls),1)
-        self.assertEqual(first["matches"][SIG["match_key"]]["lookup_source_version"],6)
+        self.assertEqual(first["matches"][SIG["match_key"]]["lookup_source_version"],LOOKUP_SOURCE_VERSION)
 
     def test_new_source_does_not_requery_in_cooldown(self):
         st={"alerts":[SIG],"signals":[]}
         old={"schema_version":1,"matches":{SIG["match_key"]:{
             "status":"PENDING","home":SIG["home"],"away":SIG["away"],
             "kickoff_utc":SIG["kickoff_utc"],"checked_at":"2026-10-28T06:00:00+00:00",
-            "lookup_source_version":6,"attempts":2}}}
+            "lookup_source_version":LOOKUP_SOURCE_VERSION,"attempts":2}}}
         def fail(s):
             raise AssertionError("Cooldown should suppress lookups")
         _,report,attempts=reconcile(st,[],old,

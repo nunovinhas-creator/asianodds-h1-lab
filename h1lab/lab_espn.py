@@ -14,6 +14,8 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
 from .results import norm_team
+from .lab_identity import select_event, EXACT, IDENTITY_VERSION
+from datetime import timedelta
 
 BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/"
 # Known exact competition -> ESPN league slugs. Never infer a competition
@@ -31,6 +33,11 @@ LEAGUES = {
     "Italy Serie B": "ita.2",
     "Argentina Liga Profesional": "arg.1",
     "AFC Asian Champions League": "afc.champions",
+    # Verified on 2026-10-28 by reading each scoreboard's league name.
+    "Germany Bundesliga": "ger.1",
+    "USA Major League Soccer": "usa.1",
+    "Spain Second Division A (Liga Adelante)": "esp.2",
+    "Sweden Allsvenskan": "swe.1",
 }
 MAX_SCOREBOARDS = 16
 NO_ET = re.compile(r"extra.?time|aet|after extra|penalt|shootout|spot kick|\bET\b", re.I)
@@ -147,35 +154,57 @@ class ESPNResults:
         dt = _utc(signal.get("kickoff_utc"))
         if dt is None:
             return None, "espn_invalid_kickoff"
-        day = dt.strftime("%Y%m%d")
-        key = (slug, day)
-        if key not in self.cache:
-            if self.requests >= self.max_scoreboards:
-                self.reasons["budget_deferred"] += 1
-                return None, "espn_budget_deferred"
-            self.requests += 1
-            try:
-                self.cache[key] = self.fetch(BASE + slug + "/scoreboard?" + urlencode({"dates": day, "limit": 150}))
-            except (ValueError, OSError):
-                self.cache[key] = None
-        events = self.cache[key]
-        if events is None:
+        # ESPN's ?dates= is a US-calendar day: a kickoff before 06:00 UTC can be
+        # listed under the previous date. Query that day as well (bounded).
+        days = [dt.strftime("%Y%m%d")]
+        if dt.hour < 6:
+            days.append((dt - timedelta(days=1)).strftime("%Y%m%d"))
+        events, unavailable = [], 0
+        for day in days:
+            key = (slug, day)
+            if key not in self.cache:
+                if self.requests >= self.max_scoreboards:
+                    self.reasons["budget_deferred"] += 1
+                    return None, "espn_budget_deferred"
+                self.requests += 1
+                try:
+                    self.cache[key] = self.fetch(BASE + slug + "/scoreboard?" + urlencode({"dates": day, "limit": 150}))
+                except (ValueError, OSError):
+                    self.cache[key] = None
+            if self.cache[key] is None:
+                unavailable += 1
+            else:
+                seen = {id(e) for e in events}
+                events.extend(e for e in self.cache[key] if id(e) not in seen)
+        if unavailable == len(days):
             self.reasons["unavailable"] += 1
             return None, "espn_unavailable"
-        plausible = []
-        for ev in events:
+
+        def names(ev):
             sides = _competitors(ev)
-            when = _utc(ev.get("date")) if isinstance(ev, dict) else None
-            if not sides or not when or abs((when-dt).total_seconds()) > 90*60:
-                continue
-            if all(norm_team(_team(sides[side])) == norm_team(signal[side])
-                   for side in ("home", "away")):
-                plausible.append(ev)
-        if len(plausible) != 1:
-            reason = "espn_no_exact_match" if not plausible else "espn_ambiguous_match"
+            if not sides:
+                raise ValueError("no sides")
+            return _team(sides["home"]), _team(sides["away"])
+
+        chosen, level, why = select_event(signal, events, names,
+                                          lambda ev: _utc(ev.get("date")))
+        if chosen is None:
+            reason = {"identity_no_core_match": "espn_no_exact_match",
+                      "identity_ambiguous_exact": "espn_ambiguous_match",
+                      "identity_ambiguous_core": "espn_ambiguous_match"}.get(why, "espn_" + why)
             self.reasons[reason] += 1
             return None, reason
-        result, reason = final_score(signal, plausible[0], slug)
+        # Re-run the strict ESPN validator on the provider's own names, so all
+        # status/score/ET checks stay identical for exact and core-name matches.
+        eh, ea = names(chosen)
+        probe = dict(signal, home=eh, away=ea) if level != EXACT else signal
+        result, reason = final_score(probe, chosen, slug)
+        if result is not None:
+            result["identity_match"] = level
+            result["identity_version"] = IDENTITY_VERSION
+            if level != EXACT:
+                reason = "verified_espn_ft_core_name"
+                self.reasons["verified_espn_ft"] += 1
         self.reasons[reason] += 1
         return result, reason
 

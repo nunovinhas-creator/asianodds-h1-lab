@@ -19,7 +19,7 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
-LOOKUP_SOURCE_VERSION = 6  # one-time new public BSD-ID source + expanded team lookup
+LOOKUP_SOURCE_VERSION = 7  # v7: one-time recheck with fail-closed CORE_NAME identity (lab_identity)
 
 
 def utc(value):
@@ -89,7 +89,11 @@ def _validate_result(result, key):
         return None
     if not isinstance(source, str) or not source.startswith("https://") or len(source) > 512:
         return None
-    return {"home_goals": h, "away_goals": a, "source": source}
+    out = {"home_goals": h, "away_goals": a, "source": source}
+    # Provenance of the team-name identity rule (absent = exact legacy rule).
+    if result.get("identity_match") in ("EXACT", "CORE_NAME"):
+        out["identity_match"] = result["identity_match"]
+    return out
 
 
 def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None):
@@ -232,6 +236,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                              "away_goals": selected["away_goals"],
                              "source": selected["source"],
                              "evidence": ("_and_".join(names) if len(names)>1 else names[0]+"_only")}
+            methods = sorted({item.get("identity_match", "EXACT") for _, item in confirmed})
+            if methods != ["EXACT"]:
+                row["result"]["identity_match"] = "+".join(methods)
             row["reason"] = "ft_recorded_with_source"
         else:
             row["status"] = "PROVIDER_ERROR" if any(
