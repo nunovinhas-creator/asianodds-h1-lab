@@ -97,7 +97,7 @@ class WeeklyMonitorTests(unittest.TestCase):
         old=datetime(2026,10,5,tzinfo=UTC)
         a,b,c=fixtures(old,1,p=.8,goals=(2,1))
         later=dict(a[0],event_id="test:later",
-                   known_at=(old+timedelta(days=2,hours=-1)).isoformat(),
+                   known_at=(datetime.fromisoformat(a[0]["known_at"])+timedelta(minutes=15)).isoformat(),
                    market_probability_over_2_5=.9)
         r=analyze(a+[later],b,c,REG,now=datetime(2026,10,22,tzinfo=UTC))
         self.assertEqual(r["weeks"][0]["quality"]["n"],1)
