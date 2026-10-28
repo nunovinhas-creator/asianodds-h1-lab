@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T11:01:25+00:00",
+  "generated_at": "2026-10-28T11:06:34+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 40,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 64.5
+      "matches": 43,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 66.2
     },
     "both_total_and_1x2": {
-      "matches": 43,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 69.4
+      "matches": 46,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 70.8
     },
     "opposing_intra_alert_directions": {
-      "matches": 13,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 21.0
+      "matches": 14,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 21.5
     },
     "with_ambiguous_repeats": {
       "matches": 7,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 11.3
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 10.8
     },
     "with_identical_total_snapshots": {
-      "matches": 8,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 12.9
+      "matches": 10,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 15.4
     },
     "with_mixed_origin_total": {
       "matches": 15,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 24.2
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 23.1
     },
     "with_only_legacy_total": {
       "matches": 10,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 16.1
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 15.4
     },
     "with_only_v4_total": {
-      "matches": 37,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 59.7
+      "matches": 40,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 61.5
     },
     "with_post_kickoff_alerts": {
       "matches": 4,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 6.5
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 6.2
     },
     "with_related_alerts": {
-      "matches": 13,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 21.0
+      "matches": 16,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 24.6
     },
     "with_unobserved_line_gaps": {
-      "matches": 13,
-      "of_repeated_matches_analysed": 62,
-      "percentage_descriptive": 21.0
+      "matches": 14,
+      "of_repeated_matches_analysed": 65,
+      "percentage_descriptive": 21.5
     }
   },
   "opposing_direction_examples": [
@@ -100,6 +100,21 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,1077,1048",
       "match_label": "AC Sparta Praha vs FC Baník Ostrava"
+    },
+    {
+      "directions": [
+        "UP",
+        "DOWN",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50762",
+        "3571094759:50928",
+        "3571094759:50931"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-28,1290,1507",
+      "match_label": "AEL Larisa vs OFI Crete"
     },
     {
       "directions": [
@@ -248,50 +263,37 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-27,10068586,24722",
       "match_label": "SPG Wels vs Wolfsberger AC"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:50630",
-        "3571094759:50641"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-27,32555,24870",
-      "match_label": "Shabab Al Ahli Dubai FC vs Esteghlal Tehran FC"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 264,
+    "all_distinct_matches": 265,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 143,
-    "messages_in_source": 345,
-    "repeated_matches_analysed": 62,
-    "repeated_matches_in_source": 62,
+    "events_analysed": 151,
+    "messages_in_source": 351,
+    "repeated_matches_analysed": 65,
+    "repeated_matches_in_source": 65,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "59144796aaa42efb42a6d81e6574490393fe443c",
-  "source_generated_at": "2026-10-28T11:01:25+00:00",
+  "source_commit": "a69e5dd92f72cff87f84065cc7434d6259364d96",
+  "source_generated_at": "2026-10-28T11:06:34+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 4,
-      "T_0_TO_60": 24,
-      "T_360_TO_1440": 22,
+      "T_0_TO_60": 26,
+      "T_360_TO_1440": 24,
       "T_60_TO_360": 27,
       "T_OVER_1440": 9,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 6,
-      "T_0_TO_60": 39,
-      "T_360_TO_1440": 41,
+      "T_0_TO_60": 43,
+      "T_360_TO_1440": 45,
       "T_60_TO_360": 41,
       "T_OVER_1440": 16,
       "UNKNOWN": 0
@@ -301,27 +303,27 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 38,
-      "V4_EXPLICIT": 105
+      "V4_EXPLICIT": 113
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 37.1,
-      "FLAT": 23.1,
-      "UP": 39.9
+      "DOWN": 37.7,
+      "FLAT": 21.9,
+      "UP": 40.4
     },
-    "down": 53,
+    "down": 57,
     "flat": 33,
-    "messages_with_total": 143,
-    "up": 57,
+    "messages_with_total": 151,
+    "up": 61,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 8,
-    "continuous": 45,
-    "identical_total_pairs": 8,
-    "related_pairs": 13,
+    "continuous": 46,
+    "identical_total_pairs": 10,
+    "related_pairs": 16,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
-    "same_lines_different_prices_pairs": 5,
-    "same_movement_repeat": 13,
-    "unobserved_change": 15
+    "same_lines_different_prices_pairs": 6,
+    "same_movement_repeat": 16,
+    "unobserved_change": 16
   }
 }
