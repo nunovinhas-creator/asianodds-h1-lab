@@ -1,0 +1,106 @@
+name: LAB - API-Football one-time activation check
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lab-api-football-one-time.yml'
+permissions:
+  contents: write
+concurrency:
+  group: asianodds-lab-ft-results
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Synchronize current LAB inputs
+        run: git pull --rebase origin main
+      - name: Test LAB validation before contacting provider
+        run: |
+          python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
+      - name: Verify API-Football authentication and parse a historical date safely
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+        run: |
+          python - <<'PY'
+          import os, sys
+          from h1lab.lab_api_football import fetch_date
+          key=os.environ.get('API_FOOTBALL_KEY','').strip()
+          if not key:
+              print('API_FOOTBALL_SECRET_MISSING')
+              sys.exit(1)
+          print('API_FOOTBALL_SECRET_PRESENT_NO_VALUE_LOGGED')
+          try:
+              matches=fetch_date('2026-10-27',key)
+          except (OSError,ValueError):
+              print('API_FOOTBALL_PREFLIGHT_FAILED_CHECK_KEY_PLAN_OR_PROVIDER')
+              sys.exit(2)
+          print('API_FOOTBALL_PREFLIGHT_OK_FIXTURE_COUNT',len(matches))
+          PY
+      - name: Snapshot FT count before provider activation
+        run: cp data/lab/ft-ledger.json /tmp/lab_api_football_before.json
+      - name: Reconcile eligible backlog with official API-Football once
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          LAB_API_FOOTBALL_ONE_SHOT: 'true'
+          LAB_API_FOOTBALL_SCHEDULED: 'false'
+          LAB_FOTMOB_LICENSED: '0'
+          LAB_RESULTS_MAX_CHECKS: '30'
+          LAB_BSD_DATE_MAX_DAYS: '3'
+          LAB_BSD_DATE_MAX_PAGES: '3'
+        run: python -m scripts.lab_results
+      - name: Verify actual API requests, safety and newly confirmed FT
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('docs/lab/ft-results.json').read_text(encoding='utf-8'))
+          after=json.loads(Path('data/lab/ft-ledger.json').read_text(encoding='utf-8'))['matches']
+          before=json.loads(Path('/tmp/lab_api_football_before.json').read_text(encoding='utf-8'))['matches']
+          api=report['api_football_search']
+          assert api['configured'] is True, 'API key not injected'
+          assert api['scheduled_poll_enabled'] is True and api['one_shot_activation'] is True
+          assert 1 <= api['requests'] <= 3, 'No API-Football date request despite pending games'
+          assert report['final_recorded'] >= sum(g['status']=='FINAL' for g in before.values())
+          assert report['status_counts'].get('SOURCE_ORDER_CONFLICT',0)>=4
+          assert report['fotmob_search']['requests']==0
+          gained=[(k,v) for k,v in after.items() if v['status']=='FINAL' and before.get(k,{}).get('status')!='FINAL']
+          print('LAB_API_FOOTBALL_AUDIT', 'observed',report['matches'],
+                'FT',report['final_recorded'],'api_requests',api['requests'],
+                'api_verified_attempts',api['verified_in_run'],
+                'new_ft',len(gained),'api_reasons',api['reason_counts'])
+          for key,row in gained:
+              print('LAB_NEW_FT',key,row['home'],row['away'],
+                    row['result']['home_goals'],row['result']['away_goals'],
+                    row['result']['evidence'])
+          PY
+      - name: Publish only LAB results and remove this one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/lab/ft-ledger.json docs/lab/ft-results.json
+          git rm .github/workflows/lab-api-football-one-time.yml
+          git commit -m 'data(lab): official API-Football one-time FT check [skip ci]'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo LAB_API_FOOTBALL_ONETIME_PUBLISHED
+              exit 0
+            fi
+            sleep 2
+          done
+          echo LAB_API_FOOTBALL_ONETIME_FAILED_TO_PUBLISH
+          exit 1
