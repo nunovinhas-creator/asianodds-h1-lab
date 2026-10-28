@@ -32,6 +32,7 @@ def fixtures(week_begin, count, *, p, goals, bad=0):
             "market_probability_over_2_5":p,
         })
         events.append({
+            "sha256":hashlib.sha256(("FT:"+key).encode()).hexdigest(),
             "match_key":key,"recorded_at":(kickoff+timedelta(hours=5)).isoformat(),
             "source_last_checked_at":(kickoff+timedelta(hours=4)).isoformat(),
             "snapshot":{"status":"FINAL","score":{"home":goals[0],"away":goals[1]}}
