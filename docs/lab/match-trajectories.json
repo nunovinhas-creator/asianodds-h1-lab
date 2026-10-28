@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T11:26:23+00:00",
+ "generated_at": "2026-10-28T11:31:31+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,24 +23,24 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 67
+  "timelines_published": 68
  },
  "schema_version": 1,
- "source_commit": "8fd2a5c1bd335f3208d36fd9e7512187be497a43",
+ "source_commit": "db72cde539352e94f74d075f29d97d1612fbb35c",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 272,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 361,
+  "messages": 362,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 156,
+  "messages_on_repeated_matches": 158,
   "messages_v4_only": 0,
-  "messages_with_v4": 287,
-  "movement_episodes_upper_bound": 345,
+  "messages_with_v4": 288,
+  "movement_episodes_upper_bound": 346,
   "possibly_redundant_snapshots": 10,
-  "post_kickoff_messages": 9,
+  "post_kickoff_messages": 10,
   "related_message_pairs": 16,
   "related_pairs_by_class": {
    "SAME_MOVEMENT_DIFFERENT_MESSAGE": 16
@@ -50,14 +50,14 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 6
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 67,
+  "repeated_matches": 68,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 425
+   "V4_EXPLICIT": 426
   },
   "total_line_reversals_on_repeated": 26,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 8,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 9,
    "CONTINUOUS": 49,
    "SAME_MOVEMENT_REPEAT": 16,
    "UNOBSERVED_CHANGE": 16
@@ -65,10 +65,147 @@
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 70,
    "one_x_two:AGREE": 68,
-   "total:AGREE": 287
+   "total:AGREE": 288
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50921",
+    "3571094759:50942"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50921",
+     "message_id": 50921,
+     "minutes_to_kickoff": 46.7,
+     "observed_at": "2026-10-28T10:43:19+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 2.02,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.82,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:50942",
+     "message_id": 50942,
+     "minutes_to_kickoff": -0.2,
+     "observed_at": "2026-10-28T11:30:10+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 2.07,
+        "under_price": 1.79
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.91,
+        "under_price": 1.89
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T10:43:19+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T11:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T11:30:10+00:00",
+   "match_key": "2026-10-28,50279,1106",
+   "match_label": "Szentlőrinc SE vs Vasas SC",
+   "movement_episodes": [
+    [
+     "3571094759:50921"
+    ],
+    [
+     "3571094759:50942"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 1,
+   "related_messages": [],
+   "seconds_between_messages": [
+    2811.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.75,
+     "last_observed_line": 3.0,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:50921",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:50942",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50921",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.75,
+       "previous_after_line": 3.0,
+       "to": "3571094759:50942"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
