@@ -27,6 +27,8 @@ on:
       - 'tests/test_lab_ft_diagnostics.py'
       - 'scripts/lab_results.py'
       - 'tests/test_lab_results.py'
+      - 'tests/test_lab_ft_fair_queue.py'
+      - 'h1lab/lab_ft_backlog.py'
       - 'h1lab/lab_espn.py'
       - 'h1lab/lab_sportscore.py'
       - 'h1lab/lab_monte_bsd.py'
@@ -88,6 +90,7 @@ jobs:
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_fair_queue.py' -v
           python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
@@ -147,6 +150,9 @@ jobs:
           assert sum(b['classification'].values())-b['classification'].get('past_due_never_checked',0)-b['classification'].get('past_due_expired',0)==d['matches']
           assert b['classification'].get('past_due_unverified',0)==d['coverage_diagnostics']['past_unverified_eligible']
           assert b['overdue_omitted']==0
+          assert d['ft_queue']['never_checked_deferred'] >= 0
+          assert d['ft_queue']['selected'] <= 30
+          assert d['ft_queue']['selected'] + d['ft_queue']['deferred_by_capacity'] == d['ft_queue']['eligible']
           print('LAB_FT_BACKLOG_VALID',b['classification'].get('past_due_unverified',0),
                 b['classification'].get('past_due_never_checked',0))
 

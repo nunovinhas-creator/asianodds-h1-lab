@@ -205,6 +205,29 @@ def main():
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
         priority_hints=research_hints)
+
+    # Distinguish new automatic confirmations from carried historical evidence.
+    previous_matches = existing.get("matches", {})
+    report["ft_queue"]["newly_confirmed"] = sum(
+        row.get("status") == "FINAL" and
+        previous_matches.get(key, {}).get("status") != "FINAL"
+        for key, row in next_ledger["matches"].items()
+    )
+    report["ft_queue"]["documented_ft_total"] = sum(
+        row.get("status") == "FINAL" and
+        "reviewed_public" in (row.get("result") or {}).get("evidence", "")
+        for row in next_ledger["matches"].values()
+    )
+    report["ft_queue"]["adapter_invocations"] = {
+        name: {
+            "invocations": sum(int((row.get("provider_attempts", {}).get(name) or {}).get("invocations", 0))
+                               for row in next_ledger["matches"].values()),
+            "confirmed": sum(int((row.get("provider_attempts", {}).get(name) or {}).get("confirmed", 0))
+                             for row in next_ledger["matches"].values()),
+        }
+        for name in ("bsd", "thesportsdb", "espn", "sportscore",
+                     "api_football", "goal", "openfoot", "fotmob", "reviewed_public")
+    }
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
     report["monte_carlos_bsd"] = monte.summary()
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
@@ -220,7 +243,7 @@ def main():
     report["api_football_search"]["scheduled_poll_enabled"] = api_football_poll
     report["api_football_search"]["one_shot_activation"] = one_shot
     report["coverage_diagnostics"] = coverage_diagnostics(next_ledger, report)
-    backlog = audit_ft_backlog(next_ledger, now, provider_summary={
+    backlog = audit_ft_backlog(next_ledger, now, queue_plan=report["ft_queue"], provider_summary={
         "api_football": report["api_football_search"],
         "goal": report["goal_search"],
         "openfoot": report["openfoot_search"],
@@ -250,6 +273,8 @@ def main():
                         else "one_time_recovery" if recovery_once
                         else "h1_ft_watchdog" if watchdog_dispatch else "schedule"),
             "checked_games": queried,
+            "ft_queue": {k: v for k, v in report["ft_queue"].items()
+                         if k not in ("selected_keys", "deferred_keys", "adapter_invocations")},
             "final_recorded": report["final_recorded"],
             "past_unverified": report["coverage_diagnostics"]["past_unverified_eligible"],
             "source_order_audit": report["source_order_audit"],
@@ -270,7 +295,9 @@ def main():
               "api_football", record["providers"]["api_football"]["requests"],
               "goal", record["providers"]["goal"]["requests"],
               "openfoot", record["providers"]["openfoot"]["requests"],
-              "source_conflicts_remaining", report["source_order_audit"]["remaining_quarantined"])
+              "source_conflicts_remaining", report["source_order_audit"]["remaining_quarantined"],
+              "queue_never_deferred", report["ft_queue"]["never_checked_deferred"],
+              "new_ft", report["ft_queue"]["newly_confirmed"])
     # The review queue reads ONLY the provider date caches already populated
     # above. Its fuzzy diagnostics must never feed back into FT reconciliation.
     try:

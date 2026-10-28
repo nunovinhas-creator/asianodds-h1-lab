@@ -8,19 +8,22 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
-from .lab_results import DELAY, utc
+from .lab_results import DELAY, retry_wait, utc
 
 PROVIDERS=("bsd","thesportsdb","espn","sportscore","api_football","goal","openfoot","fotmob")
 STATUS="FT_BACKLOG_AUDIT_OBSERVATION_ONLY"
 
 
-def audit(ledger, now, *, provider_summary=None):
+def audit(ledger, now, *, provider_summary=None, queue_plan=None):
     if now.tzinfo is None:
         raise ValueError("Timezone-aware UTC now required")
     now=now.astimezone(timezone.utc)
     matches=ledger.get("matches")
     if not isinstance(matches,dict):
         raise ValueError("Expected LAB FT matches dict")
+    plan = queue_plan if isinstance(queue_plan, dict) else {}
+    chosen = set(plan.get("selected_keys", []))
+    deferred = set(plan.get("deferred_keys", []))
     groups=Counter()
     obstacles=Counter()
     days=defaultdict(lambda:{"overdue":0,"never_checked":0,"last_check_without_provider":Counter()})
@@ -62,10 +65,26 @@ def audit(ledger, now, *, provider_summary=None):
                 obstacles[(provider,str(provider_reasons[provider]))]+=1
         if item.get("status")=="EXPIRED_UNVERIFIED":
             groups["past_due_expired"]+=1
+        next_eligible = (checked + retry_wait(item) if checked is not None else now)
+        if item.get("status") == "EXPIRED_UNVERIFIED":
+            queue_state = "OUTSIDE_30_DAY_API_WINDOW"
+        elif key in chosen:
+            queue_state = "CONSULTED_THIS_RUN"
+        elif key in deferred:
+            queue_state = "DEFERRED_BY_30_GAME_CAP"
+        elif next_eligible > now:
+            queue_state = "ADAPTIVE_COOLDOWN"
+        else:
+            queue_state = "DUE_NOT_SELECTED"
         overdue.append({
             "match_key":key,"home":item.get("home"),"away":item.get("away"),
             "kickoff_utc":item.get("kickoff_utc"),
             "last_checked_at":item.get("checked_at"),
+            "next_eligible_at": (next_eligible.isoformat(timespec="seconds")
+                                 if item.get("status") != "EXPIRED_UNVERIFIED" else None),
+            "queue_state": queue_state,
+            "overdue_hours": round((now - ko - DELAY).total_seconds()/3600, 1),
+            "provider_attempts": item.get("provider_attempts", {}),
             "attempts":item.get("attempts",0),
             "status":item.get("status"),
             "last_attempt_provider_reasons":{k:provider_reasons[k] for k in sorted(provider_reasons)}
@@ -87,11 +106,15 @@ def audit(ledger, now, *, provider_summary=None):
                                   for (p,why),count in sorted(obstacles.items(),
                                     key=lambda v:(-v[1],v[0]))[:60]],
         "last_run_providers":provider_summary or {},
+        "queue_plan": {k:v for k,v in plan.items() if k not in ("selected_keys","deferred_keys")},
+        "deferred_games": sorted(deferred),
         "overdue_games":overdue[:500],
         "overdue_omitted":max(0,len(overdue)-500),
         "limitations":[
             "FUTURE and IN_3H_GRACE games are NOT overdue.",
             "last_attempt_provider_reasons are NOT lifetime provider-attempt counters.",
+            "provider_attempts counts adapter invocations, including cache hits; not HTTP requests.",
+            "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",
             "Providers are never assumed to cover every competition.",
             "No missing FT becomes a loss, an invented score, or an H1 settlement.",
             "A single observed result is not an independently corroborated source.",
