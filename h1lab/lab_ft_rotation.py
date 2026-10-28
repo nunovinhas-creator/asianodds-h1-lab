@@ -11,6 +11,10 @@ from datetime import datetime, timezone
 SCHEMA = 1
 CAPS = {"goal": 2, "openfoot": 2, "api_football": 3}
 MAX_HISTORY_DAYS = 45
+# Conservative ceilings for this FT workflow, not a claim about other API users.
+# These are lower than the free tiers previously established for the project.
+API_FOOTBALL_DAILY_LIMIT = 90
+OPENFOOT_MONTHLY_LIMIT = 4500
 
 
 def choose_days(selected_keys, matches, previous, now, enabled):
@@ -27,6 +31,10 @@ def choose_days(selected_keys, matches, previous, now, enabled):
     history = previous.get("providers", {})
     if not isinstance(history, dict):
         raise ValueError("Invalid provider date history")
+    now = now.astimezone(timezone.utc)
+    usage = previous.get("usage", {})
+    if not isinstance(usage, dict):
+        raise ValueError("Malformed provider request usage")
     counts = Counter()
     for key in selected_keys:
         item = matches.get(key)
@@ -50,6 +58,17 @@ def choose_days(selected_keys, matches, previous, now, enabled):
         days = history.get(provider, {})
         if not isinstance(days, dict):
             raise ValueError("Malformed provider dates")
+        provider_usage = usage.get(provider, {})
+        if not isinstance(provider_usage, dict) or any(
+                type(v) is not int or v < 0 for v in provider_usage.values()):
+            raise ValueError("Malformed provider request accounting")
+        if provider == "api_football":
+            cap = min(cap, max(0, API_FOOTBALL_DAILY_LIMIT -
+                               provider_usage.get(now.date().isoformat(), 0)))
+        elif provider == "openfoot":
+            month = now.date().isoformat()[:7]
+            used = sum(v for day,v in provider_usage.items() if day.startswith(month))
+            cap = min(cap, max(0, OPENFOOT_MONTHLY_LIMIT - used))
         result[provider] = sorted(counts, key=lambda d: (
             days.get(d, {}).get("last_requested_at", "") if isinstance(days.get(d, {}), dict) else "",
             -counts[d], d
@@ -66,7 +85,10 @@ def advance(previous, rotation, requested, now):
     if now.tzinfo is None:
         raise ValueError("UTC aware clock required")
     old = previous.get("providers", {})
-    out = {"schema_version": SCHEMA, "providers": {}}
+    out = {"schema_version": SCHEMA, "providers": {}, "usage": {}}
+    old_usage = previous.get("usage", {})
+    if not isinstance(old_usage, dict):
+        raise ValueError("Malformed historical API usage")
     for p in CAPS:
         prior = old.get(p, {})
         if not isinstance(prior, dict):
@@ -85,4 +107,10 @@ def advance(previous, rotation, requested, now):
             days[day] = row
         ordered = sorted(days.items(), key=lambda kv: (kv[1].get("last_requested_at", ""), kv[0]))
         out["providers"][p] = dict(ordered[-MAX_HISTORY_DAYS:])
+        usage = dict(old_usage.get(p, {}))
+        if any(type(v) is not int or v < 0 for v in usage.values()):
+            raise ValueError("Invalid stored request usage")
+        today = now.astimezone(timezone.utc).date().isoformat()
+        usage[today] = usage.get(today,0) + len(actual)
+        out["usage"][p] = {k:v for k,v in sorted(usage.items())[-MAX_HISTORY_DAYS:]}
     return out
