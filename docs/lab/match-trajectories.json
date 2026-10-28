@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-28T16:51:29+00:00",
+ "generated_at": "2026-10-28T16:56:34+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 98
+  "timelines_published": 99
  },
  "schema_version": 1,
- "source_commit": "10f13ffac20dbfaf93404e5f9cf490d94431ffc9",
+ "source_commit": "9601842a4980ff86b8e62a8bb1fb75b55f1ec4df",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 338,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 472,
+  "messages": 473,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 232,
+  "messages_on_repeated_matches": 234,
   "messages_v4_only": 0,
-  "messages_with_v4": 398,
-  "movement_episodes_upper_bound": 452,
+  "messages_with_v4": 399,
+  "movement_episodes_upper_bound": 453,
   "possibly_redundant_snapshots": 13,
   "post_kickoff_messages": 13,
   "related_message_pairs": 20,
@@ -50,14 +50,14 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 7
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 98,
+  "repeated_matches": 99,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 621
+   "V4_EXPLICIT": 622
   },
   "total_line_reversals_on_repeated": 44,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 12,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 13,
    "CONTINUOUS": 72,
    "SAME_MOVEMENT_REPEAT": 20,
    "UNOBSERVED_CHANGE": 30
@@ -65,10 +65,147 @@
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 113,
    "one_x_two:AGREE": 110,
-   "total:AGREE": 398
+   "total:AGREE": 399
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50793",
+    "3571094759:51053"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50793",
+     "message_id": 50793,
+     "minutes_to_kickoff": 691.5,
+     "observed_at": "2026-10-28T08:13:33+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.88,
+        "under_price": 1.87
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.84,
+        "under_price": 1.87
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51053",
+     "message_id": 51053,
+     "minutes_to_kickoff": 172.9,
+     "observed_at": "2026-10-28T16:52:08+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.88,
+        "under_price": 1.82
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.79,
+        "under_price": 1.93
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T08:13:33+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-28T19:45:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-28T16:52:08+00:00",
+   "match_key": "2026-10-28,85128,10051245",
+   "match_label": "West Bromwich Albion Women vs Boldmere St. Michaels Women",
+   "movement_episodes": [
+    [
+     "3571094759:50793"
+    ],
+    [
+     "3571094759:51053"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    31115.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.5,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.5,
+       "before": 3.25,
+       "event_id": "3571094759:50793",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.5,
+       "before": 3.25,
+       "event_id": "3571094759:51053",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50793",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.25,
+       "previous_after_line": 3.5,
+       "to": "3571094759:51053"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
