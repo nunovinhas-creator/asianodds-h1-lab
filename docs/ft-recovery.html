@@ -26,7 +26,10 @@ footer{color:#b1c3cf;font-size:.88rem}
 <section id="stats" class="grid" aria-label="Indicadores de cobertura"></section>
 <section class="card"><h2>Fontes e produtividade observada</h2>
 <p class="muted">Invocações ao adaptador desde a ativação desta instrumentação, incluindo respostas em cache — não equivalem necessariamente a pedidos HTTP.</p>
-<div id="providers"></div></section>
+<div id="providers"></div>
+<h3>Datas autorizadas por execução</h3><p class="muted">As datas rotativas gastam orçamento apenas se o adaptador realmente fizer o pedido. Consulta histórica por data; não significa resultado disponível.</p>
+<div id="rotation"></div>
+<p><a href="./lab/ft-provider-identity.json">Registo auditável de IDs confirmados</a> — candidatos aproximados nunca entram automaticamente.</p></section>
 <div class="controls"><div><label for="filter">Filtrar jogos atrasados</label><select id="filter">
 <option value="all">Todos os atrasados</option><option value="never">Nunca consultados</option>
 <option value="capacity">Aguardam capacidade da fila</option><option value="cooldown">Em cooldown</option>
@@ -82,12 +85,22 @@ async function load(){
    stat(cls.verified_ft||0,"FT confirmados"),stat(cls.past_due_unverified||0,"FT atrasados"),
    stat(cls.past_due_never_checked||0,"Nunca consultados"),stat(q.deferred_by_capacity??"—","Por limite de capacidade neste ciclo"),
    stat(q.newly_confirmed??"—","Novos FT neste ciclo"),stat(q.documented_ft_total??"—","FT com prova documental registada"),
-   stat(cls.future||0,"Futuros"),stat(cls.in_3h_grace||0,"Dentro da tolerância de 3h"));
+   stat(cls.future||0,"Futuros"),stat(cls.in_3h_grace||0,"Dentro da tolerância de 3h"),
+    stat(q.confirmed_provider_ids??"—","IDs de eventos confirmados"),
+    stat(q.provider_id_collisions??"—","IDs com colisão em revisão"));
   const p=byId("providers");p.replaceChildren();
   for(const [name,counts] of Object.entries(q.adapter_invocations||{})){
    const d=el("div",name+" · "+fmt(counts.invocations)+" invocações · "+fmt(counts.confirmed)+" respostas de FT confirmadas");
    d.className="provider";p.append(d);
-  }render();
+  }
+   const dayBox=byId("rotation");dayBox.replaceChildren();
+   for(const [name,details] of Object.entries(q.date_rotation||{})){
+    const line=el("p",name+": selecionadas ["+(details.selected_days||[]).join(", ")+
+      "] · consultadas ["+(details.requested_days||[]).join(", ")+
+      "] · limite por execução "+fmt(details.date_budget));
+    dayBox.append(line);
+   }
+   render();
  }catch(e){byId("updated").textContent="Não foi possível carregar a fila FT: "+e.message;}
 }
 byId("filter").addEventListener("change",render);byId("search").addEventListener("input",render);load();
