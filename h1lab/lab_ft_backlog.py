@@ -84,6 +84,8 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None):
                                  if item.get("status") != "EXPIRED_UNVERIFIED" else None),
             "queue_state": queue_state,
             "overdue_hours": round((now - ko - DELAY).total_seconds()/3600, 1),
+            "goal_last_substantive_evidence": item.get("goal_ft_last_evidence"),
+            "goal_id_last_attempt_at": item.get("goal_id_last_attempt_at"),
             "provider_attempts": item.get("provider_attempts", {}),
             "attempts":item.get("attempts",0),
             "status":item.get("status"),
