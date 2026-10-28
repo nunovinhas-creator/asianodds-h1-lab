@@ -28,6 +28,16 @@ EXPECTED = {
     "2026-10-28,40595,28192": (1, 1),
     "2026-10-28,10055256,84215": (1, 1),
     "2026-10-28,33305,10030821": (1, 0),
+    "2026-10-28,28717,61795": (2, 3),
+    "2026-10-28,28720,24581": (0, 0),
+    "2026-10-28,799,631": (1, 1),
+    "2026-10-28,55219,22939": (1, 2),
+    "2026-10-28,10012613,10074748": (3, 2),
+    "2026-10-28,10038000,1142": (0, 1),
+    "2026-10-28,95299,1092": (0, 2),
+    "2026-10-28,35198,74459": (5, 0),
+    "2026-10-28,28354,23552": (0, 1),
+    "2026-10-28,36192,993": (1, 1),
 }
 
 
@@ -40,7 +50,7 @@ def no_result(signal):
 
 
 class OverdueFTTests(unittest.TestCase):
-    def test_eighteen_exact_reviewed_scores_not_including_penalties_or_aet(self):
+    def test_twenty_eight_exact_reviewed_scores_not_including_penalties_or_aet(self):
         self.assertEqual(set(REVIEWED_PENDING_FT), set(EXPECTED))
         for key, fixture in REVIEWED_PENDING_FT.items():
             with self.subTest(key=key):
@@ -59,6 +69,21 @@ class OverdueFTTests(unittest.TestCase):
         self.assertNotIn("2026-10-28,10088406,95346", REVIEWED_PENDING_FT)
         self.assertNotIn("2026-10-28,10055350,95346", REVIEWED_PENDING_FT)
 
+    def test_nagoya_and_puszcza_require_ninety_minute_score(self):
+        # These were won in extra time; final tournament scores were 1-2,
+        # but the scientific and H1 FT means 90-minute regulation scores.
+        self.assertEqual(EXPECTED["2026-10-28,799,631"], (1, 1))
+        self.assertEqual(EXPECTED["2026-10-28,36192,993"], (1, 1))
+
+    def test_ten_new_reviewed_games_have_two_distinct_public_hosts(self):
+        from urllib.parse import urlparse
+        keys = ["2026-10-28,28717,61795","2026-10-28,28720,24581","2026-10-28,799,631","2026-10-28,55219,22939","2026-10-28,10012613,10074748","2026-10-28,10038000,1142","2026-10-28,95299,1092","2026-10-28,35198,74459","2026-10-28,28354,23552","2026-10-28,36192,993"]
+        for key in keys:
+            with self.subTest(key=key):
+                x = REVIEWED_PENDING_FT[key]
+                self.assertNotEqual(urlparse(x[5]).netloc, urlparse(x[6]).netloc)
+                self.assertEqual(x[2].split("T")[0], key.split(",")[0])
+
     def test_corrupted_identity_rejected_at_review_boundary(self):
         for key, fixture in REVIEWED_PENDING_FT.items():
             for field, value in (("home","Unknown Club"), ("away","Other Club"),
@@ -69,7 +94,7 @@ class OverdueFTTests(unittest.TestCase):
                     changed[field]=value
                     self.assertIsNone(verified_public_ft(changed)[0])
 
-    def test_eighteen_previously_pending_recovered_with_immutable_audit_urls(self):
+    def test_twenty_eight_previously_pending_recovered_with_immutable_audit_urls(self):
         previous={"schema_version":1,"matches":{}}
         alerts=[]
         for key, row in REVIEWED_PENDING_FT.items():
@@ -82,8 +107,8 @@ class OverdueFTTests(unittest.TestCase):
         original=copy.deepcopy(previous)
         ledger,report,attempted=reconcile({"alerts":alerts,"signals":[]},[],previous,
             now=NOW, bsd_lookup=no_result,tsdb_lookup=no_result,max_checks=30)
-        self.assertEqual(attempted,18)
-        self.assertEqual(report["final_recorded"],18)
+        self.assertEqual(attempted,28)
+        self.assertEqual(report["final_recorded"],28)
         self.assertEqual(previous, original)
         for key, row in REVIEWED_PENDING_FT.items():
             resolved=ledger["matches"][key]
