@@ -17,8 +17,8 @@ def detail(key):
             "event_date":v[2],"home_score":2,"away_score":0}
 
 class ReviewedBSDIDsTests(unittest.TestCase):
-    def test_all_three_verified_events_direct_without_monte_archive(self):
-        self.assertEqual(len(REVIEWED_BSD_FIXTURES),3)
+    def test_all_five_verified_events_direct_without_monte_archive(self):
+        self.assertEqual(len(REVIEWED_BSD_FIXTURES),5)
         for key in REVIEWED_BSD_FIXTURES:
             with self.subTest(key=key):
                 target=REVIEWED_BSD_FIXTURES[key][3]
