@@ -1,4 +1,4 @@
-# UNDER TESTE — mapa de arquitetura (canónico)
+# MASTER BRAIN — mapa de arquitetura (canónico)
 
 **Referência estrutural atualizada: 28/10/2026.** As secções 5 a 7 abaixo mantêm medições históricas de 27/10 como evidência datada, **não são o estado atual**. Para o cérebro V5 consultar [CEREBRO-ODDS.md](CEREBRO-ODDS.md), para navegação consultar [índice](../README.md), e para dados atuais consultar os JSON. H1, V4 e V5 têm funções diferentes e workflows independentes.
 
