@@ -372,6 +372,9 @@ def main():
             "effective_evidence_checks": sum(
                 row.get("evidence_checked_at") == now.isoformat(timespec="seconds")
                 for row in next_ledger["matches"].values()),
+            "stable_confirmations_in_run": sum(
+                row.get("last_stable_at") == now.isoformat(timespec="seconds")
+                for row in next_ledger["matches"].values()),
             "ft_queue": {k: v for k, v in report["ft_queue"].items()
                          if k not in ("selected_keys", "deferred_keys", "adapter_invocations")},
             "final_recorded": report["final_recorded"],
