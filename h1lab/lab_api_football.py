@@ -215,6 +215,8 @@ class APIFootballResults:
             return None,"api_football_not_configured"
         reviewed = self.reviewed_targets.get(signal.get("match_key"))
         if reviewed is not None:
+            if self.max_days == 0:
+                return None, "api_football_reviewed_id_disabled"
             from .lab_api_football_reviewed import validate_reviewed_result
             if self.id_cache is None:
                 if self.requests + self.id_requests >= MAX_DAYS:
