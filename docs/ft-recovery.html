@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MASTER BRAIN — Recuperação FT</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}body{background:#0b1420;color:#e7eff3;margin:0;line-height:1.5}
+header,main,footer{max-width:1180px;margin:auto;padding:24px}
+header{border-bottom:1px solid #294052}a{color:#7de7d1}h1{font-size:clamp(1.65rem,4vw,2.6rem);margin:10px 0 5px}h2{font-size:1.12rem}
+.muted{color:#b1c3cf}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:22px 0}
+.card,article{background:#132333;border:1px solid #304759;border-radius:12px;padding:17px}
+.card strong{display:block;font-size:1.8rem;font-variant-numeric:tabular-nums}
+label{display:block;font-weight:600;margin:15px 0 6px}
+select,input{background:#132333;color:white;border:1px solid #7693a6;border-radius:8px;padding:11px;max-width:100%}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:end}.controls>div{flex:1;min-width:210px}
+article{margin:12px 0}article h3{margin:0 0 8px;font-size:1.05rem}
+small,code{overflow-wrap:anywhere}code{color:#b7d9f4}
+.tag{display:inline-block;border:1px solid #477186;color:#c4e6ed;border-radius:8px;padding:2px 7px;font-size:.78rem}
+.provider{font-size:.87rem;padding:8px 0;border-top:1px solid #304759}
+footer{color:#b1c3cf;font-size:.88rem}
+</style></head><body>
+<header><a href="./index.html">MASTER BRAIN</a> · <a href="./ft-identity-review.html">Revisão de identidades</a>
+<h1>Recuperação automática de FT</h1>
+<p class="muted">Cada jogo tem estado, relógio de repetição e diagnóstico verificável. FT não confirmado não é derrota.</p></header>
+<main>
+<p id="updated" class="muted" role="status">A carregar estado da fila…</p>
+<section id="stats" class="grid" aria-label="Indicadores de cobertura"></section>
+<section class="card"><h2>Fontes e produtividade observada</h2>
+<p class="muted">Invocações ao adaptador desde a ativação desta instrumentação, incluindo respostas em cache — não equivalem necessariamente a pedidos HTTP.</p>
+<div id="providers"></div></section>
+<div class="controls"><div><label for="filter">Filtrar jogos atrasados</label><select id="filter">
+<option value="all">Todos os atrasados</option><option value="never">Nunca consultados</option>
+<option value="capacity">Aguardam capacidade da fila</option><option value="cooldown">Em cooldown</option>
+<option value="review">Com bloqueios de identidade/90 minutos</option><option value="due">Elegíveis sem consulta</option>
+</select></div><div><label for="search">Pesquisar clube ou match_key</label><input id="search" type="search" placeholder="Equipa ou identificador"></div></div>
+<p class="muted" id="count"></p><section id="games" aria-live="polite"></section>
+<p><a href="./lab/ft-backlog.json">Dados da fila (JSON)</a> · <a href="./lab/ft-results.json">FT confirmados (JSON)</a> · <a href="./ft-identity-review.html">Candidatos de identidade</a></p>
+</main><footer>Observatório experimental · Os fornecedores têm quotas e cobertura incompleta. Sem scores inferidos e sem alterar previsões anteriores.</footer>
+<script>
+"use strict";
+const byId=id=>document.getElementById(id);
+const el=(tag,content)=>{const x=document.createElement(tag);if(content!==undefined)x.textContent=String(content);return x};
+const fmt=(v)=>v==null?"não definido":String(v);
+let games=[];
+function stat(value,caption){const box=el("div");box.className="card";box.append(el("strong",value),el("span",caption));return box}
+function render(){
+ const filter=byId("filter").value,query=byId("search").value.toLocaleLowerCase();
+ const view=games.filter(g=>{
+  const flags=Object.values(g.last_attempt_provider_reasons||{}).join(" ").toLowerCase();
+  const ok=filter==="all" || filter==="never"&&g.attempts===0 ||
+   filter==="capacity"&&g.queue_state==="DEFERRED_BY_30_GAME_CAP" ||
+   filter==="cooldown"&&g.queue_state==="ADAPTIVE_COOLDOWN" ||
+   filter==="review"&&(/identity|regulation|ambiguous|conflict/.test(flags)) ||
+   filter==="due"&&g.queue_state==="DUE_NOT_SELECTED";
+  return ok && (g.match_key+" "+g.home+" "+g.away).toLocaleLowerCase().includes(query);
+ }).sort((a,b)=>(b.overdue_hours||0)-(a.overdue_hours||0));
+ byId("count").textContent=view.length+" jogos encontrados";
+ const root=byId("games");root.replaceChildren();
+ for(const g of view){
+  const a=el("article");a.append(el("h3",fmt(g.home)+" — "+fmt(g.away)));
+  const status=el("p");
+  const pill=el("span",fmt(g.queue_state));pill.className="tag";status.append(pill);a.append(status);
+  a.append(el("p","ID: "+g.match_key+" · KO: "+fmt(g.kickoff_utc)+" · Atraso: "+fmt(g.overdue_hours)+" horas"));
+  a.append(el("p","Tentativas: "+fmt(g.attempts)+" · Última: "+fmt(g.last_checked_at||"nunca")+" · Próxima: "+fmt(g.next_eligible_at)));
+  const hist=g.provider_attempts||{}, reasons=g.last_attempt_provider_reasons||{};
+  for(const p of [...new Set([...Object.keys(hist),...Object.keys(reasons)])].sort()){
+   const h=hist[p]||{},row=el("div",p+": "+fmt(reasons[p]||h.last_reason||"sem diagnóstico")+" · invocações registadas: "+fmt(h.invocations??"não instrumentado"));
+   row.className="provider";a.append(row);
+  }root.append(a);
+ }
+ if(!view.length)root.append(el("p","Sem jogos nesta categoria."));
+}
+async function load(){
+ try {
+  const [b,r]=await Promise.all(["./lab/ft-backlog.json","./lab/ft-results.json"].map(async url=>{
+   const res=await fetch(url+"?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw Error("HTTP "+res.status);return res.json();
+  }));
+  if(b.schema_version!==1||!Array.isArray(b.overdue_games))throw Error("Relatório inválido");
+  games=b.overdue_games;
+  byId("updated").textContent="Fotografia: "+fmt(b.measured_at)+" · Estado observado; não é uma consulta em tempo real às APIs.";
+  const cls=b.classification||{},q=r.ft_queue||{};
+  byId("stats").replaceChildren(
+   stat(cls.verified_ft||0,"FT confirmados"),stat(cls.past_due_unverified||0,"FT atrasados"),
+   stat(cls.past_due_never_checked||0,"Nunca consultados"),stat(q.deferred_by_capacity??"—","Por limite de capacidade neste ciclo"),
+   stat(q.newly_confirmed??"—","Novos FT neste ciclo"),stat(q.documented_ft_total??"—","FT com prova documental registada"),
+   stat(cls.future||0,"Futuros"),stat(cls.in_3h_grace||0,"Dentro da tolerância de 3h"));
+  const p=byId("providers");p.replaceChildren();
+  for(const [name,counts] of Object.entries(q.adapter_invocations||{})){
+   const d=el("div",name+" · "+fmt(counts.invocations)+" invocações · "+fmt(counts.confirmed)+" respostas de FT confirmadas");
+   d.className="provider";p.append(d);
+  }render();
+ }catch(e){byId("updated").textContent="Não foi possível carregar a fila FT: "+e.message;}
+}
+byId("filter").addEventListener("change",render);byId("search").addEventListener("input",render);load();
+</script></body></html>
