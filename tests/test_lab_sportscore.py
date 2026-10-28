@@ -70,9 +70,9 @@ class SportScoreTests(unittest.TestCase):
         self.assertEqual(p.lookup(SIG)[1],"sportscore_no_exact_match")
         self.assertEqual(p.requests,1)
         with self.assertRaises(ValueError):
-            SportScoreResults({},max_requests=36)
+            SportScoreResults({},max_requests=61)
         with self.assertRaises(ValueError):
-            SportScoreResults({},max_team_searches=13)
+            SportScoreResults({},max_team_searches=31)
 
     def test_no_resolution_on_provider_failure(self):
         p=SportScoreResults({},getter=lambda e,p: (_ for _ in ()).throw(OSError("secret")))
@@ -111,14 +111,14 @@ class SportScoreTests(unittest.TestCase):
         self.assertEqual(attempts,1)
         self.assertEqual(report["final_recorded"],1)
         self.assertEqual(len(calls),1)
-        self.assertEqual(first["matches"][SIG["match_key"]]["lookup_source_version"],4)
+        self.assertEqual(first["matches"][SIG["match_key"]]["lookup_source_version"],6)
 
     def test_new_source_does_not_requery_in_cooldown(self):
         st={"alerts":[SIG],"signals":[]}
         old={"schema_version":1,"matches":{SIG["match_key"]:{
             "status":"PENDING","home":SIG["home"],"away":SIG["away"],
             "kickoff_utc":SIG["kickoff_utc"],"checked_at":"2026-10-28T06:00:00+00:00",
-            "lookup_source_version":4,"attempts":2}}}
+            "lookup_source_version":6,"attempts":2}}}
         def fail(s):
             raise AssertionError("Cooldown should suppress lookups")
         _,report,attempts=reconcile(st,[],old,

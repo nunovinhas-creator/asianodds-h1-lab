@@ -18,7 +18,7 @@ DELAY = timedelta(hours=3)
 RETRY = timedelta(hours=4)
 HORIZON = timedelta(days=30)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
-LOOKUP_SOURCE_VERSION = 4  # one upgrade check for the newly-added fourth provider
+LOOKUP_SOURCE_VERSION = 6  # one-time new public BSD-ID source + expanded team lookup
 
 
 def utc(value):

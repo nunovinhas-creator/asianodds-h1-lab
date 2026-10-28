@@ -12,6 +12,7 @@ from pathlib import Path
 from h1lab.lab_results import reconcile
 from h1lab.lab_espn import ESPNResults
 from h1lab.lab_sportscore import SportScoreResults
+from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -109,15 +110,29 @@ def main():
         max_days=int(os.environ.get("LAB_BSD_DATE_MAX_DAYS", "3")),
         max_pages=int(os.environ.get("LAB_BSD_DATE_MAX_PAGES", "3")),
     )
+    monte = MonteBSDCrosswalk(
+        token=os.environ.get("BSD_API_KEY", ""), max_event_requests=12)
+    def bsd_with_monte(signal):
+        primary, reason = bsd_finder.lookup(signal)
+        if primary is not None:
+            return primary, reason
+        # Do not re-query BSD on provider failures or throttling.
+        if reason not in ("bsd_no_exact_match","bsd_no_exact_match_in_date",
+                          "bsd_date_budget_deferred","bsd_paginated_requires_review"):
+            return None, reason
+        second, second_reason = monte.lookup(signal)
+        return (second, second_reason) if second is not None else (None, second_reason)
+
     tsdb = PacedTSDB()
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
-    sportscore = SportScoreResults(mapped_competitions, max_requests=24,max_team_searches=8)
+    sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
     next_ledger, report, queried = reconcile(
         state, read_v4(), existing, now=datetime.now(timezone.utc),
-        bsd_lookup=bsd_finder.lookup, tsdb_lookup=tsdb.lookup,
+        bsd_lookup=bsd_with_monte, tsdb_lookup=tsdb.lookup,
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup, max_checks=checks)
     report["bsd_date_search"] = bsd_date_summary(bsd_finder)
+    report["monte_carlos_bsd"] = monte.summary()
     report["thesportsdb_search"] = dict(sorted(tsdb.counts.items()))
     report["espn_scoreboards"] = espn.summary()
     report["sportscore_search"] = sportscore.summary()
@@ -126,6 +141,8 @@ def main():
     print("LAB_FT_RESULT_SYNC", "catalog", report["matches"],
           "final", report["final_recorded"], "unverified", report["unverified"],
           "queried", queried, "bsd_date_pages", report["bsd_date_search"]["date_list_requests"],
+          "monte_bsd_resolved", report["monte_carlos_bsd"]["verified_in_run"],
+          "monte_bsd_archive", report["monte_carlos_bsd"]["archive_status"],
           "espn_confirmed", report["espn_scoreboards"]["confirmed_in_run"],
           "espn_requests", report["espn_scoreboards"]["requests"],
           "sportscore_ft", report["sportscore_search"]["confirmed_in_run"],
