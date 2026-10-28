@@ -61,6 +61,12 @@ class DiscoveryTests(unittest.TestCase):
                                   {"entries": []}, {"matches": {}}, low)
         self.assertEqual(next_events[0]["kind"], "RECALCULATED")
 
+    def test_sign_reversal_is_not_improvement(self):
+        base, _, _ = build(report(T1, diff=-.10), {"entries": []}, {"matches": {}})
+        _, _, events = build(report(T2, n=11, hits=7, diff=.19),
+                             {"entries": []}, {"matches": {}}, base)
+        self.assertEqual(events[0]["kind"], "SIGN_REVERSAL")
+
     def test_candidate_and_rejection_are_only_engine_states(self):
         base, _, _ = build(report(T1), {"entries": []}, {"matches": {}})
         candidate, _, ev = build(report(T2, state="CANDIDATO"), {"entries": []}, {"matches": {}}, base)
@@ -104,9 +110,8 @@ class DiscoveryTests(unittest.TestCase):
                          {"known_ft": 1, "over_2_5": 1, "btts_yes": 1})
         self.assertTrue(initial["prospective_settled"]["a"]["over_2_5"])
         ledger["matches"]["a"]["result"]["home_goals"] = 0
-        still, _, _ = build(report(T2), first, ledger, initial)
-        self.assertEqual(still["prospective_settled"], initial["prospective_settled"])
-        self.assertEqual(still["prospective_settled"]["a"]["score"], "2-1")
+        with self.assertRaisesRegex(ValueError, "immutable prospective FT conflict"):
+            build(report(T2), first, ledger, initial)
 
     def test_missing_ft_never_red(self):
         first = {"entries": [{"match_key": "a", "match_label": "A vs B",
