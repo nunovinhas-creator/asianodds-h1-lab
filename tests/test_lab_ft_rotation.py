@@ -1,7 +1,8 @@
 """Historical FT date allocation and confirmed event crosswalk: no HTTP."""
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from h1lab.lab_ft_rotation import choose_days, advance
+from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_crosswalk import build_registry, event_id
 from h1lab.lab_results import reconcile
 
@@ -51,6 +52,60 @@ class RotationTests(unittest.TestCase):
         updated=advance(journal,result,{"openfoot":["2026-10-27"]},NOW)
         self.assertEqual(updated["usage"]["openfoot"]["2026-10-28"],1)
         self.assertEqual(choose_days(["day"],matches,updated,NOW,{"openfoot"})["openfoot"],[])
+
+    def test_one_immutable_day_across_many_games_has_max_three_calls_in_24h(self):
+        matches = {f"match-{n}": {"kickoff_utc": "2026-10-27T16:00:00+00:00"}
+                   for n in range(60)}
+        journal = {"schema_version": 1, "providers": {}}
+        requests = {"api_football": [], "goal": []}
+        digest = "a" * 64
+        for tick in range(48):
+            when = NOW + timedelta(minutes=30*tick)
+            plan = choose_days(list(matches), matches, journal, when,
+                               {"api_football", "goal"})
+            actual = {provider: plan[provider] for provider in requests}
+            for provider in requests:
+                if actual[provider]:
+                    requests[provider].append(tick/2)
+            journal = advance(journal, plan, actual, when,
+                              fingerprints={p: {day: digest for day in dates}
+                                            for p, dates in actual.items()})
+        self.assertEqual(requests["api_football"], [0, 4, 16])
+        self.assertEqual(requests["goal"], [0, 4, 16])
+        for provider in requests:
+            record = journal["providers"][provider]["2026-10-27"]
+            self.assertEqual(record["stable_confirmations"], 2)
+            self.assertEqual(record["last_fetch_status"], "COMPLETE")
+            self.assertEqual(journal["usage"][provider][NOW.date().isoformat()], 3)
+
+    def test_provider_day_failure_does_not_confirm_stability(self):
+        game = {"key": {"kickoff_utc": "2026-10-27T16:00:00+00:00"}}
+        journal = {"schema_version": 1, "providers": {}}
+        first = choose_days(["key"], game, journal, NOW, {"api_football"})
+        journal = advance(journal, first, {"api_football": first["api_football"]}, NOW)
+        row = journal["providers"]["api_football"]["2026-10-27"]
+        self.assertEqual(row["last_fetch_status"], "UNAVAILABLE")
+        self.assertNotIn("stable_confirmations", row)
+        self.assertEqual(choose_days(["key"], game, journal,
+                         NOW + timedelta(minutes=45), {"api_football"})["api_football"], [])
+        later = NOW + timedelta(hours=4)
+        second = choose_days(["key"], game, journal, later, {"api_football"})
+        journal = advance(journal, second, {"api_football": second["api_football"]},
+                          later, fingerprints={"api_football": {"2026-10-27": "b"*64}})
+        self.assertEqual(journal["providers"]["api_football"]["2026-10-27"]["stable_confirmations"], 0)
+
+    def test_day_digest_excludes_scores_but_detects_provider_status(self):
+        event = {"fixture": {"id": 5, "date": "2026-10-27T16:00:00+00:00",
+                             "status": {"short": "NS"}},
+                 "teams": {"home": {"id": 7, "name": "Home"},
+                           "away": {"id": 8, "name": "Away"}},
+                 "goals": {"home": 0, "away": 0}}
+        before = day_fingerprint("api_football", [event])
+        event["goals"] = {"home": 2, "away": 1}
+        self.assertEqual(before, day_fingerprint("api_football", [event]))
+        event["fixture"]["status"]["short"] = "FT"
+        self.assertNotEqual(before, day_fingerprint("api_football", [event]))
+        self.assertIsNone(day_fingerprint("api_football", None))
 
     def test_invalid_old_journal_fails_closed(self):
         with self.assertRaises(ValueError):
