@@ -26,8 +26,8 @@ def candidate(i, fixture_id):
 
 def approval(i, fixture_id):
     s = signal(i)
-    return {**{k: s[k] for k in ("home", "away", "kickoff_utc")},
-            "status": "APPROVED", "provider_fixture_id": fixture_id,
+    return {**{k: s[k] for k in ("match_key", "home", "away", "kickoff_utc")},
+            "provider": "api_football", "status": "APPROVED", "provider_fixture_id": fixture_id,
             "provider_home_team_id": 300 + i, "provider_away_team_id": 400 + i,
             "provider_competition_id": 77,
             "provider_kickoff_utc": KO, "competition_anchor_fixture_id": 6000,
@@ -147,6 +147,37 @@ class ReviewedBatchTests(unittest.TestCase):
         review["games"][0]["possible_duplicates"] = [{"match_key": "potential"}]
         self.assertNotIn(signal(1)["match_key"],
                          checked_plan(list(matches), matches, review, approved, NOW))
+
+    def test_cannot_approve_wrong_provider_or_wrong_match_key(self):
+        matches, review, approved = fixtures()
+        key = signal(1)["match_key"]
+        approved["pairs"][key]["provider"] = "goal"
+        self.assertNotIn(key, checked_plan(list(matches), matches, review, approved))
+        approved["pairs"][key]["provider"] = "api_football"
+        approved["pairs"][key]["match_key"] = "another-match"
+        self.assertNotIn(key, checked_plan(list(matches), matches, review, approved))
+
+    def test_express_requires_confirmed_kataka_team_or_reviewed_second_source(self):
+        matches, review, approved = fixtures()
+        old_key = signal(1)["match_key"]
+        key = "2026-10-27,33791,86126"
+        matches[key] = dict(matches.pop(old_key), match_key=key,
+                            home="Express Red Eagles", away="Kataka FC")
+        review["games"][0]["match_key"] = key
+        review["games"][0]["home"] = "Express Red Eagles"
+        approved["pairs"][key] = dict(approved["pairs"].pop(old_key),
+                                      match_key=key, home="Express Red Eagles")
+        self.assertNotIn(key, checked_plan(list(matches), matches, review, approved))
+        approved["pairs"][key]["independent_public_ft"] = {
+            "url": "https://www.example.org/ft/express-kataka",
+            "home_goals": 1, "away_goals": 2}
+        self.assertIn(key, checked_plan(list(matches), matches, review, approved))
+        target = checked_plan(list(matches), matches, review, approved)
+        p = APIFootballResults(key="fake", reviewed_targets=target,
+                              id_fetch=lambda ids, secret: {5001:event(1,5001,h=3,a=2)})
+        result, reason = p.lookup(matches[key])
+        self.assertIsNone(result)
+        self.assertEqual(reason, "api_football_reviewed_public_score_disagrees")
 
     def test_day_list_must_be_complete_and_fixture_from_same_provider(self):
         matches, review, approved = fixtures()
