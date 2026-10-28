@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import copy
 import re
+from .lab_reviewed_aliases import SPORTSCORE_REVIEWED
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -162,14 +163,18 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         # A newly added provider may be checked once immediately, without
         # disabling the normal four-hour cooldown on subsequent runs.
         upgrade = int(entry.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION
-        if last and now < last + RETRY and not upgrade:
+        alias_due = (key in SPORTSCORE_REVIEWED and
+                     entry.get("reviewed_alias_check_version") != 1)
+        if last and now < last + RETRY and not upgrade and not alias_due:
             continue
-        candidates.append((last or datetime.min.replace(tzinfo=timezone.utc), kickoff, key))
+        # Prioritize small, human-reviewed source-name fixes: one-time only.
+        candidates.append((0 if alias_due else 1,
+                           last or datetime.min.replace(tzinfo=timezone.utc), kickoff, key))
 
     # Oldest attempted first; tie-break by kickoff/key to avoid starved matches.
     candidates.sort()
     attempts = 0
-    for _, _, key in candidates[:max_checks]:
+    for _, _, _, key in candidates[:max_checks]:
         row = entries[key]
         signal = {"match_key": key, **{field: row[field] for field in ("home", "away", "kickoff_utc")}}
         found = {}
@@ -191,6 +196,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         attempts += 1
         row["checked_at"] = now.isoformat(timespec="seconds")
         row["lookup_source_version"] = LOOKUP_SOURCE_VERSION
+        if key in SPORTSCORE_REVIEWED:
+            row["reviewed_alias_check_version"] = 1
         row["attempts"] = int(row.get("attempts", 0)) + 1
         row["provider_reasons"] = reasons
         confirmed = [(name, found[name]) for name, _ in providers if found[name] is not None]
@@ -236,6 +243,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             timing["EXPIRED"] += 1
         elif not row.get("checked_at"):
             timing["ELIGIBLE_NEVER_QUERIED"] += 1
+        elif key in SPORTSCORE_REVIEWED and row.get("reviewed_alias_check_version") != 1:
+            timing["ELIGIBLE_REVIEWED_ALIAS"] += 1
         elif int(row.get("lookup_source_version", 0)) < LOOKUP_SOURCE_VERSION:
             timing["ELIGIBLE_SOURCE_UPGRADE"] += 1
         elif utc(row.get("checked_at")) and now < utc(row["checked_at"]) + RETRY:
@@ -266,6 +275,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "source_only_v4_matches": sum("H1_ALERT" not in g["sources"] for g in games.values()),
         "status_counts": dict(sorted(counts.items())),
         "timing_counts": dict(sorted(timing.items())),
+        "reviewed_alias_catalog_matches": sum(key in SPORTSCORE_REVIEWED for key in games),
         "final_recorded": counts["FINAL"], "unverified": len(games) - counts["FINAL"],
         "pending_due_checks": max(0, len(candidates) - attempts),
         "last_updated_at": (now.isoformat(timespec="seconds")
