@@ -382,3 +382,44 @@ GOAL (ID em substituição de um dia), o cooldown de 24h, a verificação de
 Fontes documentais de enquadramento (não usadas como FT aceite):
 - https://goal-api.com/documentation
 - https://locoxelrojo.com/independiente/2026/10/27/goleo-la-reserva-de-independiente-y-sigue-en-lo-mas-alto/
+
+
+## V7.7 — GOAL 834934 com crosswalk revisto e bloqueio de marcador
+
+O candidato GOAL `834934` tem identidade STRONG e KO 27/10 às 18h UTC na
+revisão persistente. Foi criado `data/lab/ft-goal-reviewed.json` com uma
+aprovação **limitada à identidade** da chave
+`2026-10-27,77621,67110`. Este crosswalk exige o candidato STRONG
+`SAME_ORDER` original, uma identidade API-Football aprovada e ancorada
+no mesmo jogo (`1612137`), nomes GOAL imutáveis, categoria de reservas
+igual dos dois lados, competição `Torneo Proyección`, KO ±5 minutos,
+nenhuma colisão STRONG, nenhum GOAL ID já confirmado noutra partida e
+nenhum cooldown ID inferior a 24h.
+
+O programa só planeia uma consulta GOAL por ID **quando o jogo entra
+naturalmente na fila FT**. Essa chamada substitui uma das duas consultas
+GOAL por data, sem acrescentar quota e sem contornar cooldowns.
+O endpoint oficial é `GET /v1/fixtures/834934`, documentado em
+https://goal-api.com/documentation . Requer a chave privada já configurada
+no GitHub, nunca publicada neste arquivo.
+
+O adaptador verifica a resposta por ID, nomes/categoria em ambas as
+orientações, KO, competição, `matchStatus`, `matchPeriod`,
+`homeTeamFtScore/awayTeamFtScore` e consistência com o marcador
+apresentado para partidas `FINISHED`. Mesmo que tudo concorde,
+`score_gate=HOLD_FOR_OFFICIAL` impede o retorno de `FINAL` porque
+a divergência pública 3–1/4–1 ainda existe. Só se grava um resumo
+normalizado do resultado do fornecedor no ledger, com
+`PROVIDER_FT_AWAITING_OFFICIAL_CORROBORATION`, data da consulta e fonte.
+Uma consulta falhada consome o seu slot e recebe o cooldown existente.
+
+Os resultados independentes publicados por Loco x el Rojo descrevem o
+4–1 e o último golo na última jogada:
+https://locoxelrojo.com/independiente/2026/10/27/goleo-la-reserva-de-independiente-y-sigue-en-lo-mas-alto/
+A divergência com uma página que mostra 3–1 é razão suficiente para
+não promover este jogo por maioria de páginas. A decisão final exige
+corroboração oficial da AFA ou dos clubes ou revisão humana explícita,
+sem converter o candidato GOAL em alias global.
+
+NENHUMA execução FT manual, API call extra ou score FINAL foi criado
+pela integração de código. H1, V6 e alertas não são modificados.

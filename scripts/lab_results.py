@@ -23,6 +23,7 @@ from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
+from h1lab.lab_goal_reviewed import plan_reviewed_goal_id
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
@@ -37,6 +38,7 @@ API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
 REVIEWED_API_IDS = ROOT / "data/lab/ft-api-football-reviewed.json"
+REVIEWED_GOAL_IDS = ROOT / "data/lab/ft-goal-reviewed.json"
 REVIEWED_API_ID_DECISIONS = ROOT / "docs/lab/ft-api-football-review-decisions.json"
 API_FOOTBALL_DAY_INDEX = ROOT / "data/lab/ft-api-football-day-index.json"
 DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
@@ -259,14 +261,29 @@ def main():
     if api_football_poll: active.add("api_football")
     rotation = choose_days(preview_keys, _preview_ledger["matches"],
                            historical_days, now, active)
-    # Only a previously observed, unique, aligned GOAL candidate may receive
-    # a strict id verification. Substitute one date request; never add calls.
+    # GOAL ID lookups are quota-neutral substitutions, never extra requests.
+    # Identity-only human-reviewed GOAL IDs require independent API approval;
+    # their score gate cannot produce FINAL while public sources disagree.
+    goal_approved = (json.loads(REVIEWED_GOAL_IDS.read_text(encoding="utf-8"))
+                     if REVIEWED_GOAL_IDS.exists()
+                     else {"schema_version": 1, "pairs": {}})
     goal_today = (historical_days.get("usage", {}).get("goal", {})
                   .get(now.date().isoformat(), 0))
     # An ID probe plus one date request must BOTH fit under the daily cap.
     goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
                                  previous_review, now)
                     if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
+    goal_review_decisions = {}
+    reviewed_goal_targets = (plan_reviewed_goal_id(
+        preview_keys, _preview_ledger["matches"], previous_review,
+        goal_approved, approved, now, decisions=goal_review_decisions)
+        if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
+    if reviewed_goal_targets:
+        # At most one target per run. It supersedes ordinary GOAL probes,
+        # without consuming a third request or bypassing queue cooldowns.
+        goal_targets = {key: row["provider_fixture_id"]
+                        for key, row in reviewed_goal_targets.items()}
+        goal.reviewed_targets = reviewed_goal_targets
     if goal_targets:
         goal.target_ids = goal_targets
         goal.max_days = 1
@@ -337,6 +354,11 @@ def main():
         for match_key in goal_targets:
             next_ledger["matches"][match_key]["goal_id_last_attempt_at"] = (
                 now.isoformat(timespec="seconds"))
+        for match_key, proof in goal.reviewed_observations.items():
+            if match_key in next_ledger["matches"]:
+                next_ledger["matches"][match_key]["goal_reviewed_last_evidence"] = {
+                    **proof, "observed_at_utc": now.isoformat(timespec="seconds")}
+                # DO NOT mark FINAL; discrepancy remains for official review.
     if api_football.id_requests:
         for match_key in approved_targets:
             row = next_ledger["matches"][match_key]
@@ -403,6 +425,11 @@ def main():
                     if PROVIDER_IDENTITY.exists()
                     else {"schema_version":1,"entries":{}})
     identity_registry = build_registry(next_ledger, old_identity)
+    report["ft_queue"]["goal_reviewed_id_probe"] = {
+        "approved_selected": len(reviewed_goal_targets),
+        "decisions": goal_review_decisions,
+        "observations": dict(sorted(goal.reviewed_observations.items())),
+    }
     report["ft_queue"]["goal_id_probe"] = {
         "candidates_planned": len(goal_targets),
         "calls": goal.id_requests,
