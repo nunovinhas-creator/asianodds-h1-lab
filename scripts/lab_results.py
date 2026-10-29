@@ -15,6 +15,7 @@ from h1lab.v6_ft_events import priority_hints as v6_priority_hints
 from h1lab.lab_espn import ESPNResults
 from h1lab.lab_sportscore import SportScoreResults
 from h1lab.lab_monte_bsd import MonteBSDCrosswalk
+from h1lab.lab_bsd_priority import lookup_bsd_monte_first
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
@@ -158,15 +159,10 @@ def main():
     monte = MonteBSDCrosswalk(
         token=os.environ.get("BSD_API_KEY", ""), max_event_requests=12)
     def bsd_with_monte(signal):
-        primary, reason = bsd_finder.lookup(signal)
-        if primary is not None:
-            return primary, reason
-        # Do not re-query BSD on provider failures or throttling.
-        if reason not in ("bsd_no_exact_match","bsd_no_exact_match_in_date",
-                          "bsd_date_budget_deferred","bsd_paginated_requires_review"):
-            return None, reason
-        second, second_reason = monte.lookup(signal)
-        return (second, second_reason) if second is not None else (None, second_reason)
+        # DIRECT BSD IDs already archived by Monte-Carlos take precedence.
+        # Search by team/date only when no safe archived BSD ID exists.
+        # The archived score is NEVER trusted; the ID is revalidated with BSD.
+        return lookup_bsd_monte_first(signal, monte, bsd_finder)
 
     tsdb = PacedTSDB()
     fotmob_enabled = os.environ.get('LAB_FOTMOB_LICENSED', '0') == '1'
