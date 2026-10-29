@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -26,6 +27,8 @@ SCHEMA_VERSION = 1
 RULE_VERSION = "SELECTED_V5_FIVE_20261029"
 MARKETS = {"OVER_2_5": "OVER 2,5 GOLOS", "BTTS_YES": "AMBAS MARCAM"}
 MAX_RESEARCH_AGE = timedelta(hours=24)
+MAX_ALERT_LOOKAHEAD = timedelta(hours=24)
+MAX_MESSAGES_PER_RUN = 6
 
 # Explicit fixed selection. Do NOT re-rank from the exploratory leader board.
 # IDs and predicates are taken from the published V5 catalogue on 2026-10-29.
@@ -239,14 +242,16 @@ def empty_ledger(now):
             "activated_at": now.isoformat(timespec="seconds"), "entries": {}}
 
 
-def process(rows, ledger, now, sender, enabled):
+def process(rows, ledger, now, sender, enabled, pace=None):
     if (not isinstance(ledger, dict) or ledger.get("schema_version") != SCHEMA_VERSION or
             ledger.get("rule_version") != RULE_VERSION or not isinstance(ledger.get("entries"), dict)):
         raise ValueError("invalid V5 strategy notification receipt ledger; no messages sent")
     counts = {"games_with_strategies": len(rows), "strategies_matched": sum(len(r["rules"]) for r in rows),
               "games_sent": 0, "strategy_receipts": 0, "already_notified": 0, "unconfigured": 0,
-              "failed": 0, "expired": 0}
-    for row in rows:
+              "failed": 0, "expired": 0,
+              "deferred_not_imminent": 0, "deferred_rate_limit": 0}
+    attempts = 0
+    for row in sorted(rows, key=lambda r: (r["kickoff_utc"], r["match_key"])):
         if utc(row["kickoff_utc"]) <= now:
             counts["expired"] += 1
             continue
@@ -254,10 +259,19 @@ def process(rows, ledger, now, sender, enabled):
         counts["already_notified"] += len(row["rules"]) - len(fresh)
         if not fresh:
             continue
+        if utc(row["kickoff_utc"]) > now + MAX_ALERT_LOOKAHEAD:
+            counts["deferred_not_imminent"] += 1
+            continue
+        if attempts >= MAX_MESSAGES_PER_RUN:
+            counts["deferred_rate_limit"] += 1
+            continue
         if not enabled:
             counts["unconfigured"] += len(fresh)
             continue
         msg = message_for_game(row, fresh)
+        if attempts and pace is not None:
+            pace()  # In production: >=1 second between Telegram messages.
+        attempts += 1
         keys = [row["match_key"] + "|" + str(r["number"]) for r in fresh]
         for k, rule in zip(keys, fresh):
             ledger["entries"][k] = {
@@ -304,7 +318,8 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
     rows = candidate_matches(timelines, now, research)
     path = root / LEDGER
     ledger = json.loads(path.read_text(encoding="utf-8")) if path.exists() else empty_ledger(now)
-    ledger, stats = process(rows, ledger, now, sender, configured() if bot_enabled is None else bot_enabled)
+    ledger, stats = process(rows, ledger, now, sender, configured() if bot_enabled is None else bot_enabled,
+                            pace=lambda: time.sleep(1.2))
     _write(path, ledger)
     print("MASTER_BRAIN_FIVE_STRATEGIES_NOTIFY", stats,
           "timeline_issues", len(issues), "excluded_observations", len(excluded),
