@@ -184,3 +184,72 @@ não há repetição manual nem recuperação de scores não verificados.
 A sequência de testes garante que `FT`, IDs de equipas e competição,
 `score.fulltime` e `goals` são obrigatórios antes de qualquer
 FINAL; `AET`, `PEN`, resultados omissos e divergentes são recusados.
+
+
+## Diagnóstico de erros sem consumir pedidos adicionais — 29/10/2026
+
+O pedido autenticado por ID `fixtures?ids=1612137` falhou em
+29/10 às 07:36 UTC (`api_football_reviewed_id_unavailable`). Os resultados
+de data 29/10 funcionaram com a mesma chave; essa observação **não**
+demonstra que o plano gratuito bloqueia fixtures com mais de 24/48 horas.
+A documentação oficial prevê `fixtures?ids=` com até 20 IDs e distingue
+limites de época no plano Free, mas não estabelece a alegada janela de
+"ontem a amanhã" para este endpoint. A hipótese fica **NOT_CONFIRMED**.
+
+A partir desta versão, cada pedido por data ou ID pode produzir:
+- `category`: `HTTP_ERROR`, `PROVIDER_ERRORS`,
+  `TRANSPORT_ERROR`, `TIMEOUT`, `INVALID_JSON`,
+  `RESPONSE_TOO_LARGE`, `INVALID_ENVELOPE`,
+  `INCOMPLETE_PAGINATION` ou `INVALID_FIXTURE_IDS`;
+- `http_status` (código real ou `null`);
+- `provider_errors` (apenas o campo JSON `errors`, limitado a
+  200 caracteres, com chave, URLs e tokens ocultados).
+
+As decisões continuam fail-closed. Esta telemetria não guarda o corpo HTTP,
+cabeçalhos, token, scores, requests URL ou equipa arbitrária. Fica no
+`ft-api-audit.json`, relatório público e, para pedidos por ID, na última
+evidência de tentativa do ledger. **Uma falha HTTP não autoriza repetição
+antes das 24h de cooldown.** Não desativar automaticamente datas antigas
+sem uma mensagem explícita do fornecedor; um erro de transporte pode ser
+temporário.
+
+## Arquivo de FT: requisito de segurança, não ativo
+
+**Não guardar corpos brutos de API-Football em `actions/cache` em texto
+simples no repositório público.** Segundo a documentação do GitHub, um PR
+pode ler os caches da branch base, e o cache não é desenhado para guardar
+dados sensíveis nem constitui armazenamento privado de origem auditável.
+Antes de ativar um arquivo de resposta completa, exigir cifra autenticada
+em repouso (p. ex. AES-GCM com chave guardada em GitHub Secrets, não na
+própria cache), política de leitura em jobs autenticados, proteção contra
+alteração, TTL/rotação e validação de marcador oficial FT, equipas,
+competição, KO e `score.fulltime == goals` no momento de eventual
+liquidação. Um cache de histórico não converte um candidato fraco em
+identidade aprovada. Não fica qualquer arquivo bruto ativo nesta PR.
+
+## Alternativa GOAL — revisão e conflito de fontes
+
+No dia 27/10 às 18:00 UTC, o GOAL apresenta
+`apiId=834934`, Independiente Res.–Defensa y Justicia Res.,
+na competição Torneo Proyección. O ID aparece também como candidato
+fraco noutros jogos da fila; `plan_goal_id()` recusa-o intencionalmente
+pelas regras atuais de exclusividade, número de candidatos e motivo anterior
+`goal_identity_no_core_match`. Não o promover a alias automático.
+
+Uma futura aprovação por jogo no GOAL precisa de chave AsianOdds
+imutável, ID `834934`, KO e nomes na ordem correta, competição da
+mesma categoria, zero segunda associação STRONG, identificação positiva
+de equipa de reserva de ambos os lados, ausência de ID já liquidado
+noutro match_key e dados oficiais aos 90 minutos; a validação final
+deve usar `homeTeamFtScore/awayTeamFtScore`, `matchPeriod=FINISHED`,
+e rejeitar `AFTER_ET/AFTER_PEN` sem dados próprios de tempo regulamentar.
+Preservar o limite de chamadas gratuitas e diário, sem acrescentar uma
+requisição durante esta alteração.
+
+Pesquisa pública (não usada como liquidação): várias páginas reportam
+4–1 (por exemplo `https://locoxelrojo.com/independiente/2026/10/27/goleo-la-reserva-de-independiente-y-sigue-en-lo-mas-alto/`
+e `https://footballtrends.app/es/fixtures/1612137/independiente-res-vs-defensa-y-justicia-res/standings`),
+enquanto `https://oddseek.com/football/ca-independiente-r-vs-defensa-y-justicia-reserves-13649014`
+apresenta 3–1. Essa discrepância **impede** que estes links sirvam,
+sozinhos, para declarar o FT no ledger. É obrigatória nova verificação
+da fonte e da cronologia original antes de eventual registo público.
