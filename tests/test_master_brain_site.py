@@ -109,6 +109,11 @@ class MasterBrainSiteTests(unittest.TestCase):
                      "showEvidence(", "first_detected_at", "out_of_sample"):
             self.assertIn(item, js)
         self.assertIn("SIGN_REVERSAL", js)
+        # A function existing in the script does not prove that the UI ever renders it.
+        self.assertRegex(js, r"function render\(\)\{[^}]*renderChronology\(\);renderProspective\(\);")
+        self.assertIn('$("discovery-filter").addEventListener("change",renderChronology)', js)
+        self.assertIn("Cronologia indisponível", js)
+        self.assertIn("Histórico prospetivo indisponível", js)
 
     @unittest.skipUnless(shutil.which("node"), "node unavailable")
     def test_javascript_syntax(self):
