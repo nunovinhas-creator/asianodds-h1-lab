@@ -27,8 +27,8 @@ SCHEMA_VERSION = 1
 RULE_VERSION = "SELECTED_V5_FIVE_20261029"
 MARKETS = {"OVER_2_5": "OVER 2,5 GOLOS", "BTTS_YES": "AMBAS MARCAM"}
 MAX_RESEARCH_AGE = timedelta(hours=24)
-MAX_ALERT_LOOKAHEAD = timedelta(hours=24)
-MAX_MESSAGES_PER_RUN = 6
+MAX_ALERT_LOOKAHEAD = timedelta(hours=12)
+# No fixed message count: pacing protects Telegram while preserving full 12-hour coverage.
 
 # Explicit fixed selection. Do NOT re-rank from the exploratory leader board.
 # IDs and predicates are taken from the published V5 catalogue on 2026-10-29.
@@ -136,7 +136,7 @@ def _sufficient_evidence(timeline, features, rule):
     return True
 
 
-def candidate_matches(timelines, now, research):
+def candidate_matches(timelines, now, research, *, include_all=False):
     """Eligible future games, including those detected earlier today.
 
     Each candidate is identified by an actual match_key, a frozen list of strategy
@@ -180,12 +180,34 @@ def candidate_matches(timelines, now, research):
                 ("rate", "known", "hits", "reference_rate", "reference_known")):
                 history = {k: observed[k] for k in ("rate", "known", "hits", "reference_rate", "reference_known")}
             matched.append({**rule, "history": history})
-        if matched:
+        if matched or include_all:
+            totals = [e for e in events if "total" in e.get("snapshots", {})]
+            last = totals[-1] if totals else None
+            last_market = last["snapshots"]["total"] if last else None
+            latest_total_v4 = (last_market["after"]["line"] if last_market
+                               and last_market.get("origin") == "V4_EXPLICIT" else None)
+            # A missing/legacy snapshot can NEVER establish that a rule has ceased.
+            episode_by_id = {eid: n for n, group in enumerate(timeline.get("movement_episodes") or [])
+                             for eid in group}
+            representatives = {}
+            for event in events:
+                episode = episode_by_id.get(event["event_id"], event["event_id"])
+                representatives.setdefault(episode, event)
+            from .pattern_features import message_metrics
+            weakening_verified = (len(representatives) >= 2 and all(
+                e.get("snapshots", {}).get("total", {}).get("origin") == "V4_EXPLICIT"
+                and message_metrics(e).get("dlam") is not None
+                for e in representatives.values()))
             out.append({
                 "match_key": key, "match_label": f["match_label"],
                 "kickoff_utc": f["kickoff_utc"], "observed_through": f["decision_at"],
                 "feature_version": f["feature_version"], "fingerprint": f["fingerprint"],
                 "rules": matched, "research_generated_at": research["generated_at"],
+                "patterns": f["patterns"], "net_dlam": f.get("net_dlam"),
+                "explicit_net": _observed_explicit(timeline, "G_NET_IMPLIED_SMALL"),
+                "last_total_v4": latest_total_v4,
+                "last_total_observed_at": last.get("observed_at") if last else None,
+                "weakening_verified": weakening_verified,
             })
     return sorted(out, key=lambda x: (x["kickoff_utc"], x["match_key"]))
 
@@ -195,46 +217,45 @@ def _pct(n):
     return str(value).replace(".", ",") + "%"
 
 
-def message_for_game(row, rules):
-    """One Telegram message per match with DISTINCT numbered market sections."""
+def _historical(research, rule):
+    """Published V5 descriptive sample; never a calibrated forecast."""
+    if not isinstance(research, dict):
+        return None
+    candidates = (research.get("patterns") or []) + (research.get("combinations_top") or [])
+    row = next((p for p in candidates if p.get("id") == rule["id"]), None)
+    outcome = (row or {}).get("outcomes", {}).get(rule["market"])
+    if not isinstance(outcome, dict):
+        return None
+    keys = ("rate", "known", "hits", "reference_rate", "reference_known")
+    return {k: outcome[k] for k in keys} if all(
+        isinstance(outcome.get(k), (int, float)) and not isinstance(outcome.get(k), bool)
+        for k in keys) else None
+
+
+def _short_history(rule):
+    h = rule.get("history")
+    return ("📊 Histórico V5: " + str(int(h["hits"])) + "/" + str(int(h["known"]))
+            + " (" + _pct(h["rate"]) + ")") if h else "📊 Histórico V5: indisponível"
+
+
+def message_for_game(row, rules, withdrawn=()):
+    """The requested compact game + local kickoff + strategies + history only."""
     kickoff = utc(row.get("kickoff_utc"))
-    observed = utc(row.get("observed_through"))
-    if not kickoff or not observed or observed >= kickoff or not rules or not row.get("match_label"):
-        raise ValueError("invalid prospective strategy match")
+    if not kickoff or not row.get("match_label") or not rules and not withdrawn:
+        raise ValueError("invalid strategy notification")
     when = kickoff.astimezone(ZoneInfo("Europe/Lisbon"))
-    lines = [
-        "🧠 MASTER BRAIN | 5 ESTRATÉGIAS V5",
-        "⚽ " + row["match_label"],
-        "🕒 " + when.strftime("%d/%m/%Y %H:%M") + " (Portugal continental)",
-        "📍 " + str(len(rules)) + " estratégia(s) identificada(s)",
-    ]
-    for rule in sorted(rules, key=lambda x: x["number"]):
-        lines.extend([
-            "",
-            "━━━━━━━━━━━━━━━━",
-            "🎯 ESTRATÉGIA " + str(rule["number"]) + "/5 — " + MARKETS[rule["market"]],
-            "🔎 " + rule["label"],
-        ])
-        h = rule.get("history")
-        if h:
-            lines.append("📊 Histórico V5: " + str(int(h["hits"])) + "/" + str(int(h["known"]))
-                         + " (" + _pct(h["rate"]) + ") vs "
-                         + _pct(h["reference_rate"]) + " (" + str(int(h["reference_known"]))
-                         + " jogos de comparação)")
-        else:
-            lines.append("📊 Histórico: dados publicados insuficientes para este cartão.")
-        lines.append("🆔 " + rule["id"])
-    lines += [
-        "",
-        "🧾 Observações até " + observed.astimezone(ZoneInfo("Europe/Lisbon")).strftime("%d/%m %H:%M")
-        + " (Portugal). As condições podem mudar com novos alertas pré-jogo.",
-        "⚠️ Padrões EXPLORATÓRIOS, não validados em novos jogos. Taxas históricas ≠ probabilidade futura/ROI; sem odds de entrada.",
-        "🔗 https://nunovinhas-creator.github.io/asianodds-h1-lab/brain-preview.html",
-    ]
-    result = "\n".join(lines)
-    if len(result.encode("utf-8")) > 4096:
+    lines = ["⚽ " + row["match_label"],
+             "🕒 " + when.strftime("%d/%m %H:%M") + " (Portugal)"]
+    for rule in sorted(rules, key=lambda r: r["number"]):
+        lines += ["", "🎯 E" + str(rule["number"]) + " · " + MARKETS[rule["market"]],
+                  rule["label"], _short_history(rule)]
+    for rule in sorted(withdrawn, key=lambda r: r["number"]):
+        lines += ["", "❌ SAIU DA E" + str(rule["number"]) + " · " + MARKETS[rule["market"]],
+                  rule["label"], "Motivo: " + rule["exit_reason"], _short_history(rule)]
+    message = "\n".join(lines)
+    if len(message.encode("utf-8")) > 4096:
         raise ValueError("Telegram strategy message exceeds 4096 bytes")
-    return result
+    return message
 
 
 def empty_ledger(now):
@@ -242,57 +263,147 @@ def empty_ledger(now):
             "activated_at": now.isoformat(timespec="seconds"), "entries": {}}
 
 
-def process(rows, ledger, now, sender, enabled, pace=None):
+def _exit_reason(row, rule, receipt):
+    """Exit only from fresh, positive V4 evidence, NEVER a missing data feed.
+
+    HAS/messaging-flat conditions are existential: a later contrary movement
+    does not erase the previously observed pattern. Those rules cannot exit
+    merely because the most recent quote went the other way.
+    """
+    previous = utc(receipt.get("observed_through"))
+    observed = utc(row.get("observed_through"))
+    if previous is None or observed is None or observed <= previous:
+        return None
+    patterns = set(row.get("patterns") or ())
+    if rule["number"] == 4:
+        quote_at = utc(row.get("last_total_observed_at"))
+        if (row.get("last_total_v4") is not None and
+                row["last_total_v4"] < 3.25 and quote_at and quote_at > previous):
+            return "linha Total atual abaixo de 3,25"
+        if "G_WEAKENING" in patterns and row.get("weakening_verified"):
+            return "último episódio com movimento mais fraco"
+    if rule["number"] == 5:
+        quote_at = utc(row.get("last_total_observed_at"))
+        net = row.get("net_dlam")
+        if (row.get("explicit_net") and isinstance(net, (int, float)) and
+                not isinstance(net, bool) and abs(net) >= 0.10 and
+                quote_at and quote_at > previous):
+            return "variação líquida dos golos implícitos ≥ 0,10"
+    return None
+
+
+def _append_receipt(entry, action, at, mid, reason=None):
+    trace = entry.setdefault("transitions", [])
+    item = {"action": action, "at": at.isoformat(timespec="seconds"),
+            "telegram_message_id": mid}
+    if reason:
+        item["reason"] = reason
+    trace.append(item)
+
+
+def process(rows, ledger, now, sender, enabled, pace=None, *, research=None, clock=None):
+    """Unlimited coverage inside 12h; Telegram pacing is not a game quota.
+
+    Already-notified strategy associations remain silent. A verified change
+    gets one concise status message (even for multiple rules on the same game).
+    """
     if (not isinstance(ledger, dict) or ledger.get("schema_version") != SCHEMA_VERSION or
             ledger.get("rule_version") != RULE_VERSION or not isinstance(ledger.get("entries"), dict)):
         raise ValueError("invalid V5 strategy notification receipt ledger; no messages sent")
-    counts = {"games_with_strategies": len(rows), "strategies_matched": sum(len(r["rules"]) for r in rows),
-              "games_sent": 0, "strategy_receipts": 0, "already_notified": 0, "unconfigured": 0,
-              "failed": 0, "expired": 0,
-              "deferred_not_imminent": 0, "deferred_rate_limit": 0}
+    counts = {"games_with_strategies": sum(bool(r["rules"]) for r in rows),
+              "strategies_matched": sum(len(r["rules"]) for r in rows),
+              "games_sent": 0, "strategy_receipts": 0, "withdrawals_sent": 0,
+              "already_notified": 0, "unconfigured": 0, "failed": 0, "expired": 0,
+              "deferred_not_imminent": 0}
     attempts = 0
     for row in sorted(rows, key=lambda r: (r["kickoff_utc"], r["match_key"])):
-        if utc(row["kickoff_utc"]) <= now:
+        kickoff = utc(row["kickoff_utc"])
+        if kickoff is None or kickoff <= now:
             counts["expired"] += 1
             continue
-        fresh = [r for r in row["rules"] if row["match_key"] + "|" + str(r["number"]) not in ledger["entries"]]
-        counts["already_notified"] += len(row["rules"]) - len(fresh)
-        if not fresh:
+        # No messages for games beyond 12 hours, including strategy removals.
+        if kickoff > now + MAX_ALERT_LOOKAHEAD:
+            counts["deferred_not_imminent"] += int(bool(row["rules"]))
             continue
-        if utc(row["kickoff_utc"]) > now + MAX_ALERT_LOOKAHEAD:
-            counts["deferred_not_imminent"] += 1
-            continue
-        if attempts >= MAX_MESSAGES_PER_RUN:
-            counts["deferred_rate_limit"] += 1
+        key = row["match_key"]
+        active = {r["number"]: r for r in row["rules"]}
+        fresh = []
+        withdrawn = []
+        for rule in STRATEGIES:
+            receipt = ledger["entries"].get(key + "|" + str(rule["number"]))
+            status = receipt.get("status") if isinstance(receipt, dict) else None
+            if rule["number"] in active:
+                if status is None or status == "withdrawn":
+                    fresh.append(active[rule["number"]])
+                else:
+                    # Even uncertain deliveries are not resent automatically.
+                    counts["already_notified"] += 1
+            elif status == "sent":
+                reason = _exit_reason(row, rule, receipt)
+                if reason:
+                    withdrawn.append({**rule, "exit_reason": reason,
+                                      "history": _historical(research, rule)})
+        if not fresh and not withdrawn:
             continue
         if not enabled:
-            counts["unconfigured"] += len(fresh)
+            counts["unconfigured"] += len(fresh) + len(withdrawn)
             continue
-        msg = message_for_game(row, fresh)
+        # The source snapshot is historical, but the event can start while a
+        # large batch of Telegram messages is being sent. Recheck each time.
+        if clock is not None and kickoff <= clock():
+            counts["expired"] += 1
+            continue
+        msg = message_for_game(row, fresh, withdrawn)
         if attempts and pace is not None:
-            pace()  # In production: >=1 second between Telegram messages.
+            pace()  # e.g. 1.2 seconds between messages, no six-message limit.
+        if clock is not None and kickoff <= clock():
+            counts["expired"] += 1
+            continue
         attempts += 1
-        keys = [row["match_key"] + "|" + str(r["number"]) for r in fresh]
-        for k, rule in zip(keys, fresh):
-            ledger["entries"][k] = {
-                "status": "delivery_uncertain", "detected_at": now.isoformat(timespec="seconds"),
-                "match_key": row["match_key"], "kickoff_utc": row["kickoff_utc"],
-                "observed_through": row["observed_through"], "feature_fingerprint": row["fingerprint"],
-                "strategy": rule["number"], "rule_id": rule["id"], "market": rule["market"],
-                "rule_version": RULE_VERSION,
-            }
+        stamp = now.isoformat(timespec="seconds")
         try:
             mid = sender(msg)
             if isinstance(mid, bool) or not isinstance(mid, int):
                 raise BotDeliveryError("TELEGRAM_DELIVERY_UNCERTAIN: missing message ID")
-            for k in keys:
-                ledger["entries"][k]["status"] = "sent"
-                ledger["entries"][k]["telegram_message_id"] = mid
+            for rule in fresh:
+                receipt_key = key + "|" + str(rule["number"])
+                item = ledger["entries"].get(receipt_key, {})
+                item.update({
+                    "status": "sent", "detected_at": stamp, "match_key": key,
+                    "kickoff_utc": row["kickoff_utc"],
+                    "observed_through": row["observed_through"],
+                    "feature_fingerprint": row["fingerprint"],
+                    "strategy": rule["number"], "rule_id": rule["id"],
+                    "market": rule["market"], "rule_version": RULE_VERSION,
+                    "telegram_message_id": mid,
+                })
+                _append_receipt(item, "entered", now, mid)
+                ledger["entries"][receipt_key] = item
+            for rule in withdrawn:
+                receipt_key = key + "|" + str(rule["number"])
+                item = ledger["entries"][receipt_key]
+                item.update({"status": "withdrawn", "withdrawn_at": stamp,
+                             "withdrawal_message_id": mid,
+                             "withdrawal_observed_through": row["observed_through"]})
+                _append_receipt(item, "withdrawn", now, mid, rule["exit_reason"])
             counts["games_sent"] += 1
             counts["strategy_receipts"] += len(fresh)
+            counts["withdrawals_sent"] += len(withdrawn)
         except BotDeliveryError:
-            for k in keys:
-                ledger["entries"][k]["status"] = "delivery_uncertain_manual_review"
+            for rule in fresh:
+                receipt_key = key + "|" + str(rule["number"])
+                item = ledger["entries"].get(receipt_key, {})
+                item.update({"status": "delivery_uncertain_manual_review",
+                             "detected_at": stamp, "match_key": key,
+                             "kickoff_utc": row["kickoff_utc"],
+                             "observed_through": row["observed_through"],
+                             "feature_fingerprint": row["fingerprint"],
+                             "strategy": rule["number"], "rule_id": rule["id"],
+                             "market": rule["market"], "rule_version": RULE_VERSION})
+                ledger["entries"][receipt_key] = item
+            for rule in withdrawn:
+                ledger["entries"][key + "|" + str(rule["number"])]["status"] = (
+                    "withdrawal_uncertain_manual_review")
             counts["failed"] += 1
     return ledger, counts
 
@@ -307,6 +418,7 @@ def _write(path, value):
 
 def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
     root = Path(root)
+    now_arg_was_none = now is None
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     research = json.loads((root / RESEARCH).read_text(encoding="utf-8"))
     alerts, markets, errors = read_sources(root)
@@ -315,11 +427,12 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
     alerts = [a for a in alerts if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     markets = [a for a in markets if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     timelines, issues, excluded = collect_timelines(alerts, markets, source_errors=errors)
-    rows = candidate_matches(timelines, now, research)
+    rows = candidate_matches(timelines, now, research, include_all=True)
     path = root / LEDGER
     ledger = json.loads(path.read_text(encoding="utf-8")) if path.exists() else empty_ledger(now)
     ledger, stats = process(rows, ledger, now, sender, configured() if bot_enabled is None else bot_enabled,
-                            pace=lambda: time.sleep(1.2))
+                            pace=lambda: time.sleep(1.2), research=research,
+                            clock=lambda: datetime.now(timezone.utc) if now_arg_was_none else now)
     _write(path, ledger)
     print("MASTER_BRAIN_FIVE_STRATEGIES_NOTIFY", stats,
           "timeline_issues", len(issues), "excluded_observations", len(excluded),
@@ -336,14 +449,22 @@ def preview(root=ROOT, now=None):
     alerts = [a for a in alerts if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     markets = [a for a in markets if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     timelines, issues, excluded = collect_timelines(alerts, markets, source_errors=errors)
-    rows = candidate_matches(timelines, now, research)
-    print("MASTER_BRAIN_FIVE_STRATEGIES_DRY_RUN", "matches", len(rows),
-          "strategy_links", sum(len(r["rules"]) for r in rows),
+    rows = candidate_matches(timelines, now, research, include_all=True)
+    eligible = [r for r in rows if r["rules"] and
+                now < utc(r["kickoff_utc"]) <= now + MAX_ALERT_LOOKAHEAD]
+    path = root / LEDGER
+    ledger = json.loads(path.read_text(encoding="utf-8")) if path.exists() else empty_ledger(now)
+    pending = [r for r in eligible if any(
+        ledger["entries"].get(r["match_key"] + "|" + str(rule["number"]), {}).get("status")
+        in (None, "withdrawn") for rule in r["rules"])]
+    print("MASTER_BRAIN_FIVE_STRATEGIES_DRY_RUN", "matches_12h", len(eligible),
+          "pending_matches_12h", len(pending),
+          "strategy_links", sum(len(r["rules"]) for r in eligible),
           "timeline_issues", len(issues), "excluded", len(excluded))
-    for row in rows[:30]:
+    for row in pending:
         print("MATCH", row["match_label"], row["kickoff_utc"],
               "strategies", ",".join(str(x["number"]) for x in row["rules"]))
-    return rows
+    return eligible
 
 
 if __name__ == "__main__":

@@ -80,10 +80,12 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertEqual([r["number"] for r in rows[0]["rules"]], [1, 2, 3, 4, 5])
         msg = message_for_game(rows[0], rows[0]["rules"])
         self.assertIn("Porto vs Benfica", msg)
-        self.assertIn("ESTRATÉGIA 1/5 — OVER 2,5 GOLOS", msg)
-        self.assertIn("ESTRATÉGIA 3/5 — AMBAS MARCAM", msg)
+        self.assertIn("🎯 E1 · OVER 2,5 GOLOS", msg)
+        self.assertIn("🎯 E3 · AMBAS MARCAM", msg)
         self.assertIn("13/16 (81,3%)", msg)  # explicit half-up to match user-facing V5
-        self.assertIn("Padrões EXPLORATÓRIOS", msg)
+        self.assertNotIn("Taxas históricas", msg)
+        self.assertNotIn("🆔", msg)
+        self.assertLess(len(msg), 950)
         sent = []
         ledger, stats = process(rows, empty_ledger(NOW), NOW,
                                 lambda text: sent.append(text) or 437, True)
@@ -126,11 +128,11 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertNotIn(4, [r["number"] for r in rows[0]["rules"]])
 
-    def test_large_first_backfill_is_paced_and_bounded_across_cycles(self):
+    def test_all_eligible_games_are_notified_without_six_message_cap(self):
         a = original()
         base = candidates([a], [v4(a)])[0]
         rows = []
-        for i in range(10):
+        for i in range(15):
             r = copy.deepcopy(base)
             r["match_key"] = "today-" + str(i)
             r["kickoff_utc"] = (KO + timedelta(minutes=i)).isoformat()
@@ -138,20 +140,18 @@ class FiveStrategyTests(unittest.TestCase):
         messages=[]
         ledger, first = process(rows, empty_ledger(NOW), NOW,
                                 lambda msg: messages.append(msg) or (100 + len(messages)), True)
-        self.assertEqual(first["games_sent"],6)
-        self.assertEqual(first["deferred_rate_limit"],4)
-        self.assertEqual(len(ledger["entries"]),30)
+        self.assertEqual(first["games_sent"],15)
+        self.assertEqual(len(ledger["entries"]),75)
         ledger, second = process(rows, ledger, NOW+timedelta(minutes=5),
                                  lambda msg: messages.append(msg) or (100 + len(messages)),True)
-        self.assertEqual(second["games_sent"],4)
-        self.assertEqual(second["deferred_rate_limit"],0)
-        self.assertEqual(len(messages),10)
+        self.assertEqual(second["games_sent"],0)
+        self.assertEqual(len(messages),15)
         ledger, third = process(rows,ledger,NOW+timedelta(minutes=10),
                                 lambda msg: self.fail("duplicate"),True)
         self.assertEqual(third["games_sent"],0)
 
-    def test_future_beyond_24h_deferred_until_in_alert_window(self):
-        a=original(ko=NOW+timedelta(hours=25))
+    def test_future_beyond_12h_deferred_until_in_alert_window(self):
+        a=original(ko=NOW+timedelta(hours=13))
         rows=candidates([a],[v4(a)])
         ledger,stats=process(rows,empty_ledger(NOW),NOW,
                              lambda msg:self.fail("premature"),True)
@@ -159,6 +159,102 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertEqual(len(ledger["entries"]),0)
         ledger,stats=process(rows,ledger,NOW+timedelta(hours=2),lambda _:987,True)
         self.assertEqual(stats["games_sent"],1)
+
+    def test_confirmed_line_drop_sends_single_exit_with_history_and_never_repeats(self):
+        a = original()
+        first = candidates([a], [v4(a)])
+        ledger, sent = process(first, empty_ledger(NOW), NOW, lambda _: 151, True)
+        self.assertEqual(sent["strategy_receipts"], 5)
+        b = original(num=2, at=NOW + timedelta(minutes=10), total_line=3.0)
+        # The latest V4 Total is explicitly below 3.25; previously sent E4 exits.
+        newer = candidate_matches(*collect_timelines([a, b], [v4(a), v4(b)])[:1],
+                                  NOW + timedelta(minutes=12), research(), include_all=True)
+        msgs = []
+        ledger, stats = process(newer, ledger, NOW + timedelta(minutes=12),
+                                lambda text: msgs.append(text) or 152, True, research=research())
+        # The lower latest Total also moves the net lambda outside E5's range:
+        # both exits are legitimate, and must be grouped in one game notice.
+        self.assertEqual(stats["withdrawals_sent"], 2)
+        self.assertEqual(stats["strategy_receipts"], 0)
+        self.assertEqual(len(msgs), 1)
+        self.assertIn("❌ SAIU DA E5 · OVER 2,5 GOLOS", msgs[0])
+        self.assertIn("❌ SAIU DA E4 · OVER 2,5 GOLOS", msgs[0])
+        self.assertIn("Motivo: linha Total atual abaixo de 3,25", msgs[0])
+        self.assertIn("Histórico V5:", msgs[0])
+        self.assertEqual(ledger["entries"][a["match_key"] + "|4"]["status"], "withdrawn")
+        self.assertEqual(ledger["entries"][a["match_key"] + "|4"]["telegram_message_id"],151)
+        self.assertEqual(ledger["entries"][a["match_key"] + "|4"]["withdrawal_message_id"],152)
+        ledger, stats = process(newer, ledger, NOW + timedelta(minutes=13),
+                                lambda _: self.fail("duplicate exit"), True, research=research())
+        self.assertEqual(stats["withdrawals_sent"], 0)
+
+    def test_confirmed_net_lambda_exit_and_reentry_gets_distinct_notices(self):
+        a = original()
+        ledger, _ = process(candidates([a], [v4(a)]), empty_ledger(NOW), NOW,
+                            lambda _: 161, True)
+        b = original(num=2, at=NOW+timedelta(minutes=20), total_line=3.25)
+        b.update(total_after=3.75)
+        newer = candidate_matches(collect_timelines([a,b],[v4(a),v4(b)])[0],
+                                  NOW+timedelta(minutes=25), research(), include_all=True)
+        outgoing = []
+        ledger,stats=process(newer,ledger,NOW+timedelta(minutes=25),
+                             lambda msg: outgoing.append(msg) or 162,True,research=research())
+        self.assertEqual(stats["withdrawals_sent"],1)
+        self.assertIn("❌ SAIU DA E5",outgoing[0])
+        self.assertEqual(ledger["entries"][a["match_key"]+"|5"]["status"],"withdrawn")
+
+        c=original(num=3,at=NOW+timedelta(minutes=30),total_line=3.25)
+        later=candidates([a,c],[v4(a),v4(c)],now=NOW+timedelta(minutes=35))
+        # Recalculation with a fresh, consistent timeline can allow E5 back in.
+        # The existing withdrawal receipt is no longer a permanent suppression.
+        out=[]
+        ledger,stats=process(later,ledger,NOW+timedelta(minutes=35),
+                             lambda msg:out.append(msg) or 163,True,research=research())
+        self.assertEqual(stats["strategy_receipts"],1)
+        self.assertIn("🎯 E5 · OVER 2,5 GOLOS",out[0])
+        self.assertEqual([x["action"] for x in
+            ledger["entries"][a["match_key"]+"|5"]["transitions"]],
+            ["entered","withdrawn","entered"])
+
+    def test_missing_v4_data_does_not_fake_an_exit(self):
+        a=original()
+        ledger,_=process(candidates([a],[v4(a)]),empty_ledger(NOW),NOW,lambda _:171,True)
+        b=original(num=2,at=NOW+timedelta(minutes=10),total_line=2.5)
+        # A later legacy-only Total is NOT evidence for withdrawal.
+        rows=candidate_matches(collect_timelines([a,b],[v4(a)])[0],
+                               NOW+timedelta(minutes=12),research(),include_all=True)
+        ledger,stats=process(rows,ledger,NOW+timedelta(minutes=12),
+                             lambda msg:self.fail("unknown is not withdrawn"),True,research=research())
+        self.assertEqual(stats["withdrawals_sent"],0)
+        self.assertEqual(ledger["entries"][a["match_key"]+"|4"]["status"],"sent")
+
+    def test_exit_is_silent_if_game_started(self):
+        a=original()
+        ledger,_=process(candidates([a],[v4(a)]),empty_ledger(NOW),NOW,lambda _:181,True)
+        b=original(num=2,at=NOW+timedelta(minutes=10),total_line=3.0)
+        rows=candidate_matches(collect_timelines([a,b],[v4(a),v4(b)])[0],
+                               NOW+timedelta(minutes=11),research(),include_all=True)
+        ledger,stats=process(rows,ledger,NOW+timedelta(minutes=11),
+                             lambda msg:self.fail("started"),True,research=research(),
+                             clock=lambda:KO+timedelta(seconds=1))
+        self.assertEqual(stats["withdrawals_sent"],0)
+
+    def test_withdrawal_delivery_uncertainty_not_retried(self):
+        a=original()
+        ledger,_=process(candidates([a],[v4(a)]),empty_ledger(NOW),NOW,lambda _:191,True)
+        b=original(num=2,at=NOW+timedelta(minutes=10),total_line=3.0)
+        rows=candidate_matches(collect_timelines([a,b],[v4(a),v4(b)])[0],
+                               NOW+timedelta(minutes=12),research(),include_all=True)
+        attempted=[]
+        def ambiguous(msg):
+            attempted.append(msg)
+            raise BotDeliveryError("uncertain")
+        ledger,stats=process(rows,ledger,NOW+timedelta(minutes=12),ambiguous,True,research=research())
+        self.assertEqual(stats["failed"],1)
+        self.assertEqual(ledger["entries"][a["match_key"]+"|4"]["status"],
+                         "withdrawal_uncertain_manual_review")
+        process(rows,ledger,NOW+timedelta(minutes=13),ambiguous,True,research=research())
+        self.assertEqual(len(attempted),1)
 
     def test_no_bot_configuration_never_consumes_eligible_receipts(self):
         a=original(); rows=candidates([a], [v4(a)])
@@ -188,8 +284,8 @@ class FiveStrategyTests(unittest.TestCase):
         ledger,stats=process(updated,ledger,NOW+timedelta(minutes=1),
                              lambda msg: sent.append(msg) or 124,True)
         self.assertEqual(stats["strategy_receipts"],1)
-        self.assertIn("ESTRATÉGIA 1/5", sent[0])
-        self.assertNotIn("ESTRATÉGIA 2/5", sent[0])
+        self.assertIn("🎯 E1 ·", sent[0])
+        self.assertNotIn("🎯 E2 ·", sent[0])
 
     def test_catalogue_drift_or_stale_report_fails_loudly(self):
         good=research()
