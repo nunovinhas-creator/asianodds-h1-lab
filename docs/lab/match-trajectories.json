@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-29T20:01:41+00:00",
+ "generated_at": "2026-10-29T20:06:42+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 171
+  "timelines_published": 172
  },
  "schema_version": 1,
- "source_commit": "e0f3abf92ba8197e2e52aa4c220be508fa8a5c64",
+ "source_commit": "38727a7a83752591dd476e0c44c4ff3e1ed6565a",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 526,
+  "matches": 529,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 764,
+  "messages": 768,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 409,
+  "messages_on_repeated_matches": 411,
   "messages_v4_only": 0,
-  "messages_with_v4": 690,
-  "movement_episodes_upper_bound": 732,
+  "messages_with_v4": 694,
+  "movement_episodes_upper_bound": 736,
   "possibly_redundant_snapshots": 22,
   "post_kickoff_messages": 21,
   "related_message_pairs": 32,
@@ -50,25 +50,162 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 10
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 171,
+  "repeated_matches": 172,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1100
+   "V4_EXPLICIT": 1106
   },
   "total_line_reversals_on_repeated": 85,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 27,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 28,
    "CONTINUOUS": 122,
    "SAME_MOVEMENT_REPEAT": 32,
    "UNOBSERVED_CHANGE": 57
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 207,
-   "one_x_two:AGREE": 203,
-   "total:AGREE": 690
+   "asian_handicap:AGREE": 208,
+   "one_x_two:AGREE": 204,
+   "total:AGREE": 694
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51328",
+    "3571094759:51349"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51328",
+     "message_id": 51328,
+     "minutes_to_kickoff": 395.0,
+     "observed_at": "2026-10-29T18:25:02+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.88,
+        "under_price": 1.85
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.09,
+        "under_price": 1.85
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51349",
+     "message_id": 51349,
+     "minutes_to_kickoff": 293.9,
+     "observed_at": "2026-10-29T20:06:03+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.79,
+        "under_price": 2.09
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.09,
+        "under_price": 1.85
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-29T18:25:02+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-30T01:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T20:06:03+00:00",
+   "match_key": "2026-10-30,53841,60358",
+   "match_label": "CF Alebrijes de Oaxaca vs Mineros de Zacatecas",
+   "movement_episodes": [
+    [
+     "3571094759:51328"
+    ],
+    [
+     "3571094759:51349"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    6061.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.0,
+     "last_observed_line": 2.75,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.75,
+       "before": 3.0,
+       "event_id": "3571094759:51328",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.75,
+       "before": 3.0,
+       "event_id": "3571094759:51349",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51328",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.0,
+       "previous_after_line": 2.75,
+       "to": "3571094759:51349"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
