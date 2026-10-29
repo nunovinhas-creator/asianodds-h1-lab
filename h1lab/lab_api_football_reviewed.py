@@ -23,32 +23,56 @@ def _positive(value):
 
 
 def plan_reviewed_ids(selected, matches, review, approved, now, *,
-                      day_index=None, confirmed_registry=None):
-    """Return safe match_key -> approved tuple, or empty when not human approved.
+                      day_index=None, confirmed_registry=None, decisions=None):
+    """Plan zero or one quota-bounded batch; publish reasons for every approval.
 
-    A candidate with a similar name is NEVER sufficient for settlement.
+    Weak discovery suggestions attached to other match_keys NEVER create
+    a confirmed identity collision. Independent STRONG associations do.
+    The complete provider-day index and locked fixture/team IDs remain
+    mandatory regardless of a candidate's name similarity.
     """
     if not isinstance(approved, dict) or approved.get("schema_version") != SCHEMA:
         raise ValueError("Invalid approved FT pair registry")
     pairs = approved.get("pairs")
     if not isinstance(pairs, dict):
         raise ValueError("Invalid approved pair table")
+    if decisions is None:
+        decisions = {}
+    if not isinstance(decisions, dict):
+        raise ValueError("Invalid reviewed ID audit output")
+    decisions.clear()
+
+    def deny(key, reason, **details):
+        decisions[key] = {"status": "REJECTED", "reason": reason, **details}
+
     if not isinstance(day_index, dict) or day_index.get("schema_version") != 1:
-        return {}  # complete day identity proof is mandatory
+        for key in pairs:
+            deny(key, "COMPLETE_DAY_INDEX_MISSING")
+        return {}
     if not isinstance(confirmed_registry, dict) or confirmed_registry.get("schema_version") != 1:
+        for key in pairs:
+            deny(key, "CONFIRMED_FIXTURE_REGISTRY_MISSING")
         return {}
     registry = confirmed_registry.get("entries")
     if not isinstance(registry, dict):
+        for key in pairs:
+            deny(key, "CONFIRMED_FIXTURE_ENTRIES_INVALID")
         return {}
     if not isinstance(review, dict) or review.get("schema_version") != 1:
+        for key in pairs:
+            deny(key, "IDENTITY_REVIEW_MISSING")
         return {}
     reviewed_games = review.get("games")
     if not isinstance(reviewed_games, list):
+        for key in pairs:
+            deny(key, "IDENTITY_REVIEW_INVALID")
         return {}
     indexed = {g["match_key"]: g for g in reviewed_games
                if isinstance(g, dict) and isinstance(g.get("match_key"), str)}
     if len(indexed) != len(reviewed_games):
-        return {}  # ambiguous review queue
+        for key in pairs:
+            deny(key, "IDENTITY_REVIEW_DUPLICATE_KEYS")
+        return {}
     selected = set(selected)
     collision = Counter()
     for row in pairs.values():
@@ -62,53 +86,81 @@ def plan_reviewed_ids(selected, matches, review, approved, now, *,
             for provider, url in providers_from_final(row).items():
                 if provider == "api_football":
                     final_ids.add(confirmed_id(provider, url))
-    candidates = Counter()
+
+    # The review is deliberately broad and can attach one fixture to many
+    # incompatible games as WEAK_REVIEW_ONLY diagnostic suggestions.
+    # Only *other STRONG* identities veto a manually approved identity.
+    strong_by_id, weak_by_id = {}, {}
     for g in reviewed_games:
+        if not isinstance(g, dict):
+            continue
+        key = g.get("match_key")
         for c in g.get("candidates", []):
-            if (isinstance(c, dict) and c.get("provider") == "api_football"
-                    and _positive(c.get("provider_home_team_id"))
-                    and _positive(c.get("provider_away_team_id"))):
-                candidates[str(c.get("provider_event_id"))] += 1
+            if (not isinstance(c, dict) or c.get("provider") != "api_football"
+                    or not _positive(c.get("provider_home_team_id"))
+                    or not _positive(c.get("provider_away_team_id"))):
+                continue
+            fixture_id = str(c.get("provider_event_id", ""))
+            bucket = (strong_by_id if c.get("match_strength") == "STRONG"
+                      else weak_by_id)
+            bucket.setdefault(fixture_id, set()).add(key)
+
     eligible = {}
-    for key in sorted(selected & set(pairs)):
+    for key in sorted(pairs):
+        if key not in selected:
+            deny(key, "NOT_SELECTED_IN_CURRENT_FT_QUEUE")
+            continue
         row = pairs[key]
         game = matches.get(key)
         reviewed = indexed.get(key)
-        if (not isinstance(row, dict) or row.get("status") != "APPROVED"
-                or row.get("match_key") != key
-                or row.get("provider") != "api_football"
-                or not isinstance(game, dict)
-                or game.get("status") not in ("PENDING", "PROVIDER_ERROR")
-                or not isinstance(reviewed, dict)
-                or reviewed.get("possible_duplicates")):
+        if not isinstance(row, dict) or row.get("status") != "APPROVED":
+            deny(key, "APPROVAL_RECORD_NOT_APPROVED")
+            continue
+        if row.get("match_key") != key or row.get("provider") != "api_football":
+            deny(key, "APPROVAL_MATCH_KEY_OR_PROVIDER_MISMATCH")
+            continue
+        if not isinstance(game, dict) or game.get("status") not in ("PENDING", "PROVIDER_ERROR"):
+            deny(key, "GAME_NOT_PENDING")
+            continue
+        if not isinstance(reviewed, dict):
+            deny(key, "GAME_MISSING_FROM_REVIEW")
+            continue
+        if reviewed.get("possible_duplicates"):
+            deny(key, "OBSERVATION_DUPLICATE_REQUIRES_CANONICAL_KEY")
             continue
         if any(row.get(field) != game.get(field) or
                reviewed.get(field) != game.get(field)
                for field in ("home", "away", "kickoff_utc")):
+            deny(key, "OBSERVED_MATCH_IDENTITY_MISMATCH")
             continue
         reviewed_by = row.get("reviewed_by")
         reviewed_at = utc(row.get("reviewed_at_utc"))
+        game_ko = utc(game.get("kickoff_utc"))
         if (not isinstance(reviewed_by, str) or not reviewed_by.strip()
                 or reviewed_at is None or reviewed_at > now
-                or reviewed_at < utc(game["kickoff_utc"])):
+                or game_ko is None or reviewed_at < game_ko):
+            deny(key, "HUMAN_REVIEW_TIMESTAMP_INVALID")
             continue
         ids = [row.get(k) for k in ("provider_fixture_id",
                                    "provider_home_team_id", "provider_away_team_id",
                                    "provider_competition_id")]
         if not all(_positive(x) for x in ids) or ids[1] == ids[2]:
+            deny(key, "APPROVED_PROVIDER_IDS_INVALID")
             continue
         linked = registry.get(f"api_football:{ids[0]}")
         if (collision[ids[0]] != 1 or str(ids[0]) in final_ids
                 or (linked is not None and
                     (not isinstance(linked, dict) or linked.get("match_key") != key))):
+            deny(key, "FIXTURE_ALREADY_CLAIMED_OR_MULTIPLY_APPROVED")
             continue
         provider_ko = utc(row.get("provider_kickoff_utc"))
-        observed_ko = utc(game["kickoff_utc"])
-        if (provider_ko is None or observed_ko is None or
-                abs(provider_ko - observed_ko) > timedelta(minutes=90)):
+        if (provider_ko is None or
+                abs(provider_ko - game_ko) > timedelta(minutes=90)):
+            deny(key, "PROVIDER_KICKOFF_OUTSIDE_90M_WINDOW")
             continue
         last_id_check = utc(game.get("api_football_reviewed_id_last_attempt_at"))
         if last_id_check is not None and now - last_id_check < timedelta(hours=24):
+            deny(key, "ID_BATCH_24H_COOLDOWN")
             continue
         aligned = [c for c in reviewed.get("candidates", [])
                    if isinstance(c, dict) and c.get("provider") == "api_football"
@@ -119,43 +171,44 @@ def plan_reviewed_ids(selected, matches, review, approved, now, *,
                    and c.get("provider_away_team_id") == ids[2]
                    and c.get("provider_competition_id") == ids[3]
                    and utc(c.get("provider_kickoff_utc")) == provider_ko]
-        if len(aligned) != 1 or candidates[str(ids[0])] != 1:
+        if len(aligned) != 1:
+            deny(key, "CANDIDATE_ABSENT_AMBIGUOUS_OR_WRONG_ORIENTATION")
             continue
-        # The approved event and every other game in the 90-minute window
-        # must come from an actually fetched, COMPLETE provider-day index.
-        if check_day_identity(day_index, row) is not None:
+        other_strong = sorted(strong_by_id.get(str(ids[0]), set()) - {key})
+        if other_strong:
+            deny(key, "ANOTHER_STRONG_MATCH_CLAIMS_SAME_FIXTURE",
+                 competing_match_keys=other_strong)
+            continue
+        day_error = check_day_identity(day_index, row)
+        if day_error is not None:
+            deny(key, day_error)
             continue
         day_rows = fixture_index(day_index, provider_ko.date().isoformat())
         source = next((x for x in day_rows if x["fixture_id"] == ids[0]), None)
         if source is None:
+            deny(key, "FIXTURE_NOT_IN_COMPLETE_DAY")
             continue
-        # A provider team labelled senior, U21 or women's is not a reserves
-        # team. Ambiguous "JRS" is not silently rewritten as reserves.
         if (_qualifiers(game["home"]) != _qualifiers(source["home"])
                 or _qualifiers(game["away"]) != _qualifiers(source["away"])):
+            deny(key, "TEAM_RESERVE_OR_AGE_QUALIFIER_MISMATCH")
             continue
-        # Competition anchor: at least one independently settled sister
-        # fixture, in the SAME fully indexed provider competition.
         anchor_id = row.get("competition_anchor_fixture_id")
         anchor = (registry.get(f"api_football:{anchor_id}") if
                   _positive(anchor_id) else None)
         if (not isinstance(anchor, dict) or
                 anchor.get("status") != "CONFIRMED_FT_SOURCE_ID" or
                 anchor.get("match_key") == key):
+            deny(key, "COMPETITION_CONFIRMED_ANCHOR_MISSING")
             continue
         anchored = any(
-            f["fixture_id"] == anchor_id and
-            f["competition_id"] == ids[3]
+            f["fixture_id"] == anchor_id and f["competition_id"] == ids[3]
             for indexed_day in day_index.get("days", {}).values()
             if isinstance(indexed_day, dict) and
             indexed_day.get("status") == "COMPLETE"
-            for f in indexed_day.get("fixtures", [])
-        )
+            for f in indexed_day.get("fixtures", []))
         if not anchored:
+            deny(key, "COMPETITION_ANCHOR_NOT_IN_SAME_PROVIDER_LEAGUE")
             continue
-        # Express–Kataka requires an independently confirmed Kataka club ID
-        # or an explicitly reviewed public 90-minute score source. This is
-        # never granted by the similarity of "Express" and "Red Eagles".
         if key == "2026-10-27,33791,86126":
             opponent_id = row.get("opponent_anchor_fixture_id")
             opponent = (registry.get(f"api_football:{opponent_id}") if
@@ -171,8 +224,15 @@ def plan_reviewed_ids(selected, matches, review, approved, now, *,
                     for f in indexed_day.get("fixtures", [])))
             public = row.get("independent_public_ft")
             if not anchored_opponent and not valid_public_corroboration(public):
+                deny(key, "KATAKA_ID_OR_INDEPENDENT_FT_NOT_CORROBORATED")
                 continue
+        ignored = sorted(weak_by_id.get(str(ids[0]), set()) - {key})
         eligible[key] = dict(row)
+        decisions[key] = {
+            "status": "ELIGIBLE", "reason": "HUMAN_REVIEWED_IDENTITIES_VERIFIED",
+            "provider": "api_football", "provider_fixture_id": ids[0],
+            "ignored_weak_diagnostic_match_keys": ignored,
+        }
         if len(eligible) == MAX_BATCH:
             break
     return eligible

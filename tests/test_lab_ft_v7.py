@@ -180,6 +180,29 @@ class V7Tests(unittest.TestCase):
         self.assertEqual(report["ft_queue"]["selected_keys"],
                          [signals[-1]["match_key"]])
 
+    def test_verified_human_approval_gets_exactly_one_immediate_slot(self):
+        current = {**GAME, "status": "PENDING", "attempts": 12,
+            "lookup_source_version": 11,
+            "evidence_attempts": 1, "stable_confirmations": 1,
+            "evidence_checked_at": "2026-10-28T19:45:00+00:00",
+            "queue_visited_at": "2026-10-28T19:45:00+00:00"}
+        state = {"alerts": [GAME], "signals": []}
+        previous = {"schema_version": 1, "matches": {GAME["match_key"]: current}}
+        kwargs = {"now": NOW, "bsd_lookup": lambda _: (None, "missing"),
+                  "tsdb_lookup": lambda _: (None, "missing"),
+                  "lookup_source_version": 11, "evidence_retry": True,
+                  "max_checks": 1}
+        _, base, count = reconcile(state, [], previous, **kwargs)
+        self.assertEqual(count, 0)
+        _, eligible, count = reconcile(state, [], previous,
+                    approved_rechecks={GAME["match_key"]}, **kwargs)
+        self.assertEqual(count, 1)
+        self.assertEqual(eligible["ft_queue"]["selected_keys"], [GAME["match_key"]])
+        # Even a manual approval must NOT bypass the 24h ID request cooldown.
+        current["api_football_reviewed_id_last_attempt_at"] = "2026-10-28T19:45:00+00:00"
+        _, after, count = reconcile(state, [], previous, **kwargs)
+        self.assertEqual(count, 0)
+
     def test_watchdog_ignores_recent_push(self):
         runs = [{"created_at": "2026-10-28T19:58:00Z", "event": "push"},
                 {"created_at": "2026-10-28T19:00:00Z", "event": "schedule"}]

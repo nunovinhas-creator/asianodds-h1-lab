@@ -36,6 +36,7 @@ API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
 REVIEWED_API_IDS = ROOT / "data/lab/ft-api-football-reviewed.json"
+REVIEWED_API_ID_DECISIONS = ROOT / "docs/lab/ft-api-football-review-decisions.json"
 API_FOOTBALL_DAY_INDEX = ROOT / "data/lab/ft-api-football-day-index.json"
 DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
 PROVIDER_IDENTITY = ROOT / "data/lab/ft-provider-identity.json"
@@ -212,6 +213,24 @@ def main():
                        if DAY_ROTATION.exists()
                        else {"schema_version": 1, "providers": {}})
     catalog_v4 = read_v4()
+    # An approved fixture receives one immediate priority slot only when
+    # every persisted human-approval and full source-day identity gate has
+    # ALREADY passed. No provider HTTP call is made for this dry run.
+    approved = (json.loads(REVIEWED_API_IDS.read_text(encoding="utf-8"))
+                if REVIEWED_API_IDS.exists()
+                else {"schema_version": 1, "pairs": {}})
+    previous_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
+                       if IDENTITY_REVIEW.exists() else {})
+    previous_day_index = (json.loads(API_FOOTBALL_DAY_INDEX.read_text(encoding="utf-8"))
+                          if API_FOOTBALL_DAY_INDEX.exists()
+                          else {"schema_version": 1, "days": {}})
+    confirmed_ids = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
+                     if PROVIDER_IDENTITY.exists()
+                     else {"schema_version": 1, "entries": {}})
+    approved_due = set(plan_reviewed_ids(
+        approved.get("pairs", {}), existing["matches"], previous_review,
+        approved, now, day_index=previous_day_index,
+        confirmed_registry=confirmed_ids)) if api_football_poll else set()
     _preview_ledger, preview, _ = reconcile(
         state, catalog_v4, existing, now=now,
         bsd_lookup=lambda unused: (None, "preview_only"),
@@ -219,7 +238,8 @@ def main():
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=0, force_recheck=recovery_once,
-        priority_hints=research_hints, evidence_retry=True)
+        priority_hints=research_hints, evidence_retry=True,
+        approved_rechecks=approved_due)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
     active = set()
     if goal_enabled: active.add("goal")
@@ -229,8 +249,6 @@ def main():
                            historical_days, now, active)
     # Only a previously observed, unique, aligned GOAL candidate may receive
     # a strict id verification. Substitute one date request; never add calls.
-    previous_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
-                       if IDENTITY_REVIEW.exists() else {})
     goal_today = (historical_days.get("usage", {}).get("goal", {})
                   .get(now.date().isoformat(), 0))
     # An ID probe plus one date request must BOTH fit under the daily cap.
@@ -245,21 +263,18 @@ def main():
     # human-approved pairs, checked against the persisted review candidate,
     # can use a batched fixture ID request. Reserve one of the existing 3
     # API-Football calls for this request.
-    approved = (json.loads(REVIEWED_API_IDS.read_text(encoding="utf-8"))
-                if REVIEWED_API_IDS.exists()
-                else {"schema_version": 1, "pairs": {}})
     api_today = historical_days.get("usage", {}).get("api_football", {}).get(
         now.date().isoformat(), 0)
-    previous_day_index = (json.loads(API_FOOTBALL_DAY_INDEX.read_text(encoding="utf-8"))
-                          if API_FOOTBALL_DAY_INDEX.exists()
-                          else {"schema_version": 1, "days": {}})
-    confirmed_ids = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
-                     if PROVIDER_IDENTITY.exists()
-                     else {"schema_version": 1, "entries": {}})
+    reviewed_id_decisions = {}
     approved_targets = (plan_reviewed_ids(
         preview_keys, _preview_ledger["matches"], previous_review, approved, now,
-        day_index=previous_day_index, confirmed_registry=confirmed_ids)
+        day_index=previous_day_index, confirmed_registry=confirmed_ids,
+        decisions=reviewed_id_decisions)
         if api_football_poll and api_today < 90 else {})
+    if approved.get("pairs") and not reviewed_id_decisions:
+        reviewed_id_decisions = {key: {"status": "DEFERRED",
+            "reason": "PROVIDER_UNAVAILABLE_OR_DAILY_QUOTA_EXHAUSTED"}
+            for key in approved["pairs"]}
     if approved_targets:
         api_football.reviewed_targets = approved_targets
         rotation["api_football"] = rotation["api_football"][:min(
@@ -281,7 +296,8 @@ def main():
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
-        priority_hints=research_hints, evidence_retry=True)
+        priority_hints=research_hints, evidence_retry=True,
+        approved_rechecks=approved_due)
 
 
     # Fail closed if dry-run queue and real queue unexpectedly diverged.
@@ -349,7 +365,13 @@ def main():
         "id_requests": api_football.id_requests,
         "outcomes": {key: next_ledger["matches"][key].get(
             "provider_reasons", {}).get("api_football") for key in approved_targets},
+        "decisions": reviewed_id_decisions,
     }
+    if approved.get("pairs") and checks:
+        write_if_changed(REVIEWED_API_ID_DECISIONS, {
+            "schema_version": 1, "checked_at_utc": now.isoformat(timespec="seconds"),
+            "decisions": reviewed_id_decisions})
+
     report["ft_queue"]["confirmed_provider_ids"] = identity_registry["confirmed_ids"]
     report["ft_queue"]["provider_id_collisions"] = identity_registry["collision_ids"]
     write_if_changed(DAY_ROTATION, next_rotation)

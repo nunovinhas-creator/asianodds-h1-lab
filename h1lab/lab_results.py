@@ -133,7 +133,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -149,6 +149,11 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         raise ValueError("max_checks outside safe range 0..30")
     if type(force_recheck) is not bool or type(evidence_retry) is not bool:
         raise ValueError("force_recheck and evidence_retry must be boolean")
+    if approved_rechecks is None:
+        approved_rechecks = set()
+    if not isinstance(approved_rechecks, (set, frozenset)) or any(
+            not isinstance(key, str) for key in approved_rechecks):
+        raise ValueError("Invalid approved fixture recheck set")
     if priority_hints is None:
         priority_hints = {}
     if (not isinstance(priority_hints, dict) or
@@ -264,15 +269,21 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
               (original.get(key) or {}).get("status") in ("PENDING", "PROVIDER_ERROR") and
               key in REVIEWED_PENDING_FT))
             and entry.get("reviewed_public_ft_check_version") != 1)
-        if last and now < last + retry_wait(entry) and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck):
+        # A newly human-approved, independently validated fixture may take
+        # exactly one immediate retry without reopening V7 cooldowns for other
+        # games. The upstream planner must prove the entire identity first.
+        reviewed_due = (evidence_retry and key in approved_rechecks
+                        and not entry.get("api_football_reviewed_id_last_attempt_at"))
+        if last and now < last + retry_wait(entry) and not (upgrade or alias_due or bsd_id_due or public_due or force_recheck or reviewed_due):
             continue
         # A failed/deferred scan without a complete list must not trigger
         # 45-minute retries of BSD/TSDB/SportScore. Keep a conservative 4h
         # visit gate, independently from the authenticated stable backoff.
-        if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due):
+        if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due or reviewed_due):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
-        priority = (-4 if last is None and not force_recheck else
+        priority = (-5 if reviewed_due else
+                    -4 if last is None and not force_recheck else
                     -3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
                     -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
