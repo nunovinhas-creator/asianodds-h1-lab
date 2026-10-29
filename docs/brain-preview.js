@@ -35,9 +35,9 @@ function metricRow(box,items){
 function safe(id,fn){
  try{fn()}catch(e){state(id,"Não foi possível apresentar este painel.","Falha no formato ou no processamento do relatório. Não foi convertida em zero resultados.");}
 }
-function candidates(r){
+function candidates(r,scope="all"){
  if(!r)return[];
- const raw=[...(Array.isArray(r.patterns)?r.patterns:[]),...(Array.isArray(r.combinations_top)?r.combinations_top:[])];
+ const raw=[...(scope==="combinations"?[]:(Array.isArray(r.patterns)?r.patterns:[])),...(scope==="individual"?[]:(Array.isArray(r.combinations_top)?r.combinations_top:[]))];
  const unique=new Set(),out=[];
  for(const h of raw){const id=String(h.id||h.label||"");
  for(const target of ["OVER_2_5","BTTS_YES"]){const o=h.outcomes&&h.outcomes[target],key=id+"|"+target;
@@ -88,7 +88,7 @@ function renderPast(){
 function renderSignals(){
  const r=data.research,holder=fill("signals-content");
  if(!r){state(holder,"Sinais históricos indisponíveis.","O relatório V5 não carregou.");return}
- const ranked=candidates(r).filter(x=>x.o.known>=12&&x.o.reference_known>=12&&x.o.diff>=0.08)
+ const ranked=candidates(r,"individual").filter(x=>x.o.known>=12&&x.o.reference_known>=12&&x.o.diff>=0.08)
    .sort((a,b)=>(b.o.diff-a.o.diff)||b.o.known-a.o.known).slice(0,6);
  if(!ranked.length){state(holder,"Ainda não há sinais que cumpram este filtro.","Ausência de candidatos não equivale a falha do sistema.");return}
  for(const x of ranked)researchCard(holder,x);
@@ -97,7 +97,14 @@ function renderTesting(){
  const r=data.research,holder=fill("test-content");
  if(!r){state(holder,"Estado dos testes indisponível.","Não foi possível consultar o V5.");return}
  const frozen=Array.isArray(r.frozen)?r.frozen:[];
- if(!frozen.length){state(holder,"Ainda não há estratégias V5 congeladas.","Há padrões exploratórios em estudo, mas ainda não existe uma regra V5 qualificada para teste fora da amostra. O registo formal V6.2 deve ser consultado no Radar Científico.");return}
+ const historical=candidates(r,"combinations").filter(x=>x.o.known>=12&&x.o.reference_known>=12&&x.o.diff>=0.08)
+   .sort((a,b)=>(b.o.diff-a.o.diff)||b.o.known-a.o.known).slice(0,4);
+ for(const x of historical)researchCard(holder,x);
+ if(!frozen.length){
+  const note=element("div",null,"empty-state");
+  note.append(element("strong","Ainda não há regras V5 congeladas para teste independente."),
+              element("span","Os cruzamentos apresentados acima são apenas candidatos históricos. O registo formal V6.2 deve ser consultado no Radar Científico."));
+  holder.append(note);return}
  for(const h of frozen.slice(0,8)){const box=card(holder,"REGRA FIXADA",h.label||h.id||"Hipótese sem nome",h.state||"Em teste","positive");
  box.append(element("p","Congelada em "+date(h.frozen_at)+" · "+count(h.out_of_sample?.known)+" resultados novos confirmados."));
  box.append(element("p","Dados de descoberta não são contados como validação independente."))}
