@@ -58,6 +58,9 @@ on:
       - 'h1lab/lab_sportscore.py'
       - 'h1lab/lab_monte_bsd.py'
       - 'h1lab/lab_bsd_priority.py'
+      - 'h1lab/lab_bsd_id_registry.py'
+      - 'data/lab/ft-bsd-event-ids.json'
+      - 'tests/test_lab_bsd_id_registry.py'
       - 'tests/test_lab_bsd_monte_first.py'
       - 'h1lab/lab_reviewed_bsd_ids.py'
       - 'tests/test_lab_reviewed_bsd_ids.py'
@@ -143,6 +146,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_ft_overdue_reviews.py' -v
           python -m unittest discover -s tests -p 'test_lab_monte_bsd.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_monte_first.py' -v
+          python -m unittest discover -s tests -p 'test_lab_bsd_id_registry.py' -v
           python -m unittest discover -s tests -p 'test_lab_identity.py' -v
           python -m unittest discover -s tests -p 'test_lab_reviewed_bsd_ids.py' -v
       - name: Reconcile all observed fixture identities (bounded, no betting)
@@ -217,6 +221,21 @@ jobs:
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
+          bsdids=json.loads(Path('data/lab/ft-bsd-event-ids.json').read_text())
+          assert bsdids['schema_version']==1
+          assert len(bsdids['matches'])<=3000 and len(bsdids['days'])<=45
+          assert len(bsdids['probes'])<=45
+          for key,item in bsdids['matches'].items():
+              assert key in ledger['matches']
+              assert type(item['event_id']) is int and item['event_id']>0
+              assert item['match_key']==key
+              assert item['source']=='BSD_COMPLETE_FINISHED_DAY_LIST'
+              assert item['home']==ledger['matches'][key]['home']
+              assert item['away']==ledger['matches'][key]['away']
+              assert item['kickoff_utc']==ledger['matches'][key]['kickoff_utc']
+              assert all(x not in item for x in ('home_goals','away_goals','score','token'))
+          assert len(d['ft_queue']['bsd_identity_registry']['planned_days'])<=4
+          assert d['ft_queue']['bsd_identity_registry']['bindings_total']==len(bsdids['matches'])
           assert d['fotmob_search']['requests'] <= 3
           assert d['api_football_search']['requests'] <= 3
           assert d['api_football_search']['id_requests'] <= 1
@@ -333,6 +352,7 @@ jobs:
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
           git add data/lab/ft-provider-day-rotation.json data/lab/ft-provider-identity.json docs/lab/ft-provider-identity.json
           git add -f data/lab/ft-provider-attestations.json
+          git add -f data/lab/ft-bsd-event-ids.json
           if [ -f data/lab/ft-api-football-day-index.json ]; then git add data/lab/ft-api-football-day-index.json; fi
           if [ -f docs/lab/ft-identity-review.json ]; then git add docs/lab/ft-identity-review.json; fi
           if [ -f docs/lab/ft-api-football-review-decisions.json ]; then git add docs/lab/ft-api-football-review-decisions.json; fi

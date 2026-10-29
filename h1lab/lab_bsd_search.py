@@ -26,7 +26,7 @@ class BSDDateFallback:
     """One-run cache, bounded by days and per-day pages. No persistent API key."""
 
     def __init__(self, *, token, fetch=request_json, primary=find_result,
-                 max_days=3, max_pages=3):
+                 max_days=3, max_pages=3, require_count=False):
         if not 0 <= max_days <= MAX_DAYS or not 1 <= max_pages <= MAX_PAGES:
             raise ValueError("BSD date search budget out of bounds")
         self.token = (token or "").strip()
@@ -37,6 +37,7 @@ class BSDDateFallback:
         self.primary = primary
         self.max_days = max_days
         self.max_pages = max_pages
+        self.require_count = require_count
         self.days = {}  # day -> (list of events, diagnostic); never persisted
         self.date_requests = 0
         self.details_requested = 0
@@ -83,11 +84,24 @@ class BSDDateFallback:
                 self.days[day] = ([], "bsd_date_invalid_shape")
                 return self.days[day]
             items = data["results"]
-            if not all(isinstance(item, dict) for item in items):
+            if (len(items)>PAGE_SIZE or
+                    not all(isinstance(item, dict) for item in items)):
                 self.days[day] = ([], "bsd_date_invalid_rows")
+                return self.days[day]
+            total=data.get("count")
+            if ((self.require_count and (type(total) is not int or total<0))
+                    or (total is not None and
+                        (type(total) is not int or total<0))):
+                self.days[day] = ([], "bsd_date_invalid_total")
                 return self.days[day]
             rows.extend(items)
             if data.get("next") is None or data.get("next") is False:
+                # Official BSD pagination 'count' denotes TOTAL results,
+                # not the current page. A partial response must NEVER
+                # produce certified reusable event IDs.
+                if total is not None and total!=len(rows):
+                    self.days[day] = ([], "bsd_date_total_mismatch")
+                    return self.days[day]
                 self.days[day] = (rows, "complete")
                 return self.days[day]
             # Any incomplete page list cannot certify uniqueness.

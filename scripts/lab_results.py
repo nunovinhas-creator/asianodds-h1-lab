@@ -16,6 +16,9 @@ from h1lab.lab_espn import ESPNResults
 from h1lab.lab_sportscore import SportScoreResults
 from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_priority import lookup_bsd_monte_first
+from h1lab.lab_bsd_id_registry import (
+    empty as empty_bsd_ids, discover as discover_bsd_ids,
+    plan_days as plan_bsd_days, BSDRegistryLookup)
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
@@ -45,6 +48,7 @@ REVIEWED_API_IDS = ROOT / "data/lab/ft-api-football-reviewed.json"
 REVIEWED_GOAL_IDS = ROOT / "data/lab/ft-goal-reviewed.json"
 REVIEWED_API_ID_DECISIONS = ROOT / "docs/lab/ft-api-football-review-decisions.json"
 API_FOOTBALL_DAY_INDEX = ROOT / "data/lab/ft-api-football-day-index.json"
+BSD_ID_REGISTRY = ROOT / "data/lab/ft-bsd-event-ids.json"
 DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
 PROVIDER_IDENTITY = ROOT / "data/lab/ft-provider-identity.json"
 PROVIDER_IDENTITY_PUBLIC = ROOT / "docs/lab/ft-provider-identity.json"
@@ -155,14 +159,20 @@ def main():
         token=os.environ.get("BSD_API_KEY", ""),
         max_days=int(os.environ.get("LAB_BSD_DATE_MAX_DAYS", "3")),
         max_pages=int(os.environ.get("LAB_BSD_DATE_MAX_PAGES", "3")),
+        # The LAB has true BSD event-ID discovery; no preliminary
+        # fuzzy team_name HTTP call is needed or allowed in production.
+        primary=lambda unused, **kwargs: (None,"bsd_no_exact_match"),
+        require_count=True,
     )
     monte = MonteBSDCrosswalk(
         token=os.environ.get("BSD_API_KEY", ""), max_event_requests=12)
+    bsd_registry_lookup = None
     def bsd_with_monte(signal):
-        # DIRECT BSD IDs already archived by Monte-Carlos take precedence.
-        # Search by team/date only when no safe archived BSD ID exists.
-        # The archived score is NEVER trusted; the ID is revalidated with BSD.
-        return lookup_bsd_monte_first(signal, monte, bsd_finder)
+        # Source-verified ID priority: persistent BSD registry -> direct
+        # Monte-Carlos BSD ID -> complete date list bootstrap. Never
+        # trust archived scores, never search by team name on each visit.
+        return lookup_bsd_monte_first(
+            signal, monte, bsd_finder, registry=bsd_registry_lookup)
 
     tsdb = PacedTSDB()
     fotmob_enabled = os.environ.get('LAB_FOTMOB_LICENSED', '0') == '1'
@@ -254,6 +264,23 @@ def main():
         priority_hints=research_hints, evidence_retry=True,
         approved_rechecks=approved_due)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
+    previous_bsd_ids = (json.loads(BSD_ID_REGISTRY.read_text(encoding="utf-8"))
+                        if BSD_ID_REGISTRY.exists() else empty_bsd_ids())
+    # Data-only, zero-HTTP planning. The scheduled FT workflow itself
+    # requests at most three COMPLETE BSD day catalogues (max 3 pages
+    # each) and reuses each list for every eligible game on that date.
+    # Pushes never make provider calls; failed day probes wait >=4h.
+    bsd_discovery_days = (
+        plan_bsd_days(preview_keys, _preview_ledger["matches"],
+                      previous_bsd_ids, now,
+                      max_days=bsd_finder.max_days)
+        if live_context and checks > 0 and bsd_finder.token else [])
+    for day in bsd_discovery_days:
+        bsd_finder._date_index(day)
+    bsd_registry, bsd_initial_stats = discover_bsd_ids(
+        previous_bsd_ids, bsd_finder.days,
+        _preview_ledger["matches"], now)
+    bsd_registry_lookup = BSDRegistryLookup(bsd_registry, monte)
     active = set()
     if goal_enabled: active.add("goal")
     if openfoot_enabled: active.add("openfoot")
@@ -382,6 +409,22 @@ def main():
         approved_rechecks=approved_due)
 
 
+    # COMPLETE BSD dates discovered during the normal per-match
+    # fallback also become reusable crosswalk evidence, even when they
+    # were not part of the initial 3-day bootstrap.
+    bsd_registry, bsd_final_stats = discover_bsd_ids(
+        bsd_registry, bsd_finder.days, next_ledger["matches"], now)
+    write_if_changed(BSD_ID_REGISTRY, bsd_registry)
+    report["ft_queue"]["bsd_identity_registry"] = {
+        "planned_days": bsd_discovery_days,
+        "date_requests": bsd_finder.date_requests,
+        "direct_id_requests_shared_with_monte": monte.events_requested,
+        "bindings_total": len(bsd_registry["matches"]),
+        "binding_conflicts": len(bsd_registry["conflicts"]),
+        "pre_reconcile": bsd_initial_stats,
+        "post_reconcile": bsd_final_stats,
+        "direct_lookup": bsd_registry_lookup.summary(),
+    }
     # Fail closed if dry-run queue and real queue unexpectedly diverged.
     if report["ft_queue"]["selected_keys"] != preview_keys:
         raise ValueError("FT queue changed between date planning and reconciliation")
