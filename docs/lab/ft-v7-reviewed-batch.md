@@ -489,3 +489,20 @@ Nenhuma alteração requer chamadas extra, manipula H1, reclassifica
 jogos sem prova ou garante liquidação. O impacto deve ser observado
 em ft_queue.newly_confirmed e ft_queue.dual_provider_consensus,
 e validado no ledger após execuções normais.
+
+### Reaproveitamento total das listas completas (sem novos pedidos)
+
+A V8 estende a verificação local aos jogos fortes de todo o catálogo que
+partilham os dias já obtidos em cache, mesmo se não foram escolhidos entre
+os 30 jogos do lote da fila. O limite de 30 mantém-se para as consultas
+de rede. O reaproveitamento é apenas CPU e no máximo 500 chaves de
+revisão, com duas correspondências STRONG e sem duplicados registados.
+Todos os critérios de dois fornecedores e os HOLDs são reaplicados.
+Resultados contraditórios ficam em SCORE_CONFLICT, não são vencedores
+nem perdedores. Os contadores dual_postcheck_scanned,
+dual_postcheck_confirmed e dual_postcheck_conflicts distinguem
+esta fase pós-fila das consultas de rede efetivas.
+
+Esta operação não transforma 20 candidaturas em resultados garantidos:
+depende das respostas reais, completas, de pelo menos dois fornecedores
+para os dias que a rotação normal selecionar.
