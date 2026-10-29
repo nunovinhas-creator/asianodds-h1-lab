@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-29T05:01:37+00:00",
+ "generated_at": "2026-10-29T05:06:27+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 118
+  "timelines_published": 122
  },
  "schema_version": 1,
- "source_commit": "f1dc1f9f27a68066803074c6154eec76c5a43f1f",
+ "source_commit": "bd392e71a92f0ca10e42b3b13721926634641536",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 393,
+  "matches": 399,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 560,
+  "messages": 571,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 285,
+  "messages_on_repeated_matches": 294,
   "messages_v4_only": 0,
-  "messages_with_v4": 486,
-  "movement_episodes_upper_bound": 538,
+  "messages_with_v4": 497,
+  "movement_episodes_upper_bound": 549,
   "possibly_redundant_snapshots": 15,
   "post_kickoff_messages": 16,
   "related_message_pairs": 22,
@@ -50,25 +50,796 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 7
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 118,
+  "repeated_matches": 122,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 771
+   "V4_EXPLICIT": 782
   },
-  "total_line_reversals_on_repeated": 58,
+  "total_line_reversals_on_repeated": 63,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 15,
-   "CONTINUOUS": 92,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 17,
+   "CONTINUOUS": 93,
    "SAME_MOVEMENT_REPEAT": 22,
-   "UNOBSERVED_CHANGE": 38
+   "UNOBSERVED_CHANGE": 40
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 144,
    "one_x_two:AGREE": 141,
-   "total:AGREE": 486
+   "total:AGREE": 497
   }
  },
  "timelines": [
+  {
+   "event_count": 3,
+   "event_ids": [
+    "3571094759:50587",
+    "3571094759:50902",
+    "3571094759:51151"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50587",
+     "message_id": 50587,
+     "minutes_to_kickoff": 15698.8,
+     "observed_at": "2026-10-27T12:21:14+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 2.06,
+        "under_price": 1.87
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.86,
+        "under_price": 2.04
+       },
+       "origin": "H1_LEGACY_ONLY"
+      }
+     },
+     "sources": [
+      "H1_RECORD"
+     ],
+     "trigger_market": "total"
+    },
+    {
+     "event_id": "3571094759:50902",
+     "message_id": 50902,
+     "minutes_to_kickoff": 14388.1,
+     "observed_at": "2026-10-28T10:11:51+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 2.01,
+        "under_price": 2.05
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.86,
+        "under_price": 2.05
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51151",
+     "message_id": 51151,
+     "minutes_to_kickoff": 13255.7,
+     "observed_at": "2026-10-29T05:04:19+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 2.06,
+        "under_price": 1.87
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.86,
+        "under_price": 2.04
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-27T12:21:14+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-07T10:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T05:04:19+00:00",
+   "match_key": "2026-11-07,192,198",
+   "match_label": "Mainz 05 vs Bayern München",
+   "movement_episodes": [
+    [
+     "3571094759:50587"
+    ],
+    [
+     "3571094759:50902"
+    ],
+    [
+     "3571094759:51151"
+    ]
+   ],
+   "movement_episodes_upper_bound": 3,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    78637.0,
+    67948.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 4.0,
+     "last_observed_line": 4.25,
+     "net_observed_change": 0.25,
+     "observations": 3,
+     "origins": {
+      "H1_LEGACY_ONLY": 1,
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:50587",
+       "move": "UP",
+       "origin": "H1_LEGACY_ONLY"
+      },
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:50902",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:51151",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50587",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 4.0,
+       "previous_after_line": 4.25,
+       "to": "3571094759:50902"
+      },
+      {
+       "from": "3571094759:50902",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 4.0,
+       "previous_after_line": 4.25,
+       "to": "3571094759:51151"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50900",
+    "3571094759:51150"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50900",
+     "message_id": 50900,
+     "minutes_to_kickoff": 14838.2,
+     "observed_at": "2026-10-28T10:11:48+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 1.79,
+        "under_price": 2.07
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 2.12,
+        "under_price": 2.09
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51150",
+     "message_id": 51150,
+     "minutes_to_kickoff": 13705.7,
+     "observed_at": "2026-10-29T05:04:17+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 1.81,
+        "under_price": 2.09
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 2.12,
+        "under_price": 1.79
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T10:11:48+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-07T17:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T05:04:17+00:00",
+   "match_key": "2026-11-07,150,174",
+   "match_label": "Osasuna vs Athletic Bilbao",
+   "movement_episodes": [
+    [
+     "3571094759:50900"
+    ],
+    [
+     "3571094759:51150"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    67949.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.5,
+     "last_observed_line": 2.25,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.25,
+       "before": 2.5,
+       "event_id": "3571094759:50900",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.25,
+       "before": 2.5,
+       "event_id": "3571094759:51150",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50900",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.5,
+       "previous_after_line": 2.25,
+       "to": "3571094759:51150"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50899",
+    "3571094759:51149"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50899",
+     "message_id": 50899,
+     "minutes_to_kickoff": 11973.2,
+     "observed_at": "2026-10-28T10:11:47+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.74,
+        "under_price": 1.66
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 2.22,
+        "under_price": 1.66
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51149",
+     "message_id": 51149,
+     "minutes_to_kickoff": 10840.7,
+     "observed_at": "2026-10-29T05:04:16+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.97,
+        "under_price": 1.86
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 2.22,
+        "under_price": 1.66
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T10:11:47+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-05T17:45:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T05:04:16+00:00",
+   "match_key": "2026-11-05,919,920",
+   "match_label": "RSC Anderlecht vs FC Red Bull Salzburg",
+   "movement_episodes": [
+    [
+     "3571094759:50899"
+    ],
+    [
+     "3571094759:51149"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    67949.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.0,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.75,
+       "before": 3.25,
+       "event_id": "3571094759:50899",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51149",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50899",
+       "at_event": "3571094759:51149",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      },
+      {
+       "after_event": "3571094759:51149",
+       "at_event": "3571094759:51149",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50899",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.25,
+       "previous_after_line": 2.75,
+       "to": "3571094759:51149",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50897",
+    "3571094759:51147"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50897",
+     "message_id": 50897,
+     "minutes_to_kickoff": 11973.2,
+     "observed_at": "2026-10-28T10:11:45+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.7,
+        "under_price": 1.7
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 2.16,
+        "under_price": 1.7
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51147",
+     "message_id": 51147,
+     "minutes_to_kickoff": 10840.8,
+     "observed_at": "2026-10-29T05:04:14+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.92,
+        "under_price": 1.93
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 2.16,
+        "under_price": 1.71
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T10:11:45+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-05T17:45:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T05:04:14+00:00",
+   "match_key": "2026-11-05,29,1059",
+   "match_label": "Crystal Palace vs TSG Hoffenheim",
+   "movement_episodes": [
+    [
+     "3571094759:50897"
+    ],
+    [
+     "3571094759:51147"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    67949.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.0,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.75,
+       "before": 3.25,
+       "event_id": "3571094759:50897",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51147",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50897",
+       "at_event": "3571094759:51147",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      },
+      {
+       "after_event": "3571094759:51147",
+       "at_event": "3571094759:51147",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50897",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.25,
+       "previous_after_line": 2.75,
+       "to": "3571094759:51147",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50969",
+    "3571094759:51143"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50969",
+     "message_id": 50969,
+     "minutes_to_kickoff": 7584.2,
+     "observed_at": "2026-10-28T12:35:48+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.96,
+        "under_price": 2.07
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.96,
+        "under_price": 1.83
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51143",
+     "message_id": 51143,
+     "minutes_to_kickoff": 6595.9,
+     "observed_at": "2026-10-29T05:04:09+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.97,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.74,
+        "under_price": 2.07
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T12:35:48+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-02T19:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T05:04:09+00:00",
+   "match_key": "2026-11-02,27866,1515",
+   "match_label": "Jong FC Utrecht vs FC Dordrecht",
+   "movement_episodes": [
+    [
+     "3571094759:50969"
+    ],
+    [
+     "3571094759:51143"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    59301.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.25,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:50969",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:51143",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:50969",
+       "at_event": "3571094759:51143",
+       "evidence": "intra",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:50969",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51143"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -16494,137 +17265,6 @@
        "previous_after_line": 2.75,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:50911"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:50587",
-    "3571094759:50902"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50587",
-     "message_id": 50587,
-     "minutes_to_kickoff": 15698.8,
-     "observed_at": "2026-10-27T12:21:14+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 4.25,
-        "over_price": 2.06,
-        "under_price": 1.87
-       },
-       "before": {
-        "line": 4.0,
-        "over_price": 1.86,
-        "under_price": 2.04
-       },
-       "origin": "H1_LEGACY_ONLY"
-      }
-     },
-     "sources": [
-      "H1_RECORD"
-     ],
-     "trigger_market": "total"
-    },
-    {
-     "event_id": "3571094759:50902",
-     "message_id": 50902,
-     "minutes_to_kickoff": 14388.1,
-     "observed_at": "2026-10-28T10:11:51+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 4.25,
-        "over_price": 2.01,
-        "under_price": 2.05
-       },
-       "before": {
-        "line": 4.0,
-        "over_price": 1.86,
-        "under_price": 2.05
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-27T12:21:14+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-11-07T10:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-28T10:11:51+00:00",
-   "match_key": "2026-11-07,192,198",
-   "match_label": "Mainz 05 vs Bayern München",
-   "movement_episodes": [
-    [
-     "3571094759:50587"
-    ],
-    [
-     "3571094759:50902"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    78637.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 4.0,
-     "last_observed_line": 4.25,
-     "net_observed_change": 0.25,
-     "observations": 2,
-     "origins": {
-      "H1_LEGACY_ONLY": 1,
-      "V4_EXPLICIT": 1
-     },
-     "points": [
-      {
-       "after": 4.25,
-       "before": 4.0,
-       "event_id": "3571094759:50587",
-       "move": "UP",
-       "origin": "H1_LEGACY_ONLY"
-      },
-      {
-       "after": 4.25,
-       "before": 4.0,
-       "event_id": "3571094759:50902",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [],
-     "transitions": [
-      {
-       "from": "3571094759:50587",
-       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
-       "next_before_line": 4.0,
-       "previous_after_line": 4.25,
-       "to": "3571094759:50902"
       }
      ]
     }
