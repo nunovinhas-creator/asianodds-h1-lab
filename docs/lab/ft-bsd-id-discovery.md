@@ -23,8 +23,11 @@ continuam a precisar de revisão, sem inferir uma correspondência.
 ## Operação automática
 
 1. Em execuções FT normais com BSD configurada, selecionar até **três
-   dias** com jogos vencidos e ainda sem ID guardado, agrupando jogos da
-   fila e dando prioridade a datas com maior cobertura possível.
+   dias** com jogos vencidos e ainda sem ID guardado **independentemente
+   dos 30 jogos escolhidos pela fila de reconciliação**. A seleção analisa
+   todo o ledger pendente, começa pelos dias ainda nunca tentados e,
+   posteriormente, usa a data mais antiga da tentativa (rotação justa).
+   Continua a funcionar quando a fila FT normal seleciona **zero** jogos.
 2. Consultar `/api/v2/events/?date_from=...&date_to=...&status=finished`,
    com limite de 200 e até três páginas por dia. Exigir o `count` total
    documentado e todas as páginas até `next=null`. Qualquer erro,
@@ -49,6 +52,10 @@ continuam a precisar de revisão, sem inferir uma correspondência.
 
 - Nova tentativa de descobrir o mesmo dia apenas após **quatro horas**,
   seja a consulta anterior completa ou falhada; o histórico persiste.
+  A V10.1 elimina a dependência da fila FT individual e favorece dias
+  nunca tentados, prevenindo a repetição dos mesmos três dias.
+- Os jogos com conflito de marcador documentado `HOLD_FOR_OFFICIAL`
+  nunca são liquidados pelo atalho BSD, mesmo que haja um único FT.
 - Não é permitida recuperação por odds, igualdade aproximada isolada
   nem identificação baseada no mesmo horário sem equipas verificadas.
 - Uma revisão posterior que associe outro ID, nomes ou horário ao jogo
@@ -66,6 +73,8 @@ continuam a precisar de revisão, sem inferir uma correspondência.
 
 Consultar `docs/lab/ft-results.json`:
 
+- `ft_queue.bsd_identity_registry.overdue_without_id`: jogos vencidos sem ID;
+- `ft_queue.bsd_identity_registry.independent_of_ft_queue`: plano separado;
 - `ft_queue.bsd_identity_registry.planned_days`: datas selecionadas;
 - `pre_reconcile.new_ids` e `post_reconcile.new_ids`: novas associações
   de IDs, não liquidações;
