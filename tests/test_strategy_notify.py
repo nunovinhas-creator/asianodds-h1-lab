@@ -82,7 +82,7 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertIn("Porto vs Benfica", msg)
         self.assertIn("ESTRATÉGIA 1/5 — OVER 2,5 GOLOS", msg)
         self.assertIn("ESTRATÉGIA 3/5 — AMBAS MARCAM", msg)
-        self.assertIn("13/16 (81,2%)", msg)  # formatter uses fixed one decimal
+        self.assertIn("13/16 (81,3%)", msg)  # explicit half-up to match user-facing V5
         self.assertIn("Padrões EXPLORATÓRIOS", msg)
         sent = []
         ledger, stats = process(rows, empty_ledger(NOW), NOW,
