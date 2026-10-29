@@ -65,15 +65,19 @@ def snapshot(row):
                  "evidence": res.get("evidence"),
                  "identity_match": res.get("identity_match"),
                  "source": res.get("source")}
-    return {"status": row.get("status", "UNKNOWN"),
+    out = {"status": row.get("status", "UNKNOWN"),
             "home": row.get("home"), "away": row.get("away"),
             "kickoff_utc": row.get("kickoff_utc"),
             "score": score,
             "evidence_level": quality(row),
             "reason": row.get("reason") if score is None else None,
             "source_order_resolution": row.get("source_order_resolution") if score else None,
-            "reviewed_public_resolution": row.get("reviewed_public_resolution") if score else None,
-            "dual_provider_corroboration": row.get("dual_provider_corroboration") if score else None}
+            "reviewed_public_resolution": row.get("reviewed_public_resolution") if score else None}
+    # Preserve byte-compatible legacy snapshot structure and append richer
+    # provenance only on future FT events that actually have attestation data.
+    if score and row.get("dual_provider_corroboration"):
+        out["dual_provider_corroboration"] = row["dual_provider_corroboration"]
+    return out
 
 
 def event_hash(event):
