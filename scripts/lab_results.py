@@ -162,6 +162,7 @@ def main():
         # The LAB has true BSD event-ID discovery; no preliminary
         # fuzzy team_name HTTP call is needed or allowed in production.
         primary=lambda unused, **kwargs: (None,"bsd_no_exact_match"),
+        require_count=True,
     )
     monte = MonteBSDCrosswalk(
         token=os.environ.get("BSD_API_KEY", ""), max_event_requests=12)
