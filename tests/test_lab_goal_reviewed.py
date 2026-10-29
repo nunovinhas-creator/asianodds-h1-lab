@@ -107,8 +107,8 @@ class ReviewedGoalTests(unittest.TestCase):
             lambda m,r,g,a:r["games"][0].update(possible_duplicates=[{"match_key":"dup"}]),
             lambda m,r,g,a:m[KEY].update(home="CA Independiente U21"),
             lambda m,r,g,a:m[KEY].update(goal_id_last_attempt_at="2026-10-29T18:00:00+00:00"),
-            lambda m,r,g,a:m["confirmed"] = {"status":"FINAL","result":{
-                "evidence":"goal_only","source":"https://api.goal-api.com/v1/fixtures/834934"}},
+            lambda m,r,g,a:m.update({"confirmed":{"status":"FINAL","result":{
+                "evidence":"goal_only","source":"https://api.goal-api.com/v1/fixtures/834934"}}}),
         ]
         for mut in mutations:
             with self.subTest(mut=str(mut)):
