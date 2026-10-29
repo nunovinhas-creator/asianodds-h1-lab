@@ -41,6 +41,14 @@ def quality(row):
         urls = reviewed.get("corroboration_urls") or []
         return ("REVIEWED_PUBLIC_CORROBORATED" if len(set(urls)) >= 2
                 else "REVIEWED_PUBLIC_UNCORROBORATED")
+    if source == "dual_provider_only":
+        attest = row.get("dual_provider_corroboration") or {}
+        proof = attest.get("attestation_sha256") or {}
+        chronology = attest.get("first_observed_at_utc") or {}
+        if (len(proof) >= 2 and set(proof) == set(chronology)
+                and attest.get("chronology_certified") is False):
+            return "TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED"
+        return "DUAL_PROVIDER_PROVENANCE_INCOMPLETE"
     sources = [part for part in source.split("_and_") if part]
     return ("MULTI_PROVIDER" if len(set(sources)) >= 2 else "SINGLE_PROVIDER")
 
@@ -57,7 +65,7 @@ def snapshot(row):
                  "evidence": res.get("evidence"),
                  "identity_match": res.get("identity_match"),
                  "source": res.get("source")}
-    return {"status": row.get("status", "UNKNOWN"),
+    out = {"status": row.get("status", "UNKNOWN"),
             "home": row.get("home"), "away": row.get("away"),
             "kickoff_utc": row.get("kickoff_utc"),
             "score": score,
@@ -65,6 +73,11 @@ def snapshot(row):
             "reason": row.get("reason") if score is None else None,
             "source_order_resolution": row.get("source_order_resolution") if score else None,
             "reviewed_public_resolution": row.get("reviewed_public_resolution") if score else None}
+    # Preserve byte-compatible legacy snapshot structure and append richer
+    # provenance only on future FT events that actually have attestation data.
+    if score and row.get("dual_provider_corroboration"):
+        out["dual_provider_corroboration"] = row["dual_provider_corroboration"]
+    return out
 
 
 def event_hash(event):

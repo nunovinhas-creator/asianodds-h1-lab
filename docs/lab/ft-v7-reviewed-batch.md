@@ -506,3 +506,46 @@ esta fase pós-fila das consultas de rede efetivas.
 Esta operação não transforma 20 candidaturas em resultados garantidos:
 depende das respostas reais, completas, de pelo menos dois fornecedores
 para os dias que a rotação normal selecionar.
+
+## V9 — Memória persistente de FT por fornecedor (29/10/2026)
+
+**Problema mensurável:** a V8 precisava de pelo menos duas listas completas
+no MESMO ciclo. O GOAL e a API-Football têm rotações e cooldowns independentes;
+uma fonte podia confirmar o FT hoje e a outra só estar acessível no ciclo
+seguinte. O conteúdo verificado da primeira consulta perdia-se em memória.
+
+**Solução implementada:** o LAB acumula, em
+`data/lab/ft-provider-attestations.json`, uma prova mínima por
+`match_key` e fornecedor, APENAS depois de um payload real de lista
+completa ter passado o verificador rigoroso de estado `FT`/90 minutos,
+ID exato e revisão STRONG bloqueada por jogo. Cada primeira prova guarda
+ID, equipa casa/fora, competição, KO, score, URL, momento de observação
+e SHA-256 sobre o conteúdo normalizado. Não guarda headers, segredos
+nem payloads completos. O registo original nunca é reescrito.
+
+Em ciclos posteriores a V9 aceita reutilizar esta prova contra a
+mesma revisão STRONG e o mesmo ID, desde que o registo esteja intacto,
+tenha sido observado efetivamente depois do jogo, não esteja no futuro
+e respeite o horizonte de 45 dias. Continua a exigir duas fontes
+distintas com os MESMOS golos e identidade regulamentar. Dois
+fornecedores não são necessariamente dois feeds editoriais independentes.
+
+Uma alteração posterior do marcador ou ID da mesma fonte ativa
+`SOURCE_REVISION_QUARANTINE` e `SCORE_CONFLICT`, não substitui a
+primeira observação nem declara vitória/derrota. A fonte pode
+ser corrigida legitimamente, mas a resolução passa a ser auditável.
+Uma prova cujo hash, carimbo UTC, ID, fonte, equipa ou categoria falhem
+não pode concluir consenso. `HOLD_FOR_OFFICIAL` continua obrigatório
+para Independiente Reserves–Defensa y Justicia Reserves.
+
+Contadores novos: `ft_queue.dual_provider_consensus.validated_source_claims`,
+`ft_queue.durable_provider_attestations.inserted`, `repeated`,
+`revisions_quarantined`, `total_claims` e `conflict_keys`.
+Os FULL-TIME registados com consenso recebem em
+`dual_provider_corroboration` o SHA e a PRIMEIRA hora observada por
+fornecedor; o journal V6 preserva esta proveniência sem classificar
+automaticamente a cronologia científica como CERTIFIED.
+
+**Sem novos pedidos ou quotas**, sem consulta manual do fixture,
+sem alteração ao H1 nem ao Telegram; os resultados concretos só
+existirão após correrem jobs FT normais que obtenham provas reais.

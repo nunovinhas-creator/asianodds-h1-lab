@@ -25,6 +25,7 @@ from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_goal_reviewed import plan_reviewed_goal_id
 from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
+from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empty_attestations
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
@@ -34,6 +35,7 @@ from h1lab.lab_openfoot import OpenFootResults
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "data/lab/ft-ledger.json"
+FT_PROVIDER_ATTESTATIONS = ROOT / "data/lab/ft-provider-attestations.json"
 REPORT = ROOT / "docs/lab/ft-results.json"
 API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
@@ -336,9 +338,18 @@ def main():
     openfoot.allowed_days = frozenset(rotation["openfoot"])
     api_football.allowed_days = frozenset(rotation["api_football"])
     # Only already-fetched COMPLETE day responses; no additional requests.
+    prior_attestations = (json.loads(FT_PROVIDER_ATTESTATIONS.read_text(encoding="utf-8"))
+                          if FT_PROVIDER_ATTESTATIONS.exists()
+                          else empty_attestations())
+    if (not isinstance(prior_attestations, dict)
+            or prior_attestations.get("schema_version") != 1
+            or not isinstance(prior_attestations.get("records"), dict)
+            or not isinstance(prior_attestations.get("conflicts"), dict)):
+        raise ValueError("Invalid durable FT provider attestations")
     dual = TwoProviderConsensus(
         review=previous_review, matches=_preview_ledger["matches"],
         goal=goal, api_football=api_football, openfoot=openfoot, now=now,
+        prior_attestations=prior_attestations,
         score_hold_keys={key for key, row in goal_approved.get("pairs", {}).items()
                          if isinstance(row, dict) and
                          row.get("score_gate") == "HOLD_FOR_OFFICIAL"})
@@ -366,7 +377,7 @@ def main():
         api_football_lookup=api_football.lookup if api_football_poll else None,
         goal_lookup=goal.lookup if goal_enabled else None,
         openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
-        dual_lookup=dual.lookup if goal_enabled and api_football_poll else None,
+        dual_lookup=dual.lookup if goal_enabled or api_football_poll or openfoot_enabled else None,
         dual_postcheck_keys=dual_postcheck_keys,
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
@@ -380,11 +391,36 @@ def main():
         raise ValueError("FT queue changed between date planning and reconciliation")
     # An ID request is counted as a real HTTP attempt (including failures).
     # Do not repeatedly consume the same free-tier slot on every eligible run.
-    # The consensus may settle matches using two independent completed
-    # provider-day caches, without making any remote requests itself.
+    # Save validated SINGLE-provider claims even if the second provider
+    # was not called in this run; never backdate observation timestamps.
+    # A later source revision is a hard conflict, not a last-write-wins FT.
+    attestation_journal, attestation_stats = merge_attestations(
+        prior_attestations, dual.captured, now=now)
+    for match_key in set(dual.revisions) | set(attestation_journal["conflicts"]):
+        row = next_ledger["matches"].get(match_key)
+        if isinstance(row, dict) and row.get("status") != "FINAL":
+            row["status"] = "SCORE_CONFLICT"
+            row["reason"] = "durable_provider_score_revision_quarantine"
+            row.pop("result", None)
+        elif isinstance(row, dict) and match_key in dual.confirmations:
+            row["status"] = "SCORE_CONFLICT"
+            row["reason"] = "durable_provider_score_revision_quarantine"
+            row.pop("result", None)
+            row.pop("verified_provider_sources", None)
+            row.pop("dual_provider_corroboration", None)
+    # A dual-provider FINAL must carry the first actually observed timestamp
+    # and the sealed identity+score digest from BOTH providers.
     for match_key, sources in dual.confirmations.items():
         row = next_ledger["matches"].get(match_key)
         if isinstance(row, dict) and row.get("status") == "FINAL":
+            proofs = attestation_journal["records"].get(match_key, {})
+            if (match_key in attestation_journal["conflicts"]
+                    or not all(provider in proofs for provider in sources)):
+                row["status"] = "SCORE_CONFLICT"
+                row["reason"] = "durable_attestation_incomplete_or_conflicted"
+                row.pop("result", None)
+                row.pop("verified_provider_sources", None)
+                continue
             verified_sources = row.setdefault("verified_provider_sources", {})
             verified_sources.update(sources)
             row["dual_provider_corroboration"] = {
@@ -392,7 +428,14 @@ def main():
                 "method": "TWO_STRONG_PROVIDER_IDS_SAME_REGULATION_FT",
                 "providers": sorted(sources),
                 "scores_agree": True,
+                "first_observed_at_utc": {
+                    p: proofs[p]["observed_at_utc"] for p in sorted(sources)},
+                "attestation_sha256": {
+                    p: proofs[p]["sha256"] for p in sorted(sources)},
+                "chronology_certified": False,
             }
+    write_if_changed(FT_PROVIDER_ATTESTATIONS, attestation_journal)
+    report["ft_queue"]["durable_provider_attestations"] = attestation_stats
     if goal.id_requests:
         for match_key in goal_targets:
             row = next_ledger["matches"][match_key]

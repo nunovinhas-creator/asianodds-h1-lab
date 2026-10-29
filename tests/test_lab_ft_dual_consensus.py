@@ -4,6 +4,8 @@ import unittest
 from types import SimpleNamespace
 from datetime import datetime, timezone
 from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
+from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empty_attestations, valid
+from h1lab.v6_ft_events import quality as ft_science_quality, snapshot as ft_science_snapshot
 from h1lab.lab_results import reconcile
 
 DAY = "2026-10-28"
@@ -42,7 +44,7 @@ def review():
         candidates=[cand("api_football",123456),cand("goal",876543)])]}
 
 
-def engine(*, mut=None, hold=()):
+def engine(*, mut=None, hold=(), prior=None):
     af, goal = fixtures()
     rev = review()
     matches = {KEY:dict(SIGNAL,status="PENDING")}
@@ -51,7 +53,8 @@ def engine(*, mut=None, hold=()):
     obj = TwoProviderConsensus(review=rev,matches=matches,
         goal=SimpleNamespace(cache={DAY:[goal]}),
         api_football=SimpleNamespace(days={DAY:[af]}),
-        openfoot=SimpleNamespace(days={}),score_hold_keys=hold,now=NOW)
+        openfoot=SimpleNamespace(days={}),score_hold_keys=hold,now=NOW,
+        prior_attestations=prior)
     return obj
 
 
@@ -167,6 +170,90 @@ class ConsensusTests(unittest.TestCase):
             reconcile(state,[],{"schema_version":1,"matches":{}},
                 now=NOW,bsd_lookup=no,tsdb_lookup=no,
                 max_checks=0,dual_postcheck_keys=[KEY]*501)
+
+    def test_separate_runs_can_recover_without_repeating_first_provider(self):
+        first=engine()
+        first.adapters["goal"].cache.clear()
+        self.assertIsNone(first.lookup(SIGNAL)[0])
+        self.assertEqual(set(first.captured[KEY]),{"api_football"})
+        journal,stats=merge_attestations(empty_attestations(),first.captured,now=NOW)
+        self.assertEqual(stats["inserted"],1)
+        self.assertEqual(stats["total_claims"],1)
+        self.assertEqual(journal["records"][KEY]["api_football"]["home_goals"],2)
+        second=engine(prior=journal)
+        second.adapters["api_football"].days.clear()
+        final,reason=second.lookup(SIGNAL)
+        self.assertEqual(reason,"verified_two_provider_regulation_ft")
+        self.assertEqual((final["home_goals"],final["away_goals"]),(2,1))
+        self.assertEqual(set(second.confirmations[KEY]),{"goal","api_football"})
+        journal2,stats2=merge_attestations(journal,second.captured,now=NOW)
+        self.assertEqual(stats2["inserted"],1)
+        self.assertEqual(set(journal2["records"][KEY]),{"api_football","goal"})
+        self.assertEqual(journal["records"][KEY]["api_football"],
+                         journal2["records"][KEY]["api_football"])
+
+    def test_changing_provider_ft_is_quarantined_not_overwritten(self):
+        first=engine()
+        first.adapters["goal"].cache.clear()
+        first.lookup(SIGNAL)
+        journal,_=merge_attestations(empty_attestations(),first.captured,now=NOW)
+        old=journal["records"][KEY]["api_football"]
+        def corrected(a,g,r,m):
+            a["score"]["fulltime"]["home"]=3
+            a["goals"]["home"]=3
+        second=engine(mut=corrected,prior=journal)
+        self.assertIsNone(second.lookup(SIGNAL)[0])
+        self.assertEqual(second.revisions[KEY],["api_football"])
+        journal2,stats=merge_attestations(journal,second.captured,now=NOW)
+        self.assertEqual(stats["revisions_quarantined"],1)
+        self.assertEqual(journal2["records"][KEY]["api_football"],old)
+        self.assertIn(KEY,journal2["conflicts"])
+        self.assertIsNone(engine(prior=journal2).lookup(SIGNAL)[0])
+
+    def test_damaged_or_future_saved_proof_cannot_complete_consensus(self):
+        first=engine()
+        first.adapters["goal"].cache.clear()
+        first.lookup(SIGNAL)
+        old,_=merge_attestations(empty_attestations(),first.captured,now=NOW)
+        damaged=copy.deepcopy(old)
+        damaged["records"][KEY]["api_football"]["home_goals"]=99
+        second=engine(prior=damaged)
+        second.adapters["api_football"].days.clear()
+        self.assertIsNone(second.lookup(SIGNAL)[0])
+        self.assertGreater(second.invalid_saved["identity_or_timestamp_invalid"],0)
+        future=copy.deepcopy(old)
+        proof=future["records"][KEY]["api_football"]
+        candidate=review()["games"][0]["candidates"][0]
+        self.assertTrue(valid(old["records"][KEY]["api_football"],
+                              key=KEY,candidate=candidate,now=NOW))
+        self.assertFalse(valid(proof,key=KEY,candidate=candidate,
+            now=datetime(2026,10,28,18,30,tzinfo=timezone.utc)))
+
+    def test_score_hold_still_applies_to_cross_run_proofs(self):
+        first=engine()
+        first.adapters["goal"].cache.clear()
+        first.lookup(SIGNAL)
+        journal,_=merge_attestations(empty_attestations(),first.captured,now=NOW)
+        second=engine(prior=journal,hold=[KEY])
+        second.adapters["api_football"].days.clear()
+        self.assertIsNone(second.lookup(SIGNAL)[0])
+        self.assertEqual(second.reasons["official_score_hold"],1)
+        self.assertEqual(set(second.captured[KEY]),{"goal"})
+
+    def test_science_keeps_source_provenance_without_certifying_capture_clock(self):
+        old={"status":"PENDING","home":"Home","away":"Away",
+             "kickoff_utc":KO,"reason":"no_verified_ft_yet"}
+        self.assertNotIn("dual_provider_corroboration",ft_science_snapshot(old))
+        row={**old,"status":"FINAL","result":{"home_goals":2,
+             "away_goals":1,"source":"https://v3.football.api-sports.io/fixtures?id=123456",
+             "evidence":"dual_provider_only"},
+             "dual_provider_corroboration":{
+                "attestation_sha256":{"goal":"a"*64,"api_football":"b"*64},
+                "first_observed_at_utc":{"goal":KO,"api_football":KO},
+                "chronology_certified":False}}
+        self.assertEqual(ft_science_quality(row),
+            "TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED")
+        self.assertIn("dual_provider_corroboration",ft_science_snapshot(row))
 
     def test_reconcile_produces_actual_final_for_matching_corrob(self):
         obj=engine()
