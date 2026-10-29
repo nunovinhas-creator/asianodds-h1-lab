@@ -86,6 +86,7 @@ def event_hash(event):
 
 def read_events(root):
     events, seen, last, prior_for = [], set(), ZERO, {}
+    last_recorded = None
     for path in monthly_paths(root, "v6-ft-events"):
         for raw in path.read_text(encoding="utf-8").splitlines():
             if not raw:
@@ -104,6 +105,10 @@ def read_events(root):
             if (event["snapshot"].get("status") == "FINAL" and
                     not isinstance(event["snapshot"].get("score"), dict)):
                 raise ValueError("Final FT event lacks score")
+            recorded = utc(event["recorded_at"])
+            if last_recorded is not None and recorded < last_recorded:
+                raise ValueError("V6 FT event chronology moves backwards")
+            last_recorded = recorded
             last = event["sha256"]
             prior_for[key] = event["id"]
             seen.add(event["id"])
@@ -167,6 +172,8 @@ def synchronize(root, ledger, now, *, verify_only=False):
         previous = payload["sha256"]
     if verify_only and additions:
         raise ValueError("FT evidence journal diverges from current ledger")
+    if additions and existing and utc(additions[0]["recorded_at"]) < utc(existing[-1]["recorded_at"]):
+        raise ValueError("V6 FT event chronology moves backwards before append")
     if additions and not verify_only:
         append_monthly(root, "v6-ft-events", now.astimezone(timezone.utc).strftime("%Y-%m"),
                        [canonical(item) + "\n" for item in additions])
