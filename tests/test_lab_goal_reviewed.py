@@ -131,6 +131,29 @@ class ReviewedGoalTests(unittest.TestCase):
                 self.assertIsNone(proof)
                 self.assertNotEqual(why,"goal_reviewed_ft_held_for_official")
 
+    def test_id_errors_are_recorded_per_match_without_fake_ft(self):
+        targets, _ = plan()
+        def missing(_fixture, _key):
+            raise OSError("transient provider issue")
+        p = GoalResults("test",max_days=1,allowed_days=[],
+            target_ids={KEY:"834934"},reviewed_targets=targets,id_getter=missing)
+        found,reason = p.lookup(OBS)
+        self.assertIsNone(found)
+        self.assertEqual(reason,"goal_id_unavailable")
+        self.assertEqual(p.id_outcomes[KEY],reason)
+        self.assertEqual(p.summary()["id_outcomes"][KEY],reason)
+        self.assertEqual(p.summary()["id_requests"],1)
+        self.assertEqual(p.reviewed_observations,{})
+        self.assertEqual(p.lookup(OBS)[1],"goal_id_budget_deferred")
+        self.assertEqual(p.id_outcomes[KEY],"goal_id_unavailable")
+
+        q = GoalResults("test",max_days=1,allowed_days=[],
+            target_ids={KEY:"834934"},reviewed_targets=targets,
+            id_getter=lambda fixture,key:dict(event(),apiId="999999"))
+        self.assertEqual(q.lookup(OBS)[1],"goal_id_mismatch")
+        self.assertEqual(q.id_outcomes[KEY],"goal_id_mismatch")
+        self.assertFalse(q.reviewed_observations)
+
     def test_no_score_gate_can_produce_final(self):
         e=event()
         result,reason,proof=verify_reviewed_goal(OBS,e,dict(APPROVAL,score_gate="AUTO_FINAL"))
