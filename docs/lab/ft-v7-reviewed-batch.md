@@ -253,3 +253,71 @@ enquanto `https://oddseek.com/football/ca-independiente-r-vs-defensa-y-justicia-
 apresenta 3–1. Essa discrepância **impede** que estes links sirvam,
 sozinhos, para declarar o FT no ledger. É obrigatória nova verificação
 da fonte e da cronologia original antes de eventual registo público.
+
+
+## V7.4 — Restrições históricas confirmadas pelo fornecedor (29/10/2026)
+
+A lista API-Football de 27/10 esteve `UNAVAILABLE` desde
+29/10 às 05:38 UTC, com reconsulta V7 elegível a partir de 09:38 UTC,
+**se a fila voltar a selecionar jogos de 27/10**. A lista de 28/10 foi
+novamente `COMPLETE` às 08:16 UTC. Isto, por si só, não prova uma
+janela "ontem a amanhã" do plano grátis.
+
+### Gatilho estrito, sem consultas novas
+
+O módulo `lab_api_football_access.py` lê as respostas classificadas da
+PR #95 e **só** identifica uma restrição histórica quando a própria API
+devolve `HTTP_ERROR` apropriado ou `PROVIDER_ERRORS`, incluindo
+**explicitamente** plano, histórico/datas e proibição de acesso. Timeout,
+erro genérico 403, envelope inválido, limite diário e ausência de resultados
+não ativam qualquer bloqueio.
+
+Um texto que refira explicitamente "yesterday ... today/tomorrow"
+permite uma janela dinâmica *de dias de calendário* (ontem a amanhã).
+Sem calendário explícito, a proteção aplica-se **apenas à data rejeitada**
+e não inventa um limite global de 48 horas. Os factos ficam em
+`data/lab/ft-provider-day-rotation.json.api_football_history_access`,
+respeitando a auditoria pública.
+
+Se um dia ficar explicitamente fora do acesso do plano, o agendador deixa
+de o pedir e substitui-o por outras datas elegíveis, dentro das quotas.
+Pedidos de ID humanos aprovados cujo KO pertença ao dia bloqueado ficam
+`DEFERRED` com motivo `PROVIDER_CONFIRMED_*_HISTORY_*`, sem
+desaprovar a identidade nem marcar `FINAL`. Trata-se de uma **suspensão
+prudencial** que evita gastar um novo pedido potencialmente inútil;
+não pressupõe que o erro de data prove o comportamento do endpoint ID.
+
+### Um ID não é um lote
+
+A documentação oficial fornece `GET /fixtures?id=710556`; para
+`GET /fixtures?ids=710556-710557` adverte "if your plan supports".
+Assim, o código escolhe agora `fixtures?id=1612137` quando só há
+um fixture e mantém `fixtures?ids=...` apenas para dois ou mais IDs.
+Nunca tenta ambos na mesma execução: um pedido autorizado continua a
+consumir **uma** unidade de quota, independentemente de êxito.
+Fonte: https://www.api-football.com/news/post/how-to-get-all-data-from-a-league-with-api-football
+
+### GOAL `834934` e discordância 3–1 / 4–1
+
+O GOAL é uma via alternativa potencial, mas `plan_goal_id()` tem
+resguardos que não podem ser removidos sem **aprovação por jogo** e
+sem correspondência individual, reserva vs equipa principal, liga,
+orientação, KO e eventual reclamação concorrente forte. Não converter
+candidatos fracos em aliases nem liquidar automaticamente por uma
+única resposta GOAL.
+
+Diversas fontes independentes atribuem 4–1 e localizam o 4.º golo aos
+`90+5'`:
+- https://locoxelrojo.com/independiente/2026/10/27/goleo-la-reserva-de-independiente-y-sigue-en-lo-mas-alto/
+- https://scores24.live/en/soccer/m-27-10-2026-independiente-reserves-defensa-y-justicia-reserves
+- https://footballtrends.app/es/fixtures/1612137/independiente-res-vs-defensa-y-justicia-res/standings
+
+O OddSeek continua a apresentar 3–1:
+https://oddseek.com/football/ca-independiente-r-vs-defensa-y-justicia-reserves-13649014
+
+Os `90+5'` são **tempo de compensação regulamentar**, não prolongamento.
+Esta evidência torna plausível uma atualização tardia do placar.
+**Não há alteração de `PENDING` para `FINAL` por este documento**.
+Se duas fontes de resultado FT efetivamente validadas apresentarem
+marcadores distintos, a liquidação deve permanecer em `SCORE_CONFLICT`
+até uma fonte oficial (AFA ou clube) permitir resolver a divergência.

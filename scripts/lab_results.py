@@ -26,6 +26,7 @@ from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
+from h1lab.lab_api_football_access import evolve_access, restriction_for_day
 from h1lab.lab_goal import GoalResults
 from h1lab.lab_openfoot import OpenFootResults
 
@@ -212,6 +213,8 @@ def main():
     historical_days = (json.loads(DAY_ROTATION.read_text(encoding="utf-8"))
                        if DAY_ROTATION.exists()
                        else {"schema_version": 1, "providers": {}})
+    history_access = historical_days.get("api_football_history_access",
+                                          {"schema_version": 1, "confirmed_restrictions": {}})
     catalog_v4 = read_v4()
     # An approved fixture receives one immediate priority slot only when
     # every persisted human-approval and full source-day identity gate has
@@ -231,6 +234,16 @@ def main():
         approved.get("pairs", {}), existing["matches"], previous_review,
         approved, now, day_index=previous_day_index,
         confirmed_registry=confirmed_ids)) if api_football_poll else set()
+    # A positive provider plan error is enough to suspend a costly ID retry
+    # for the rejected historical date. The fixture approval itself survives.
+    # Missing, ambiguous, quota, transport, and HTTP-only failures do NOT
+    # disable either endpoint or any historical observation.
+    blocked_approved = {
+        key: restriction_for_day(history_access, row.get("kickoff_utc", "")[:10], now)
+        for key, row in approved.get("pairs", {}).items()
+        if isinstance(row, dict)
+    }
+    approved_due -= {key for key, why in blocked_approved.items() if why}
     _preview_ledger, preview, _ = reconcile(
         state, catalog_v4, existing, now=now,
         bsd_lookup=lambda unused: (None, "preview_only"),
@@ -271,6 +284,16 @@ def main():
         day_index=previous_day_index, confirmed_registry=confirmed_ids,
         decisions=reviewed_id_decisions)
         if api_football_poll and api_today < 90 else {})
+    for key, why in blocked_approved.items():
+        if why:
+            approved_targets.pop(key, None)
+            reviewed_id_decisions[key] = {
+                "status": "DEFERRED",
+                "reason": why,
+                "provider": "api_football",
+                "provider_fixture_id": approved["pairs"][key].get("provider_fixture_id"),
+                "evidence_source": "data/lab/ft-provider-day-rotation.json",
+            }
     if approved.get("pairs") and not reviewed_id_decisions:
         reason = ("PUSH_NO_AUTHENTICATED_PROVIDER_CALLS"
                   if os.environ.get("GITHUB_EVENT_NAME") == "push" and not recovery_once
@@ -362,6 +385,10 @@ def main():
                             extra_requests={"goal":goal.id_requests,
                                             "api_football":api_football.id_requests},
                             fingerprints=fingerprints)
+    next_history_access = evolve_access(history_access,
+                                       api_football.date_error_details, now)
+    next_rotation["api_football_history_access"] = next_history_access
+    report["ft_queue"]["api_football_history_access"] = next_history_access
     report["ft_queue"]["date_rotation"] = {
         provider: {"selected_days": rotation[provider],
                    "requested_days": used_days[provider],

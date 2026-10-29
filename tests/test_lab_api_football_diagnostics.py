@@ -94,6 +94,30 @@ class APIErrorDiagnosticsTests(unittest.TestCase):
         self.assertEqual(a.summary()["reviewed_errors"]["example"]["http_status"], 403)
         self.assertEqual(a.summary()["reviewed_errors"]["example"]["category"], "HTTP_ERROR")
 
+    def test_singleton_uses_supported_id_not_plan_specific_ids(self):
+        urls = []
+        def fake(request, timeout):
+            urls.append(request.full_url)
+            return Response({"errors": [], "paging": {"total": 1},
+                "response": [{"fixture": {"id": 1612137}}]})
+        with patch("h1lab.lab_api_football.urlopen", side_effect=fake):
+            rows = fetch_ids([1612137], KEY)
+        self.assertEqual(list(rows), [1612137])
+        self.assertTrue(urls[0].endswith("fixtures?id=1612137"), urls)
+
+    def test_multi_fixture_still_uses_batch_ids_single_request(self):
+        urls = []
+        def fake(request, timeout):
+            urls.append(request.full_url)
+            return Response({"errors": [], "paging": {"total": 1},
+                "response": [{"fixture": {"id": 1612137}},
+                             {"fixture": {"id": 1612139}}]})
+        with patch("h1lab.lab_api_football.urlopen", side_effect=fake):
+            rows = fetch_ids([1612137, 1612139], KEY)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(urls[0].split("?")[1], "ids=1612137-1612139")
+        self.assertEqual(len(urls), 1)
+
     def test_existing_api_success_semantics_are_unchanged(self):
         response = {"errors": [], "paging": {"total": 1},
                     "response": [{"fixture": {"id": 1612137}}]}
