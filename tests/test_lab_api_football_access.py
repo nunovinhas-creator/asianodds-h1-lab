@@ -1,7 +1,7 @@
 """Provider-history gate: no HTTP and no inferred access restrictions."""
 import unittest
 from datetime import datetime, timezone, timedelta
-from h1lab.lab_api_football_access import evolve_access, restriction_for_day
+from h1lab.lab_api_football_access import evolve_access, restriction_for_day, restriction_for_fixture_id
 from h1lab.lab_ft_rotation import choose_days
 
 NOW = datetime(2026, 10, 29, 12, tzinfo=timezone.utc)
@@ -51,6 +51,14 @@ class ProviderHistoryAccessTests(unittest.TestCase):
         # there is no evidence for a rolling one-day plan window.
         self.assertIsNone(restriction_for_day(state, OK, NOW))
         self.assertIsNone(restriction_for_day(state, "2026-10-26", NOW))
+
+    def test_date_list_denial_cannot_disable_single_fixture_lookup(self):
+        state = evolve_access({"schema_version": 1},
+            {OLD: error("Free plan fixtures dates only available from yesterday to tomorrow")}, NOW)
+        self.assertIsNotNone(restriction_for_day(state, OLD, NOW))
+        self.assertIsNone(restriction_for_fixture_id(state, OLD, NOW))
+        # In particular, never incorrectly turn a date-list error into an
+        # ID endpoint refusal for the human-reviewed fixture 1612137.
 
     def test_nonrestrictive_http_403_does_not_trigger_by_age(self):
         state = evolve_access({"schema_version": 1},

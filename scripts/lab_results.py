@@ -26,7 +26,7 @@ from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
-from h1lab.lab_api_football_access import evolve_access, restriction_for_day
+from h1lab.lab_api_football_access import evolve_access, restriction_for_fixture_id
 from h1lab.lab_goal import GoalResults
 from h1lab.lab_openfoot import OpenFootResults
 
@@ -234,12 +234,11 @@ def main():
         approved.get("pairs", {}), existing["matches"], previous_review,
         approved, now, day_index=previous_day_index,
         confirmed_registry=confirmed_ids)) if api_football_poll else set()
-    # A positive provider plan error is enough to suspend a costly ID retry
-    # for the rejected historical date. The fixture approval itself survives.
-    # Missing, ambiguous, quota, transport, and HTTP-only failures do NOT
-    # disable either endpoint or any historical observation.
+    # Date-list provider restrictions are NOT evidence that single fixture ID
+    # lookups are blocked. Only endpoint-specific evidence could suspend ID
+    # calls, while preserving every existing approval and cooldown.
     blocked_approved = {
-        key: restriction_for_day(history_access, row.get("kickoff_utc", "")[:10], now)
+        key: restriction_for_fixture_id(history_access, row.get("kickoff_utc", "")[:10], now)
         for key, row in approved.get("pairs", {}).items()
         if isinstance(row, dict)
     }
