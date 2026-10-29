@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-29T10:51:35+00:00",
+ "generated_at": "2026-10-29T10:56:39+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 129
+  "timelines_published": 130
  },
  "schema_version": 1,
- "source_commit": "926e9e6f77ed42d3e59ad004de16c834dde40406",
+ "source_commit": "8adfac00c25080b58703e5821061bae7d3da339f",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 430,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 609,
+  "messages": 610,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 308,
+  "messages_on_repeated_matches": 310,
   "messages_v4_only": 0,
-  "messages_with_v4": 535,
-  "movement_episodes_upper_bound": 585,
+  "messages_with_v4": 536,
+  "movement_episodes_upper_bound": 586,
   "possibly_redundant_snapshots": 16,
   "post_kickoff_messages": 16,
   "related_message_pairs": 24,
@@ -50,14 +50,14 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 8
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 129,
+  "repeated_matches": 130,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 841
+   "V4_EXPLICIT": 842
   },
   "total_line_reversals_on_repeated": 65,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 17,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 18,
    "CONTINUOUS": 95,
    "SAME_MOVEMENT_REPEAT": 24,
    "UNOBSERVED_CHANGE": 43
@@ -65,10 +65,147 @@
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 155,
    "one_x_two:AGREE": 151,
-   "total:AGREE": 535
+   "total:AGREE": 536
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50737",
+    "3571094759:51191"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50737",
+     "message_id": 50737,
+     "minutes_to_kickoff": 2206.6,
+     "observed_at": "2026-10-27T23:43:23+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 1.97,
+        "under_price": 1.78
+       },
+       "before": {
+        "line": 2.0,
+        "over_price": 1.97,
+        "under_price": 1.78
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51191",
+     "message_id": 51191,
+     "minutes_to_kickoff": 95.5,
+     "observed_at": "2026-10-29T10:54:31+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 2.0,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 2.0,
+        "over_price": 1.77,
+        "under_price": 2.07
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-27T23:43:23+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-29T12:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T10:54:31+00:00",
+   "match_key": "2026-10-29,10057571,34014",
+   "match_label": "Team FC Cairo vs Delta United FC",
+   "movement_episodes": [
+    [
+     "3571094759:50737"
+    ],
+    [
+     "3571094759:51191"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    126668.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.0,
+     "last_observed_line": 2.25,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.25,
+       "before": 2.0,
+       "event_id": "3571094759:50737",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.25,
+       "before": 2.0,
+       "event_id": "3571094759:51191",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50737",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.0,
+       "previous_after_line": 2.25,
+       "to": "3571094759:51191"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
