@@ -7,7 +7,7 @@ import copy
 import unittest
 from datetime import datetime, timedelta, timezone
 from h1lab.lab_bsd_id_registry import (
-    discover, empty, plan_days, BSDRegistryLookup)
+    discover, empty, plan_days, due_unmapped_keys, BSDRegistryLookup)
 from h1lab.lab_bsd_search import BSDDateFallback
 
 DAY="2026-10-28"
@@ -157,6 +157,44 @@ class BSDPersistentIdsTests(unittest.TestCase):
         self.assertEqual(plan_days([KEY],ledger,after,NOW+timedelta(hours=1)),[])
         self.assertEqual(plan_days([KEY],ledger,after,NOW+timedelta(hours=4)),[DAY])
         self.assertEqual(plan_days(selected,ledger,registry,NOW,max_days=0),[])
+
+    def test_bsd_day_discovery_is_independent_of_empty_ft_recheck_queue(self):
+        ledger={KEY:ROW,OTHER_KEY:OTHER_ROW}
+        # The network FT queue may select zero, yet the independent BSD
+        # discovery still has two overdue, unmapped games on the same day.
+        ft_selected=[]
+        self.assertEqual(ft_selected,[])
+        due=due_unmapped_keys(ledger,empty(),NOW)
+        self.assertEqual(set(due),{KEY,OTHER_KEY})
+        self.assertEqual(plan_days(due,ledger,empty(),NOW),[DAY])
+        index,_=discover(empty(),self.catalogue(),ledger,NOW)
+        self.assertEqual(len(index["matches"]),2)
+        self.assertEqual(due_unmapped_keys(ledger,index,NOW),[])
+
+    def test_unattempted_date_precedes_recently_probed_crowded_date(self):
+        day2="2026-10-27"
+        row2={"match_key":"older","home":"Team 1",
+              "away":"Team 2","kickoff_utc":day2+"T12:00:00+00:00",
+              "status":"PENDING"}
+        ledger={KEY:ROW,OTHER_KEY:OTHER_ROW,"older":row2}
+        old=empty()
+        old["probes"][DAY]={"attempted_at_utc":(NOW-timedelta(hours=5)).isoformat(),
+                             "status":"UNAVAILABLE_OR_INCOMPLETE"}
+        due=due_unmapped_keys(ledger,old,NOW)
+        self.assertEqual(plan_days(due,ledger,old,NOW,max_days=2),
+                         [day2,DAY])
+
+    def test_bsd_due_catalogue_excludes_future_and_expired_and_conflicts(self):
+        future=dict(ROW,match_key="future",
+                    kickoff_utc=(NOW+timedelta(days=1)).isoformat())
+        expired=dict(ROW,match_key="expired",
+                     kickoff_utc=(NOW-timedelta(days=31)).isoformat())
+        early=dict(ROW,match_key="early",
+                   kickoff_utc=(NOW-timedelta(minutes=100)).isoformat())
+        ledger={KEY:ROW,"future":future,"expired":expired,"early":early}
+        self.assertEqual(due_unmapped_keys(ledger,empty(),NOW),[KEY])
+        bad=empty();bad["conflicts"][KEY]={"reason":"collided"}
+        self.assertEqual(due_unmapped_keys(ledger,bad,NOW),[])
 
     def test_bsd_documented_total_is_required_for_live_complete_catalogue(self):
         requests=[]
