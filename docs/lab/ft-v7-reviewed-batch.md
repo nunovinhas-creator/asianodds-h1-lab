@@ -321,3 +321,27 @@ Esta evidência torna plausível uma atualização tardia do placar.
 Se duas fontes de resultado FT efetivamente validadas apresentarem
 marcadores distintos, a liquidação deve permanecer em `SCORE_CONFLICT`
 até uma fonte oficial (AFA ou clube) permitir resolver a divergência.
+
+
+## V7.5 — Isolamento de restrições entre endpoints (29/10/2026)
+
+A PR #96 confirmou que o diário de acesso histórico regista apenas erros
+provenientes de **listas por data**. Não é cientificamente válido aplicar
+uma restrição desse endpoint a pedidos individuais `fixtures?id=...` sem
+prova independente sobre o endpoint de ID. Por isso, a correção V7.5 mantém
+`restriction_for_day()` na rotação por data, mas deixa de usar essa decisão
+para adiar os IDs humanos aprovados. A função separada
+`restriction_for_fixture_id()` não bloqueia pedidos enquanto o sistema
+não tiver evidência de restrições especificamente relativas ao endpoint ID.
+Todos os limites existentes (24 h de cooldown de ID, teto diário, seleção
+na fila e validação de identidades) permanecem obrigatórios.
+
+**Auditoria do estado:** a PR #96 foi integrada às 08:25 UTC, mas o diário
+persistido às 09:32 mantém `confirmed_restrictions={}`. A execução FT
+`40850279103` concluiu sem erros de workflow, mas não selecionou o jogo
+`2026-10-27,77621,67110`, registando `NOT_SELECTED_IN_CURRENT_FT_QUEUE`.
+Isso significa ausência na fila deste ciclo, **não** reprovação de identidade
+nem confirmação do resultado. O jogo continua sem FT verificado pelo sistema.
+A revisão futura deverá diagnosticar a priorização do jogo sem aumentar o
+número de pedidos de APIs ou contornar cooldowns. A alternativa GOAL
+`834934` continua apenas candidata, sem alias global nem liquidação.
