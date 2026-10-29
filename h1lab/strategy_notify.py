@@ -136,7 +136,7 @@ def _sufficient_evidence(timeline, features, rule):
     return True
 
 
-def candidate_matches(timelines, now, research):
+def candidate_matches(timelines, now, research, *, include_all=False):
     """Eligible future games, including those detected earlier today.
 
     Each candidate is identified by an actual match_key, a frozen list of strategy
@@ -180,12 +180,34 @@ def candidate_matches(timelines, now, research):
                 ("rate", "known", "hits", "reference_rate", "reference_known")):
                 history = {k: observed[k] for k in ("rate", "known", "hits", "reference_rate", "reference_known")}
             matched.append({**rule, "history": history})
-        if matched:
+        if matched or include_all:
+            totals = [e for e in events if "total" in e.get("snapshots", {})]
+            last = totals[-1] if totals else None
+            last_market = last["snapshots"]["total"] if last else None
+            latest_total_v4 = (last_market["after"]["line"] if last_market
+                               and last_market.get("origin") == "V4_EXPLICIT" else None)
+            # A missing/legacy snapshot can NEVER establish that a rule has ceased.
+            episode_by_id = {eid: n for n, group in enumerate(timeline.get("movement_episodes") or [])
+                             for eid in group}
+            representatives = {}
+            for event in events:
+                episode = episode_by_id.get(event["event_id"], event["event_id"])
+                representatives.setdefault(episode, event)
+            from .pattern_features import message_metrics
+            weakening_verified = (len(representatives) >= 2 and all(
+                e.get("snapshots", {}).get("total", {}).get("origin") == "V4_EXPLICIT"
+                and message_metrics(e).get("dlam") is not None
+                for e in representatives.values()))
             out.append({
                 "match_key": key, "match_label": f["match_label"],
                 "kickoff_utc": f["kickoff_utc"], "observed_through": f["decision_at"],
                 "feature_version": f["feature_version"], "fingerprint": f["fingerprint"],
                 "rules": matched, "research_generated_at": research["generated_at"],
+                "patterns": f["patterns"], "net_dlam": f.get("net_dlam"),
+                "explicit_net": _observed_explicit(timeline, "G_NET_IMPLIED_SMALL"),
+                "last_total_v4": latest_total_v4,
+                "last_total_observed_at": last.get("observed_at") if last else None,
+                "weakening_verified": weakening_verified,
             })
     return sorted(out, key=lambda x: (x["kickoff_utc"], x["match_key"]))
 
