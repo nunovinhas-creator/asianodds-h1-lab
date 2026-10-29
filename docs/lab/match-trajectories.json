@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-29T16:56:44+00:00",
+ "generated_at": "2026-10-29T17:01:44+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,21 +26,21 @@
   "timelines_published": 162
  },
  "schema_version": 1,
- "source_commit": "c18b2aa2a36ec7636cc7fbdb6e85c893467b649c",
+ "source_commit": "a3c91ab7ea14bf0d4d95718e1565ffdf1cd8f16e",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 498,
+  "matches": 499,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 726,
+  "messages": 728,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 390,
+  "messages_on_repeated_matches": 391,
   "messages_v4_only": 0,
-  "messages_with_v4": 652,
-  "movement_episodes_upper_bound": 696,
+  "messages_with_v4": 654,
+  "movement_episodes_upper_bound": 698,
   "possibly_redundant_snapshots": 21,
-  "post_kickoff_messages": 18,
+  "post_kickoff_messages": 19,
   "related_message_pairs": 30,
   "related_pairs_by_class": {
    "SAME_MOVEMENT_DIFFERENT_MESSAGE": 30
@@ -53,22 +53,220 @@
   "repeated_matches": 162,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1032
+   "V4_EXPLICIT": 1036
   },
   "total_line_reversals_on_repeated": 84,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 26,
-   "CONTINUOUS": 116,
+   "CONTINUOUS": 117,
    "SAME_MOVEMENT_REPEAT": 30,
    "UNOBSERVED_CHANGE": 56
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 192,
-   "one_x_two:AGREE": 188,
-   "total:AGREE": 652
+   "asian_handicap:AGREE": 193,
+   "one_x_two:AGREE": 189,
+   "total:AGREE": 654
   }
  },
  "timelines": [
+  {
+   "event_count": 3,
+   "event_ids": [
+    "3571094759:51154",
+    "3571094759:51290",
+    "3571094759:51309"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51154",
+     "message_id": 51154,
+     "minutes_to_kickoff": 646.4,
+     "observed_at": "2026-10-29T06:13:37+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 1.9,
+        "under_price": 1.94
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.87,
+        "under_price": 1.84
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51290",
+     "message_id": 51290,
+     "minutes_to_kickoff": 101.3,
+     "observed_at": "2026-10-29T15:18:39+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.0,
+        "over_price": 1.87,
+        "under_price": 1.92
+       },
+       "before": {
+        "line": 4.25,
+        "over_price": 2.03,
+        "under_price": 1.81
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51309",
+     "message_id": 51309,
+     "minutes_to_kickoff": -0.1,
+     "observed_at": "2026-10-29T17:00:09+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.75,
+        "over_price": 1.8,
+        "under_price": 1.85
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.92,
+        "under_price": 1.85
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-29T06:13:37+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-29T17:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T17:00:09+00:00",
+   "match_key": "2026-10-29,27329,49609",
+   "match_label": "JK Tallinna Kalev vs JK Nõmme Kalju II",
+   "movement_episodes": [
+    [
+     "3571094759:51154"
+    ],
+    [
+     "3571094759:51290"
+    ],
+    [
+     "3571094759:51309"
+    ]
+   ],
+   "movement_episodes_upper_bound": 3,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 1,
+   "related_messages": [],
+   "seconds_between_messages": [
+    32702.0,
+    6090.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 4.0,
+     "last_observed_line": 3.75,
+     "net_observed_change": -0.25,
+     "observations": 3,
+     "origins": {
+      "V4_EXPLICIT": 3
+     },
+     "points": [
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:51154",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.0,
+       "before": 4.25,
+       "event_id": "3571094759:51290",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.75,
+       "before": 4.0,
+       "event_id": "3571094759:51309",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51154",
+       "at_event": "3571094759:51290",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51154",
+       "line": "CONTINUOUS",
+       "next_before_line": 4.25,
+       "previous_after_line": 4.25,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51290"
+      },
+      {
+       "from": "3571094759:51290",
+       "line": "CONTINUOUS",
+       "next_before_line": 4.0,
+       "previous_after_line": 4.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51309"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
@@ -2247,152 +2445,6 @@
        "next_before_line": 3.0,
        "previous_after_line": 2.75,
        "to": "3571094759:51292"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:51154",
-    "3571094759:51290"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:51154",
-     "message_id": 51154,
-     "minutes_to_kickoff": 646.4,
-     "observed_at": "2026-10-29T06:13:37+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 4.25,
-        "over_price": 1.9,
-        "under_price": 1.94
-       },
-       "before": {
-        "line": 4.0,
-        "over_price": 1.87,
-        "under_price": 1.84
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:51290",
-     "message_id": 51290,
-     "minutes_to_kickoff": 101.3,
-     "observed_at": "2026-10-29T15:18:39+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 4.0,
-        "over_price": 1.87,
-        "under_price": 1.92
-       },
-       "before": {
-        "line": 4.25,
-        "over_price": 2.03,
-        "under_price": 1.81
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-29T06:13:37+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-29T17:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-29T15:18:39+00:00",
-   "match_key": "2026-10-29,27329,49609",
-   "match_label": "JK Tallinna Kalev vs JK Nõmme Kalju II",
-   "movement_episodes": [
-    [
-     "3571094759:51154"
-    ],
-    [
-     "3571094759:51290"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    32702.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 4.0,
-     "last_observed_line": 4.0,
-     "net_observed_change": 0.0,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 4.25,
-       "before": 4.0,
-       "event_id": "3571094759:51154",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 4.0,
-       "before": 4.25,
-       "event_id": "3571094759:51290",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [
-      {
-       "after_event": "3571094759:51154",
-       "at_event": "3571094759:51290",
-       "evidence": "intra",
-       "from": "UP",
-       "to": "DOWN"
-      }
-     ],
-     "transitions": [
-      {
-       "from": "3571094759:51154",
-       "line": "CONTINUOUS",
-       "next_before_line": 4.25,
-       "previous_after_line": 4.25,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:51290"
       }
      ]
     }
