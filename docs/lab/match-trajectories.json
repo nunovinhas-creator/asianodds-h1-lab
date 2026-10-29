@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-29T12:01:34+00:00",
+ "generated_at": "2026-10-29T12:06:30+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 134
+  "timelines_published": 136
  },
  "schema_version": 1,
- "source_commit": "efc85abf81be9d786543da1ebd01535dbd513cf2",
+ "source_commit": "6e598d1f059b9131b5660286baf8ea2bf4fbfa26",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 444,
+  "matches": 446,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 633,
+  "messages": 637,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 323,
+  "messages_on_repeated_matches": 327,
   "messages_v4_only": 0,
-  "messages_with_v4": 559,
-  "movement_episodes_upper_bound": 608,
+  "messages_with_v4": 563,
+  "movement_episodes_upper_bound": 612,
   "possibly_redundant_snapshots": 17,
   "post_kickoff_messages": 16,
   "related_message_pairs": 25,
@@ -50,25 +50,383 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 8
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 134,
+  "repeated_matches": 136,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 877
+   "V4_EXPLICIT": 883
   },
   "total_line_reversals_on_repeated": 68,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 20,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 21,
    "CONTINUOUS": 100,
    "SAME_MOVEMENT_REPEAT": 25,
-   "UNOBSERVED_CHANGE": 44
+   "UNOBSERVED_CHANGE": 45
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 161,
-   "one_x_two:AGREE": 157,
-   "total:AGREE": 559
+   "asian_handicap:AGREE": 162,
+   "one_x_two:AGREE": 158,
+   "total:AGREE": 563
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50956",
+    "3571094759:51218"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50956",
+     "message_id": 50956,
+     "minutes_to_kickoff": 1752.6,
+     "observed_at": "2026-10-28T12:17:24+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.94,
+        "under_price": 1.74
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.87,
+        "under_price": 1.78
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51218",
+     "message_id": 51218,
+     "minutes_to_kickoff": 323.9,
+     "observed_at": "2026-10-29T12:06:03+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.77,
+        "under_price": 1.95
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 2.01,
+        "under_price": 1.7
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T12:17:24+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-29T17:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T12:06:03+00:00",
+   "match_key": "2026-10-29,23031,10044547",
+   "match_label": "Eskisehirspor Kulubu vs 76 Igdir Belediyespor",
+   "movement_episodes": [
+    [
+     "3571094759:50956"
+    ],
+    [
+     "3571094759:51218"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    85719.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.0,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:50956",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51218",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50956",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.25,
+       "previous_after_line": 3.0,
+       "to": "3571094759:51218"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51163",
+    "3571094759:51216"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51163",
+     "message_id": 51163,
+     "minutes_to_kickoff": 4575.0,
+     "observed_at": "2026-10-29T07:14:59+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.98,
+        "under_price": 1.77
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.47,
+        "under_price": 2.46
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51216",
+     "message_id": 51216,
+     "minutes_to_kickoff": 4284.9,
+     "observed_at": "2026-10-29T12:05:07+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 1.85,
+        "home_price": 1.93,
+        "line": -1.5
+       },
+       "before": {
+        "away_price": 1.71,
+        "home_price": 1.79,
+        "line": -1.25
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 1.34,
+        "before": 1.37
+       },
+       "2": {
+        "after": 6.93,
+        "before": 6.28
+       },
+       "X": {
+        "after": 5.12,
+        "before": 4.87
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.88,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.95,
+        "under_price": 1.84
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": 12.3,
+     "trigger_market": "1x2",
+     "trigger_selection": "2",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-29T07:14:59+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-01T11:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T12:05:07+00:00",
+   "match_key": "2026-11-01,23049,23043",
+   "match_label": "Tampines Rovers FC vs Geylang International United",
+   "movement_episodes": [
+    [
+     "3571094759:51163"
+    ],
+    [
+     "3571094759:51216"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    17408.0
+   ],
+   "trajectory": {
+    "asian_handicap": {
+     "first_observed_line": -1.25,
+     "last_observed_line": -1.5,
+     "net_observed_change": -0.25,
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "after": -1.5,
+       "before": -1.25,
+       "event_id": "3571094759:51216",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": []
+    },
+    "one_x_two": {
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "1": [
+        1.37,
+        1.34
+       ],
+       "2": [
+        6.28,
+        6.93
+       ],
+       "X": [
+        4.87,
+        5.12
+       ],
+       "event_id": "3571094759:51216",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "transitions": []
+    },
+    "total": {
+     "first_observed_line": 2.75,
+     "last_observed_line": 3.25,
+     "net_observed_change": 0.5,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:51163",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.25,
+       "event_id": "3571094759:51216",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51163",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.25,
+       "previous_after_line": 3.0,
+       "to": "3571094759:51216",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 4,
    "event_ids": [
