@@ -17,6 +17,7 @@ from .lab_identity import CORE, core_tokens
 from .lab_identity_review import _qualifiers
 from .lab_results import utc
 from .lab_ft_crosswalk import providers_from_final, event_id
+from .lab_ft_attestations import from_verified, valid
 
 PROVIDERS = frozenset(("api_football", "goal", "openfoot"))
 WINDOW = timedelta(minutes=5)
@@ -64,7 +65,7 @@ class TwoProviderConsensus:
     """Only cache observations already fetched by normal FT reconciliations."""
 
     def __init__(self, *, review, matches, goal, api_football, openfoot,
-                 score_hold_keys=(), now=None):
+                 score_hold_keys=(), now=None, prior_attestations=None):
         self.matches = matches
         self.adapters = {"goal": goal, "api_football": api_football,
                          "openfoot": openfoot}
@@ -75,6 +76,10 @@ class TwoProviderConsensus:
         self.outcomes = {}
         self.confirmations = {}
         self.now = now
+        self.prior = prior_attestations if isinstance(prior_attestations, dict) else {}
+        self.captured = {}
+        self.revisions = {}
+        self.invalid_saved = Counter()
         if not isinstance(review, dict) or review.get("schema_version") != 1:
             return
         for g in review.get("games", []):
@@ -100,8 +105,8 @@ class TwoProviderConsensus:
 
     def lookup(self, signal):
         key = signal.get("match_key")
-        if key in self.score_hold_keys:
-            return self._fail(key, "official_score_hold")
+        if key in (self.prior.get("conflicts") or {}):
+            return self._fail(key, "persisted_source_revision_quarantine")
         g = self.review.get(key)
         row = self.matches.get(key)
         if (not isinstance(g, dict) or not isinstance(row, dict)
@@ -171,6 +176,52 @@ class TwoProviderConsensus:
             if result is not None:
                 verified.append((provider, ident, result,
                                  (c["provider_home"], c["provider_away"])))
+        # Each current claim has already passed the source's strict
+        # regulation-time FT verifier and the locked STRONG review identity.
+        # Persist it even when only one provider was available this run.
+        if self.now is not None:
+            for provider, ident, result, names in verified:
+                c = next((item for item in strong
+                          if item.get("provider") == provider
+                          and str(item.get("provider_event_id")) == ident), None)
+                if c is None:
+                    continue
+                proof = from_verified(key, c, result,
+                    observed_at_utc=self.now.isoformat(timespec="seconds"))
+                if valid(proof, key=key, candidate=c, now=self.now):
+                    self.captured.setdefault(key, {})[provider] = proof
+        # Rehydrate only properly sealed observations matching the CURRENT
+        # human-reviewed fixture identity, the same provider ID, and the
+        # true first-observed timestamp. No raw or synthetic past scores.
+        prior = (self.prior.get("records") or {}).get(key) or {}
+        if isinstance(prior, dict) and self.now is not None:
+            for provider, proof in sorted(prior.items()):
+                candidate = next((item for item in strong
+                    if item.get("provider") == provider
+                    and str(item.get("provider_event_id")) == (
+                        proof.get("fixture_id") if isinstance(proof, dict) else None)
+                    and self.claims.get((provider, str(item.get("provider_event_id")))) == {key}
+                    and not any(p == provider and i == str(item.get("provider_event_id")) and k != key
+                                for p,i,k in self.claimed_final)), None)
+                if candidate is None or not valid(proof, key=key,
+                                                  candidate=candidate,
+                                                  now=self.now):
+                    self.invalid_saved["identity_or_timestamp_invalid"] += 1
+                    continue
+                observed = next((x for x in verified if x[0] == provider), None)
+                if observed is not None:
+                    if (observed[1] != proof["fixture_id"] or
+                        observed[2]["home_goals"] != proof["home_goals"] or
+                        observed[2]["away_goals"] != proof["away_goals"]):
+                        self.revisions[key] = sorted(set(self.revisions.get(key, []) + [provider]))
+                        return self._fail(key, "persisted_source_score_revision")
+                    continue
+                verified.append((provider, proof["fixture_id"],
+                    {"match_key":key, "status":"final",
+                     "home_goals":proof["home_goals"],
+                     "away_goals":proof["away_goals"],
+                     "source":proof["source"]},
+                    (proof["home"], proof["away"])))
         if len({p for p, _, _, _ in verified}) < 2:
             return self._fail(key, "two_verified_source_results_unavailable")
         # The two providers must also agree on home/away identity independently.
@@ -191,6 +242,8 @@ class TwoProviderConsensus:
                                   "providers": sorted(x[0] for x in same_pair)}
             self.reasons["two_providers_disagree"] += 1
             return None, "dual_provider_score_conflict"
+        if key in self.score_hold_keys:
+            return self._fail(key, "official_score_hold")
         record = {p: {"source": result["source"],
                       "identity_match": "DUAL_STRONG_CONSENSUS"}
                   for p, _, result, _ in same_pair}
@@ -205,7 +258,10 @@ class TwoProviderConsensus:
         return None, "dual_provider_" + reason
 
     def summary(self):
-        return {"verified_in_run": len(self.confirmations),
+        return {"validated_source_claims": sum(len(rows) for rows in self.captured.values()),
+                "source_revision_quarantines": len(self.revisions),
+                "invalid_previous_claims": dict(sorted(self.invalid_saved.items())),
+                "verified_in_run": len(self.confirmations),
                 "conflicts_in_run": sum(
                     x.get("status") == "SCORE_CONFLICT"
                     for x in self.outcomes.values()),
