@@ -302,6 +302,7 @@ jobs:
           git add data/lab/ft-provider-day-rotation.json data/lab/ft-provider-identity.json docs/lab/ft-provider-identity.json
           if [ -f data/lab/ft-api-football-day-index.json ]; then git add data/lab/ft-api-football-day-index.json; fi
           if [ -f docs/lab/ft-identity-review.json ]; then git add docs/lab/ft-identity-review.json; fi
+          if [ -f docs/lab/ft-api-football-review-decisions.json ]; then git add docs/lab/ft-api-football-review-decisions.json; fi
           if [ "${{ steps.v6_ft_events.outcome }}" = "success" ]; then
             git add -f data/lab/v6-ft-events-*.jsonl 2>/dev/null || true
             if [ -f docs/lab/v6-ft-evidence.json ]; then git add docs/lab/v6-ft-evidence.json; fi
