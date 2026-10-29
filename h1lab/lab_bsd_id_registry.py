@@ -273,11 +273,30 @@ class BSDRegistryLookup:
                 "conflicts":len(self.registry.get("conflicts",{})),
                 "reasons":dict(sorted(self.reasons.items()))}
 
+def due_unmapped_keys(matches, registry, now):
+    """All eligible overdue matches, independently of the 30-game FT queue."""
+    if not isinstance(matches,dict) or now.tzinfo is None:
+        raise ValueError("Invalid BSD overdue catalogue")
+    keys=[]
+    for key,row in matches.items():
+        if (not isinstance(row,dict) or row.get("status") not in
+                ("PENDING","PROVIDER_ERROR")
+                or key in registry.get("matches",{})
+                or key in registry.get("conflicts",{})):
+            continue
+        ko=utc(row.get("kickoff_utc"))
+        if ko is not None and timedelta(hours=3)<=now-ko<=timedelta(days=30):
+            keys.append(key)
+    return sorted(keys)
+
+
 def plan_days(selected_keys, matches, registry, now, max_days=3):
     """Group due unresolved fixtures by UTC day, honoring 4h day cooldown.
 
-    A date listing is an amortized shared ID discovery request: never run
-    it for a fixture with a trusted mapping. No name-search requests.
+    Accepts independently selected overdue keys (not necessarily in the
+    network-backed 30-game FT queue). Unattempted days are served first,
+    then least-recently-served dates; never starve a day behind fresh arrivals.
+    The same complete day list maps all eligible games with no name queries.
     """
     if type(max_days) is not int or not 0<=max_days<=4 or now.tzinfo is None:
         raise ValueError("Invalid BSD day plan budget")
@@ -298,4 +317,12 @@ def plan_days(selected_keys, matches, registry, now, max_days=3):
         if attempted is not None and timedelta(0)<=now-attempted<timedelta(hours=4):
             continue
         by_day[day]+=1
-    return [day for day,count in sorted(by_day.items(), key=lambda p:(-p[1],p[0]))][:max_days]
+    def order(pair):
+        day,count=pair
+        stamp=utc((registry.get("probes",{}).get(day) or {}).get("attempted_at_utc"))
+        # Days never queried must beat all retry dates; among retry dates
+        # serve the oldest attempt before the one with the most games.
+        return (stamp is not None,
+                stamp or datetime.min.replace(tzinfo=timezone.utc),
+                -count,day)
+    return [day for day,count in sorted(by_day.items(),key=order)][:max_days]
