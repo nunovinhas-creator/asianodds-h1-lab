@@ -38,7 +38,8 @@ def _identity(event, day):
     ident = event.get("id")
     home, away, when = (event_name(event, "home_team"),
                         event_name(event, "away_team"), event_kickoff(event))
-    if (type(ident) is not int or ident <= 0 or not isinstance(home, str)
+    if (event.get("status")!="finished" or
+            type(ident) is not int or ident <= 0 or not isinstance(home, str)
             or not isinstance(away, str) or when is None
             or when.date().isoformat() != day
             or not core_tokens(home) or not core_tokens(away)
@@ -51,6 +52,8 @@ def _identity(event, day):
 
 def _valid_match(key, row, locator):
     if not isinstance(row, dict) or not isinstance(locator, dict):
+        return False
+    if type(locator.get("event_id")) is not int or locator["event_id"]<=0:
         return False
     ko, when = utc(row.get("kickoff_utc")), utc(locator.get("provider_kickoff_utc"))
     if ko is None or when is None or abs(ko-when)>WINDOW:
@@ -130,6 +133,13 @@ def discover(previous, caches, all_matches, now):
             if bid: claims.setdefault(int(bid),set()).add(key)
     for key,row in out["matches"].items():
         claims.setdefault(row["event_id"],set()).add(key)
+    for ident, owners in claims.items():
+        if len(owners)>1:
+            for key in owners:
+                if key in out["matches"]:
+                    out["conflicts"][key]={
+                        "reason":"BSD_ID_ALREADY_CONFIRMED_FOR_ANOTHER_GAME",
+                        "detected_at_utc":now.isoformat(timespec="seconds")}
     for day, pair in sorted(caches.items()):
         if isinstance(day,str):
             out["probes"][day]={
