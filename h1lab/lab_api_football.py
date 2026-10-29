@@ -181,8 +181,11 @@ def fetch_ids(ids, key):
             or any(type(x) is not int or x <= 0 for x in ids)
             or len(set(ids)) != len(ids)):
         raise ValueError("Invalid API-Football reviewed ID batch")
-    request = Request(BASE + "fixtures?" +
-                      urlencode({"ids": "-".join(str(x) for x in ids)}),
+    # The provider documents 'id' for one fixture; multi-'ids' is explicitly
+    # plan-dependent. Avoid an unsupported batch parameter for singleton jobs.
+    params = ({"id": ids[0]} if len(ids) == 1 else
+              {"ids": "-".join(str(x) for x in ids)})
+    request = Request(BASE + "fixtures?" + urlencode(params),
                       headers={"x-apisports-key": key, "Accept": "application/json",
                                "User-Agent": "AsianOdds-LAB-Reviewed-FT/1.0"})
     body = _read_api_json(request, key, MAX_BYTES)
