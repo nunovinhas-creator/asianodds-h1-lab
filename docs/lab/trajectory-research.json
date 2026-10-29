@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T15:11:35+00:00",
+  "generated_at": "2026-10-29T15:16:41+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -42,9 +42,9 @@
       "percentage_descriptive": 65.4
     },
     "opposing_intra_alert_directions": {
-      "matches": 37,
+      "matches": 38,
       "of_repeated_matches_analysed": 156,
-      "percentage_descriptive": 23.7
+      "percentage_descriptive": 24.4
     },
     "with_ambiguous_repeats": {
       "matches": 24,
@@ -165,6 +165,23 @@
     },
     {
       "directions": [
+        "DOWN",
+        "DOWN",
+        "FLAT",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:50836",
+        "3571094759:51253",
+        "3571094759:51281",
+        "3571094759:51288"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-30,1444,1651",
+      "match_label": "CD Atlético Nacional vs Club Independiente Santa Fe"
+    },
+    {
+      "directions": [
         "UP",
         "DOWN"
       ],
@@ -252,35 +269,22 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,33309,10004830",
       "match_label": "Duczespor vs Isparta Davrazspor"
-    },
-    {
-      "directions": [
-        "UP",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50869",
-        "3571094759:51236"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-31,541,535",
-      "match_label": "Eibar vs UD Almería"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 489,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 373,
-    "messages_in_source": 706,
+    "events_analysed": 374,
+    "messages_in_source": 707,
     "repeated_matches_analysed": 156,
     "repeated_matches_in_source": 156,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "b90b00390b52b4e693f7ae51af1c25aa37f4a7a1",
-  "source_generated_at": "2026-10-29T15:11:35+00:00",
+  "source_commit": "c51590401c6f5742dcb8bb3ee2627739739be471",
+  "source_generated_at": "2026-10-29T15:16:41+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
@@ -295,7 +299,7 @@
     "messages_by_bucket": {
       "AFTER_KICKOFF": 11,
       "T_0_TO_60": 115,
-      "T_360_TO_1440": 82,
+      "T_360_TO_1440": 83,
       "T_60_TO_360": 90,
       "T_OVER_1440": 75,
       "UNKNOWN": 0
@@ -305,22 +309,22 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 331
+      "V4_EXPLICIT": 332
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 36.2,
+      "DOWN": 36.1,
       "FLAT": 25.7,
-      "UP": 38.1
+      "UP": 38.2
     },
     "down": 135,
     "flat": 96,
-    "messages_with_total": 373,
-    "up": 142,
+    "messages_with_total": 374,
+    "up": 143,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 26,
-    "continuous": 111,
+    "continuous": 112,
     "identical_total_pairs": 20,
     "related_pairs": 29,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
