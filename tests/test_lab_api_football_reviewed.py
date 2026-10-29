@@ -249,6 +249,28 @@ class ReviewedBatchTests(unittest.TestCase):
         self.assertEqual({x["reason"] for x in decisions.values()},
                          {"NOT_SELECTED_IN_CURRENT_FT_QUEUE"})
 
+    def test_nonselected_approved_fixture_reports_distinct_backoff_times(self):
+        matches, review, approved = fixtures()
+        key = signal(1)["match_key"]
+        matches[key].update(
+            evidence_checked_at="2026-10-29T05:38:37+00:00",
+            queue_visited_at="2026-10-29T05:38:37+00:00",
+            stable_confirmations=1,
+            api_football_reviewed_id_last_attempt_at="2026-10-29T07:36:22+00:00",
+        )
+        index, registry = _proof()
+        decisions = {}
+        self.assertEqual(plan_reviewed_ids(
+            [], matches, review, approved, NOW, day_index=index,
+            confirmed_registry=registry, decisions=decisions), {})
+        record = decisions[key]
+        self.assertEqual(record["status"], "DEFERRED")
+        self.assertEqual(record["reason"], "FT_QUEUE_OR_APPROVED_ID_COOLDOWN")
+        self.assertEqual(record["ft_queue_not_before_utc"], "2026-10-29T17:38:37+00:00")
+        self.assertEqual(record["api_id_not_before_utc"], "2026-10-30T07:36:22+00:00")
+        self.assertIsNone(matches[key].get("result"))
+        self.assertEqual(matches[key]["status"], "PENDING")
+
     def test_cannot_approve_wrong_provider_or_wrong_match_key(self):
         matches, review, approved = fixtures()
         key = signal(1)["match_key"]
