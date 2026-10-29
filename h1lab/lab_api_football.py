@@ -202,6 +202,7 @@ class APIFootballResults:
         self.requests=0
         self.id_requests=0
         self.reviewed_targets=dict(reviewed_targets or {})
+        self.reviewed_outcomes = {}  # immutable, score-free per-match API ID diagnostics
         if len(self.reviewed_targets) > 20 or any(
                 not isinstance(k, str) or not isinstance(v, dict)
                 for k, v in self.reviewed_targets.items()):
@@ -215,12 +216,16 @@ class APIFootballResults:
             return None,"api_football_not_configured"
         reviewed = self.reviewed_targets.get(signal.get("match_key"))
         if reviewed is not None:
+            key = signal["match_key"]
+            def failed(reason):
+                self.reviewed_outcomes[key] = reason
+                return None, reason
             if self.max_days == 0:
-                return None, "api_football_reviewed_id_disabled"
+                return failed("api_football_reviewed_id_disabled")
             from .lab_api_football_reviewed import validate_reviewed_result
             if self.id_cache is None:
                 if self.requests + self.id_requests >= MAX_DAYS:
-                    return None, "api_football_reviewed_id_budget_deferred"
+                    return failed("api_football_reviewed_id_budget_deferred")
                 self.id_requests += 1
                 try:
                     self.id_cache = self.id_fetch(
@@ -230,13 +235,14 @@ class APIFootballResults:
                 except (OSError, ValueError, KeyError, TypeError):
                     self.id_cache = {}
                     self.reasons["api_football_reviewed_id_unavailable"] += 1
-                    return None, "api_football_reviewed_id_unavailable"
+                    return failed("api_football_reviewed_id_unavailable")
             event = self.id_cache.get(reviewed["provider_fixture_id"])
             if event is None:
                 self.reasons["api_football_reviewed_id_missing"] += 1
-                return None, "api_football_reviewed_id_missing"
+                return failed("api_football_reviewed_id_missing")
             result, why = validate_reviewed_result(signal, reviewed, event)
             self.reasons[why] += 1
+            self.reviewed_outcomes[key] = why
             return result, why
         ko=_utc(signal.get("kickoff_utc"))
         if ko is None:
@@ -269,6 +275,7 @@ class APIFootballResults:
         return {"configured":bool(self.key),"requests":self.requests + self.id_requests,
                 "date_requests":self.requests,"id_requests":self.id_requests,
                 "reviewed_targets":len(self.reviewed_targets),
+                "reviewed_outcomes":dict(sorted(self.reviewed_outcomes.items())),
                 "cached_days":len(self.days),
                 "requested_days":sorted(self.days),
                 "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
