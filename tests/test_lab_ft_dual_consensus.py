@@ -130,6 +130,44 @@ class ConsensusTests(unittest.TestCase):
             r["games"].append(row)
         self.assertIsNone(engine(mut=collide).lookup(SIGNAL)[0])
 
+    def test_unselected_game_can_be_recovered_from_full_day_cache_at_zero_calls(self):
+        obj=engine()
+        no=lambda _:(None,"no_match")
+        state={"alerts":[SIGNAL],"signals":[]}
+        ledger,report,queries=reconcile(state,[],
+            {"schema_version":1,"matches":{}}, now=NOW,
+            bsd_lookup=no,tsdb_lookup=no,max_checks=0,evidence_retry=True,
+            dual_lookup=obj.lookup,dual_postcheck_keys=[KEY])
+        self.assertEqual(queries,0)
+        self.assertEqual(report["ft_queue"]["selected"],0)
+        self.assertEqual(report["ft_queue"]["dual_postcheck_scanned"],1)
+        self.assertEqual(report["ft_queue"]["dual_postcheck_confirmed"],1)
+        self.assertEqual(ledger["matches"][KEY]["status"],"FINAL")
+        self.assertEqual(ledger["matches"][KEY]["result"]["evidence"],
+            "dual_provider_only")
+
+    def test_unselected_conflict_stays_in_quarantine(self):
+        obj=engine(mut=lambda a,g,r,m:g.update(
+            homeTeamFtScore="3",homeTeamScore="3"))
+        no=lambda _:(None,"no_match")
+        state={"alerts":[SIGNAL],"signals":[]}
+        ledger,report,queries=reconcile(state,[],
+            {"schema_version":1,"matches":{}}, now=NOW,
+            bsd_lookup=no,tsdb_lookup=no,max_checks=0,evidence_retry=True,
+            dual_lookup=obj.lookup,dual_postcheck_keys=[KEY])
+        self.assertEqual(queries,0)
+        self.assertEqual(report["ft_queue"]["dual_postcheck_conflicts"],1)
+        self.assertEqual(ledger["matches"][KEY]["status"],"SCORE_CONFLICT")
+        self.assertNotIn("result",ledger["matches"][KEY])
+
+    def test_invalid_batch_cannot_be_over_500_keys(self):
+        no=lambda _:(None,"no_match")
+        state={"alerts":[SIGNAL],"signals":[]}
+        with self.assertRaises(ValueError):
+            reconcile(state,[],{"schema_version":1,"matches":{}},
+                now=NOW,bsd_lookup=no,tsdb_lookup=no,
+                max_checks=0,dual_postcheck_keys=[KEY]*501)
+
     def test_reconcile_produces_actual_final_for_matching_corrob(self):
         obj=engine()
         no=lambda _:(None,"no_match")
