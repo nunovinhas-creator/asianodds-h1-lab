@@ -8,7 +8,9 @@ The retired generic Pattern Watch notifier has its own untouched legacy ledger.
 """
 from __future__ import annotations
 
+import argparse
 import json
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -186,7 +188,8 @@ def candidate_matches(timelines, now, research):
 
 
 def _pct(n):
-    return ("%0.1f" % (100 * n)).replace(".", ",") + "%"
+    value = (Decimal(str(n)) * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    return str(value).replace(".", ",") + "%"
 
 
 def message_for_game(row, rules):
@@ -309,5 +312,30 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
     return ledger
 
 
+def preview(root=ROOT, now=None):
+    """Dry-run on actual tracked data; no Telegram network or ledger writes."""
+    root = Path(root)
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    research = json.loads((root / RESEARCH).read_text(encoding="utf-8"))
+    alerts, markets, errors = read_sources(root)
+    alerts = [a for a in alerts if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
+    markets = [a for a in markets if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
+    timelines, issues, excluded = collect_timelines(alerts, markets, source_errors=errors)
+    rows = candidate_matches(timelines, now, research)
+    print("MASTER_BRAIN_FIVE_STRATEGIES_DRY_RUN", "matches", len(rows),
+          "strategy_links", sum(len(r["rules"]) for r in rows),
+          "timeline_issues", len(issues), "excluded", len(excluded))
+    for row in rows[:30]:
+        print("MATCH", row["match_label"], row["kickoff_utc"],
+              "strategies", ",".join(str(x["number"]) for x in row["rules"]))
+    return rows
+
+
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", action="store_true", help="no send, no ledger writes")
+    args = parser.parse_args()
+    if args.dry_run:
+        preview()
+    else:
+        run()
