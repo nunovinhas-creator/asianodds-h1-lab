@@ -98,6 +98,25 @@
    }));
    for(const id of ["p-query","p-target","p-type","p-sort"])$(id).addEventListener(id==="p-query"?"input":"change",patterns);
  }
+ function validateData(key,body){
+   const object=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
+   const count=v=>Number.isSafeInteger(v)&&v>=0;
+   const fail=()=>{throw Error("Contrato de dados inválido: "+key)};
+   if(!object(body))fail();
+   if(key!=="h1"&&body.schema_version!==1)fail();
+   const arrays={research:["patterns","combinations_top","frozen"],watch:["future_strict","future_other_original","future_opposing"],discovery:["timeline"],ft:["games"],h1:["signals","tickets"]};
+   for(const field of arrays[key]||[])if(!Array.isArray(body[field])||body[field].some(v=>!object(v)))fail();
+   const objects={research:["scope","generation","state_counts"],watch:["summary"],discovery:["patterns","prospective"],ft:["timing_counts","coverage_diagnostics"],quality:["acceptance_gates"],h1:["singles","triples"]};
+   for(const field of objects[key]||[])if(!object(body[field]))fail();
+   if(!Object.hasOwn(objects,key))fail();
+   const timestamp=key==="ft"?body.last_updated_at:key==="discovery"?body.baseline_at:body.generated_at;
+   if(typeof timestamp!=="string"||!Number.isFinite(Date.parse(timestamp)))fail();
+   if(key==="ft"){
+     if(![body.matches,body.final_recorded,body.unverified].every(count)||body.final_recorded+body.unverified!==body.matches)fail();
+     if(!Object.values(body.timing_counts).every(count)||Object.values(body.timing_counts).reduce((a,b)=>a+b,0)!==body.matches)fail();
+   }
+   return body;
+ }
  async function fetchData(path){
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
    try{
@@ -109,22 +128,28 @@
  async function load(force=false){
    const button=$("refresh");button.disabled=true;button.textContent="↻";
    const attempts=await Promise.allSettled(Object.entries(SOURCES).map(async ([key,path])=>({key,body:await fetchData(path)})));
-   const failed=[];let got=0;
+   const failed=[],stale=[];let got=0;
    for(let i=0;i<attempts.length;i++){
      const item=attempts[i],key=Object.keys(SOURCES)[i];
      if(item.status==="fulfilled"){
        const body=item.value.body;
-       if(!body||typeof body!=="object")failed.push(key+" (formato)");
-       else{state.data[key]=body;got++}
-     }else failed.push(key);
+       try{
+         state.data[key]=validateData(key,body);got++;
+         if(key==="ft"&&body.execution_health?.status==="DEGRADED")failed.push("FT: erros de execução registados");
+         const timestamp=key==="ft"?body.last_updated_at:body.generated_at;
+         if(timestamp&&(Date.now()-Date.parse(timestamp)>2*60*60*1000||Date.parse(timestamp)>Date.now()+120000))stale.push(key);
+       }
+       catch(_){delete state.data[key];failed.push(key+" (formato)")}
+     }else{delete state.data[key];failed.push(key)}
    }
    const banner=$("error-box");
-   banner.hidden=failed.length===0;
+   banner.hidden=failed.length===0&&stale.length===0;
+   banner.textContent="";
    if(failed.length)banner.textContent="Dados parciais: não foi possível atualizar "+failed.join(", ")+". Os valores existentes podem estar desatualizados.";
+   if(stale.length)banner.textContent+=" Dados desatualizados ou com relógio inválido: "+stale.join(", ")+". Última atualização superior a 2 horas ou no futuro.";
    put("last-sync",got?(data("research")?.generated_at?"Cérebro: "+formatDate(data("research").generated_at)+" · relatórios publicados":"Relatórios parcialmente disponíveis"):"Sem ligação aos relatórios");
-   render();
-   button.disabled=false;
-   button.textContent="↻";
+   try{render()}catch(_){banner.hidden=false;banner.textContent="Erro ao apresentar os relatórios. Os valores não puderam ser validados."}
+   finally{button.disabled=false;button.textContent="↻"}
  }
  function originalFuture(){
    const watch=data("watch");if(!watch)return {strict:[],other:[],opposite:[],original:[]};
@@ -477,5 +502,6 @@
    if(data("h1"))rowKeyVal(feeds,"Arquivo Under H1",num(data("h1").singles?.total)+" sinais simulados");
  }
  function render(){renderRadar();renderChronology();renderProspective();renderFuture();renderPatternsMeta();renderValidation();renderData()}
+ if(typeof module!=="undefined"&&module.exports){module.exports={validateData};return}
  setupNav();load();
 })();
