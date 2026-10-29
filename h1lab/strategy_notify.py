@@ -27,8 +27,8 @@ SCHEMA_VERSION = 1
 RULE_VERSION = "SELECTED_V5_FIVE_20261029"
 MARKETS = {"OVER_2_5": "OVER 2,5 GOLOS", "BTTS_YES": "AMBAS MARCAM"}
 MAX_RESEARCH_AGE = timedelta(hours=24)
-MAX_ALERT_LOOKAHEAD = timedelta(hours=24)
-MAX_MESSAGES_PER_RUN = 6
+MAX_ALERT_LOOKAHEAD = timedelta(hours=12)
+# No fixed message count: pacing protects Telegram while preserving full 12-hour coverage.
 
 # Explicit fixed selection. Do NOT re-rank from the exploratory leader board.
 # IDs and predicates are taken from the published V5 catalogue on 2026-10-29.
@@ -196,41 +196,24 @@ def _pct(n):
 
 
 def message_for_game(row, rules):
-    """One Telegram message per match with DISTINCT numbered market sections."""
+    """Compact single-game Telegram card with independently identified markets."""
     kickoff = utc(row.get("kickoff_utc"))
     observed = utc(row.get("observed_through"))
     if not kickoff or not observed or observed >= kickoff or not rules or not row.get("match_label"):
         raise ValueError("invalid prospective strategy match")
     when = kickoff.astimezone(ZoneInfo("Europe/Lisbon"))
-    lines = [
-        "🧠 MASTER BRAIN | 5 ESTRATÉGIAS V5",
-        "⚽ " + row["match_label"],
-        "🕒 " + when.strftime("%d/%m/%Y %H:%M") + " (Portugal continental)",
-        "📍 " + str(len(rules)) + " estratégia(s) identificada(s)",
-    ]
+    lines = ["⚽ " + row["match_label"],
+             "🕒 " + when.strftime("%d/%m %H:%M") + " (Portugal)"]
     for rule in sorted(rules, key=lambda x: x["number"]):
-        lines.extend([
-            "",
-            "━━━━━━━━━━━━━━━━",
-            "🎯 ESTRATÉGIA " + str(rule["number"]) + "/5 — " + MARKETS[rule["market"]],
-            "🔎 " + rule["label"],
-        ])
+        lines += ["", "🎯 E" + str(rule["number"]) + " · " + MARKETS[rule["market"]],
+                  rule["label"]]
         h = rule.get("history")
         if h:
             lines.append("📊 Histórico V5: " + str(int(h["hits"])) + "/" + str(int(h["known"]))
-                         + " (" + _pct(h["rate"]) + ") vs "
-                         + _pct(h["reference_rate"]) + " (" + str(int(h["reference_known"]))
-                         + " jogos de comparação)")
+                         + " (" + _pct(h["rate"]) + ")")
         else:
-            lines.append("📊 Histórico: dados publicados insuficientes para este cartão.")
-        lines.append("🆔 " + rule["id"])
-    lines += [
-        "",
-        "🧾 Observações até " + observed.astimezone(ZoneInfo("Europe/Lisbon")).strftime("%d/%m %H:%M")
-        + " (Portugal). As condições podem mudar com novos alertas pré-jogo.",
-        "⚠️ Padrões EXPLORATÓRIOS, não validados em novos jogos. Taxas históricas ≠ probabilidade futura/ROI; sem odds de entrada.",
-        "🔗 https://nunovinhas-creator.github.io/asianodds-h1-lab/brain-preview.html",
-    ]
+            lines.append("📊 Histórico V5: indisponível")
+
     result = "\n".join(lines)
     if len(result.encode("utf-8")) > 4096:
         raise ValueError("Telegram strategy message exceeds 4096 bytes")
@@ -249,7 +232,7 @@ def process(rows, ledger, now, sender, enabled, pace=None):
     counts = {"games_with_strategies": len(rows), "strategies_matched": sum(len(r["rules"]) for r in rows),
               "games_sent": 0, "strategy_receipts": 0, "already_notified": 0, "unconfigured": 0,
               "failed": 0, "expired": 0,
-              "deferred_not_imminent": 0, "deferred_rate_limit": 0}
+              "deferred_not_imminent": 0}
     attempts = 0
     for row in sorted(rows, key=lambda r: (r["kickoff_utc"], r["match_key"])):
         if utc(row["kickoff_utc"]) <= now:
@@ -261,9 +244,6 @@ def process(rows, ledger, now, sender, enabled, pace=None):
             continue
         if utc(row["kickoff_utc"]) > now + MAX_ALERT_LOOKAHEAD:
             counts["deferred_not_imminent"] += 1
-            continue
-        if attempts >= MAX_MESSAGES_PER_RUN:
-            counts["deferred_rate_limit"] += 1
             continue
         if not enabled:
             counts["unconfigured"] += len(fresh)
