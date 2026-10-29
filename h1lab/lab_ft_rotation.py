@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from .lab_api_football_access import restriction_for_day
 
 SCHEMA = 1
 CAPS = {"goal": 2, "openfoot": 2, "api_football": 3}
@@ -97,8 +98,12 @@ def choose_days(selected_keys, matches, previous, now, enabled):
             month = now.date().isoformat()[:7]
             used = sum(v for day,v in provider_usage.items() if day.startswith(month))
             cap = min(cap, max(0, OPENFOOT_MONTHLY_LIMIT - used))
+        access = (previous.get("api_football_history_access", {})
+                  if provider == "api_football" else {})
         available = [day for day in counts
-                     if _eligible_day(days.get(day), now)]
+                     if _eligible_day(days.get(day), now)
+                     and (provider != "api_football"
+                          or restriction_for_day(access, day, now) is None)]
         result[provider] = sorted(available, key=lambda d: (
             days.get(d, {}).get("last_requested_at", "") if isinstance(days.get(d, {}), dict) else "",
             -counts[d], d
