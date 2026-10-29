@@ -24,6 +24,7 @@ from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_goal_reviewed import plan_reviewed_goal_id
+from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
@@ -269,15 +270,22 @@ def main():
                      else {"schema_version": 1, "pairs": {}})
     goal_today = (historical_days.get("usage", {}).get("goal", {})
                   .get(now.date().isoformat(), 0))
-    # An ID probe plus one date request must BOTH fit under the daily cap.
+    # Endpoint budgets are independent. A fixture-ID probe may replace a
+    # date request, but does NOT need a date request to be eligible.
+    # This prevents a successful COMPLETE day list's adaptive cooldown from
+    # indefinitely starving a reviewed ID once the game itself is due.
+    # If 1 date is selected, reserve 2 daily slots (1 date + 1 ID);
+    # if no date is eligible, reserve just 1 slot (ID only).
+    goal_id_slot = goal_enabled and (
+        goal_today <= (78 if rotation["goal"] else 79))
     goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
                                  previous_review, now)
-                    if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
+                    if goal_id_slot else {})
     goal_review_decisions = {}
     reviewed_goal_targets = (plan_reviewed_goal_id(
         preview_keys, _preview_ledger["matches"], previous_review,
         goal_approved, approved, now, decisions=goal_review_decisions)
-        if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
+        if goal_id_slot else {})
     if reviewed_goal_targets:
         # At most one target per run. It supersedes ordinary GOAL probes,
         # without consuming a third request or bypassing queue cooldowns.
@@ -327,6 +335,26 @@ def main():
     goal.allowed_days = frozenset(rotation["goal"])
     openfoot.allowed_days = frozenset(rotation["openfoot"])
     api_football.allowed_days = frozenset(rotation["api_football"])
+    # Only already-fetched COMPLETE day responses; no additional requests.
+    dual = TwoProviderConsensus(
+        review=previous_review, matches=_preview_ledger["matches"],
+        goal=goal, api_football=api_football, openfoot=openfoot, now=now,
+        score_hold_keys={key for key, row in goal_approved.get("pairs", {}).items()
+                         if isinstance(row, dict) and
+                         row.get("score_gate") == "HOLD_FOR_OFFICIAL"})
+    # A full date snapshot can corroborate games OUTSIDE the 30-match
+    # network queue as well. Only two-provider STRONG review keys enter
+    # this bounded, zero-HTTP local postcheck.
+    dual_postcheck_keys = sorted(
+        key for key, game in dual.review.items()
+        if not game.get("possible_duplicates")
+        and len({cand.get("provider")
+                 for cand in game.get("candidates", [])
+                 if (isinstance(cand, dict)
+                     and cand.get("match_strength") == "STRONG"
+                     and cand.get("orientation") == "SAME_ORDER"
+                     and cand.get("provider") in ("goal","api_football","openfoot"))}) >= 2
+    )[:500]
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
     sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
@@ -338,6 +366,8 @@ def main():
         api_football_lookup=api_football.lookup if api_football_poll else None,
         goal_lookup=goal.lookup if goal_enabled else None,
         openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
+        dual_lookup=dual.lookup if goal_enabled and api_football_poll else None,
+        dual_postcheck_keys=dual_postcheck_keys,
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
@@ -350,6 +380,19 @@ def main():
         raise ValueError("FT queue changed between date planning and reconciliation")
     # An ID request is counted as a real HTTP attempt (including failures).
     # Do not repeatedly consume the same free-tier slot on every eligible run.
+    # The consensus may settle matches using two independent completed
+    # provider-day caches, without making any remote requests itself.
+    for match_key, sources in dual.confirmations.items():
+        row = next_ledger["matches"].get(match_key)
+        if isinstance(row, dict) and row.get("status") == "FINAL":
+            verified_sources = row.setdefault("verified_provider_sources", {})
+            verified_sources.update(sources)
+            row["dual_provider_corroboration"] = {
+                "verified_at_utc": now.isoformat(timespec="seconds"),
+                "method": "TWO_STRONG_PROVIDER_IDS_SAME_REGULATION_FT",
+                "providers": sorted(sources),
+                "scores_agree": True,
+            }
     if goal.id_requests:
         for match_key in goal_targets:
             row = next_ledger["matches"][match_key]
@@ -438,6 +481,7 @@ def main():
                     if PROVIDER_IDENTITY.exists()
                     else {"schema_version":1,"entries":{}})
     identity_registry = build_registry(next_ledger, old_identity)
+    report["ft_queue"]["dual_provider_consensus"] = dual.summary()
     report["ft_queue"]["goal_reviewed_id_probe"] = {
         "approved_selected": len(reviewed_goal_targets),
         "decisions": goal_review_decisions,

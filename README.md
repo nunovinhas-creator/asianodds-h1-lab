@@ -4,6 +4,9 @@
 
 Observatório experimental de odds asiáticas: recolhe alertas estruturados de um canal Telegram autorizado, regista movimentos de mercado, forma sinais e triplas H1 simuladas e investiga combinações de padrões com resultados finais. **Não executa apostas reais, não garante rentabilidade e não ativa automaticamente estratégias descobertas pelo LAB.**
 
+
+**V8 — recuperação FT por consenso de duas fontes:** o LAB passa a cruzar candidatos STRONG do mesmo jogo em listas COMPLETAS de API-Football, GOAL e OpenFoot já obtidas. Só declara um resultado se dois fornecedores distintos devolverem FT regulamentar idêntico, com IDs, equipa, KO e competição verificados; conflito ou fonte ausente ficam pendentes. O GOAL por ID deixa de depender do cooldown da lista por data, dentro das quotas; o BSD LAB reutiliza a leitura de envelopes comprovada pelo Monte-Carlos. Não são criadas chamadas extra nem alterados H1 ou Telegram. [Plano e limites da V8](docs/lab/ft-v7-reviewed-batch.md).
+
 **P0 — evidência FT persistente e revalidação BSD dirigida:** respostas de rotação/quotas já não apagam a última pista GOAL útil; cada GET GOAL por ID tem cooldown próprio de 24 horas. Foram adicionados dois `match_key` individualmente revistos com IDs BSD observados em pelo menos duas fontes, sujeitos a nova validação estrita dos 90 minutos, sem aliases gerais nem FT presumidos. [Auditoria técnica e critérios](docs/lab/FT-P0-EVIDENCE-AND-TARGETED-RECOVERY.md).
 
 **P0 — revalidação GOAL por ID:** quando a fila encontra um único ID GOAL de um jogo elegível, confirmado por nomes deterministas e KO rigoroso, pode trocar **uma** das duas consultas por data por um `GET /fixtures/:id`. A resposta é novamente validada quanto ao resultado dos 90 minutos; candidatos ambíguos continuam pendentes. [Documentação e testes](docs/lab/FT-ID-PROBE-P0.md).

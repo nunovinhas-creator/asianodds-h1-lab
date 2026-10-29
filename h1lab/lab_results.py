@@ -133,7 +133,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None, dual_lookup=None, dual_postcheck_keys=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -154,6 +154,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     if not isinstance(approved_rechecks, (set, frozenset)) or any(
             not isinstance(key, str) for key in approved_rechecks):
         raise ValueError("Invalid approved fixture recheck set")
+    if dual_postcheck_keys is None:
+        dual_postcheck_keys = ()
+    if (not isinstance(dual_postcheck_keys, (tuple, list, set, frozenset))
+            or len(dual_postcheck_keys) > 500
+            or any(not isinstance(key, str) for key in dual_postcheck_keys)):
+        raise ValueError("Invalid bounded dual provider postcheck keys")
     if priority_hints is None:
         priority_hints = {}
     if (not isinstance(priority_hints, dict) or
@@ -341,6 +347,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("goal", goal_lookup))
         if openfoot_lookup is not None:
             providers.append(("openfoot", openfoot_lookup))
+        if dual_lookup is not None:
+            # After each normal provider has populated its COMPLETE day cache:
+            # no HTTP call here. Requires two strict 90-minute FT validations.
+            providers.append(("dual_provider", dual_lookup))
         if ((key in source_order_keys and key in REVIEWED_PUBLIC_FT) or
                 (key in REVIEWED_PENDING_FT and
                  (original.get(key) or {}).get("status") in ("PENDING", "PROVIDER_ERROR"))):
@@ -446,7 +456,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["status"] = "PENDING"
             row["reason"] = "provider_event_id_collision_review"
             row.pop("result", None)
-        elif len(scores) > 1:
+        elif len(scores) > 1 or reasons.get("dual_provider") == "dual_provider_score_conflict":
             row["status"] = ("SOURCE_ORDER_CONFLICT" if key in source_order_keys
                              else "SCORE_CONFLICT")
             row["reason"] = ("independent_sources_disagree_manual_review"
@@ -504,6 +514,68 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                     ) else "PENDING"
                     row["reason"] = "no_verified_ft_yet"
             row.pop("result", None)
+
+    # V8 batch amortization: a completed date list contains ALL events from
+    # that day, not only the 30 matches serviced by the network-backed queue.
+    # Apply already-fetched source caches to other pending STRONG pairs,
+    # without invoking ANY additional adapters or APIs. This is pure,
+    # capped local computation; normal FT network budget remains 30.
+    dual_scanned = dual_confirmed = dual_conflicts = 0
+    if evidence_retry and dual_lookup is not None:
+        for key in sorted(set(dual_postcheck_keys)):
+            if key in selected_keys or key not in games:
+                continue
+            row = entries.get(key)
+            if not isinstance(row, dict) or row.get("status") not in (
+                    "PENDING", "PROVIDER_ERROR"):
+                continue
+            ko = utc(row.get("kickoff_utc"))
+            if ko is None or not ko + DELAY <= now <= ko + HORIZON:
+                continue
+            signal = {"match_key": key, **{
+                field: row[field] for field in ("home","away","kickoff_utc")}}
+            try:
+                candidate, reason = dual_lookup(signal)
+            except Exception:
+                # An offline parsing error never certifies an FT.
+                continue
+            dual_scanned += 1
+            if reason == "dual_provider_score_conflict":
+                row["status"] = "SCORE_CONFLICT"
+                row["reason"] = "two_valid_provider_ft_scores_disagree"
+                row.pop("result", None)
+                dual_conflicts += 1
+                continue
+            verified = _validate_result(candidate, key)
+            if verified is None:
+                continue
+            # The result is already based on two distinct, identity-checked
+            # providers. Do not settle if its leading URL collides with an
+            # already FINAL game.
+            source = verified["source"]
+            id_ = event_id("api_football", source) or event_id("goal", source)
+            kind = ("api_football" if event_id("api_football", source)
+                    else "goal" if event_id("goal", source) else None)
+            if id_ and claimed_ids.get((kind, id_), set()) - {key}:
+                row["reason"] = "provider_event_id_collision_review"
+                continue
+            row["status"] = "FINAL"
+            row["reason"] = "ft_recorded_from_two_cached_providers"
+            row["result"] = {
+                "home_goals": verified["home_goals"],
+                "away_goals": verified["away_goals"],
+                "source": source,
+                "identity_match": "REVIEWED_PAIR",
+                "evidence": "dual_provider_only",
+            }
+            row["checked_at"] = now.isoformat(timespec="seconds")
+            row["evidence_checked_at"] = now.isoformat(timespec="seconds")
+            if id_:
+                claimed_ids.setdefault((kind,id_),set()).add(key)
+            dual_confirmed += 1
+    queue_plan["dual_postcheck_scanned"] = dual_scanned
+    queue_plan["dual_postcheck_confirmed"] = dual_confirmed
+    queue_plan["dual_postcheck_conflicts"] = dual_conflicts
 
     # Distinguish not-started matches from real provider gaps. The "unverified"
     # total includes future fixtures and must never be called an overdue backlog.

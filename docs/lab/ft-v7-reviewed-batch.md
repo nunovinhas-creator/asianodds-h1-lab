@@ -440,3 +440,69 @@ fixture ficam `goal_id_mismatch`; uma identidade confirmada com marcador
 ainda não certificado mantém `goal_reviewed_ft_held_for_official`.
 Não se guarda corpo bruto nem cabeçalhos, não há nova consulta, e uma
 falha jamais vira resultado FT. O cooldown de 24h continua obrigatório.
+
+## V8 — Recuperação FT em massa por consenso de dois fornecedores (29/10/2026)
+
+A revisão persistente de 105 jogos FT vencidos encontrou 46 com pelo menos
+uma pista STRONG e 20 com pistas STRONG em pelo menos dois fornecedores
+(api_football, goal, openfoot), sem duplicados assinalados. Estas são
+contagens de CANDIDATOS, não 20 FT confirmados.
+
+O motor h1lab/lab_ft_dual_consensus.py aproveita APENAS listas já obtidas
+pelos adaptadores na execução FT normal, sem novas chamadas HTTP.
+Para aceitar FINAL exige: match_key e identidade original imutáveis;
+dois candidatos STRONG em fornecedores distintos, sem duplicado nem
+colisão de ID; orientação correta e categoria masculina/feminina/reserva
+equivalente; nomes dos dois lados e competição congruentes com o evento
+real de cada fonte; horário KO dentro de 5 minutos; validação individual
+do estado e resultado regulamentar pelos verificadores atuais; identidade
+casa/fora coerente entre fornecedores; concordância exata dos dois FT.
+Uma discordância validada produz SCORE_CONFLICT, nunca votação.
+Apenas um fornecedor ou uma lista indisponível mantêm PENDING.
+
+O ledger FINAL é acompanhado por dual_provider_corroboration,
+verified_provider_sources e hora da verificação. Fornecedores distintos
+podem usar um feed upstream comum: isto reforça a consistência, mas não
+prova independência editorial ou superioridade estatística.
+
+Independiente Reserves–Defensa y Justicia Reserves tem proteção explícita
+HOLD_FOR_OFFICIAL por causa da divergência 3–1 / 4–1. O consenso não
+retira essa proteção sem corroboração oficial.
+
+### GOAL ID independente da rotação por data
+
+A elegibilidade de um pedido GOAL por fixture ID deixa de depender
+de haver uma lista diária também elegível no mesmo ciclo. Sem data
+elegível, é permitido 1 ID quando restar quota; com data elegível,
+ficam reservados até 1 ID + 1 data. Mantêm-se o limite de 80 pedidos
+diários locais e todos os cooldowns de 24h do ID.
+
+### Compatibilidade BSD aproveitada do Monte-Carlos
+
+O LAB passa a interpretar envelopes data/result e pontuações
+explicitamente regulamentares em strings, tal como o settlement.py
+do Monte-Carlos, sem confiar em scores genéricos (AET/PEN).
+A compatibilidade aplica-se só ao BSDDateFallback do LAB, deixando
+o adaptador partilhado H1 bsd.py intacto.
+
+Nenhuma alteração requer chamadas extra, manipula H1, reclassifica
+jogos sem prova ou garante liquidação. O impacto deve ser observado
+em ft_queue.newly_confirmed e ft_queue.dual_provider_consensus,
+e validado no ledger após execuções normais.
+
+### Reaproveitamento total das listas completas (sem novos pedidos)
+
+A V8 estende a verificação local aos jogos fortes de todo o catálogo que
+partilham os dias já obtidos em cache, mesmo se não foram escolhidos entre
+os 30 jogos do lote da fila. O limite de 30 mantém-se para as consultas
+de rede. O reaproveitamento é apenas CPU e no máximo 500 chaves de
+revisão, com duas correspondências STRONG e sem duplicados registados.
+Todos os critérios de dois fornecedores e os HOLDs são reaplicados.
+Resultados contraditórios ficam em SCORE_CONFLICT, não são vencedores
+nem perdedores. Os contadores dual_postcheck_scanned,
+dual_postcheck_confirmed e dual_postcheck_conflicts distinguem
+esta fase pós-fila das consultas de rede efetivas.
+
+Esta operação não transforma 20 candidaturas em resultados garantidos:
+depende das respostas reais, completas, de pelo menos dois fornecedores
+para os dias que a rotação normal selecionar.
