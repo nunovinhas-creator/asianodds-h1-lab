@@ -17,6 +17,8 @@ on:
       - 'tests/test_lab_ft_v7.py'
       - 'h1lab/lab_ft_crosswalk.py'
       - 'h1lab/lab_ft_dual_consensus.py'
+      - 'h1lab/lab_ft_attestations.py'
+      - 'data/lab/ft-provider-attestations.json'
       - 'h1lab/lab_bsd_payload.py'
       - 'tests/test_lab_bsd_payload.py'
       - 'tests/test_lab_ft_dual_consensus.py'
@@ -191,6 +193,17 @@ jobs:
           for provider, value in d['ft_queue']['date_rotation'].items():
               assert len(value['requested_days']) <= value['date_budget']
               assert set(value['requested_days']).issubset(value['selected_days'])
+          att=json.loads(Path('data/lab/ft-provider-attestations.json').read_text())
+          assert att['schema_version']==1 and isinstance(att['records'],dict)
+          assert isinstance(att['conflicts'],dict)
+          assert sum(len(v) for v in att['records'].values()) <= 5000
+          from h1lab.lab_ft_attestations import seal
+          for key, by_provider in att['records'].items():
+              assert key in ledger['matches']
+              for provider, proof in by_provider.items():
+                  assert proof['match_key']==key
+                  assert proof['provider']==provider
+                  assert seal(proof)['sha256']==proof['sha256']
           assert d['ft_queue']['selected'] <= 30
           assert d['ft_queue']['selected'] + d['ft_queue']['deferred_by_capacity'] == d['ft_queue']['eligible']
           print('LAB_FT_BACKLOG_VALID',b['classification'].get('past_due_unverified',0),
@@ -316,6 +329,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
           git add data/lab/ft-provider-day-rotation.json data/lab/ft-provider-identity.json docs/lab/ft-provider-identity.json
+          git add -f data/lab/ft-provider-attestations.json
           if [ -f data/lab/ft-api-football-day-index.json ]; then git add data/lab/ft-api-football-day-index.json; fi
           if [ -f docs/lab/ft-identity-review.json ]; then git add docs/lab/ft-identity-review.json; fi
           if [ -f docs/lab/ft-api-football-review-decisions.json ]; then git add docs/lab/ft-api-football-review-decisions.json; fi
