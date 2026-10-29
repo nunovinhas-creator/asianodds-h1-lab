@@ -99,9 +99,12 @@
    for(const id of ["p-query","p-target","p-type","p-sort"])$(id).addEventListener(id==="p-query"?"input":"change",patterns);
  }
  async function fetchData(path){
-   const res=await fetch(ROOT+path,{cache:"no-store"});
-   if(!res.ok)throw Error(path+": HTTP "+res.status);
-   return res.json();
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+   try{
+     const res=await fetch(ROOT+path,{cache:"no-store",signal:controller.signal});
+     if(!res.ok)throw Error(path+": HTTP "+res.status);
+     return await res.json();
+   }finally{clearTimeout(timer)}
  }
  async function load(force=false){
    const button=$("refresh");button.disabled=true;button.textContent="↻";
