@@ -138,7 +138,7 @@ function renderTesting(){
   note.append(element("strong","Prova científica V6.2 indisponível."),element("span","Não se confunde esta ausência com validação."));
   holder.append(note);
  }
- if(!r){state(holder,"Estado exploratório V5 indisponível.","Não foi possível consultar o V5. A informação científica V6.2 permanece separada na origem.");return}
+ if(!r){holder.append(element("p","Estado exploratório V5 indisponível; a hipótese científica V6.2 permanece apresentada acima.","mini"));return}
  const frozen=Array.isArray(r.frozen)?r.frozen:[];
  const historical=candidates(r,"combinations").filter(x=>x.o.known>=12&&x.o.reference_known>=12&&x.o.diff>=0.08)
    .sort((a,b)=>(b.o.diff-a.o.diff)||b.o.known-a.o.known).slice(0,4);
@@ -167,9 +167,9 @@ function renderProven(){
  if(!r){holder.append(element("p","Validação V5 indisponível; não é possível afirmar quantas hipóteses foram validadas.","mini"));return}
  const n=r.state_counts?.VALIDADO;
  if(typeof n!=="number"){state(holder,"Estado de validação não identificado.","O relatório não forneceu uma contagem válida.");return}
- if(n===0){state(holder,"Ainda não existe nenhuma estratégia V5 comprovada.","Esta secção só apresentará resultados depois de cumpridos os critérios de validação independente. O Radar Científico V6.2 mantém um registo próprio.");return}
+ if(n===0){holder.append(element("div","Ainda não existe nenhuma estratégia V5 comprovada. A validação V6.2 tem os seus próprios requisitos, mostrados acima.","empty-state"));return}
  const valid=candidates(r).filter(x=>x.h.state==="VALIDADO");
- if(!valid.length){state(holder,count(n)+" estratégia(s) marcada(s) como validada(s), sem detalhe neste resumo.","Consulte o relatório técnico antes de interpretar a validação.");return}
+ if(!valid.length){holder.append(element("p",count(n)+" estratégia(s) V5 marcada(s) como validada(s), sem detalhe neste resumo. Consultar os critérios técnicos.","mini"));return}
  for(const x of valid.slice(0,8)){const b=card(holder,"VALIDAÇÃO V5",x.h.label||"Estratégia", "Validada","verified");b.append(element("p","Verificar amostras independentes e critérios na documentação."))}
 }
 function eventLine(holder,title,sub){
