@@ -138,3 +138,26 @@ aprovar; `AET` e `PEN` são recusados na liquidação.
 ficam em conflito de canonicidade. Não liquidar até escolher uma chave
 com prova de identidade; não transformar o nome `Yeni Mersin Idmanyurdu`
 num alias global sem validação de IDs.
+
+
+## Auditoria de proveniência e prova FT (29/10/2026)
+
+A aprovação do fixture `1612137` permanece estritamente **uma decisão de
+identidade**. O campo `reviewed_by: user_authorized_assistant_review` deve
+ser lido em conjunto com `review_provenance`, que discrimina: decisão
+registada pelo assistente na sequência da concordância do utilizador,
+fornecedor, data e fingerprint SHA-256 da lista completa de 326 fixtures
+(27/10), a consulta de referência, IDs casa/fora `18689/18684`,
+competição `906`, âncora já confirmada `1612141`, delta de kickoff de
+zero minutos, inexistência de outra participação dos IDs em ±90 minutos e
+as duas correspondências fracas rejeitadas. **Nenhum golo é atestado por
+esta revisão**.
+
+O resultado `fixtures?ids=1612137` só pode produzir FINAL quando a API
+responde com `fixture.status.short == 'FT'`, o ID original e IDs de equipa
+e liga aprovados, KO dentro de ±90 minutos do observado e ±5 minutos do
+aprovado, e quando `goals.home/away == score.fulltime.home/away` com
+valores inteiros válidos. `AET`, `PEN`, ausência de `FT`, falta de
+`score.fulltime`, divergência de golos, IDs incorretos ou KO divergente
+ficam em `PENDING` com motivo. Os testes de regressão contemplam essas
+rejeições, sem usar dados reais nem chamar APIs.
