@@ -29,7 +29,7 @@ MAX_DAYS = 45
 
 
 def empty():
-    return {"schema_version": SCHEMA, "days": {}, "matches": {}, "conflicts": {}}
+    return {"schema_version": SCHEMA, "days": {}, "matches": {}, "conflicts": {}, "probes": {}}
 
 
 def _identity(event, day):
@@ -97,6 +97,11 @@ def discover(previous, caches, all_matches, now):
     now=now.astimezone(timezone.utc)
     out=empty()
     out["conflicts"] = dict(previous["conflicts"])
+    out["probes"] = {day: dict(value)
+                      for day,value in previous.get("probes",{}).items()
+                      if isinstance(value,dict)
+                      and utc(day+"T00:00:00+00:00") is not None
+                      and timedelta(0) <= now-utc(day+"T00:00:00+00:00")<=RETENTION}
     out["matches"] = {}
     for key,entry in previous["matches"].items():
         if not isinstance(entry,dict):
@@ -126,6 +131,12 @@ def discover(previous, caches, all_matches, now):
     for key,row in out["matches"].items():
         claims.setdefault(row["event_id"],set()).add(key)
     for day, pair in sorted(caches.items()):
+        if isinstance(day,str):
+            out["probes"][day]={
+                "attempted_at_utc":now.isoformat(timespec="seconds"),
+                "status": ("COMPLETE" if isinstance(pair,(tuple,list)) and
+                           len(pair)==2 and pair[1]=="complete"
+                           else "UNAVAILABLE_OR_INCOMPLETE")}
         if (not isinstance(day,str) or
                 not isinstance(pair,(tuple,list)) or len(pair)!=2
                 or pair[1]!="complete" or not isinstance(pair[0],list)):
@@ -187,6 +198,7 @@ def discover(previous, caches, all_matches, now):
             claims.setdefault(source["event_id"],set()).add(key)
             stats["new_ids"]+=1
     out["days"]=dict(sorted(out["days"].items())[-MAX_DAYS:])
+    out["probes"]=dict(sorted(out["probes"].items())[-MAX_DAYS:])
     stats["total_id_bindings"]=len(out["matches"])
     stats["quarantined_bindings"]=len(out["conflicts"])
     return out,dict(sorted(stats.items()))
@@ -250,3 +262,30 @@ class BSDRegistryLookup:
         return {"known_ids":len(self.registry.get("matches",{})),
                 "conflicts":len(self.registry.get("conflicts",{})),
                 "reasons":dict(sorted(self.reasons.items()))}
+
+def plan_days(selected_keys, matches, registry, now, max_days=3):
+    """Group due unresolved fixtures by UTC day, honoring 4h day cooldown.
+
+    A date listing is an amortized shared ID discovery request: never run
+    it for a fixture with a trusted mapping. No name-search requests.
+    """
+    if type(max_days) is not int or not 0<=max_days<=4 or now.tzinfo is None:
+        raise ValueError("Invalid BSD day plan budget")
+    by_day=Counter()
+    for key in selected_keys:
+        row=matches.get(key)
+        if (not isinstance(row,dict) or row.get("status") not in
+                ("PENDING","PROVIDER_ERROR")
+                or key in registry.get("matches",{})
+                or key in registry.get("conflicts",{})):
+            continue
+        ko=utc(row.get("kickoff_utc"))
+        if ko is None or not ko+timedelta(hours=3)<=now<=ko+RETENTION:
+            continue
+        day=ko.date().isoformat()
+        probe=registry.get("probes",{}).get(day) or {}
+        attempted=utc(probe.get("attempted_at_utc"))
+        if attempted is not None and timedelta(0)<=now-attempted<timedelta(hours=4):
+            continue
+        by_day[day]+=1
+    return [day for day,count in sorted(by_day.items(), key=lambda p:(-p[1],p[0]))][:max_days]
