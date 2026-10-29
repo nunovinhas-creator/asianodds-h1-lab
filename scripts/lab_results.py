@@ -167,7 +167,12 @@ def main():
     monte = MonteBSDCrosswalk(
         token=os.environ.get("BSD_API_KEY", ""), max_event_requests=12)
     bsd_registry_lookup = None
+    bsd_official_hold_keys = set()
     def bsd_with_monte(signal):
+        if signal.get("match_key") in bsd_official_hold_keys:
+            # Do not settle a documented official-score conflict merely
+            # because the BSD source offers a single matching FT.
+            return None, "bsd_official_score_hold"
         # Source-verified ID priority: persistent BSD registry -> direct
         # Monte-Carlos BSD ID -> complete date list bootstrap. Never
         # trust archived scores, never search by team name on each visit.
@@ -298,6 +303,9 @@ def main():
     goal_approved = (json.loads(REVIEWED_GOAL_IDS.read_text(encoding="utf-8"))
                      if REVIEWED_GOAL_IDS.exists()
                      else {"schema_version": 1, "pairs": {}})
+    bsd_official_hold_keys = {
+        key for key, row in goal_approved.get("pairs", {}).items()
+        if isinstance(row, dict) and row.get("score_gate") == "HOLD_FOR_OFFICIAL"}
     goal_today = (historical_days.get("usage", {}).get("goal", {})
                   .get(now.date().isoformat(), 0))
     # Endpoint budgets are independent. A fixture-ID probe may replace a
