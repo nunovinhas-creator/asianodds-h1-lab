@@ -41,7 +41,7 @@ DESIGNATORS = frozenset({
     "fc", "fk", "sv", "afc", "cf", "sc", "ac", "as", "ss", "ssd", "asd", "ssc",
     "cd", "ca", "cs", "aa", "club", "calcio", "sk", "nk", "ks", "sd", "ud",
     "if", "bk", "ik", "fsv", "vfl", "tsv", "spvgg", "ogc", "rc", "us", "the",
-    "1", "de", "football", "futbol", "clube",
+    "1", "de", "do", "da", "dos", "das", "football", "futbol", "clube",
 })
 # Exonyms: both sides are mapped, so the direction does not matter.
 EXONYMS = {
