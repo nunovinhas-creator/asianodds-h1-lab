@@ -187,6 +187,7 @@ class GoalResults:
         self.cache={}
         self.requests=0
         self.id_requests=0
+        self.id_outcomes={}
         self.target_ids=dict(target_ids or {})
         if len(self.target_ids)>1 or any(not isinstance(k,str) or not re.fullmatch(r"[0-9]{3,12}",str(v))
                                          for k,v in self.target_ids.items()):
@@ -219,9 +220,11 @@ class GoalResults:
             try:
                 event = self.id_getter(str(target), self.key)
             except (OSError, ValueError):
+                self.id_outcomes[signal["match_key"]] = "goal_id_unavailable"
                 self.reasons["goal_id_unavailable"] += 1
                 return None,"goal_id_unavailable"
             if not isinstance(event,dict) or str(event.get("apiId","")) != str(target):
+                self.id_outcomes[signal["match_key"]] = "goal_id_mismatch"
                 self.reasons["goal_id_mismatch"] += 1
                 return None,"goal_id_mismatch"
             reviewed = self.reviewed_targets.get(signal.get("match_key"))
@@ -232,15 +235,18 @@ class GoalResults:
                     # Only normalized regulation-score evidence is retained;
                     # this path NEVER changes PENDING into FINAL.
                     self.reviewed_observations[signal["match_key"]] = observation
+                self.id_outcomes[signal["match_key"]] = why
                 self.reasons[why] += 1
                 return result, why
             # A fixture ID is a locator. Re-apply the strict, public 90m
             # verifier after selecting exactly the matching team pair.
             chosen,level,why=choose(signal,[event])
             if chosen is None:
+                self.id_outcomes[signal["match_key"]] = "goal_id_" + why
                 self.reasons["goal_id_"+why] += 1
                 return None,"goal_id_"+why
             result,reason=verify(signal,chosen,level)
+            self.id_outcomes[signal["match_key"]] = reason
             self.reasons[reason]+=1
             return result,reason
 
@@ -273,4 +279,5 @@ class GoalResults:
                 "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
                 "verified_in_run":sum(n for k,n in self.reasons.items()
                                       if k.startswith("verified_goal_ft")),
-                "reason_counts":dict(sorted(self.reasons.items()))}
+                "reason_counts":dict(sorted(self.reasons.items())),
+                "id_outcomes":dict(sorted(self.id_outcomes.items()))}

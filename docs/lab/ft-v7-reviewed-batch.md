@@ -423,3 +423,20 @@ sem converter o candidato GOAL em alias global.
 
 NENHUMA execução FT manual, API call extra ou score FINAL foi criado
 pela integração de código. H1, V6 e alertas não são modificados.
+
+
+## V7.8 — Persistência do motivo real de consultas GOAL por ID
+
+A consulta GOAL `/fixtures/:id` não equivale a uma lista completa por data
+e, em caso de falha, o reconciliador podia conservar como motivo principal o
+`goal_identity_no_core_match` de uma pesquisa anterior. O adaptador passa a
+registar `id_outcomes[match_key]` apenas quando realiza de facto um pedido
+individual. Após a reconciliação, o script persiste
+`goal_id_last_evidence` (hora, GOAL ID, motivo e pedidos da execução),
+atualiza `provider_reasons.goal` com o motivo efetivo e publica
+`ft_queue.goal_id_probe.outcome` sem consultar o fornecedor outra vez.
+Falhas de transporte ficam `goal_id_unavailable`; respostas de outro
+fixture ficam `goal_id_mismatch`; uma identidade confirmada com marcador
+ainda não certificado mantém `goal_reviewed_ft_held_for_official`.
+Não se guarda corpo bruto nem cabeçalhos, não há nova consulta, e uma
+falha jamais vira resultado FT. O cooldown de 24h continua obrigatório.
