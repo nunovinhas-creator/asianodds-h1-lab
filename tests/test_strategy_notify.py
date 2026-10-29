@@ -172,8 +172,12 @@ class FiveStrategyTests(unittest.TestCase):
         msgs = []
         ledger, stats = process(newer, ledger, NOW + timedelta(minutes=12),
                                 lambda text: msgs.append(text) or 152, True, research=research())
-        self.assertEqual(stats["withdrawals_sent"], 1)
+        # The lower latest Total also moves the net lambda outside E5's range:
+        # both exits are legitimate, and must be grouped in one game notice.
+        self.assertEqual(stats["withdrawals_sent"], 2)
         self.assertEqual(stats["strategy_receipts"], 0)
+        self.assertEqual(len(msgs), 1)
+        self.assertIn("❌ SAIU DA E5 · OVER 2,5 GOLOS", msgs[0])
         self.assertIn("❌ SAIU DA E4 · OVER 2,5 GOLOS", msgs[0])
         self.assertIn("Motivo: linha Total atual abaixo de 3,25", msgs[0])
         self.assertIn("Histórico V5:", msgs[0])
