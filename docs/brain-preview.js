@@ -243,7 +243,7 @@ async function load(){
   if(item.status==="fulfilled"){data[key]=item.value.json;}else{errors[key]=item.reason?.message||"Falha inesperada"}}
  const strip=fill("source-status");
  for(const [key,label] of [["research","Pesquisa passada"],["watch","Jogos observados"],["discovery","Cronologia / resultados"],["ft","Resultados FT"],["quality","Qualidade V4"],["readiness","V6.2"]]){
-  strip.append(element("span",label+": "+(errors[key]?"Indisponível ("+errors[key]+"):"Publicado "+ageText(data[key]?.generated_at||data[key]?.last_updated_at)),"source"+(errors[key]?" bad":"")))}
+  strip.append(element("span",label+": "+(errors[key]?"Indisponível ("+errors[key]+")":"Publicado "+ageText(data[key]?.generated_at||data[key]?.last_updated_at)),"source"+(errors[key]?" bad":"")))}
  const n=Object.keys(errors).length;
  const latest=[data.research?.generated_at,data.watch?.generated_at,data.discovery?.generated_at].map(time).filter(v=>v!==null).sort((a,b)=>b-a)[0];
  $("overall-state").textContent=n?"Informação parcial: "+count(n)+" fonte(s) indisponível(eis).": "Relatórios recebidos (não comprova funcionamento operacional).";
