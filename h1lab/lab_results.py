@@ -327,11 +327,14 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "retry_policy": ("V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h" if evidence_retry else "4h after 1-5 attempts; 12h after 6-9; 24h after 10+"),
     }
     attempts = 0
+    unexpected_errors = 0
+    dual_errors = 0
     for _, _, _, key in candidates[:max_checks]:
         row = entries[key]
         signal = {"match_key": key, **{field: row[field] for field in ("home", "away", "kickoff_utc")}}
         found = {}
         reasons = {}
+        errors = {}
         if key in source_order_keys:
             reasons["sportscore"] = "quarantined_source_not_reused"
         providers = [("bsd", bsd_lookup), ("thesportsdb", tsdb_lookup)]
@@ -361,11 +364,17 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 found[provider] = _validate_result(candidate, key) if candidate is not None else None
                 reasons[provider] = ("invalid_provider_result" if candidate is not None and found[provider] is None
                                      else _safe_reason(reason))
-            except Exception:
+            except Exception as exc:
+                unexpected_errors += 1
+                errors[provider] = type(exc).__name__
                 found[provider] = None
                 reasons[provider] = "provider_unavailable"  # never expose credentials/URLs
         attempts += 1
         stamp = now.isoformat(timespec="seconds")
+        # Operational visits are separate from successful evidence: failures must
+        # be visible without resetting evidence timestamps or extending cooldown.
+        row["last_provider_visit"] = {"at": stamp, "reasons": dict(reasons),
+                                      "errors": errors}
         snapshots = {}
         stable_providers = {}
         if evidence_retry:
@@ -536,8 +545,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 field: row[field] for field in ("home","away","kickoff_utc")}}
             try:
                 candidate, reason = dual_lookup(signal)
-            except Exception:
-                # An offline parsing error never certifies an FT.
+            except Exception as exc:
+                # Keep the failure observable without certifying/aging FT evidence.
+                dual_errors += 1
+                row["last_dual_postcheck_error"] = {
+                    "at": now.isoformat(timespec="seconds"),
+                    "type": type(exc).__name__}
                 continue
             dual_scanned += 1
             if reason == "dual_provider_score_conflict":
@@ -639,6 +652,14 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "final_recorded": counts["FINAL"], "unverified": len(games) - counts["FINAL"],
         "pending_due_checks": max(0, len(candidates) - attempts),
         "ft_queue": queue_plan,
+        "execution_health": {
+            "status": ("DEGRADED" if unexpected_errors or dual_errors else
+                       "ATTEMPTED" if attempts or dual_scanned else "NOT_ATTEMPTED"),
+            "unexpected_errors": unexpected_errors + dual_errors,
+            "provider_errors": unexpected_errors, "dual_postcheck_errors": dual_errors,
+            "measured_at": now.isoformat(timespec="seconds"),
+            "scope": "adapter execution only; not coverage or publication health",
+        },
         "v6_ft_priority": {
             "mode": "SAME_REVIEW_TIER_ONLY_NO_EXTRA_API",
             "hinted_eligible": sum(key in priority_hints for *_, key in candidates),
