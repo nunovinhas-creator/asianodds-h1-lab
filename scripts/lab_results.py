@@ -333,6 +333,7 @@ def main():
                     "provider_fixture_id": approved_targets[match_key]["provider_fixture_id"],
                     "reason": why,
                     "id_requests_in_run": api_football.id_requests,
+                    "failure": api_football.reviewed_error_details.get(match_key),
                 }
                 row.setdefault("provider_reasons", {})["api_football"] = why
     used_days = {
@@ -388,7 +389,10 @@ def main():
         "outcomes": {key: api_football.reviewed_outcomes.get(key)
                      for key in approved_targets},
         "decisions": reviewed_id_decisions,
+        "error_details": dict(sorted(api_football.reviewed_error_details.items())),
     }
+    report["ft_queue"]["api_football_date_errors"] = dict(
+        sorted(api_football.date_error_details.items()))
     if approved.get("pairs") and checks:
         write_if_changed(REVIEWED_API_ID_DECISIONS, {
             "schema_version": 1, "checked_at_utc": now.isoformat(timespec="seconds"),
@@ -484,7 +488,9 @@ def main():
             "source_order_audit": report["source_order_audit"],
             "providers": {
                 "api_football": {"enabled": api_football_poll, "requests": report["api_football_search"]["requests"],
-                                 "verified": report["api_football_search"]["verified_in_run"]},
+                                 "verified": report["api_football_search"]["verified_in_run"],
+                                 "date_errors": dict(sorted(api_football.date_error_details.items())),
+                                 "id_errors": dict(sorted(api_football.reviewed_error_details.items()))},
                 "goal": {"enabled": goal_enabled, "requests": report["goal_search"]["requests"],
                          "verified": report["goal_search"]["verified_in_run"]},
                 "openfoot": {"enabled": openfoot_enabled, "requests": report["openfoot_search"]["requests"],
