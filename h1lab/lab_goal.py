@@ -173,7 +173,7 @@ def verify(signal,ev,level):
 
 
 class GoalResults:
-    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None,target_ids=None,id_getter=fetch_fixture_by_id):
+    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None,target_ids=None,id_getter=fetch_fixture_by_id,reviewed_targets=None):
         if type(max_days) is not int or not 0<=max_days<=MAX_DAYS:
             raise ValueError("GOAL day budget exceeded")
         self.key=(key or "").strip()
@@ -192,6 +192,15 @@ class GoalResults:
                                          for k,v in self.target_ids.items()):
             raise ValueError("Unsafe GOAL fixture ID targets")
         self.id_getter=id_getter
+        self.reviewed_targets=dict(reviewed_targets or {})
+        if any(key not in self.target_ids or
+               str(value.get("provider_fixture_id", "")) != str(self.target_ids[key])
+               for key,value in self.reviewed_targets.items()
+               if isinstance(value, dict)):
+            raise ValueError("Reviewed GOAL fixture target does not match ID target")
+        if any(not isinstance(value, dict) for value in self.reviewed_targets.values()):
+            raise ValueError("Invalid reviewed GOAL targets")
+        self.reviewed_observations={}
         self.reasons=Counter()
     def lookup(self,signal):
         if not self.key:
@@ -215,6 +224,16 @@ class GoalResults:
             if not isinstance(event,dict) or str(event.get("apiId","")) != str(target):
                 self.reasons["goal_id_mismatch"] += 1
                 return None,"goal_id_mismatch"
+            reviewed = self.reviewed_targets.get(signal.get("match_key"))
+            if reviewed is not None:
+                from .lab_goal_reviewed import verify_reviewed_goal
+                result, why, observation = verify_reviewed_goal(signal, event, reviewed)
+                if observation is not None:
+                    # Only normalized regulation-score evidence is retained;
+                    # this path NEVER changes PENDING into FINAL.
+                    self.reviewed_observations[signal["match_key"]] = observation
+                self.reasons[why] += 1
+                return result, why
             # A fixture ID is a locator. Re-apply the strict, public 90m
             # verifier after selecting exactly the matching team pair.
             chosen,level,why=choose(signal,[event])
