@@ -140,10 +140,13 @@ function render(){
  safe("test-content",renderTesting);safe("proven-content",renderProven);safe("history-events",renderHistory);
 }
 async function fetchJson(path){
- const response=await fetch(path,{cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);
- const json=await response.json();
- if(!json||typeof json!=="object"||Array.isArray(json))throw Error("JSON inesperado");
- return json;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+ try{
+  const response=await fetch(path,{cache:"no-store",signal:controller.signal});if(!response.ok)throw Error("HTTP "+response.status);
+  const json=await response.json();
+  if(!json||typeof json!=="object"||Array.isArray(json))throw Error("JSON inesperado");
+  return json;
+ }finally{clearTimeout(timer)}
 }
 async function load(){
  const button=$("refresh");button.disabled=true;button.textContent="A atualizar…";
