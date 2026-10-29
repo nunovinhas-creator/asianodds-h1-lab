@@ -317,3 +317,8 @@ Nova fotografia: **513 = 167 FINAL + 190 FUTURE + 29 GRACE + 127 vencidos** (89 
 F06 refere o notifier legado no baseline. A main passou a strategy_notify (cinco estratégias, janela 12h); a inspeção do novo `process/run` mostra que envio continua anterior à escrita local e push, pelo que o risco de perda de recibo entre envio e persistência continua aplicável. Não se alterou esse subsistema protegido.
 
 Validação de compatibilidade: 702 testes Python passaram antes do último teste adicional de saúde; 23 testes Node passaram (contratos, dashboard, ligação de padrões, Worker). Nova regressão sintética comprova resultado antigo com collector fresco sem rede. Resultados finais por PR e CI constam das descrições das PRs. Não interpretar estes testes como observação operacional das correções: ainda não foram integradas.
+
+
+## Entrega e validação final
+
+PRs independentes abertas, sem merge: [#112 erros FT](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/112), [#113 cronologia FT](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/113), [#114 contratos UI](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/114), [#115 relatório/health](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/115). A suite combinada final passou **703 testes Python**. O contrato UI tem quatro testes Node, incluindo campos nested em falta e string false em gate. Health respeita também execution_health DEGRADED quando o novo contrato FT estiver presente; ATTEMPTED não é certificado de saúde. Os estados das Actions de cada HEAD são verificáveis nas PRs. Nenhum ficheiro de dados/histórico, H1 protegido ou workflow foi alterado pelas PRs.

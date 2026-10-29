@@ -32,6 +32,12 @@ def check(root, now):
             sum(timing.values())!=ft['matches']):raise ValueError('FT counters disagree')
         record('ft_counts','OK','ledger_report_timing_agree')
         freshness('ft_publication',ft.get('last_updated_at'),90)
+        execution=ft.get('execution_health')
+        if execution is not None:
+            if not isinstance(execution,dict):raise ValueError('Invalid FT execution health')
+            execution_status=execution.get('status')
+            record('ft_execution','DEGRADED' if execution_status=='DEGRADED' else 'UNKNOWN',
+                   execution_status if execution_status in ('DEGRADED','ATTEMPTED','NOT_ATTEMPTED') else 'invalid_execution_status')
         from h1lab.v6_ft_events import read_events,validate_against_ledger
         validate_against_ledger(read_events(root),ledger)
         record('ft_journal','OK','hash_lineage_and_current_ledger_agree')

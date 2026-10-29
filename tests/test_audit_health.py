@@ -42,3 +42,11 @@ class HealthTests(unittest.TestCase):
             self.assertEqual(statuses['collector'],'OK')
             self.assertEqual(statuses['h1_result_activity'],'STALE')
             self.assertEqual(result['status'],'DEGRADED')
+
+            ft=json.loads((root/'docs/lab/ft-results.json').read_text())
+            ft['execution_health']={'status':'DEGRADED','unexpected_errors':2}
+            write('docs/lab/ft-results.json',ft)
+            result=check(root,now)
+            statuses={x['name']:x['status'] for x in result['checks']}
+            self.assertEqual(statuses['ft_execution'],'DEGRADED')
+            self.assertNotEqual(result['status'],'OK')
