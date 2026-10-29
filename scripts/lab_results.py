@@ -213,6 +213,24 @@ def main():
                        if DAY_ROTATION.exists()
                        else {"schema_version": 1, "providers": {}})
     catalog_v4 = read_v4()
+    # An approved fixture receives one immediate priority slot only when
+    # every persisted human-approval and full source-day identity gate has
+    # ALREADY passed. No provider HTTP call is made for this dry run.
+    approved = (json.loads(REVIEWED_API_IDS.read_text(encoding="utf-8"))
+                if REVIEWED_API_IDS.exists()
+                else {"schema_version": 1, "pairs": {}})
+    previous_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
+                       if IDENTITY_REVIEW.exists() else {})
+    previous_day_index = (json.loads(API_FOOTBALL_DAY_INDEX.read_text(encoding="utf-8"))
+                          if API_FOOTBALL_DAY_INDEX.exists()
+                          else {"schema_version": 1, "days": {}})
+    confirmed_ids = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
+                     if PROVIDER_IDENTITY.exists()
+                     else {"schema_version": 1, "entries": {}})
+    approved_due = set(plan_reviewed_ids(
+        approved.get("pairs", {}), existing["matches"], previous_review,
+        approved, now, day_index=previous_day_index,
+        confirmed_registry=confirmed_ids)) if api_football_poll else set()
     _preview_ledger, preview, _ = reconcile(
         state, catalog_v4, existing, now=now,
         bsd_lookup=lambda unused: (None, "preview_only"),
@@ -220,7 +238,8 @@ def main():
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=0, force_recheck=recovery_once,
-        priority_hints=research_hints, evidence_retry=True)
+        priority_hints=research_hints, evidence_retry=True,
+        approved_rechecks=approved_due)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
     active = set()
     if goal_enabled: active.add("goal")
@@ -230,8 +249,6 @@ def main():
                            historical_days, now, active)
     # Only a previously observed, unique, aligned GOAL candidate may receive
     # a strict id verification. Substitute one date request; never add calls.
-    previous_review = (json.loads(IDENTITY_REVIEW.read_text(encoding="utf-8"))
-                       if IDENTITY_REVIEW.exists() else {})
     goal_today = (historical_days.get("usage", {}).get("goal", {})
                   .get(now.date().isoformat(), 0))
     # An ID probe plus one date request must BOTH fit under the daily cap.
@@ -246,17 +263,8 @@ def main():
     # human-approved pairs, checked against the persisted review candidate,
     # can use a batched fixture ID request. Reserve one of the existing 3
     # API-Football calls for this request.
-    approved = (json.loads(REVIEWED_API_IDS.read_text(encoding="utf-8"))
-                if REVIEWED_API_IDS.exists()
-                else {"schema_version": 1, "pairs": {}})
     api_today = historical_days.get("usage", {}).get("api_football", {}).get(
         now.date().isoformat(), 0)
-    previous_day_index = (json.loads(API_FOOTBALL_DAY_INDEX.read_text(encoding="utf-8"))
-                          if API_FOOTBALL_DAY_INDEX.exists()
-                          else {"schema_version": 1, "days": {}})
-    confirmed_ids = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
-                     if PROVIDER_IDENTITY.exists()
-                     else {"schema_version": 1, "entries": {}})
     reviewed_id_decisions = {}
     approved_targets = (plan_reviewed_ids(
         preview_keys, _preview_ledger["matches"], previous_review, approved, now,
@@ -288,7 +296,8 @@ def main():
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
-        priority_hints=research_hints, evidence_retry=True)
+        priority_hints=research_hints, evidence_retry=True,
+        approved_rechecks=approved_due)
 
 
     # Fail closed if dry-run queue and real queue unexpectedly diverged.
