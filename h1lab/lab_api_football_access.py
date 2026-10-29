@@ -72,7 +72,7 @@ def evolve_access(previous, date_errors, now):
 
 
 def restriction_for_day(access, day, now):
-    """Return reason or None. Also gates a prudentially deferred ID lookup."""
+    """Return a provider-confirmed date-list restriction reason or None."""
     if not isinstance(access, dict) or access.get("schema_version", SCHEMA) != SCHEMA:
         return None
     if now.tzinfo is None:
@@ -91,4 +91,15 @@ def restriction_for_day(access, day, now):
                 return "PROVIDER_CONFIRMED_CALENDAR_HISTORY_LIMIT"
         elif day == rejected and record.get("scope") == "DAY_ONLY":
             return "PROVIDER_CONFIRMED_DAY_HISTORY_RESTRICTION"
+    return None
+
+
+def restriction_for_fixture_id(access, day, now):
+    """Only ID-endpoint evidence may suspend reviewed individual fixture requests.
+
+    The persisted history access ledger contains DATE-list response evidence.
+    A failure from GET /fixtures?date=... never demonstrates that GET
+    /fixtures?id=... is restricted by the same plan window. Until an explicitly
+    scoped, independently validated ID policy exists, preserve ID eligibility.
+    """
     return None
