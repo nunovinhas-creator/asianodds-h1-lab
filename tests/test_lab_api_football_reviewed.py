@@ -114,6 +114,39 @@ class ReviewedBatchTests(unittest.TestCase):
         self.assertEqual(p.id_requests, 1)
         self.assertEqual(p.summary()["requests"], 1)
 
+    def test_id_fetch_unavailable_has_actual_reason_not_old_name_reason(self):
+        matches, review, approved = fixtures()
+        key = signal(1)["match_key"]
+        targets = checked_plan([key], matches, review, approved, NOW)
+        def fail(_ids, _key):
+            raise OSError("transient provider failure")
+        p = APIFootballResults(key="test", reviewed_targets=targets,
+                              id_fetch=fail, max_days=3)
+        result, reason = p.lookup(signal(1))
+        self.assertIsNone(result)
+        self.assertEqual(reason, "api_football_reviewed_id_unavailable")
+        self.assertEqual(p.reviewed_outcomes[key], reason)
+        self.assertEqual(p.summary()["reviewed_outcomes"][key], reason)
+        self.assertEqual(p.id_requests, 1)
+        self.assertEqual(p.summary()["requests"], 1)
+        # A retry inside the same run does not consume a second request.
+        result, reason = p.lookup(signal(1))
+        self.assertEqual(reason, "api_football_reviewed_id_missing")
+        self.assertEqual(p.id_requests, 1)
+        self.assertEqual(p.reviewed_outcomes[key], reason)
+
+    def test_id_response_missing_fixture_is_distinct_from_unavailable(self):
+        matches, review, approved = fixtures()
+        key = signal(1)["match_key"]
+        targets = checked_plan([key], matches, review, approved, NOW)
+        p = APIFootballResults(key="test", reviewed_targets=targets,
+                              id_fetch=lambda _ids, _key: {}, max_days=3)
+        result, reason = p.lookup(signal(1))
+        self.assertIsNone(result)
+        self.assertEqual(reason, "api_football_reviewed_id_missing")
+        self.assertEqual(p.reviewed_outcomes[key], reason)
+        self.assertEqual(p.id_requests, 1)
+
     def test_reviewed_id_does_not_override_team_orientation_and_competition(self):
         matches, review, approved = fixtures()
         targets = checked_plan(list(matches), matches, review, approved, NOW)
@@ -149,6 +182,7 @@ class ReviewedBatchTests(unittest.TestCase):
                 result, reason = p.lookup(signal(1))
                 self.assertIsNone(result)
                 self.assertNotEqual(reason, "verified_api_football_ft_reviewed_pair")
+                self.assertEqual(p.reviewed_outcomes[signal(1)["match_key"]], reason)
 
     def test_approval_must_match_real_review_and_no_colliding_ids(self):
         matches, review, approved = fixtures()
