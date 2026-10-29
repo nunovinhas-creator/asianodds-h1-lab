@@ -21,13 +21,20 @@ FALLBACK_REASONS = frozenset({
 })
 
 
-def lookup_bsd_monte_first(signal, monte, date_fallback):
+def lookup_bsd_monte_first(signal, monte, date_fallback, registry=None):
     """Try one *known actual BSD ID* before any fuzzy/list date query.
 
     Both adapters implement lookup(signal) -> (strict FT or None, reason).
     The fast path does one authenticated BSD detail request at most
     (unless the provider explicitly reports an event redirect).
     """
+    # A persisted ID, discovered from a COMPLETE BSD day listing, is the
+    # most direct locator and shares the Monte-Carlos event request budget.
+    # A failed verified-ID lookup is NOT permission to try guessing another ID.
+    if registry is not None:
+        cached, why = registry.lookup(signal)
+        if why != "bsd_registry_no_id":
+            return cached, why
     result, reason = monte.lookup(signal)
     if result is not None:
         return result, reason
