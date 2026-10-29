@@ -270,15 +270,22 @@ def main():
                      else {"schema_version": 1, "pairs": {}})
     goal_today = (historical_days.get("usage", {}).get("goal", {})
                   .get(now.date().isoformat(), 0))
-    # An ID probe plus one date request must BOTH fit under the daily cap.
+    # Endpoint budgets are independent. A fixture-ID probe may replace a
+    # date request, but does NOT need a date request to be eligible.
+    # This prevents a successful COMPLETE day list's adaptive cooldown from
+    # indefinitely starving a reviewed ID once the game itself is due.
+    # If 1 date is selected, reserve 2 daily slots (1 date + 1 ID);
+    # if no date is eligible, reserve just 1 slot (ID only).
+    goal_id_slot = goal_enabled and (
+        goal_today <= (78 if rotation["goal"] else 79))
     goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
                                  previous_review, now)
-                    if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
+                    if goal_id_slot else {})
     goal_review_decisions = {}
     reviewed_goal_targets = (plan_reviewed_goal_id(
         preview_keys, _preview_ledger["matches"], previous_review,
         goal_approved, approved, now, decisions=goal_review_decisions)
-        if goal_enabled and rotation["goal"] and goal_today <= 78 else {})
+        if goal_id_slot else {})
     if reviewed_goal_targets:
         # At most one target per run. It supersedes ordinary GOAL probes,
         # without consuming a third request or bypassing queue cooldowns.
