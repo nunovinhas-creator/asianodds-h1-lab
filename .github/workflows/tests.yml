@@ -21,6 +21,8 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
+      - name: Five V5 strategies — read-only current-fixture dry-run (never sends Telegram)
+        run: python -m h1lab.strategy_notify --dry-run
       - name: V6 P0 10,000 null trajectories, power and FT chronological gates (shadow)
         run: |
           python -m scripts.lab_v6_p0 --recompute-nulls
