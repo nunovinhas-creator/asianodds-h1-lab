@@ -89,6 +89,7 @@
    document.querySelectorAll("[data-go]").forEach(btn=>btn.addEventListener("click",()=>move(btn.dataset.go)));
    window.addEventListener("hashchange",()=>{if(legacyRedirect())return;const page=location.hash.slice(1);if(page in PAGE_NAMES)move(page,false)});
    $("refresh").addEventListener("click",()=>load(true));
+   $("discovery-filter").addEventListener("change",renderChronology);
    $("f-query").addEventListener("input",futureRows);
    document.querySelectorAll("[data-cat]").forEach(btn=>btn.addEventListener("click",()=>{
      state.futureFilter=btn.dataset.cat;
@@ -98,9 +99,12 @@
    for(const id of ["p-query","p-target","p-type","p-sort"])$(id).addEventListener(id==="p-query"?"input":"change",patterns);
  }
  async function fetchData(path){
-   const res=await fetch(ROOT+path,{cache:"no-store"});
-   if(!res.ok)throw Error(path+": HTTP "+res.status);
-   return res.json();
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+   try{
+     const res=await fetch(ROOT+path,{cache:"no-store",signal:controller.signal});
+     if(!res.ok)throw Error(path+": HTTP "+res.status);
+     return await res.json();
+   }finally{clearTimeout(timer)}
  }
  async function load(force=false){
    const button=$("refresh");button.disabled=true;button.textContent="↻";
@@ -208,9 +212,17 @@
  const nameTarget=v=>v==="BTTS_YES"?"BTTS Sim":"Over 2,5";
  function renderChronology(){
    const where=clear("r-discovery"),d=data("discovery");
-   if(!d || d.status==="AWAITING_FIRST_BASELINE"){
+   if(!d){
+     empty(where,"Cronologia indisponível: o relatório não foi carregado. Consulte o aviso no topo e tente atualizar.");
+     put("discovery-count","Indisponível");return;
+   }
+   if(d.status==="AWAITING_FIRST_BASELINE"){
      empty(where,"A primeira execução ainda vai fixar a baseline. Não existem descobertas históricas inventadas.");
      put("discovery-count","Baseline pendente");return;
+   }
+   if(!Array.isArray(d.timeline)){
+     empty(where,"Cronologia inválida: o relatório não contém uma lista de acontecimentos.");
+     put("discovery-count","Dados inválidos");return;
    }
    const current=$("discovery-filter").value;
    const all=d.timeline||[];
@@ -311,7 +323,8 @@
  }
  function renderProspective(){
    const container=clear("r-prospective"),d=data("discovery");
-   if(!d||d.status==="AWAITING_FIRST_BASELINE"){
+   if(!d){empty(container,"Histórico prospetivo indisponível: o relatório não foi carregado.");return;}
+   if(d.status==="AWAITING_FIRST_BASELINE"){
      empty(container,"Sem baseline e resultados históricos associados ainda.");return;
    }
    const p=d.prospective||{},head=create("div",null,"prospective-summary");
@@ -463,6 +476,6 @@
    if(w){rowKeyVal(feeds,"Padrões futuros",formatDate(w.generated_at));rowKeyVal(feeds,"Registos de primeira deteção",num(w.summary?.total_historical_first_detections));}
    if(data("h1"))rowKeyVal(feeds,"Arquivo Under H1",num(data("h1").singles?.total)+" sinais simulados");
  }
- function render(){renderRadar();renderFuture();renderPatternsMeta();renderValidation();renderData()}
+ function render(){renderRadar();renderChronology();renderProspective();renderFuture();renderPatternsMeta();renderValidation();renderData()}
  setupNav();load();
 })();
