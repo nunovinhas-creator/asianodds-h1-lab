@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from datetime import datetime, timezone
 from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
 from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empty_attestations, valid
+from h1lab.v6_ft_events import quality as ft_science_quality, snapshot as ft_science_snapshot
 from h1lab.lab_results import reconcile
 
 DAY = "2026-10-28"
@@ -238,6 +239,21 @@ class ConsensusTests(unittest.TestCase):
         self.assertIsNone(second.lookup(SIGNAL)[0])
         self.assertEqual(second.reasons["official_score_hold"],1)
         self.assertEqual(set(second.captured[KEY]),{"goal"})
+
+    def test_science_keeps_source_provenance_without_certifying_capture_clock(self):
+        old={"status":"PENDING","home":"Home","away":"Away",
+             "kickoff_utc":KO,"reason":"no_verified_ft_yet"}
+        self.assertNotIn("dual_provider_corroboration",ft_science_snapshot(old))
+        row={**old,"status":"FINAL","result":{"home_goals":2,
+             "away_goals":1,"source":"https://v3.football.api-sports.io/fixtures?id=123456",
+             "evidence":"dual_provider_only"},
+             "dual_provider_corroboration":{
+                "attestation_sha256":{"goal":"a"*64,"api_football":"b"*64},
+                "first_observed_at_utc":{"goal":KO,"api_football":KO},
+                "chronology_certified":False}}
+        self.assertEqual(ft_science_quality(row),
+            "TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED")
+        self.assertIn("dual_provider_corroboration",ft_science_snapshot(row))
 
     def test_reconcile_produces_actual_final_for_matching_corrob(self):
         obj=engine()
