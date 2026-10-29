@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 from .bsd import (ROOT, BSDProviderError, event_kickoff, event_name, find_result,
                   matches_identity, regulation_result, request_json)
 from .lab_identity import CORE, EXACT, IDENTITY_VERSION, select_event
+from .lab_bsd_payload import normalized_payload
 
 PAGE_SIZE = 200
 MAX_DAYS = 4
@@ -29,7 +30,10 @@ class BSDDateFallback:
         if not 0 <= max_days <= MAX_DAYS or not 1 <= max_pages <= MAX_PAGES:
             raise ValueError("BSD date search budget out of bounds")
         self.token = (token or "").strip()
-        self.fetch = fetch
+        # LAB-only translation of BSD envelopes, mirroring the owner's
+        # working Monte-Carlos settlement parser. Exactly one HTTP fetch
+        # per invocation, with no changes to the shared H1 bsd.py.
+        self.fetch = lambda url, token: normalized_payload(fetch(url, token))
         self.primary = primary
         self.max_days = max_days
         self.max_pages = max_pages
