@@ -18,7 +18,7 @@ from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_priority import lookup_bsd_monte_first
 from h1lab.lab_bsd_id_registry import (
     empty as empty_bsd_ids, discover as discover_bsd_ids,
-    plan_days as plan_bsd_days, BSDRegistryLookup)
+    plan_days as plan_bsd_days, due_unmapped_keys as due_bsd_ids, BSDRegistryLookup)
 from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
@@ -270,11 +270,16 @@ def main():
     # requests at most three COMPLETE BSD day catalogues (max 3 pages
     # each) and reuses each list for every eligible game on that date.
     # Pushes never make provider calls; failed day probes wait >=4h.
+    # IMPORTANT: ID discovery scans ALL overdue fixtures, not just the
+    # currently network-eligible 30-game FT queue. A full BSD date listing
+    # may therefore index many matches even when reconciliation selected 0.
+    bsd_due_keys = due_bsd_ids(_preview_ledger["matches"],
+                                previous_bsd_ids, now)
     bsd_discovery_days = (
-        plan_bsd_days(preview_keys, _preview_ledger["matches"],
+        plan_bsd_days(bsd_due_keys, _preview_ledger["matches"],
                       previous_bsd_ids, now,
                       max_days=bsd_finder.max_days)
-        if live_context and checks > 0 and bsd_finder.token else [])
+        if live_context and bsd_finder.token else [])
     for day in bsd_discovery_days:
         bsd_finder._date_index(day)
     bsd_registry, bsd_initial_stats = discover_bsd_ids(
@@ -417,6 +422,8 @@ def main():
     write_if_changed(BSD_ID_REGISTRY, bsd_registry)
     report["ft_queue"]["bsd_identity_registry"] = {
         "planned_days": bsd_discovery_days,
+        "overdue_without_id": len(bsd_due_keys),
+        "independent_of_ft_queue": True,
         "date_requests": bsd_finder.date_requests,
         "direct_id_requests_shared_with_monte": monte.events_requested,
         "bindings_total": len(bsd_registry["matches"]),
