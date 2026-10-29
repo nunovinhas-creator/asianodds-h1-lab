@@ -1,7 +1,7 @@
 /* MASTER BRAIN — independent, read-only dashboard preview. */
 (function(){
 "use strict";
-const paths={research:"./lab/pattern-research.json",watch:"./lab/pattern-watch.json",discovery:"./lab/discoveries.json"};
+const paths={research:"./lab/pattern-research.json",watch:"./lab/pattern-watch.json",discovery:"./lab/discoveries.json",ft:"./lab/ft-results.json",quality:"./lab/v4-audit.json",readiness:"./lab/v6-readiness.json"};
 const data={};const errors={};const $=id=>document.getElementById(id);
 const element=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!==undefined&&txt!==null)e.textContent=String(txt);if(cls)e.className=cls;return e};
 const fill=(id)=>{const n=$(id);n.replaceChildren();return n};
@@ -59,19 +59,51 @@ function researchCard(holder,item){
  const coverage=element("div","Amostra: "+count(o.known)+" com resultado, "+count(o.reference_known)+" de comparação. Não é uma projeção de ganhos.","mini");
  box.append(coverage);explain(box,o);
 }
+function linkMatches(box,m,r){
+ const engine=typeof MBPatternMatcher==="object"&&MBPatternMatcher?MBPatternMatcher:null;
+ if(!r||!engine){
+  box.append(element("p","Associação histórica indisponível: faltam dados V5 ou o verificador.","mini"));return;
+ }
+ const matches=engine.linked(m,r,{minN:12,minDiff:0.08});
+ if(!matches.length){
+  box.append(element("p","Sem correspondência histórica verificável neste resumo. Podem faltar mercados ou amostra; isto não significa que os padrões não existam.","mini"));return;
+ }
+ const when=time(r.generated_at),first=time(m.first_alert_at);
+ const caveat=Number.isFinite(when)&&Number.isFinite(first)&&when>first
+  ?"O relatório histórico foi produzido depois do primeiro alerta: associação retrospetiva, não previsão pré-registada."
+  :"Associação observacional. Não demonstra que esta hipótese tenha sido congelada antes da deteção.";
+ box.append(element("p",count(matches.length)+" padrões históricos compatíveis com as condições efetivamente observadas.","summary"));
+ for(const hit of matches.slice(0,2)){
+  const block=element("div",null,"linked-pattern");
+  block.append(element("strong",(hit.target==="OVER_2_5"?"Over 2,5":"Ambas marcam")+" · "+hit.label));
+  const stat=element("div",null,"pair");
+  for(const [label,v] of [["Com a condição",pct(hit.rate)],["Outros jogos",pct(hit.reference_rate)],["Diferença",((hit.diff>=0)?"+":"")+pct(hit.diff)]]){
+   const cell=element("div");cell.append(element("strong",v),element("span",label));stat.append(cell)}
+  block.append(stat);
+  block.append(element("p",count(hit.hits)+"/"+count(hit.known)+" acertos históricos confirmados · "+count(hit.reference_known)+" jogos de comparação."));
+  box.append(block);
+ }
+ if(matches.length>2)box.append(element("p","Mais "+count(matches.length-2)+" relações não mostradas; consultar o relatório de padrões.","meta"));
+ box.append(element("p",caveat,"mini"));
+}
 function renderToday(){
- const w=data.watch,ms=fill("today-metrics"),list=fill("today-content");
+ const w=data.watch,r=data.research,ms=fill("today-metrics"),list=fill("today-content");
  if(!w||!Array.isArray(w.future_strict)){state(list,"Jogos do dia indisponíveis.","O relatório de observação não foi carregado ou não é válido.");return}
  const now=Date.now(),matches=w.future_strict.filter(m=>time(m.kickoff_utc)!==null&&time(m.kickoff_utc)>now);
  const today=matches.filter(m=>todayKey(time(m.kickoff_utc))===todayKey(now));
  stat(ms,"Jogos rigorosos por começar hoje",count(today.length));stat(ms,"Jogos rigorosos futuros",count(matches.length));
  stat(ms,"Primeiras deteções históricas",count(w.summary?.total_historical_first_detections));
+ if(r&&typeof MBPatternMatcher==="object"){
+   stat(ms,"Jogos de hoje com relação histórica verificável",
+     count(today.filter(m=>MBPatternMatcher.linked(m,r,{minN:12,minDiff:0.08}).length>0).length));
+ }
  if(!today.length){state(list,"Sem jogos com a condição rigorosa para hoje.","Isto não significa que o sistema tenha parado; indica apenas a fotografia publicada. Verifique a data do relatório.");return}
  const cats={RISING_EACH_EPISODE:"Subidas consistentes",RISING_WITH_FLAT:"Subida e estabilidade",FLAT_EACH_EPISODE:"Quase estável"};
  for(const m of today.sort((a,b)=>time(a.kickoff_utc)-time(b.kickoff_utc)).slice(0,12)){
   const box=card(list,"INÍCIO "+date(m.kickoff_utc),m.match_label||"Jogo sem nome",cats[m.category]||"Movimentos observados","positive");
   box.append(element("p",count(m.episodes)+" episódios independentes · "+count(m.messages)+" mensagens.","summary"));
-  box.append(element("p","Está sob observação, não existe prognóstico validado associado a este jogo."));
+  box.append(element("p","Está sob observação. Nenhum padrão é apresentado como previsão validada."));
+  linkMatches(box,m,r);
  }
  if(today.length>12)list.append(element("p","Ver todos os jogos no observatório detalhado.","meta"));
 }
@@ -122,6 +154,51 @@ function renderProven(){
 function eventLine(holder,title,sub){
  const d=element("div",null,"event");d.append(element("strong",title),element("small",sub));holder.append(d);
 }
+function ageText(timestamp){
+ const t=time(timestamp);
+ if(!Number.isFinite(t))return "sem data fiável";
+ const delta=Date.now()-t;
+ if(delta<0)return "data futura / relógio incompatível";
+ const mins=Math.floor(delta/60000);
+ if(mins<60)return "há "+count(mins)+" min";
+ const hours=Math.floor(mins/60);
+ return hours<48?"há "+count(hours)+" h":"há "+count(Math.floor(hours/24))+" dias";
+}
+function renderOperations(){
+ const stats=fill("operation-metrics"),warnings=fill("operation-warnings");
+ const r=data.research,w=data.watch,ft=data.ft,q=data.quality,v6=data.readiness,d=data.discovery;
+ const status=(name,obj,dateValue)=>{stat(stats,name,obj?ageText(dateValue):"Indisponível");};
+ status("Pesquisa histórica V5",r,r?.generated_at);
+ status("Observatório de jogos",w,w?.generated_at);
+ status("Resultados FT",ft,ft?.last_updated_at);
+ status("Controlo de qualidade",q,q?.generated_at);
+ status("Evidência V6.2",v6,v6?.generated_at);
+ stat(stats,"FT confirmados na fila LAB",typeof ft?.coverage_diagnostics?.ft_confirmed==="number"?count(ft.coverage_diagnostics.ft_confirmed):"—");
+ stat(stats,"Jogos ainda por confirmar",typeof ft?.coverage_diagnostics?.past_unverified_eligible==="number"?count(ft.coverage_diagnostics.past_unverified_eligible):"—");
+ stat(stats,"Novos acontecimentos no histórico",Array.isArray(d?.timeline)?count(d.timeline.length):"—");
+ const checks=[];
+ if(!r||!w||!ft||!q||!v6||!d)checks.push("Nem todas as fontes foram publicadas ou carregadas. O estado operacional global é INCOMPLETO.");
+ if(r&&w&&time(r.generated_at)!==null&&time(w.generated_at)!==null&&
+    Math.abs(time(r.generated_at)-time(w.generated_at))>3*3600000)
+    checks.push("As análises histórica e prospetiva têm mais de 3 horas de diferença entre si; comparar as fotografias com cautela.");
+ if(ft&&r&&typeof ft?.final_recorded==="number"&&typeof r.scope?.ft_confirmed==="number"&&
+    ft.final_recorded!==r.scope.ft_confirmed)
+    checks.push("FT recuperados na fila LAB ("+count(ft.final_recorded)+") diferem dos FT já incorporados na pesquisa V5 ("+count(r.scope.ft_confirmed)+"). São fotografias de momentos/âmbitos diferentes; não equiparar.");
+ if(ft&&typeof ft.coverage_diagnostics?.past_unverified_eligible==="number"&&ft.coverage_diagnostics.past_unverified_eligible>0)
+    checks.push(count(ft.coverage_diagnostics.past_unverified_eligible)+" jogos passados ainda aguardam confirmação FT; não são derrotas.");
+ if(q&&q.acceptance_gates&&Object.values(q.acceptance_gates).some(v=>v===false))
+    checks.push("Há critérios de integridade V4 ainda pendentes. A receção dos relatórios não prova certificação integral.");
+ if(v6&&v6.p0_7_day_gate!=="PASS")
+    checks.push("V6.2: janela de 7 dias "+String(v6.p0_7_day_gate||"desconhecida")+". Validação científica não concluída.");
+ const summaries=[
+   ["Leitura dos ficheiros","Um ficheiro atualizado comprova a existência de uma publicação, não o sucesso da recolha completa."],
+   ["Recolha real","Sem evidência conciliada de execução + publicação + origem dos registos, o estado é NÃO VERIFICADO."],
+   ["Proveniência V5",r?.source_commit?"Dados V5 referenciam o commit "+r.source_commit.slice(0,12)+".":"Commit de origem V5 não disponibilizado."]
+ ];
+ for(const [title,msg]of summaries)eventLine(warnings,title,msg);
+ for(const m of checks)eventLine(warnings,"Atenção",m);
+ if(!checks.length)eventLine(warnings,"Sem alertas nestas comparações","Não equivale a prova de funcionamento de ponta a ponta.");
+}
 function renderHistory(){
  const r=data.research,w=data.watch,d=data.discovery;
  const metric=fill("history-metrics"),ev=fill("history-events"),res=fill("history-results");
@@ -145,6 +222,7 @@ function renderHistory(){
 function render(){
  safe("today-content",renderToday);safe("past-content",renderPast);safe("signals-content",renderSignals);
  safe("test-content",renderTesting);safe("proven-content",renderProven);safe("history-events",renderHistory);
+ safe("operation-warnings",renderOperations);
 }
 async function fetchJson(path){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
@@ -164,8 +242,8 @@ async function load(){
   const item=results[i],key=names[i];
   if(item.status==="fulfilled"){data[key]=item.value.json;}else{errors[key]=item.reason?.message||"Falha inesperada"}}
  const strip=fill("source-status");
- for(const [key,label] of [["research","Pesquisa passada"],["watch","Jogos observados"],["discovery","Cronologia / resultados"]]){
-  strip.append(element("span",label+": "+(errors[key]?"Indisponível ("+errors[key]+")":"Relatório recebido"),"source"+(errors[key]?" bad":"")))}
+ for(const [key,label] of [["research","Pesquisa passada"],["watch","Jogos observados"],["discovery","Cronologia / resultados"],["ft","Resultados FT"],["quality","Qualidade V4"],["readiness","V6.2"]]){
+  strip.append(element("span",label+": "+(errors[key]?"Indisponível ("+errors[key]+"):"Publicado "+ageText(data[key]?.generated_at||data[key]?.last_updated_at)),"source"+(errors[key]?" bad":"")))}
  const n=Object.keys(errors).length;
  const latest=[data.research?.generated_at,data.watch?.generated_at,data.discovery?.generated_at].map(time).filter(v=>v!==null).sort((a,b)=>b-a)[0];
  $("overall-state").textContent=n?"Informação parcial: "+count(n)+" fonte(s) indisponível(eis).": "Relatórios recebidos (não comprova funcionamento operacional).";
