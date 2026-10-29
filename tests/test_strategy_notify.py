@@ -80,10 +80,12 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertEqual([r["number"] for r in rows[0]["rules"]], [1, 2, 3, 4, 5])
         msg = message_for_game(rows[0], rows[0]["rules"])
         self.assertIn("Porto vs Benfica", msg)
-        self.assertIn("ESTRATÉGIA 1/5 — OVER 2,5 GOLOS", msg)
-        self.assertIn("ESTRATÉGIA 3/5 — AMBAS MARCAM", msg)
+        self.assertIn("🎯 E1 · OVER 2,5 GOLOS", msg)
+        self.assertIn("🎯 E3 · AMBAS MARCAM", msg)
         self.assertIn("13/16 (81,3%)", msg)  # explicit half-up to match user-facing V5
-        self.assertIn("Padrões EXPLORATÓRIOS", msg)
+        self.assertNotIn("Taxas históricas", msg)
+        self.assertNotIn("🆔", msg)
+        self.assertLess(len(msg), 950)
         sent = []
         ledger, stats = process(rows, empty_ledger(NOW), NOW,
                                 lambda text: sent.append(text) or 437, True)
@@ -126,11 +128,11 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertNotIn(4, [r["number"] for r in rows[0]["rules"]])
 
-    def test_large_first_backfill_is_paced_and_bounded_across_cycles(self):
+    def test_all_eligible_games_are_notified_without_six_message_cap(self):
         a = original()
         base = candidates([a], [v4(a)])[0]
         rows = []
-        for i in range(10):
+        for i in range(15):
             r = copy.deepcopy(base)
             r["match_key"] = "today-" + str(i)
             r["kickoff_utc"] = (KO + timedelta(minutes=i)).isoformat()
@@ -138,20 +140,18 @@ class FiveStrategyTests(unittest.TestCase):
         messages=[]
         ledger, first = process(rows, empty_ledger(NOW), NOW,
                                 lambda msg: messages.append(msg) or (100 + len(messages)), True)
-        self.assertEqual(first["games_sent"],6)
-        self.assertEqual(first["deferred_rate_limit"],4)
-        self.assertEqual(len(ledger["entries"]),30)
+        self.assertEqual(first["games_sent"],15)
+        self.assertEqual(len(ledger["entries"]),75)
         ledger, second = process(rows, ledger, NOW+timedelta(minutes=5),
                                  lambda msg: messages.append(msg) or (100 + len(messages)),True)
-        self.assertEqual(second["games_sent"],4)
-        self.assertEqual(second["deferred_rate_limit"],0)
-        self.assertEqual(len(messages),10)
+        self.assertEqual(second["games_sent"],0)
+        self.assertEqual(len(messages),15)
         ledger, third = process(rows,ledger,NOW+timedelta(minutes=10),
                                 lambda msg: self.fail("duplicate"),True)
         self.assertEqual(third["games_sent"],0)
 
-    def test_future_beyond_24h_deferred_until_in_alert_window(self):
-        a=original(ko=NOW+timedelta(hours=25))
+    def test_future_beyond_12h_deferred_until_in_alert_window(self):
+        a=original(ko=NOW+timedelta(hours=13))
         rows=candidates([a],[v4(a)])
         ledger,stats=process(rows,empty_ledger(NOW),NOW,
                              lambda msg:self.fail("premature"),True)
@@ -188,8 +188,8 @@ class FiveStrategyTests(unittest.TestCase):
         ledger,stats=process(updated,ledger,NOW+timedelta(minutes=1),
                              lambda msg: sent.append(msg) or 124,True)
         self.assertEqual(stats["strategy_receipts"],1)
-        self.assertIn("ESTRATÉGIA 1/5", sent[0])
-        self.assertNotIn("ESTRATÉGIA 2/5", sent[0])
+        self.assertIn("🎯 E1 ·", sent[0])
+        self.assertNotIn("🎯 E2 ·", sent[0])
 
     def test_catalogue_drift_or_stale_report_fails_loudly(self):
         good=research()
