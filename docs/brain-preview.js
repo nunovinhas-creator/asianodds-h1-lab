@@ -89,20 +89,27 @@ function linkMatches(box,m,r){
 function renderToday(){
  const w=data.watch,r=data.research,ms=fill("today-metrics"),list=fill("today-content");
  if(!w||!Array.isArray(w.future_strict)){state(list,"Jogos do dia indisponíveis.","O relatório de observação não foi carregado ou não é válido.");return}
- const now=Date.now(),matches=w.future_strict.filter(m=>time(m.kickoff_utc)!==null&&time(m.kickoff_utc)>now);
- const today=matches.filter(m=>todayKey(time(m.kickoff_utc))===todayKey(now));
- stat(ms,"Jogos rigorosos por começar hoje",count(today.length));stat(ms,"Jogos rigorosos futuros",count(matches.length));
+ const now=Date.now(),all=w.future_strict.filter(m=>time(m.kickoff_utc)!==null);
+ const matches=all.filter(m=>time(m.kickoff_utc)>now);
+ const today=all.filter(m=>todayKey(time(m.kickoff_utc))===todayKey(now))
+  .sort((a,b)=>(time(a.kickoff_utc)<=now)-(time(b.kickoff_utc)<=now)||time(a.kickoff_utc)-time(b.kickoff_utc));
+ const futureToday=today.filter(m=>time(m.kickoff_utc)>now),startedToday=today.length-futureToday.length;
+ stat(ms,"Jogos rigorosos por começar hoje",count(futureToday.length));
+ stat(ms,"Já iniciados nesta fotografia pré-jogo",count(startedToday));
+ stat(ms,"Jogos rigorosos ainda futuros",count(matches.length));
  stat(ms,"Primeiras deteções históricas",count(w.summary?.total_historical_first_detections));
  if(r&&typeof MBPatternMatcher==="object"){
    stat(ms,"Jogos de hoje com relação histórica verificável",
      count(today.filter(m=>MBPatternMatcher.linked(m,r,{minN:12,minDiff:0.08}).length>0).length));
  }
- if(!today.length){state(list,"Sem jogos com a condição rigorosa para hoje.","Isto não significa que o sistema tenha parado; indica apenas a fotografia publicada. Verifique a data do relatório.");return}
+ if(!today.length){state(list,"Sem jogos com a condição rigorosa para hoje nesta fotografia.","Isto não significa que o sistema tenha parado. Os jogos que já começaram podem desaparecer da próxima publicação do observatório, que só acompanha jogos futuros.");return}
  const cats={RISING_EACH_EPISODE:"Subidas consistentes",RISING_WITH_FLAT:"Subida e estabilidade",FLAT_EACH_EPISODE:"Quase estável"};
- for(const m of today.sort((a,b)=>time(a.kickoff_utc)-time(b.kickoff_utc)).slice(0,12)){
-  const box=card(list,"INÍCIO "+date(m.kickoff_utc),m.match_label||"Jogo sem nome",cats[m.category]||"Movimentos observados","positive");
+ for(const m of today.slice(0,12)){
+  const started=time(m.kickoff_utc)<=now;
+  const box=card(list,(started?"JÁ INICIADO · ":"INÍCIO ")+date(m.kickoff_utc),m.match_label||"Jogo sem nome",
+   started?"Arquivo pré-jogo":cats[m.category]||"Movimentos observados",started?"exploratory":"positive");
   box.append(element("p",count(m.episodes)+" episódios independentes · "+count(m.messages)+" mensagens.","summary"));
-  box.append(element("p","Está sob observação. Nenhum padrão é apresentado como previsão validada."));
+  box.append(element("p",started?"O jogo já começou. Só é mostrado o registo pré-jogo desta fotografia, sem dados live nem FT.":"Está sob observação. Nenhum padrão é apresentado como previsão validada."));
   linkMatches(box,m,r);
  }
  if(today.length>12)list.append(element("p","Ver todos os jogos no observatório detalhado.","meta"));
