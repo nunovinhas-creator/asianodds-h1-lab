@@ -40,19 +40,20 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
-      # Only prospective strict Pattern Watch observations are sent to Telegram.
-      # H1 singles and FIFO triples are still collected and settled, never notified.
-      - name: Notify new MASTER BRAIN strict patterns (experimental, not betting)
+      # ONLY five explicitly selected V5 strategies go to Telegram; generic Pattern Watch
+      # and H1 singles/triples remain archived/settled but are NOT notified.
+      - name: Notify MASTER BRAIN five pinned strategies (exploratory)
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python -m h1lab.pattern_notify
+        run: python -m h1lab.strategy_notify
       - name: Store data for dashboard
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/state.json docs/data.json
           if [ -f data/pattern-notifications.json ]; then git add data/pattern-notifications.json; fi
+          if [ -f data/strategy-notifications.json ]; then git add data/strategy-notifications.json; fi
           if [ -d data/lab ]; then git add data/lab; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data: collect and notify H1 [skip ci]'
