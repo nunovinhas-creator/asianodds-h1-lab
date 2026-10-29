@@ -18,8 +18,8 @@ from h1lab.lab_monte_bsd import MonteBSDCrosswalk
 from h1lab.lab_bsd_priority import lookup_bsd_monte_first
 from h1lab.lab_bsd_id_registry import (
     empty as empty_bsd_ids, discover as discover_bsd_ids,
-    plan_days as plan_bsd_days, due_unmapped_keys as due_bsd_ids, BSDRegistryLookup)
-from h1lab.lab_bsd_search import BSDDateFallback, summary as bsd_date_summary
+    plan_days as plan_bsd_days, due_unmapped_keys as due_bsd_ids, BSDRegistryLookup, identity_summary)
+from h1lab.lab_bsd_search import BSDDateFallback, date_in_cooldown, summary as bsd_date_summary
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
@@ -155,6 +155,8 @@ def main():
     except (ValueError, OSError, KeyError, TypeError) as exc:
         research_hints = {}
         print("V6_FT_PRIORITY_FALLBACK", type(exc).__name__)
+    previous_bsd_ids = (json.loads(BSD_ID_REGISTRY.read_text(encoding="utf-8"))
+                        if BSD_ID_REGISTRY.exists() else empty_bsd_ids())
     bsd_finder = BSDDateFallback(
         token=os.environ.get("BSD_API_KEY", ""),
         max_days=int(os.environ.get("LAB_BSD_DATE_MAX_DAYS", "3")),
@@ -162,22 +164,19 @@ def main():
         # The LAB has true BSD event-ID discovery; no preliminary
         # fuzzy team_name HTTP call is needed or allowed in production.
         primary=lambda unused, **kwargs: (None,"bsd_no_exact_match"),
-        require_count=True,
+        require_count=True, probes=previous_bsd_ids.get("probes", {}), now=now,
     )
     monte = MonteBSDCrosswalk(
         token=os.environ.get("BSD_API_KEY", ""), max_event_requests=12)
     bsd_registry_lookup = None
     bsd_official_hold_keys = set()
     def bsd_with_monte(signal):
-        if signal.get("match_key") in bsd_official_hold_keys:
-            # Do not settle a documented official-score conflict merely
-            # because the BSD source offers a single matching FT.
-            return None, "bsd_official_score_hold"
         # Source-verified ID priority: persistent BSD registry -> direct
         # Monte-Carlos BSD ID -> complete date list bootstrap. Never
         # trust archived scores, never search by team name on each visit.
         return lookup_bsd_monte_first(
-            signal, monte, bsd_finder, registry=bsd_registry_lookup)
+            signal, monte, bsd_finder, registry=bsd_registry_lookup,
+            official_hold_keys=bsd_official_hold_keys)
 
     tsdb = PacedTSDB()
     fotmob_enabled = os.environ.get('LAB_FOTMOB_LICENSED', '0') == '1'
@@ -269,8 +268,6 @@ def main():
         priority_hints=research_hints, evidence_retry=True,
         approved_rechecks=approved_due)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
-    previous_bsd_ids = (json.loads(BSD_ID_REGISTRY.read_text(encoding="utf-8"))
-                        if BSD_ID_REGISTRY.exists() else empty_bsd_ids())
     # Data-only, zero-HTTP planning. The scheduled FT workflow itself
     # requests at most three COMPLETE BSD day catalogues (max 3 pages
     # each) and reuses each list for every eligible game on that date.
@@ -286,7 +283,7 @@ def main():
                       max_days=bsd_finder.max_days)
         if live_context and bsd_finder.token else [])
     for day in bsd_discovery_days:
-        bsd_finder._date_index(day)
+        bsd_finder._date_index(day, path="discovery")
     bsd_registry, bsd_initial_stats = discover_bsd_ids(
         previous_bsd_ids, bsd_finder.days,
         _preview_ledger["matches"], now)
@@ -429,6 +426,19 @@ def main():
         bsd_registry, bsd_finder.days, next_ledger["matches"], now)
     write_if_changed(BSD_ID_REGISTRY, bsd_registry)
     report["ft_queue"]["bsd_identity_registry"] = {
+        **identity_summary(next_ledger["matches"], bsd_registry, bsd_finder, now),
+        "http_total": bsd_finder.date_requests + bsd_finder.details_requested + monte.events_requested,
+        "fallback_detail_requests": bsd_finder.details_requested,
+        "monte_only_detail_requests": monte.events_requested - bsd_registry_lookup.http_requests,
+        "eligible_days_before": len({
+            _preview_ledger["matches"][key]["kickoff_utc"][:10] for key in bsd_due_keys
+            if not date_in_cooldown(previous_bsd_ids.get("probes", {}),
+                _preview_ledger["matches"][key]["kickoff_utc"][:10], now)}),
+        "new_ids": bsd_initial_stats.get("new_ids", 0) + bsd_final_stats.get("new_ids", 0),
+        "persisted_id_new_finals": sum(
+            row.get("status") == "FINAL" and existing.get("matches", {}).get(key, {}).get("status") != "FINAL"
+            and row.get("provider_reasons", {}).get("bsd") == "verified_bsd_from_persisted_id"
+            for key, row in next_ledger["matches"].items()),
         "planned_days": bsd_discovery_days,
         "overdue_without_id": len(bsd_due_keys),
         "independent_of_ft_queue": True,

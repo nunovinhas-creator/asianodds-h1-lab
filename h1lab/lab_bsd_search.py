@@ -8,7 +8,7 @@ produces a verified match.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 from .bsd import (ROOT, BSDProviderError, event_kickoff, event_name, find_result,
@@ -22,11 +22,21 @@ MAX_PAGES = 4
 FALLBACK_REASONS = frozenset({"bsd_no_exact_match", "bsd_paginated_requires_review"})
 
 
+def date_in_cooldown(probes, day, now):
+    """Single policy used by planner and HTTP boundary, including future stamps."""
+    raw = (probes.get(day) or {}).get("attempted_at_utc")
+    try:
+        attempted = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (AttributeError, ValueError):
+        return False
+    return attempted.tzinfo is not None and now < attempted + timedelta(hours=4)
+
+
 class BSDDateFallback:
     """One-run cache, bounded by days and per-day pages. No persistent API key."""
 
     def __init__(self, *, token, fetch=request_json, primary=find_result,
-                 max_days=3, max_pages=3, require_count=False):
+                 max_days=3, max_pages=3, require_count=False, probes=None, now=None):
         if not 0 <= max_days <= MAX_DAYS or not 1 <= max_pages <= MAX_PAGES:
             raise ValueError("BSD date search budget out of bounds")
         self.token = (token or "").strip()
@@ -38,6 +48,12 @@ class BSDDateFallback:
         self.max_days = max_days
         self.max_pages = max_pages
         self.require_count = require_count
+        self.probes = probes if probes is not None else {}
+        self.now = now if now is not None else datetime.now(timezone.utc)
+        if self.now.tzinfo is None:
+            raise ValueError("BSD clock must be timezone aware")
+        self.deferred_days = {}
+        self.requests_by_path = Counter()
         self.days = {}  # day -> (list of events, diagnostic); never persisted
         self.date_requests = 0
         self.details_requested = 0
@@ -54,10 +70,14 @@ class BSDDateFallback:
             return None
         return dt.astimezone(timezone.utc) if dt.tzinfo else None
 
-    def _date_index(self, day):
+    def _date_index(self, day, *, path="fallback"):
         if day in self.days:
             return self.days[day]
+        if date_in_cooldown(self.probes, day, self.now):
+            self.deferred_days[day] = "bsd_date_cooldown_deferred"
+            return [], "bsd_date_cooldown_deferred"
         if len(self.days) >= self.max_days:
+            self.deferred_days[day] = "bsd_date_budget_deferred"
             return [], "bsd_date_budget_deferred"
 
         # Reserve day before first request so outages do not cause repeated
@@ -65,6 +85,7 @@ class BSDDateFallback:
         self.days[day] = ([], "bsd_date_unavailable")
         rows = []
         seen_pages = set()
+        expected_total = None
         for page in range(self.max_pages):
             offset = PAGE_SIZE * page
             if offset in seen_pages:
@@ -75,6 +96,7 @@ class BSDDateFallback:
                 "limit": PAGE_SIZE, "offset": offset,
             })
             self.date_requests += 1
+            self.requests_by_path[path] += 1
             try:
                 data = self.fetch(url, self.token)
             except BSDProviderError:
@@ -94,6 +116,10 @@ class BSDDateFallback:
                         (type(total) is not int or total<0))):
                 self.days[day] = ([], "bsd_date_invalid_total")
                 return self.days[day]
+            if page and total != expected_total:
+                self.days[day] = ([], "bsd_date_total_changed")
+                return self.days[day]
+            expected_total = total
             rows.extend(items)
             if data.get("next") is None or data.get("next") is False:
                 # Official BSD pagination 'count' denotes TOTAL results,

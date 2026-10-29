@@ -229,5 +229,123 @@ class BSDPersistentIdsTests(unittest.TestCase):
         index,_=discover(empty(),finder.days,{KEY:ROW,OTHER_KEY:OTHER_ROW},NOW)
         self.assertEqual(len(index["matches"]),2)
 
-if __name__=="__main__":
+
+class BSDCooldownBoundaryTests(unittest.TestCase):
+    def finder(self, registry, now, fetch):
+        return BSDDateFallback(token="synthetic", fetch=fetch, now=now,
+            probes=registry.get("probes", {}), require_count=True,
+            primary=lambda *a, **kw: (None, "bsd_no_exact_match"))
+
+    def test_three_jobs_real_fallback_boundary_and_fair_rotation(self):
+        from urllib.parse import parse_qs, urlparse
+        ledger = {}
+        events = {}
+        for n, day in enumerate(("2026-10-26", "2026-10-27", "2026-10-28")):
+            ko = day + "T12:00:00+00:00"
+            ledger[day] = dict(ROW, match_key=day, kickoff_utc=ko)
+            events[day] = dict(SOURCE, id=600000+n, event_date=ko)
+        calls = []
+        def fetch(url, token):
+            calls.append(url)
+            day = parse_qs(urlparse(url).query)["date_from"][0]
+            return {"count": 1, "next": None, "results": [events[day]]}
+        first = self.finder(empty(), NOW, fetch)
+        for day in plan_days(list(ledger), ledger, empty(), NOW):
+            first._date_index(day, path="discovery")
+        reg, stats = discover(empty(), first.days, ledger, NOW)
+        self.assertEqual(stats["new_ids"], 3)
+        self.assertEqual(len(calls), 3)
+        # New unmatched games on those same dates keep discovery eligible.
+        missing = {k: dict(v, home="Unknown Club") for k,v in ledger.items()}
+        reg["matches"] = {}  # simulate a separate unresolved population
+        stamp = copy.deepcopy(reg["probes"])
+        for minutes in (35, 70, 239):
+            second = self.finder(reg, NOW+timedelta(minutes=minutes), fetch)
+            self.assertEqual(plan_days(list(missing), missing, reg, second.now), [])
+            for row in missing.values():
+                self.assertEqual(second.lookup(row), (None, "bsd_date_cooldown_deferred"))
+            reg, _ = discover(reg, second.days, missing, second.now)
+            self.assertEqual(reg["probes"], stamp)
+            self.assertEqual(second.days, {})
+        self.assertEqual(len(calls), 3)
+        third = self.finder(reg, NOW+timedelta(hours=4), fetch)
+        self.assertEqual(plan_days(list(missing), missing, reg, third.now), sorted(missing))
+        for day in sorted(missing):
+            third._date_index(day, path="discovery")
+            third._date_index(day)  # complete in-run cache costs zero
+        self.assertEqual(len(calls), 6)
+
+    def test_failed_attempt_blocks_and_deferral_never_moves_timestamp(self):
+        from h1lab.bsd import BSDProviderError
+        calls = []
+        def fail(url, token):
+            calls.append(url)
+            raise BSDProviderError("synthetic HTTP failure")
+        finder = self.finder(empty(), NOW, fail)
+        finder._date_index(DAY)
+        reg, _ = discover(empty(), finder.days, {KEY: ROW}, NOW)
+        later = self.finder(reg, NOW+timedelta(minutes=35), fail)
+        self.assertEqual(later.lookup(ROW)[1], "bsd_date_cooldown_deferred")
+        # Defensive persistence also ignores explicit deferred tuples.
+        after, _ = discover(reg, {DAY: ([], "bsd_date_cooldown_deferred")},
+                            {KEY: ROW}, later.now)
+        self.assertEqual(after["probes"], reg["probes"])
+        self.assertEqual(len(calls), 1)
+
+    def test_inconsistent_page_totals_fail_closed(self):
+        pages = iter([{"count": 8, "next": "next", "results": [SOURCE]},
+                      {"count": 2, "next": None, "results": [OTHER]}])
+        finder = self.finder(empty(), NOW, lambda *a: next(pages))
+        self.assertEqual(finder._date_index(DAY)[1], "bsd_date_total_changed")
+        reg, _ = discover(empty(), finder.days, {KEY:ROW}, NOW)
+        self.assertEqual(reg["matches"], {})
+
+    def test_known_id_natural_queue_hold_and_zero_results(self):
+        from h1lab.lab_bsd_priority import lookup_bsd_monte_first
+        from h1lab.lab_monte_bsd import MonteBSDCrosswalk
+        from h1lab.lab_results import reconcile
+        reg, _ = discover(empty(), {DAY: ([SOURCE], "complete")}, {KEY: ROW}, NOW)
+        calls = []
+        def fetch(url, token):
+            calls.append(url)
+            self.assertTrue(url.endswith("/599528/"))
+            return copy.deepcopy(SOURCE)  # simulated score, never production
+        monte = MonteBSDCrosswalk(token="synthetic", fetch=fetch, sleep=lambda _: None)
+        finder = self.finder(reg, NOW, lambda *a: self.fail("date HTTP forbidden"))
+        lookup = BSDRegistryLookup(reg, monte)
+        def bsd(signal):
+            return lookup_bsd_monte_first(signal, monte, finder, registry=lookup)
+        st = {"alerts": [dict(ROW, h1=False)], "signals": []}
+        prev = {"schema_version": 1, "matches": {KEY: dict(ROW, queue_visited_at=NOW.isoformat())}}
+        no = lambda _: (None, "synthetic_no_result")
+        ledger, report, _ = reconcile(st, [], prev, now=NOW+timedelta(minutes=35),
+            bsd_lookup=bsd, tsdb_lookup=no, evidence_retry=True)
+        self.assertEqual(calls, [])
+        ledger, report, _ = reconcile(st, [], prev, now=NOW+timedelta(hours=4),
+            bsd_lookup=bsd, tsdb_lookup=no, evidence_retry=True)
+        self.assertEqual(ledger["matches"][KEY]["status"], "FINAL")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(lookup.summary()["http_requests"], 1)
+        self.assertEqual(lookup_bsd_monte_first(ROW, monte, finder, registry=lookup,
+            official_hold_keys={KEY}), (None, "bsd_official_score_hold"))
+        self.assertEqual(len(calls), 1)
+        held = lambda signal: lookup_bsd_monte_first(signal, monte, finder,
+            registry=lookup, official_hold_keys={KEY})
+        ledger, _, _ = reconcile(st, [], prev, now=NOW+timedelta(hours=4),
+            bsd_lookup=held, tsdb_lookup=no, evidence_retry=True)
+        self.assertEqual(ledger["matches"][KEY]["status"], "PENDING")
+        self.assertNotIn("result", ledger["matches"][KEY])
+
+    def test_diagnostics_never_claim_absent_coverage_from_unknown_names(self):
+        from h1lab.lab_bsd_id_registry import identity_summary
+        reg, _ = discover(empty(), {DAY: ([OTHER], "complete")}, {KEY:ROW}, NOW)
+        finder = self.finder(reg, NOW, lambda *a: self.fail("no HTTP"))
+        report = identity_summary({KEY:ROW}, reg, finder, NOW)
+        self.assertEqual(report["coverage_absence_confirmed"], 0)
+        self.assertEqual(report["overdue_compared_with_complete_catalogue"], 1)
+        self.assertEqual(report["comparison_reason_counts"],
+            {"no_verified_match_unknown_coverage_or_names": 1})
+
+
+if __name__ == "__main__":
     unittest.main()

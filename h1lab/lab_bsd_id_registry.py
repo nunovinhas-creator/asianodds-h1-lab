@@ -18,6 +18,7 @@ from .lab_ft_crosswalk import providers_from_final, event_id as final_event_id
 from .lab_identity_review import _qualifiers
 from .lab_results import utc
 from .lab_monte_bsd import validated_result
+from .lab_bsd_search import date_in_cooldown
 
 SCHEMA = 1
 WINDOW = timedelta(minutes=5)
@@ -105,6 +106,11 @@ def discover(previous, caches, all_matches, now):
                       if isinstance(value,dict)
                       and utc(day+"T00:00:00+00:00") is not None
                       and timedelta(0) <= now-utc(day+"T00:00:00+00:00")<=RETENTION}
+    out["comparisons"] = {k: dict(v) for k, v in previous.get("comparisons", {}).items()
+                          if k in all_matches and isinstance(v, dict)
+                          and all_matches[k].get("status") in ("PENDING", "PROVIDER_ERROR")
+                          and utc(v.get("compared_at_utc")) is not None
+                          and timedelta(0) <= now-utc(v["compared_at_utc"]) <= RETENTION}
     out["matches"] = {}
     for key,entry in previous["matches"].items():
         if not isinstance(entry,dict):
@@ -141,6 +147,10 @@ def discover(previous, caches, all_matches, now):
                         "reason":"BSD_ID_ALREADY_CONFIRMED_FOR_ANOTHER_GAME",
                         "detected_at_utc":now.isoformat(timespec="seconds")}
     for day, pair in sorted(caches.items()):
+        # Deferrals are not attempts, even if supplied by another caller.
+        if isinstance(pair, (tuple, list)) and len(pair) == 2 and pair[1] in (
+                "bsd_date_cooldown_deferred", "bsd_date_budget_deferred"):
+            continue
         if isinstance(day,str):
             out["probes"][day]={
                 "attempted_at_utc":now.isoformat(timespec="seconds"),
@@ -171,16 +181,22 @@ def discover(previous, caches, all_matches, now):
                     or g.get("kickoff_utc","")[:10]!=day or key in out["conflicts"]):
                 continue
             candidates=[e for e in catalogue if _valid_match(key,g,e)]
+            reason = identity_diagnostic(key, g, catalogue, candidates)
+            out["comparisons"][key] = {"day": day, "reason": reason,
+                "compared_at_utc": now.isoformat(timespec="seconds")}
+            stats["compared_games"] += 1
             if len(candidates)!=1:
                 if len(candidates)>1: stats["ambiguous_id_candidates"]+=1
                 continue
             source=candidates[0]
             collision=_collision(source,g,catalogue,all_matches,key)
             if collision:
+                out["comparisons"][key]["reason"] = collision
                 stats[collision]+=1
                 continue
             previous_claims=claims.get(source["event_id"],set())-{key}
             if previous_claims:
+                out["comparisons"][key]["reason"] = "shared_event_id"
                 stats["shared_event_id"]+=1
                 out["conflicts"][key]={
                     "reason":"BSD_ID_ALREADY_CLAIMED",
@@ -207,6 +223,8 @@ def discover(previous, caches, all_matches, now):
             out["matches"][key]=item
             claims.setdefault(source["event_id"],set()).add(key)
             stats["new_ids"]+=1
+    out["comparisons"] = dict(sorted(out["comparisons"].items(),
+        key=lambda pair: (pair[1]["compared_at_utc"], pair[0]))[-MAX_MATCHES:])
     out["days"]=dict(sorted(out["days"].items())[-MAX_DAYS:])
     out["probes"]=dict(sorted(out["probes"].items())[-MAX_DAYS:])
     stats["total_id_bindings"]=len(out["matches"])
@@ -220,6 +238,8 @@ class BSDRegistryLookup:
         self.registry=registry
         self.monte=monte
         self.reasons=Counter()
+        self.ids_reused = 0
+        self.http_requests = 0
 
     def lookup(self,signal):
         key=signal.get("match_key")
@@ -236,7 +256,10 @@ class BSDRegistryLookup:
         for other_key,other in self.registry.get("matches",{}).items():
             if other_key!=key and other.get("event_id")==ident:
                 return self._fail("bsd_registry_id_collision")
+        before = self.monte.events_requested
+        self.ids_reused += 1
         event,reason=self.monte._event(ident)
+        self.http_requests += self.monte.events_requested - before
         if event is None:
             self.reasons[reason]+=1
             return None,reason
@@ -269,7 +292,8 @@ class BSDRegistryLookup:
         return None,reason
 
     def summary(self):
-        return {"known_ids":len(self.registry.get("matches",{})),
+        return {"ids_reused": self.ids_reused, "http_requests": self.http_requests,
+                "known_ids":len(self.registry.get("matches",{})),
                 "conflicts":len(self.registry.get("conflicts",{})),
                 "reasons":dict(sorted(self.reasons.items()))}
 
@@ -312,9 +336,7 @@ def plan_days(selected_keys, matches, registry, now, max_days=3):
         if ko is None or not ko+timedelta(hours=3)<=now<=ko+RETENTION:
             continue
         day=ko.date().isoformat()
-        probe=registry.get("probes",{}).get(day) or {}
-        attempted=utc(probe.get("attempted_at_utc"))
-        if attempted is not None and timedelta(0)<=now-attempted<timedelta(hours=4):
+        if date_in_cooldown(registry.get("probes", {}), day, now):
             continue
         by_day[day]+=1
     def order(pair):
@@ -326,3 +348,46 @@ def plan_days(selected_keys, matches, registry, now, max_days=3):
                 stamp or datetime.min.replace(tzinfo=timezone.utc),
                 -count,day)
     return [day for day,count in sorted(by_day.items(),key=order)][:max_days]
+
+
+def identity_diagnostic(key, row, catalogue, candidates):
+    """Diagnostics never grant identity. No match does not prove non-coverage."""
+    if len(candidates) > 1:
+        return "ambiguous_candidates"
+    if candidates:
+        return "verified_candidate"
+    home, away = row.get("home", ""), row.get("away", "")
+    for item in catalogue:
+        ph, pa = item["provider_home"], item["provider_away"]
+        if pair_level(home, away, ph, pa):
+            return "kickoff_mismatch"
+    for item in catalogue:
+        ph, pa = item["provider_home"], item["provider_away"]
+        if pair_level(home, away, pa, ph):
+            return "reversed_home_away"
+        if (core_tokens(home) - _qualifiers(home) == core_tokens(ph) - _qualifiers(ph)
+                and core_tokens(away) - _qualifiers(away) == core_tokens(pa) - _qualifiers(pa)
+                and (_qualifiers(home), _qualifiers(away)) != (_qualifiers(ph), _qualifiers(pa))):
+            return "category_mismatch"
+    return "no_verified_match_unknown_coverage_or_names"
+
+
+def identity_summary(matches, registry, search, now):
+    keys = due_unmapped_keys(matches, registry, now)
+    reasons = Counter()
+    for key in keys:
+        comparison = registry.get("comparisons", {}).get(key)
+        reasons[comparison["reason"] if comparison else "unknown_not_compared"] += 1
+    days = {matches[k]["kickoff_utc"][:10] for k in keys}
+    blocked = {d for d in days if date_in_cooldown(registry.get("probes", {}), d, now)}
+    return {"overdue_without_id_after": len(keys),
+            "overdue_compared_with_complete_catalogue": sum(
+                k in registry.get("comparisons", {}) for k in keys),
+            "comparison_reason_counts": dict(sorted(reasons.items())),
+            "coverage_absence_confirmed": 0,
+            "coverage_absence_note": "No verified match cannot distinguish absence from names",
+            "cooldown_blocked_games": sum(matches[k]["kickoff_utc"][:10] in blocked for k in keys),
+            "eligible_days_after": len(days - blocked),
+            "deferred_days": dict(sorted(search.deferred_days.items())),
+            "date_http_by_path": dict(sorted(search.requests_by_path.items())),
+            "http_total": search.date_requests + search.details_requested}
