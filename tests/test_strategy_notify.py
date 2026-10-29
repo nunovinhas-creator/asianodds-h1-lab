@@ -126,6 +126,40 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertNotIn(4, [r["number"] for r in rows[0]["rules"]])
 
+    def test_large_first_backfill_is_paced_and_bounded_across_cycles(self):
+        a = original()
+        base = candidates([a], [v4(a)])[0]
+        rows = []
+        for i in range(10):
+            r = copy.deepcopy(base)
+            r["match_key"] = "today-" + str(i)
+            r["kickoff_utc"] = (KO + timedelta(minutes=i)).isoformat()
+            rows.append(r)
+        messages=[]
+        ledger, first = process(rows, empty_ledger(NOW), NOW,
+                                lambda msg: messages.append(msg) or (100 + len(messages)), True)
+        self.assertEqual(first["games_sent"],6)
+        self.assertEqual(first["deferred_rate_limit"],4)
+        self.assertEqual(len(ledger["entries"]),30)
+        ledger, second = process(rows, ledger, NOW+timedelta(minutes=5),
+                                 lambda msg: messages.append(msg) or (100 + len(messages)),True)
+        self.assertEqual(second["games_sent"],4)
+        self.assertEqual(second["deferred_rate_limit"],0)
+        self.assertEqual(len(messages),10)
+        ledger, third = process(rows,ledger,NOW+timedelta(minutes=10),
+                                lambda msg: self.fail("duplicate"),True)
+        self.assertEqual(third["games_sent"],0)
+
+    def test_future_beyond_24h_deferred_until_in_alert_window(self):
+        a=original(ko=NOW+timedelta(hours=25))
+        rows=candidates([a],[v4(a)])
+        ledger,stats=process(rows,empty_ledger(NOW),NOW,
+                             lambda msg:self.fail("premature"),True)
+        self.assertEqual(stats["deferred_not_imminent"],1)
+        self.assertEqual(len(ledger["entries"]),0)
+        ledger,stats=process(rows,ledger,NOW+timedelta(hours=2),lambda _:987,True)
+        self.assertEqual(stats["games_sent"],1)
+
     def test_no_bot_configuration_never_consumes_eligible_receipts(self):
         a=original(); rows=candidates([a], [v4(a)])
         ledger, stats=process(rows, empty_ledger(NOW), NOW,
