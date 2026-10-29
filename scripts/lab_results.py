@@ -317,8 +317,24 @@ def main():
                 now.isoformat(timespec="seconds"))
     if api_football.id_requests:
         for match_key in approved_targets:
-            next_ledger["matches"][match_key]["api_football_reviewed_id_last_attempt_at"] = (
+            row = next_ledger["matches"][match_key]
+            row["api_football_reviewed_id_last_attempt_at"] = (
                 now.isoformat(timespec="seconds"))
+            # A failed ID query does not produce a new complete provider-day
+            # snapshot, so V7 normally preserves the old name-lookup reason.
+            # Keep the actual ID response/rejection in its own durable field,
+            # and expose it as the most recent API-Football reason. Never
+            # invent a score or count a failed response as verified evidence.
+            why = api_football.reviewed_outcomes.get(match_key)
+            if why:
+                row["api_football_reviewed_id_last_evidence"] = {
+                    "checked_at_utc": now.isoformat(timespec="seconds"),
+                    "provider": "api_football",
+                    "provider_fixture_id": approved_targets[match_key]["provider_fixture_id"],
+                    "reason": why,
+                    "id_requests_in_run": api_football.id_requests,
+                }
+                row.setdefault("provider_reasons", {})["api_football"] = why
     used_days = {
         "goal": sorted(goal.cache),
         "openfoot": sorted(openfoot.days),
@@ -369,8 +385,8 @@ def main():
     report["ft_queue"]["api_football_reviewed_id_probe"] = {
         "approved_selected": len(approved_targets),
         "id_requests": api_football.id_requests,
-        "outcomes": {key: next_ledger["matches"][key].get(
-            "provider_reasons", {}).get("api_football") for key in approved_targets},
+        "outcomes": {key: api_football.reviewed_outcomes.get(key)
+                     for key in approved_targets},
         "decisions": reviewed_id_decisions,
     }
     if approved.get("pairs") and checks:
