@@ -34,7 +34,7 @@ class PreviewTests(unittest.TestCase):
         page = Page()
         page.feed((DOCS / "brain-preview.html").read_text(encoding="utf-8"))
         self.assertTrue({"hoje", "passado", "sinais", "teste", "comprovadas", "historico"} <= page.ids)
-        self.assertEqual(len([x for x in page.links if x.startswith("#")]), 6)
+        self.assertEqual(len([x for x in page.links if x.startswith("#")]), 7)  # six tabs + skip link
         self.assertIn("./brain-preview.js", page.scripts)
         self.assertIn("./brain-preview.css", page.styles)
         for path in page.scripts + page.styles:
