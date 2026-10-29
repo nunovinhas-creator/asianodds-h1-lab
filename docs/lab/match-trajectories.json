@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-29T12:46:30+00:00",
+ "generated_at": "2026-10-29T12:51:35+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 144
+  "timelines_published": 145
  },
  "schema_version": 1,
- "source_commit": "8d67d494745ce48c7e44e236786173a0a80b45c2",
+ "source_commit": "161a66cbcf51dd2c9864b363a760138c9314ded0",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 472,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 671,
+  "messages": 672,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 343,
+  "messages_on_repeated_matches": 345,
   "messages_v4_only": 0,
-  "messages_with_v4": 597,
-  "movement_episodes_upper_bound": 646,
+  "messages_with_v4": 598,
+  "movement_episodes_upper_bound": 647,
   "possibly_redundant_snapshots": 17,
   "post_kickoff_messages": 16,
   "related_message_pairs": 25,
@@ -50,14 +50,14 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 8
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 144,
+  "repeated_matches": 145,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 935
+   "V4_EXPLICIT": 936
   },
   "total_line_reversals_on_repeated": 72,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 23,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 24,
    "CONTINUOUS": 104,
    "SAME_MOVEMENT_REPEAT": 25,
    "UNOBSERVED_CHANGE": 47
@@ -65,10 +65,147 @@
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 171,
    "one_x_two:AGREE": 167,
-   "total:AGREE": 597
+   "total:AGREE": 598
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:50836",
+    "3571094759:51253"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:50836",
+     "message_id": 50836,
+     "minutes_to_kickoff": 2361.3,
+     "observed_at": "2026-10-28T10:08:39+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.81,
+        "under_price": 2.0
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 2.04,
+        "under_price": 1.84
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51253",
+     "message_id": 51253,
+     "minutes_to_kickoff": 760.6,
+     "observed_at": "2026-10-29T12:49:23+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.9,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 2.04,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-28T10:08:39+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-30T01:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-29T12:49:23+00:00",
+   "match_key": "2026-10-30,1444,1651",
+   "match_label": "CD Atlético Nacional vs Club Independiente Santa Fe",
+   "movement_episodes": [
+    [
+     "3571094759:50836"
+    ],
+    [
+     "3571094759:51253"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    96044.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.75,
+     "last_observed_line": 2.5,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.5,
+       "before": 2.75,
+       "event_id": "3571094759:50836",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.5,
+       "before": 2.75,
+       "event_id": "3571094759:51253",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:50836",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.75,
+       "previous_after_line": 2.5,
+       "to": "3571094759:51253"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
