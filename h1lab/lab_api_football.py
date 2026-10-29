@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
 from .lab_identity import CORE, EXACT, IDENTITY_VERSION, core_tokens, pair_level, select_event
+from .lab_api_football_errors import APIRequestFailure, provider_errors, failure_from
 
 BASE="https://v3.football.api-sports.io/"
 MAX_DAYS=3
@@ -118,71 +119,88 @@ def _score(signal,ev,level):
             "identity_match":level,"identity_version":IDENTITY_VERSION}, "verified_api_football_ft"
 
 
-def fetch_date(day,key):
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}",day) or not key:
-        raise ValueError("invalid API-Football request")
-    url=BASE+"fixtures?"+urlencode({"date":day,"timezone":"UTC"})
-    req=Request(url,headers={"x-apisports-key":key,"Accept":"application/json",
-                             "User-Agent":"AsianOdds-LAB-Research/1.0"})
+def _read_api_json(request, key, limit):
+    """One HTTP call; classify failures without leaking headers or response."""
     try:
-        with urlopen(req,timeout=16) as resp:
-            if resp.status!=200:
-                raise OSError("unavailable")
-            raw=resp.read(MAX_BYTES+1)
-            if len(raw)>MAX_BYTES:
-                raise ValueError("response oversized")
-            data=json.loads(raw)
-    except (HTTPError,URLError,OSError,TimeoutError,ValueError):
-        raise OSError("API-Football unavailable") from None
-    if not isinstance(data,dict) or not isinstance(data.get("response"),list):
-        raise ValueError("invalid API-Football response")
-    if data.get("errors"):
-        raise OSError("API-Football returned an error")
-    paging=data.get("paging") or {}
-    if not isinstance(paging,dict) or paging.get("total",1)!=1:
-        raise ValueError("incomplete API-Football pagination")
-    if len(data["response"])>7000 or not all(isinstance(x,dict) for x in data["response"]):
-        raise ValueError("invalid API-Football fixtures")
-    return data["response"]
+        with urlopen(request, timeout=16) as resp:
+            status = resp.status
+            if status != 200:
+                raise APIRequestFailure("HTTP_ERROR", http_status=status, key=key)
+            raw = resp.read(limit + 1)
+    except HTTPError as exc:
+        try:
+            errors = provider_errors(exc.read(4096))
+        except (OSError, ValueError):
+            errors = None
+        raise APIRequestFailure("HTTP_ERROR", http_status=exc.code,
+                                errors=errors, key=key) from None
+    except URLError as exc:
+        kind = "TIMEOUT" if isinstance(getattr(exc, "reason", None), TimeoutError) else "TRANSPORT_ERROR"
+        raise APIRequestFailure(kind) from None
+    except (TimeoutError, OSError) as exc:
+        if isinstance(exc, APIRequestFailure):
+            raise
+        raise APIRequestFailure("TIMEOUT" if isinstance(exc, TimeoutError)
+                                else "TRANSPORT_ERROR") from None
+    if len(raw) > limit:
+        raise APIRequestFailure("RESPONSE_TOO_LARGE")
+    try:
+        body = json.loads(raw)
+    except (ValueError, UnicodeError, TypeError):
+        raise APIRequestFailure("INVALID_JSON") from None
+    if not isinstance(body, dict):
+        raise APIRequestFailure("INVALID_ENVELOPE")
+    if body.get("errors"):
+        raise APIRequestFailure("PROVIDER_ERRORS", http_status=200,
+                                errors=body["errors"], key=key)
+    return body
+
+
+def fetch_date(day, key):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day) or not key:
+        raise ValueError("invalid API-Football request")
+    request = Request(BASE + "fixtures?" + urlencode({"date": day, "timezone": "UTC"}),
+            headers={"x-apisports-key": key, "Accept": "application/json",
+                     "User-Agent": "AsianOdds-LAB-Research/1.0"})
+    body = _read_api_json(request, key, MAX_BYTES)
+    rows = body.get("response")
+    if not isinstance(rows, list):
+        raise APIRequestFailure("INVALID_ENVELOPE")
+    paging = body.get("paging") or {}
+    if not isinstance(paging, dict) or paging.get("total", 1) != 1:
+        raise APIRequestFailure("INCOMPLETE_PAGINATION")
+    if len(rows) > 7000 or not all(isinstance(row, dict) for row in rows):
+        raise APIRequestFailure("INVALID_FIXTURES")
+    return rows
 
 
 def fetch_ids(ids, key):
-    """One official fixtures?ids= request, maximum 20 unique reviewed IDs."""
-    if (not key or not isinstance(ids, (list, tuple)) or
-            not 1 <= len(ids) <= 20 or
-            any(type(x) is not int or x <= 0 for x in ids) or
-            len(set(ids)) != len(ids)):
+    """One documented fixtures?ids= call, max 20 ID-locked fixtures."""
+    if (not key or not isinstance(ids, (list, tuple))
+            or not 1 <= len(ids) <= 20
+            or any(type(x) is not int or x <= 0 for x in ids)
+            or len(set(ids)) != len(ids)):
         raise ValueError("Invalid API-Football reviewed ID batch")
-    req = Request(BASE + "fixtures?" +
-                  urlencode({"ids": "-".join(str(x) for x in ids)}),
-                  headers={"x-apisports-key": key, "Accept": "application/json",
-                           "User-Agent": "AsianOdds-LAB-Reviewed-FT/1.0"})
-    try:
-        with urlopen(req, timeout=16) as resp:
-            if resp.status != 200:
-                raise OSError("API-Football ID request unavailable")
-            raw = resp.read(MAX_BYTES + 1)
-            if len(raw) > MAX_BYTES:
-                raise ValueError("API-Football ID result oversized")
-            body = json.loads(raw)
-    except (HTTPError, URLError, OSError, TimeoutError, ValueError):
-        raise OSError("API-Football ID request unavailable") from None
-    if (not isinstance(body, dict) or body.get("errors") or
-            not isinstance(body.get("response"), list) or
-            len(body["response"]) > len(ids)):
-        raise ValueError("Invalid API-Football ID response")
+    request = Request(BASE + "fixtures?" +
+                      urlencode({"ids": "-".join(str(x) for x in ids)}),
+                      headers={"x-apisports-key": key, "Accept": "application/json",
+                               "User-Agent": "AsianOdds-LAB-Reviewed-FT/1.0"})
+    body = _read_api_json(request, key, MAX_BYTES)
+    rows = body.get("response")
+    if not isinstance(rows, list) or len(rows) > len(ids):
+        raise APIRequestFailure("INVALID_ENVELOPE")
     paging = body.get("paging") or {}
     if not isinstance(paging, dict) or paging.get("total", 1) != 1:
-        raise ValueError("Incomplete API-Football ID response")
-    rows = {}
-    for event in body["response"]:
+        raise APIRequestFailure("INCOMPLETE_PAGINATION")
+    results = {}
+    for event in rows:
         fixture = event.get("fixture") if isinstance(event, dict) else None
-        event_id = fixture.get("id") if isinstance(fixture, dict) else None
-        if (type(event_id) is not int or event_id not in ids or
-                event_id in rows):
-            raise ValueError("Unrequested or duplicate API-Football fixture ID")
-        rows[event_id] = event
-    return rows
+        fixture_id = fixture.get("id") if isinstance(fixture, dict) else None
+        if (type(fixture_id) is not int or fixture_id not in ids
+                or fixture_id in results):
+            raise APIRequestFailure("INVALID_FIXTURE_IDS")
+        results[fixture_id] = event
+    return results
 
 
 class APIFootballResults:
@@ -203,6 +221,8 @@ class APIFootballResults:
         self.id_requests=0
         self.reviewed_targets=dict(reviewed_targets or {})
         self.reviewed_outcomes = {}  # immutable, score-free per-match API ID diagnostics
+        self.reviewed_error_details = {}
+        self.date_error_details = {}
         if len(self.reviewed_targets) > 20 or any(
                 not isinstance(k, str) or not isinstance(v, dict)
                 for k, v in self.reviewed_targets.items()):
@@ -232,8 +252,9 @@ class APIFootballResults:
                         sorted(set(v["provider_fixture_id"]
                                    for v in self.reviewed_targets.values())),
                         self.key)
-                except (OSError, ValueError, KeyError, TypeError):
+                except (OSError, ValueError, KeyError, TypeError) as exc:
                     self.id_cache = {}
+                    self.reviewed_error_details[key] = failure_from(exc)
                     self.reasons["api_football_reviewed_id_unavailable"] += 1
                     return failed("api_football_reviewed_id_unavailable")
             event = self.id_cache.get(reviewed["provider_fixture_id"])
@@ -257,8 +278,9 @@ class APIFootballResults:
             try:
                 matches=self.fetch(day,self.key)
                 self.days[day]=matches if isinstance(matches,list) else None
-            except (OSError,ValueError):
+            except (OSError,ValueError) as exc:
                 self.days[day]=None
+                self.date_error_details[day] = failure_from(exc)
         rows=self.days[day]
         if rows is None:
             self.reasons["api_football_unavailable"]+=1
@@ -276,6 +298,8 @@ class APIFootballResults:
                 "date_requests":self.requests,"id_requests":self.id_requests,
                 "reviewed_targets":len(self.reviewed_targets),
                 "reviewed_outcomes":dict(sorted(self.reviewed_outcomes.items())),
+                "reviewed_errors":dict(sorted(self.reviewed_error_details.items())),
+                "date_errors":dict(sorted(self.date_error_details.items())),
                 "cached_days":len(self.days),
                 "requested_days":sorted(self.days),
                 "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
