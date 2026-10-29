@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import timedelta
 from urllib.parse import urlparse
-from .lab_results import utc
+from .lab_results import utc, retry_wait, RETRY
 from .lab_ft_day_identity import check_day_identity, fixture_index
 from .lab_identity_review import _qualifiers
 from .lab_ft_crosswalk import providers_from_final, event_id as confirmed_id
@@ -108,6 +108,27 @@ def plan_reviewed_ids(selected, matches, review, approved, now, *,
     eligible = {}
     for key in sorted(pairs):
         if key not in selected:
+            game = matches.get(key)
+            if isinstance(game, dict) and game.get("status") in ("PENDING", "PROVIDER_ERROR"):
+                evidence = utc(game.get("evidence_checked_at"))
+                visit = utc(game.get("queue_visited_at"))
+                id_attempt = utc(game.get("api_football_reviewed_id_last_attempt_at"))
+                queue_limit = max(
+                    (date for date in (
+                        evidence + retry_wait(game) if evidence else None,
+                        visit + RETRY if visit else None,
+                    ) if date is not None), default=None)
+                id_limit = id_attempt + timedelta(hours=24) if id_attempt else None
+                if (queue_limit is not None and now < queue_limit) or (id_limit is not None and now < id_limit):
+                    # Diagnostics only: queue and ID independently respect
+                    # their existing gates. Nothing here schedules calls.
+                    decisions[key] = {
+                        "status": "DEFERRED",
+                        "reason": "FT_QUEUE_OR_APPROVED_ID_COOLDOWN",
+                        "ft_queue_not_before_utc": queue_limit.isoformat(timespec="seconds") if queue_limit and queue_limit > now else None,
+                        "api_id_not_before_utc": id_limit.isoformat(timespec="seconds") if id_limit and id_limit > now else None,
+                    }
+                    continue
             deny(key, "NOT_SELECTED_IN_CURRENT_FT_QUEUE")
             continue
         row = pairs[key]
