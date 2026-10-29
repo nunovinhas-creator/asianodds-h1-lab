@@ -13,7 +13,7 @@
     "reviewed_outcomes": {},
     "reviewed_targets": 0,
     "rotation_days": [],
-    "scheduled_poll_enabled": false,
+    "scheduled_poll_enabled": true,
     "verified_in_run": 0
   },
   "bsd_date_search": {
@@ -174,7 +174,9 @@
       "approved_selected": 0,
       "decisions": {
         "2026-10-27,77621,67110": {
-          "reason": "PUSH_NO_AUTHENTICATED_PROVIDER_CALLS",
+          "api_id_not_before_utc": "2026-10-30T07:36:22+00:00",
+          "ft_queue_not_before_utc": "2026-10-29T17:38:37+00:00",
+          "reason": "FT_QUEUE_OR_APPROVED_ID_COOLDOWN",
           "status": "DEFERRED"
         }
       },
@@ -191,7 +193,7 @@
         "selected_days": []
       },
       "goal": {
-        "date_budget": 0,
+        "date_budget": 2,
         "id_requests": 0,
         "requested_days": [],
         "selected_days": []
@@ -208,11 +210,13 @@
     "documented_ft_total": 31,
     "dual_postcheck_confirmed": 0,
     "dual_postcheck_conflicts": 0,
-    "dual_postcheck_scanned": 0,
+    "dual_postcheck_scanned": 20,
     "dual_provider_consensus": {
       "conflicts_in_run": 0,
       "invalid_previous_claims": {},
-      "reason_counts": {},
+      "reason_counts": {
+        "two_verified_source_results_unavailable": 20
+      },
       "source_revision_quarantines": 0,
       "validated_source_claims": 0,
       "verified_in_run": 0
@@ -232,7 +236,12 @@
     },
     "goal_reviewed_id_probe": {
       "approved_selected": 0,
-      "decisions": {},
+      "decisions": {
+        "2026-10-27,77621,67110": {
+          "reason": "NOT_SELECTED_IN_CURRENT_FT_QUEUE",
+          "status": "DEFERRED"
+        }
+      },
       "observations": {}
     },
     "never_checked_deferred": 0,
@@ -6487,7 +6496,7 @@
     "date_requests": 0,
     "id_outcomes": {},
     "id_requests": 0,
-    "poll_enabled": false,
+    "poll_enabled": true,
     "reason_counts": {},
     "requested_days": [],
     "requests": 0,
@@ -6523,7 +6532,7 @@
   "openfoot_search": {
     "cached_days": 0,
     "configured": true,
-    "poll_enabled": false,
+    "poll_enabled": true,
     "reason_counts": {},
     "requested_days": [],
     "requests": 0,
@@ -6565,7 +6574,7 @@
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
   "unverified": 284,
   "v6_ft_priority": {
-    "budget": 0,
+    "budget": 30,
     "hinted_eligible": 0,
     "hinted_selected": 0,
     "hints_do_not_override": [
