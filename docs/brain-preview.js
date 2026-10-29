@@ -1,7 +1,7 @@
 /* MASTER BRAIN — independent, read-only dashboard preview. */
 (function(){
 "use strict";
-const paths={research:"./lab/pattern-research.json",watch:"./lab/pattern-watch.json",discovery:"./lab/discoveries.json",ft:"./lab/ft-results.json",quality:"./lab/v4-audit.json",readiness:"./lab/v6-readiness.json"};
+const paths={research:"./lab/pattern-research.json",watch:"./lab/pattern-watch.json",discovery:"./lab/discoveries.json",ft:"./lab/ft-results.json",quality:"./lab/v4-audit.json",readiness:"./lab/v6-readiness.json",science:"./lab/v6-shadow.json",scienceGates:"./lab/v6-p0-gates.json"};
 const data={};const errors={};const $=id=>document.getElementById(id);
 const element=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!==undefined&&txt!==null)e.textContent=String(txt);if(cls)e.className=cls;return e};
 const fill=(id)=>{const n=$(id);n.replaceChildren();return n};
@@ -126,8 +126,19 @@ function renderSignals(){
  for(const x of ranked)researchCard(holder,x);
 }
 function renderTesting(){
- const r=data.research,holder=fill("test-content");
- if(!r){state(holder,"Estado dos testes indisponível.","Não foi possível consultar o V5.");return}
+ const r=data.research,holder=fill("test-content"),science=data.science,gates=data.scienceGates;
+ if(science){
+  const box=card(holder,"TESTE CIENTÍFICO V6.2",science.hypothesis?.definition||"Hipótese formal V6.2",science.hypothesis?.state||"Estado por confirmar","exploratory");
+  box.append(element("p","Registo: "+(science.hypothesis?.id||"não identificado")+". Avaliação em jogos novos; não é uma estratégia validada.","summary"));
+  const all=science.comparisons?.pattern_posthoc_original;
+  if(all)box.append(element("p",count(all.n)+" resultados observados no grupo de investigação pós-hoc. A seleção passada não valida a hipótese."));
+  box.append(element("p","Critério 7 dias: "+(gates?.gates?.["7_days"]?.scientific_acceptance||"por verificar")+". FT prospetivos exigidos: "+count(science.hypothesis?.minimum_oos_ft)+".","mini"));
+ }else{
+  const note=element("div",null,"empty-state");
+  note.append(element("strong","Prova científica V6.2 indisponível."),element("span","Não se confunde esta ausência com validação."));
+  holder.append(note);
+ }
+ if(!r){state(holder,"Estado exploratório V5 indisponível.","Não foi possível consultar o V5. A informação científica V6.2 permanece separada na origem.");return}
  const frozen=Array.isArray(r.frozen)?r.frozen:[];
  const historical=candidates(r,"combinations").filter(x=>x.o.known>=12&&x.o.reference_known>=12&&x.o.diff>=0.08)
    .sort((a,b)=>(b.o.diff-a.o.diff)||b.o.known-a.o.known).slice(0,4);
@@ -142,8 +153,18 @@ function renderTesting(){
  box.append(element("p","Dados de descoberta não são contados como validação independente."))}
 }
 function renderProven(){
- const r=data.research,holder=fill("proven-content");
- if(!r){state(holder,"Validação indisponível.","Não é possível afirmar quantas hipóteses foram validadas.");return}
+ const r=data.research,holder=fill("proven-content"),gates=data.scienceGates;
+ if(gates){
+  const box=card(holder,"CIÊNCIA V6.2","Hipótese científica e requisitos de prova",gates.scientific_state||"Por verificar","exploratory");
+  box.append(element("p","Critério 7 dias: "+(gates.gates?.["7_days"]?.scientific_acceptance||"desconhecido")+
+    " · Critério 14 dias: "+(gates.gates?.["14_days"]?.scientific_acceptance||"desconhecido")+"."));
+  if((gates.gates?.["7_days"]?.scientific_acceptance!=="PASS")||
+      (gates.gates?.["14_days"]?.scientific_acceptance!=="PASS"))
+    box.append(element("p","Esta hipótese não pode ser apresentada como comprovada.","mini"));
+ }else{
+  holder.append(element("p","Critérios científicos V6.2 indisponíveis; nenhuma conclusão global sobre estratégias comprovadas.","mini"));
+ }
+ if(!r){holder.append(element("p","Validação V5 indisponível; não é possível afirmar quantas hipóteses foram validadas.","mini"));return}
  const n=r.state_counts?.VALIDADO;
  if(typeof n!=="number"){state(holder,"Estado de validação não identificado.","O relatório não forneceu uma contagem válida.");return}
  if(n===0){state(holder,"Ainda não existe nenhuma estratégia V5 comprovada.","Esta secção só apresentará resultados depois de cumpridos os critérios de validação independente. O Radar Científico V6.2 mantém um registo próprio.");return}
@@ -166,7 +187,7 @@ function ageText(timestamp){
 }
 function renderOperations(){
  const stats=fill("operation-metrics"),warnings=fill("operation-warnings");
- const r=data.research,w=data.watch,ft=data.ft,q=data.quality,v6=data.readiness,d=data.discovery;
+ const r=data.research,w=data.watch,ft=data.ft,q=data.quality,v6=data.readiness,d=data.discovery,scientific=data.scienceGates;
  const status=(name,obj,dateValue)=>{stat(stats,name,obj?ageText(dateValue):"Indisponível");};
  status("Pesquisa histórica V5",r,r?.generated_at);
  status("Observatório de jogos",w,w?.generated_at);
@@ -177,7 +198,7 @@ function renderOperations(){
  stat(stats,"Jogos ainda por confirmar",typeof ft?.coverage_diagnostics?.past_unverified_eligible==="number"?count(ft.coverage_diagnostics.past_unverified_eligible):"—");
  stat(stats,"Novos acontecimentos no histórico",Array.isArray(d?.timeline)?count(d.timeline.length):"—");
  const checks=[];
- if(!r||!w||!ft||!q||!v6||!d)checks.push("Nem todas as fontes foram publicadas ou carregadas. O estado operacional global é INCOMPLETO.");
+ if(!r||!w||!ft||!q||!v6||!d||!scientific||!data.science)checks.push("Nem todas as fontes foram publicadas ou carregadas. O estado operacional global é INCOMPLETO.");
  if(r&&w&&time(r.generated_at)!==null&&time(w.generated_at)!==null&&
     Math.abs(time(r.generated_at)-time(w.generated_at))>3*3600000)
     checks.push("As análises histórica e prospetiva têm mais de 3 horas de diferença entre si; comparar as fotografias com cautela.");
@@ -188,6 +209,10 @@ function renderOperations(){
     checks.push(count(ft.coverage_diagnostics.past_unverified_eligible)+" jogos passados ainda aguardam confirmação FT; não são derrotas.");
  if(q&&q.acceptance_gates&&Object.values(q.acceptance_gates).some(v=>v===false))
     checks.push("Há critérios de integridade V4 ainda pendentes. A receção dos relatórios não prova certificação integral.");
+ if(scientific?.ft_knowledge_timeline?.counts?.confirmed_event_chronology_invalid>0)
+    checks.push(count(scientific.ft_knowledge_timeline.counts.confirmed_event_chronology_invalid)+" eventos FT têm cronologia incompatível com os critérios científicos V6.2; não contar como validação. Verificar as exceções.");
+ if(scientific&&scientific.scientific_state!=="VALIDADO")
+    checks.push("Hipótese V6.2 no estado "+String(scientific.scientific_state||"por verificar")+". Não declarar estratégia comprovada.");
  if(v6&&v6.p0_7_day_gate!=="PASS")
     checks.push("V6.2: janela de 7 dias "+String(v6.p0_7_day_gate||"desconhecida")+". Validação científica não concluída.");
  const summaries=[
@@ -242,8 +267,8 @@ async function load(){
   const item=results[i],key=names[i];
   if(item.status==="fulfilled"){data[key]=item.value.json;}else{errors[key]=item.reason?.message||"Falha inesperada"}}
  const strip=fill("source-status");
- for(const [key,label] of [["research","Pesquisa passada"],["watch","Jogos observados"],["discovery","Cronologia / resultados"],["ft","Resultados FT"],["quality","Qualidade V4"],["readiness","V6.2"]]){
-  strip.append(element("span",label+": "+(errors[key]?"Indisponível ("+errors[key]+")":"Publicado "+ageText(data[key]?.generated_at||data[key]?.last_updated_at)),"source"+(errors[key]?" bad":"")))}
+ for(const [key,label] of [["research","Pesquisa passada"],["watch","Jogos observados"],["discovery","Cronologia / resultados"],["ft","Resultados FT"],["quality","Qualidade V4"],["readiness","Cobertura V6.2"],["science","Teste V6.2"],["scienceGates","Provas V6.2"]]){
+  strip.append(element("span",label+": "+(errors[key]?"Indisponível ("+errors[key]+")":"Publicado "+ageText(data[key]?.generated_at||data[key]?.last_updated_at||data[key]?.evaluation_clock)),"source"+(errors[key]?" bad":"")))}
  const n=Object.keys(errors).length;
  const latest=[data.research?.generated_at,data.watch?.generated_at,data.discovery?.generated_at].map(time).filter(v=>v!==null).sort((a,b)=>b-a)[0];
  $("overall-state").textContent=n?"Informação parcial: "+count(n)+" fonte(s) indisponível(eis).": "Relatórios recebidos (não comprova funcionamento operacional).";
