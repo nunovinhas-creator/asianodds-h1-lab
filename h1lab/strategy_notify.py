@@ -418,6 +418,7 @@ def _write(path, value):
 
 def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
     root = Path(root)
+    now_arg_was_none = now is None
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     research = json.loads((root / RESEARCH).read_text(encoding="utf-8"))
     alerts, markets, errors = read_sources(root)
@@ -426,11 +427,12 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
     alerts = [a for a in alerts if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     markets = [a for a in markets if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     timelines, issues, excluded = collect_timelines(alerts, markets, source_errors=errors)
-    rows = candidate_matches(timelines, now, research)
+    rows = candidate_matches(timelines, now, research, include_all=True)
     path = root / LEDGER
     ledger = json.loads(path.read_text(encoding="utf-8")) if path.exists() else empty_ledger(now)
     ledger, stats = process(rows, ledger, now, sender, configured() if bot_enabled is None else bot_enabled,
-                            pace=lambda: time.sleep(1.2))
+                            pace=lambda: time.sleep(1.2), research=research,
+                            clock=lambda: datetime.now(timezone.utc) if now_arg_was_none else now)
     _write(path, ledger)
     print("MASTER_BRAIN_FIVE_STRATEGIES_NOTIFY", stats,
           "timeline_issues", len(issues), "excluded_observations", len(excluded),
@@ -447,14 +449,22 @@ def preview(root=ROOT, now=None):
     alerts = [a for a in alerts if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     markets = [a for a in markets if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     timelines, issues, excluded = collect_timelines(alerts, markets, source_errors=errors)
-    rows = candidate_matches(timelines, now, research)
-    print("MASTER_BRAIN_FIVE_STRATEGIES_DRY_RUN", "matches", len(rows),
-          "strategy_links", sum(len(r["rules"]) for r in rows),
+    rows = candidate_matches(timelines, now, research, include_all=True)
+    eligible = [r for r in rows if r["rules"] and
+                now < utc(r["kickoff_utc"]) <= now + MAX_ALERT_LOOKAHEAD]
+    path = root / LEDGER
+    ledger = json.loads(path.read_text(encoding="utf-8")) if path.exists() else empty_ledger(now)
+    pending = [r for r in eligible if any(
+        ledger["entries"].get(r["match_key"] + "|" + str(rule["number"]), {}).get("status")
+        in (None, "withdrawn") for rule in r["rules"])]
+    print("MASTER_BRAIN_FIVE_STRATEGIES_DRY_RUN", "matches_12h", len(eligible),
+          "pending_matches_12h", len(pending),
+          "strategy_links", sum(len(r["rules"]) for r in eligible),
           "timeline_issues", len(issues), "excluded", len(excluded))
-    for row in rows[:30]:
+    for row in pending:
         print("MATCH", row["match_label"], row["kickoff_utc"],
               "strategies", ",".join(str(x["number"]) for x in row["rules"]))
-    return rows
+    return eligible
 
 
 if __name__ == "__main__":
