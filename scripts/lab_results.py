@@ -342,6 +342,19 @@ def main():
         score_hold_keys={key for key, row in goal_approved.get("pairs", {}).items()
                          if isinstance(row, dict) and
                          row.get("score_gate") == "HOLD_FOR_OFFICIAL"})
+    # A full date snapshot can corroborate games OUTSIDE the 30-match
+    # network queue as well. Only two-provider STRONG review keys enter
+    # this bounded, zero-HTTP local postcheck.
+    dual_postcheck_keys = sorted(
+        key for key, game in dual.review.items()
+        if not game.get("possible_duplicates")
+        and len({cand.get("provider")
+                 for cand in game.get("candidates", [])
+                 if (isinstance(cand, dict)
+                     and cand.get("match_strength") == "STRONG"
+                     and cand.get("orientation") == "SAME_ORDER"
+                     and cand.get("provider") in ("goal","api_football","openfoot"))}) >= 2
+    )[:500]
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
     sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
@@ -354,6 +367,7 @@ def main():
         goal_lookup=goal.lookup if goal_enabled else None,
         openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
         dual_lookup=dual.lookup if goal_enabled and api_football_poll else None,
+        dual_postcheck_keys=dual_postcheck_keys,
         lookup_source_version=(11 if goal_enabled or openfoot_enabled else
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
