@@ -23,6 +23,8 @@ on:
       - 'h1lab/lab_ft_backlog.py'
       - 'h1lab/lab_fotmob.py'
       - 'h1lab/lab_api_football.py'
+      - 'h1lab/lab_api_football_errors.py'
+      - 'tests/test_lab_api_football_diagnostics.py'
       - 'h1lab/lab_api_football_reviewed.py'
       - 'h1lab/lab_ft_day_identity.py'
       - 'tests/test_lab_ft_day_identity.py'
@@ -108,6 +110,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_goal_id_probe.py' -v
           python -m unittest discover -s tests -p 'test_lab_fotmob.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football.py' -v
+          python -m unittest discover -s tests -p 'test_lab_api_football_diagnostics.py' -v
           python -m unittest discover -s tests -p 'test_lab_api_football_reviewed.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_day_identity.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_openfoot.py' -v
