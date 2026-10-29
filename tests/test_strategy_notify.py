@@ -160,6 +160,98 @@ class FiveStrategyTests(unittest.TestCase):
         ledger,stats=process(rows,ledger,NOW+timedelta(hours=2),lambda _:987,True)
         self.assertEqual(stats["games_sent"],1)
 
+    def test_confirmed_line_drop_sends_single_exit_with_history_and_never_repeats(self):
+        a = original()
+        first = candidates([a], [v4(a)])
+        ledger, sent = process(first, empty_ledger(NOW), NOW, lambda _: 151, True)
+        self.assertEqual(sent["strategy_receipts"], 5)
+        b = original(num=2, at=NOW + timedelta(minutes=10), total_line=3.0)
+        # The latest V4 Total is explicitly below 3.25; previously sent E4 exits.
+        newer = candidate_matches(*collect_timelines([a, b], [v4(a), v4(b)])[:1],
+                                  NOW + timedelta(minutes=12), research(), include_all=True)
+        msgs = []
+        ledger, stats = process(newer, ledger, NOW + timedelta(minutes=12),
+                                lambda text: msgs.append(text) or 152, True, research=research())
+        self.assertEqual(stats["withdrawals_sent"], 1)
+        self.assertEqual(stats["strategy_receipts"], 0)
+        self.assertIn("❌ SAIU DA E4 · OVER 2,5 GOLOS", msgs[0])
+        self.assertIn("Motivo: linha Total atual abaixo de 3,25", msgs[0])
+        self.assertIn("Histórico V5:", msgs[0])
+        self.assertEqual(ledger["entries"][a["match_key"] + "|4"]["status"], "withdrawn")
+        self.assertEqual(ledger["entries"][a["match_key"] + "|4"]["telegram_message_id"],151)
+        self.assertEqual(ledger["entries"][a["match_key"] + "|4"]["withdrawal_message_id"],152)
+        ledger, stats = process(newer, ledger, NOW + timedelta(minutes=13),
+                                lambda _: self.fail("duplicate exit"), True, research=research())
+        self.assertEqual(stats["withdrawals_sent"], 0)
+
+    def test_confirmed_net_lambda_exit_and_reentry_gets_distinct_notices(self):
+        a = original()
+        ledger, _ = process(candidates([a], [v4(a)]), empty_ledger(NOW), NOW,
+                            lambda _: 161, True)
+        b = original(num=2, at=NOW+timedelta(minutes=20), total_line=3.25)
+        b.update(total_after=3.75)
+        newer = candidate_matches(collect_timelines([a,b],[v4(a),v4(b)])[0],
+                                  NOW+timedelta(minutes=25), research(), include_all=True)
+        outgoing = []
+        ledger,stats=process(newer,ledger,NOW+timedelta(minutes=25),
+                             lambda msg: outgoing.append(msg) or 162,True,research=research())
+        self.assertEqual(stats["withdrawals_sent"],1)
+        self.assertIn("❌ SAIU DA E5",outgoing[0])
+        self.assertEqual(ledger["entries"][a["match_key"]+"|5"]["status"],"withdrawn")
+
+        c=original(num=3,at=NOW+timedelta(minutes=30),total_line=3.25)
+        later=candidates([a,c],[v4(a),v4(c)],now=NOW+timedelta(minutes=35))
+        # Recalculation with a fresh, consistent timeline can allow E5 back in.
+        # The existing withdrawal receipt is no longer a permanent suppression.
+        out=[]
+        ledger,stats=process(later,ledger,NOW+timedelta(minutes=35),
+                             lambda msg:out.append(msg) or 163,True,research=research())
+        self.assertEqual(stats["strategy_receipts"],1)
+        self.assertIn("🎯 E5 · OVER 2,5 GOLOS",out[0])
+        self.assertEqual([x["action"] for x in
+            ledger["entries"][a["match_key"]+"|5"]["transitions"]],
+            ["entered","withdrawn","entered"])
+
+    def test_missing_v4_data_does_not_fake_an_exit(self):
+        a=original()
+        ledger,_=process(candidates([a],[v4(a)]),empty_ledger(NOW),NOW,lambda _:171,True)
+        b=original(num=2,at=NOW+timedelta(minutes=10),total_line=2.5)
+        # A later legacy-only Total is NOT evidence for withdrawal.
+        rows=candidate_matches(collect_timelines([a,b],[v4(a)])[0],
+                               NOW+timedelta(minutes=12),research(),include_all=True)
+        ledger,stats=process(rows,ledger,NOW+timedelta(minutes=12),
+                             lambda msg:self.fail("unknown is not withdrawn"),True,research=research())
+        self.assertEqual(stats["withdrawals_sent"],0)
+        self.assertEqual(ledger["entries"][a["match_key"]+"|4"]["status"],"sent")
+
+    def test_exit_is_silent_if_game_started(self):
+        a=original()
+        ledger,_=process(candidates([a],[v4(a)]),empty_ledger(NOW),NOW,lambda _:181,True)
+        b=original(num=2,at=NOW+timedelta(minutes=10),total_line=3.0)
+        rows=candidate_matches(collect_timelines([a,b],[v4(a),v4(b)])[0],
+                               NOW+timedelta(minutes=11),research(),include_all=True)
+        ledger,stats=process(rows,ledger,NOW+timedelta(minutes=11),
+                             lambda msg:self.fail("started"),True,research=research(),
+                             clock=lambda:KO+timedelta(seconds=1))
+        self.assertEqual(stats["withdrawals_sent"],0)
+
+    def test_withdrawal_delivery_uncertainty_not_retried(self):
+        a=original()
+        ledger,_=process(candidates([a],[v4(a)]),empty_ledger(NOW),NOW,lambda _:191,True)
+        b=original(num=2,at=NOW+timedelta(minutes=10),total_line=3.0)
+        rows=candidate_matches(collect_timelines([a,b],[v4(a),v4(b)])[0],
+                               NOW+timedelta(minutes=12),research(),include_all=True)
+        attempted=[]
+        def ambiguous(msg):
+            attempted.append(msg)
+            raise BotDeliveryError("uncertain")
+        ledger,stats=process(rows,ledger,NOW+timedelta(minutes=12),ambiguous,True,research=research())
+        self.assertEqual(stats["failed"],1)
+        self.assertEqual(ledger["entries"][a["match_key"]+"|4"]["status"],
+                         "withdrawal_uncertain_manual_review")
+        process(rows,ledger,NOW+timedelta(minutes=13),ambiguous,True,research=research())
+        self.assertEqual(len(attempted),1)
+
     def test_no_bot_configuration_never_consumes_eligible_receipts(self):
         a=original(); rows=candidates([a], [v4(a)])
         ledger, stats=process(rows, empty_ledger(NOW), NOW,
