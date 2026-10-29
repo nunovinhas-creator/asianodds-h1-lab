@@ -86,3 +86,55 @@ uma segunda confirmação independente do **resultado**.
    `REVIEWED_PAIR`, sem perdas de quota.
 5. Só depois desenvolver um crosswalk persistente por **IDs das equipas**
    aprendidos de FT confirmados, sem aproveitar sugestões não revistas.
+
+## Decisão de 29/10/2026 — revisão de identidades e bloqueios
+
+A função `plan_reviewed_ids` deixa de confundir candidatos fracos de **outros**
+jogos com colisões reais do fixture. Uma segunda associação `STRONG` noutra
+chave continua a bloquear. Todas as aprovações recebem um estado verificável:
+`ELIGIBLE` com as chaves fracas ignoradas, ou `REJECTED` com código e
+contexto. Quando um jogo aprovado ainda não entrou na fila FT, o motivo é
+`NOT_SELECTED_IN_CURRENT_FT_QUEUE`. O relatório fica em
+`ft_queue.api_football_reviewed_id_probe.decisions` e num ficheiro de
+diagnóstico persistente, `docs/lab/ft-api-football-review-decisions.json`.
+
+**Independiente Reserves–Defensa y Justicia Reserves.** Aprovado o vínculo
+`2026-10-27,77621,67110 → api_football:1612137`, com equipas
+`18689/18684`, competição `906`, KO `2026-10-27T18:00:00Z`.
+A lista completa de 27/10 contém o jogo e nenhuma outra participação
+dos dois IDs em ±90 minutos. O ID `1612141` corresponde a uma irmã já
+liquidada nessa competição. As referências fracas do `1612137` em
+`2026-10-27,77680,51172` e `2026-10-27,10107877,10107878`
+não são aprovações. O registo da aprovação **não** certifica um resultado:
+a liquidação depende de `fixtures?ids=1612137` na próxima execução FT
+autenticada, com `fixture.status.short=FT` e `score.fulltime==goals`.
+Uma aprovação validada entra uma única vez na fila mesmo antes do fim do
+cooldown geral, sem bypass à quota nem ao cooldown de ID.
+
+**Banfield Reserves–Argentinos Juniors Reserves.** O fixture
+`api_football:1612128` está na lista integral de **28/10 às 18h UTC**,
+liga `906`, equipas `18679/18677`. A chave AsianOdds regista **27/10
+às 18h UTC**. O próprio Club Atlético Banfield anunciou a reserva contra
+Argentinos Juniors para **quarta 28/10/2026 às 15h na Argentina**, que
+corresponde a **18h UTC**:
+https://clubabanfield.org/acreditaciones-de-reserva/ .
+Assim, é um **conflito cronológico de 24 horas documentado**, não ausência
+do jogo; a chave observada e o relógio original não podem ser reescritos,
+e a liquidação continua bloqueada. Fonte independente de confirmação de
+data em https://tipstadium.com/football/matches/banfield-res-argentinos-juniors-res-af-1612128 .
+Alguns agregadores mantêm 27/10, portanto não se deve equiparar a data
+antiga à execução efetiva sem uma trilha documental.
+
+**Express–Kataka.** `1635300` (Express `12452`, Kataka `28319`),
+sem choque de equipa, mas ainda sem âncora confirmada para Kataka nem
+segunda fonte pública independente com FT validado. Não aprovar.
+
+**Pyunik–Ararat.** `1641902`, equipa Pyunik `709`, competição `709`
+(IDs são domínios distintos), Ararat `3682`. Falta âncora confirmada da
+mesma competição e distinguir Ararat de Ararat-Armenia e Ararat II. Não
+aprovar; `AET` e `PEN` são recusados na liquidação.
+
+**İçel/Mersin–Muş.** As duas chaves para o eventual fixture `1645449`
+ficam em conflito de canonicidade. Não liquidar até escolher uma chave
+com prova de identidade; não transformar o nome `Yeni Mersin Idmanyurdu`
+num alias global sem validação de IDs.
