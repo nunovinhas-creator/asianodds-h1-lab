@@ -161,3 +161,26 @@ valores inteiros válidos. `AET`, `PEN`, ausência de `FT`, falta de
 `score.fulltime`, divergência de golos, IDs incorretos ou KO divergente
 ficam em `PENDING` com motivo. Os testes de regressão contemplam essas
 rejeições, sem usar dados reais nem chamar APIs.
+
+## Falha real da primeira consulta por ID (29/10/2026, 07:36 UTC)
+
+O watchdog iniciou a execução autenticada `40836485933` às 07:36 UTC,
+selecionou `1612137`, cumpriu as verificações de identidade da aprovação
+e consumiu **um pedido `fixtures?ids=`** (dois pedidos API-Football
+na execução incluindo uma consulta de data). A API-Football registou
+`api_football_reviewed_id_unavailable`; o jogo manteve-se PENDING.
+O relatório anterior mostrava incorretamente
+`api_football_identity_no_core_match` por reter a razão antiga da
+pesquisa por nome na ausência de uma nova lista/resultado FT.
+
+Agora o adaptador regista o motivo por `match_key` em
+`reviewed_outcomes`, e o recolector grava
+`api_football_reviewed_id_last_evidence` (hora UTC, fixture e razão),
+além de atualizar `provider_reasons.api_football` com a tentativa real.
+Uma falha HTTP/fornecedor **não** é uma rejeição de identidade nem
+prova de resultado. O cooldown de ID de **24 horas** mantém-se e
+não há repetição manual nem recuperação de scores não verificados.
+
+A sequência de testes garante que `FT`, IDs de equipas e competição,
+`score.fulltime` e `goals` são obrigatórios antes de qualquer
+FINAL; `AET`, `PEN`, resultados omissos e divergentes são recusados.
