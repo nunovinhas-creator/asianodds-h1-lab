@@ -133,7 +133,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None, dual_lookup=None):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -341,6 +341,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             providers.append(("goal", goal_lookup))
         if openfoot_lookup is not None:
             providers.append(("openfoot", openfoot_lookup))
+        if dual_lookup is not None:
+            # After each normal provider has populated its COMPLETE day cache:
+            # no HTTP call here. Requires two strict 90-minute FT validations.
+            providers.append(("dual_provider", dual_lookup))
         if ((key in source_order_keys and key in REVIEWED_PUBLIC_FT) or
                 (key in REVIEWED_PENDING_FT and
                  (original.get(key) or {}).get("status") in ("PENDING", "PROVIDER_ERROR"))):
@@ -446,7 +450,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             row["status"] = "PENDING"
             row["reason"] = "provider_event_id_collision_review"
             row.pop("result", None)
-        elif len(scores) > 1:
+        elif len(scores) > 1 or reasons.get("dual_provider") == "dual_provider_score_conflict":
             row["status"] = ("SOURCE_ORDER_CONFLICT" if key in source_order_keys
                              else "SCORE_CONFLICT")
             row["reason"] = ("independent_sources_disagree_manual_review"
