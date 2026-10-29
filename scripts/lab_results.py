@@ -352,8 +352,21 @@ def main():
     # Do not repeatedly consume the same free-tier slot on every eligible run.
     if goal.id_requests:
         for match_key in goal_targets:
-            next_ledger["matches"][match_key]["goal_id_last_attempt_at"] = (
-                now.isoformat(timespec="seconds"))
+            row = next_ledger["matches"][match_key]
+            row["goal_id_last_attempt_at"] = now.isoformat(timespec="seconds")
+            why = goal.id_outcomes.get(match_key)
+            if why:
+                # An ID attempt is not a complete date-list snapshot.
+                # Preserve its REAL diagnostic even when reconciliation
+                # otherwise retains an obsolete name-matching reason.
+                row["goal_id_last_evidence"] = {
+                    "checked_at_utc": now.isoformat(timespec="seconds"),
+                    "provider": "goal",
+                    "provider_fixture_id": str(goal_targets[match_key]),
+                    "reason": why,
+                    "id_requests_in_run": goal.id_requests,
+                }
+                row.setdefault("provider_reasons", {})["goal"] = why
         for match_key, proof in goal.reviewed_observations.items():
             if match_key in next_ledger["matches"]:
                 next_ledger["matches"][match_key]["goal_reviewed_last_evidence"] = {
@@ -433,7 +446,7 @@ def main():
     report["ft_queue"]["goal_id_probe"] = {
         "candidates_planned": len(goal_targets),
         "calls": goal.id_requests,
-        "outcome": ([next_ledger["matches"][key].get("provider_reasons",{}).get("goal")
+        "outcome": ([goal.id_outcomes.get(key)
                      for key in goal_targets] if goal_targets else []),
     }
     report["ft_queue"]["api_football_reviewed_id_probe"] = {
