@@ -251,6 +251,8 @@
  const nameTarget=v=>v==="BTTS_YES"?"BTTS Sim":"Over 2,5";
  function renderChronology(){
    const where=clear("r-discovery"),d=data("discovery");
+   // Detail panels refer to an earlier snapshot. Never keep one after reload/filter.
+   const detail=clear("r-detail");if(detail)detail.hidden=true;
    if(!d){
      empty(where,"Cronologia indisponível: o relatório não foi carregado. Consulte o aviso no topo e tente atualizar.");
      put("discovery-count","Indisponível");return;
@@ -449,7 +451,11 @@
    if(list.length>40)where.append(create("p","Mostradas as primeiras 40 hipóteses; utiliza a pesquisa ou consulta o relatório completo.","muted"));
  }
  function renderPatternsMeta(){
-   const r=data("research");if(!r)return;
+   const r=data("research");
+   if(!r){
+     for(const id of ["p-count","p-individual","p-tests","p-frozen"])metric(id,"—");
+     patterns();return;
+   }
    metric("p-count",num(r.generation?.hypotheses_evaluated));
    metric("p-individual",num(r.generation?.individual_patterns_with_support));
    metric("p-tests",num(r.generation?.tests_performed));
@@ -463,7 +469,13 @@
    row.append(create("strong",num(count)));parent.append(row);
  }
  function renderValidation(){
-   const r=data("research");if(!r)return;
+   const r=data("research");
+   if(!r){
+     for(const id of ["v-explore","v-candidates","v-oos","v-validated"])metric(id,"—");
+     for(const id of ["v-funnel","v-brier","v-frozen"])empty(clear(id),"Investigação indisponível; sem métricas atuais.");
+     put("v-brier-note","Relatório de investigação indisponível.");
+     return;
+   }
    const states=r.state_counts||{},total=r.generation?.hypotheses_evaluated||0;
    metric("v-explore",num(states.EXPLORATORIO||0));metric("v-candidates",num(states.CANDIDATO||0));
    metric("v-oos",num(states.EM_VALIDACAO||0));metric("v-validated",num(states.VALIDADO||0));
@@ -517,6 +529,6 @@
    if(data("h1"))rowKeyVal(feeds,"Arquivo Under H1",num(data("h1").singles?.total)+" sinais simulados");
  }
  function render(){renderRadar();renderChronology();renderProspective();renderFuture();renderPatternsMeta();renderValidation();renderData()}
- if(typeof module!=="undefined"&&module.exports){module.exports={validateData};return}
+ if(typeof module!=="undefined"&&module.exports){module.exports={validateData,renderPatternsMeta,renderValidation,renderChronology,_testState:state};return}
  setupNav();load();
 })();
