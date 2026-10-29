@@ -148,6 +148,57 @@ class ReviewedBatchTests(unittest.TestCase):
         self.assertNotIn(signal(1)["match_key"],
                          checked_plan(list(matches), matches, review, approved, NOW))
 
+    def test_weak_candidates_in_two_other_games_do_not_block_strong_approved(self):
+        matches, review, approved = fixtures()
+        primary = signal(1)["match_key"]
+        review["games"][0]["candidates"][0]["match_strength"] = "STRONG"
+        for index in (2, 3):
+            extra = dict(signal(1), match_key=f"2026-10-27,other-{index}",
+                         home=f"Unrelated {index}", away="Another Side")
+            bad = dict(candidate(1, 5001), match_strength="WEAK_REVIEW_ONLY")
+            review["games"].append({**extra, "possible_duplicates": [],
+                                    "candidates": [bad]})
+        index, registry = _proof()
+        decisions = {}
+        eligible = plan_reviewed_ids([primary], matches, review, approved, NOW,
+                day_index=index, confirmed_registry=registry, decisions=decisions)
+        self.assertIn(primary, eligible)
+        self.assertEqual(decisions[primary]["status"], "ELIGIBLE")
+        self.assertEqual(
+            decisions[primary]["ignored_weak_diagnostic_match_keys"],
+            ["2026-10-27,other-2", "2026-10-27,other-3"])
+        # A second independent strong match must still block and explain why.
+        review["games"][-1]["candidates"][0]["match_strength"] = "STRONG"
+        eligible = plan_reviewed_ids([primary], matches, review, approved, NOW,
+                day_index=index, confirmed_registry=registry, decisions=decisions)
+        self.assertNotIn(primary, eligible)
+        self.assertEqual(decisions[primary]["reason"],
+                         "ANOTHER_STRONG_MATCH_CLAIMS_SAME_FIXTURE")
+        self.assertEqual(decisions[primary]["competing_match_keys"],
+                         ["2026-10-27,other-3"])
+
+    def test_rejected_approval_always_has_explicit_reason(self):
+        matches, review, approved = fixtures()
+        key = signal(1)["match_key"]
+        approved["pairs"][key]["provider_kickoff_utc"] = "2026-10-28T18:00:00+00:00"
+        index, registry = _proof()
+        decisions = {}
+        eligible = plan_reviewed_ids([key], matches, review, approved, NOW,
+                day_index=index, confirmed_registry=registry, decisions=decisions)
+        self.assertNotIn(key, eligible)
+        self.assertEqual(decisions[key]["status"], "REJECTED")
+        self.assertEqual(decisions[key]["reason"], "PROVIDER_KICKOFF_OUTSIDE_90M_WINDOW")
+
+    def test_new_approval_not_in_current_queue_reports_deferred(self):
+        matches, review, approved = fixtures()
+        index, registry = _proof()
+        decisions = {}
+        self.assertEqual(plan_reviewed_ids(
+            [], matches, review, approved, NOW, day_index=index,
+            confirmed_registry=registry, decisions=decisions), {})
+        self.assertEqual({x["reason"] for x in decisions.values()},
+                         {"NOT_SELECTED_IN_CURRENT_FT_QUEUE"})
+
     def test_cannot_approve_wrong_provider_or_wrong_match_key(self):
         matches, review, approved = fixtures()
         key = signal(1)["match_key"]
