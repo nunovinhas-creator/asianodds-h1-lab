@@ -272,9 +272,15 @@ def main():
         decisions=reviewed_id_decisions)
         if api_football_poll and api_today < 90 else {})
     if approved.get("pairs") and not reviewed_id_decisions:
-        reviewed_id_decisions = {key: {"status": "DEFERRED",
-            "reason": "PROVIDER_UNAVAILABLE_OR_DAILY_QUOTA_EXHAUSTED"}
-            for key in approved["pairs"]}
+        reason = ("PUSH_NO_AUTHENTICATED_PROVIDER_CALLS"
+                  if os.environ.get("GITHUB_EVENT_NAME") == "push" and not recovery_once
+                  else "API_FOOTBALL_NOT_CONFIGURED_OR_DISABLED"
+                  if not api_football_poll
+                  else "API_FOOTBALL_DAILY_CAP_REACHED"
+                  if api_today >= 90
+                  else "NO_ELIGIBLE_APPROVED_ID_AT_THIS_RUN")
+        reviewed_id_decisions = {key: {"status": "DEFERRED", "reason": reason}
+                                 for key in approved["pairs"]}
     if approved_targets:
         api_football.reviewed_targets = approved_targets
         rotation["api_football"] = rotation["api_football"][:min(
