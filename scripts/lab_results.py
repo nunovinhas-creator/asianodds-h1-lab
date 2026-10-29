@@ -36,6 +36,7 @@ API_AUDIT = ROOT / "data/lab/ft-api-audit.json"
 BACKLOG = ROOT / "docs/lab/ft-backlog.json"
 IDENTITY_REVIEW = ROOT / "docs/lab/ft-identity-review.json"
 REVIEWED_API_IDS = ROOT / "data/lab/ft-api-football-reviewed.json"
+REVIEWED_API_ID_DECISIONS = ROOT / "docs/lab/ft-api-football-review-decisions.json"
 API_FOOTBALL_DAY_INDEX = ROOT / "data/lab/ft-api-football-day-index.json"
 DAY_ROTATION = ROOT / "data/lab/ft-provider-day-rotation.json"
 PROVIDER_IDENTITY = ROOT / "data/lab/ft-provider-identity.json"
@@ -256,10 +257,16 @@ def main():
     confirmed_ids = (json.loads(PROVIDER_IDENTITY.read_text(encoding="utf-8"))
                      if PROVIDER_IDENTITY.exists()
                      else {"schema_version": 1, "entries": {}})
+    reviewed_id_decisions = {}
     approved_targets = (plan_reviewed_ids(
         preview_keys, _preview_ledger["matches"], previous_review, approved, now,
-        day_index=previous_day_index, confirmed_registry=confirmed_ids)
+        day_index=previous_day_index, confirmed_registry=confirmed_ids,
+        decisions=reviewed_id_decisions)
         if api_football_poll and api_today < 90 else {})
+    if approved.get("pairs") and not reviewed_id_decisions:
+        reviewed_id_decisions = {key: {"status": "DEFERRED",
+            "reason": "PROVIDER_UNAVAILABLE_OR_DAILY_QUOTA_EXHAUSTED"}
+            for key in approved["pairs"]}
     if approved_targets:
         api_football.reviewed_targets = approved_targets
         rotation["api_football"] = rotation["api_football"][:min(
@@ -349,7 +356,13 @@ def main():
         "id_requests": api_football.id_requests,
         "outcomes": {key: next_ledger["matches"][key].get(
             "provider_reasons", {}).get("api_football") for key in approved_targets},
+        "decisions": reviewed_id_decisions,
     }
+    if approved.get("pairs") and checks:
+        write_if_changed(REVIEWED_API_ID_DECISIONS, {
+            "schema_version": 1, "checked_at_utc": now.isoformat(timespec="seconds"),
+            "decisions": reviewed_id_decisions})
+
     report["ft_queue"]["confirmed_provider_ids"] = identity_registry["confirmed_ids"]
     report["ft_queue"]["provider_id_collisions"] = identity_registry["collision_ids"]
     write_if_changed(DAY_ROTATION, next_rotation)
