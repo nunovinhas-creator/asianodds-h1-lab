@@ -9,11 +9,13 @@
     "minimum_evidence": false,
     "window_elapsed": true
   },
-  "active_missing_v4_ids": [],
+  "active_missing_v4_ids": [
+    "3571094759:51139"
+  ],
   "cutover_utc": "2026-10-27T16:40:50+00:00",
   "first_24h_end_utc": "2026-10-28T16:40:50+00:00",
-  "format_events": 496,
-  "generated_at": "2026-10-29T03:11:25+00:00",
+  "format_events": 499,
+  "generated_at": "2026-10-29T03:16:24+00:00",
   "golden_set": {
     "manually_verified": 0,
     "reason": "No independently signed and checked golden corpus",
@@ -26,13 +28,19 @@
     "identity_provenance_unverified": 12,
     "legacy_field_unavailable": 3,
     "missing_field": 699,
-    "missing_v4": 74,
+    "missing_legacy": 1,
+    "missing_v4": 75,
     "parser_commit_unverified": 12,
     "parser_revision_unverified": 12,
-    "rejected_or_missing_table": 117
+    "rejected_or_missing_table": 117,
+    "unrecognized_legacy_format": 1
   },
   "issue_counts_by_phase": {
-    "after_24h": {},
+    "after_24h": {
+      "missing_legacy": 1,
+      "missing_v4": 1,
+      "unrecognized_legacy_format": 1
+    },
     "first_24h": {
       "field_provenance_unverified": 12,
       "identity_provenance_unverified": 12,
@@ -439,6 +447,22 @@
       "type": "rejected_or_missing_table"
     },
     {
+      "event_id": "3571094759:51139",
+      "legacy_parsed": false,
+      "phase": "after_24h",
+      "type": "missing_legacy"
+    },
+    {
+      "event_id": "3571094759:51139",
+      "phase": "after_24h",
+      "type": "missing_v4"
+    },
+    {
+      "event_id": "3571094759:51139",
+      "phase": "after_24h",
+      "type": "unrecognized_legacy_format"
+    },
+    {
       "event_id": "3571094759:50581",
       "phase": "historical",
       "type": "missing_v4"
@@ -598,7 +622,7 @@
       "type": "rejected_or_missing_table"
     }
   ],
-  "legacy_alerts": 556,
+  "legacy_alerts": 558,
   "limitations": [
     "Only Telegram alert observations are measured, not all market moves",
     "Historical formats before V4 deployment are excluded from live coverage denominator",
@@ -1043,77 +1067,77 @@
         "fields": {
           "line_after": {
             "agreement_pct": 100.0,
-            "compared": 87,
+            "compared": 89,
             "complete_pct": 100.0,
             "invalid_v4": 0,
-            "legacy_available": 87,
+            "legacy_available": 89,
             "legacy_missing_or_invalid": 0,
-            "matched": 87,
+            "matched": 89,
             "mismatch": 0,
             "missing_v4": 0
           },
           "line_before": {
             "agreement_pct": 100.0,
-            "compared": 87,
+            "compared": 89,
             "complete_pct": 100.0,
             "invalid_v4": 0,
-            "legacy_available": 87,
+            "legacy_available": 89,
             "legacy_missing_or_invalid": 0,
-            "matched": 87,
+            "matched": 89,
             "mismatch": 0,
             "missing_v4": 0
           },
           "over_price_after": {
             "agreement_pct": 100.0,
-            "compared": 87,
+            "compared": 89,
             "complete_pct": 100.0,
             "invalid_v4": 0,
-            "legacy_available": 87,
+            "legacy_available": 89,
             "legacy_missing_or_invalid": 0,
-            "matched": 87,
+            "matched": 89,
             "mismatch": 0,
             "missing_v4": 0
           },
           "over_price_before": {
             "agreement_pct": 100.0,
-            "compared": 87,
+            "compared": 89,
             "complete_pct": 100.0,
             "invalid_v4": 0,
-            "legacy_available": 87,
+            "legacy_available": 89,
             "legacy_missing_or_invalid": 0,
-            "matched": 87,
+            "matched": 89,
             "mismatch": 0,
             "missing_v4": 0
           },
           "under_price_after": {
             "agreement_pct": 100.0,
-            "compared": 87,
+            "compared": 89,
             "complete_pct": 100.0,
             "invalid_v4": 0,
-            "legacy_available": 87,
+            "legacy_available": 89,
             "legacy_missing_or_invalid": 0,
-            "matched": 87,
+            "matched": 89,
             "mismatch": 0,
             "missing_v4": 0
           },
           "under_price_before": {
             "agreement_pct": 100.0,
-            "compared": 87,
+            "compared": 89,
             "complete_pct": 100.0,
             "invalid_v4": 0,
-            "legacy_available": 87,
+            "legacy_available": 89,
             "legacy_missing_or_invalid": 0,
-            "matched": 87,
+            "matched": 89,
             "mismatch": 0,
             "missing_v4": 0
           }
         },
         "totals": {
-          "compared": 522,
+          "compared": 534,
           "invalid_v4": 0,
-          "legacy_available": 522,
+          "legacy_available": 534,
           "legacy_missing_or_invalid": 0,
-          "matched": 522,
+          "matched": 534,
           "mismatch": 0,
           "missing_v4": 0
         }
@@ -1857,10 +1881,10 @@
   },
   "phase_coverage": {
     "after_24h": {
-      "captured": 87,
-      "eligible": 87,
-      "missing": 0,
-      "pct": 100.0
+      "captured": 89,
+      "eligible": 90,
+      "missing": 1,
+      "pct": 98.89
     },
     "first_24h": {
       "captured": 393,
@@ -1882,10 +1906,10 @@
     }
   },
   "post_cutover_coverage": {
-    "captured": 480,
-    "eligible": 480,
-    "missing": 0,
-    "pct": 100.0
+    "captured": 482,
+    "eligible": 483,
+    "missing": 1,
+    "pct": 99.79
   },
   "problem_events": [
     {
@@ -2377,6 +2401,29 @@
           "market": "one_x_two",
           "phase": "first_24h",
           "type": "rejected_or_missing_table"
+        }
+      ]
+    },
+    {
+      "event_id": "3571094759:51139",
+      "legacy_market": null,
+      "phase": "after_24h",
+      "problems": [
+        {
+          "event_id": "3571094759:51139",
+          "legacy_parsed": false,
+          "phase": "after_24h",
+          "type": "missing_legacy"
+        },
+        {
+          "event_id": "3571094759:51139",
+          "phase": "after_24h",
+          "type": "missing_v4"
+        },
+        {
+          "event_id": "3571094759:51139",
+          "phase": "after_24h",
+          "type": "unrecognized_legacy_format"
         }
       ]
     },
@@ -3125,7 +3172,7 @@
     }
   },
   "schema_version": 1,
-  "source_commit": "0d3fc1ae18009b0898774a174d997745fb910067",
+  "source_commit": "ee0528c61438f90ec5ad8feb8c15de863e54f743",
   "statistical_evidence": {
     "families": {
       "1x2": {
@@ -3155,6 +3202,6 @@
     "unit": "Telegram message"
   },
   "status": "PENDING",
-  "total_issue_count": 941,
-  "v4_observations": 482
+  "total_issue_count": 944,
+  "v4_observations": 484
 }
