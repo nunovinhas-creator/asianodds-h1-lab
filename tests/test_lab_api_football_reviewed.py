@@ -117,7 +117,9 @@ class ReviewedBatchTests(unittest.TestCase):
     def test_reviewed_id_does_not_override_team_orientation_and_competition(self):
         matches, review, approved = fixtures()
         targets = checked_plan(list(matches), matches, review, approved, NOW)
-        for bad in ("reverse", "league", "aet", "kickoff"):
+        for bad in ("reverse", "league", "aet", "pen", "kickoff",
+                    "fixture_id", "goals_disagree", "score_missing",
+                    "goals_missing", "status_missing", "missing_team_id"):
             with self.subTest(bad=bad):
                 e = event(1, 5001)
                 if bad == "reverse":
@@ -126,6 +128,20 @@ class ReviewedBatchTests(unittest.TestCase):
                     e["league"]["id"] = 88
                 if bad == "aet":
                     e["fixture"]["status"]["short"] = "AET"
+                if bad == "pen":
+                    e["fixture"]["status"]["short"] = "PEN"
+                if bad == "status_missing":
+                    e["fixture"]["status"].pop("short")
+                if bad == "fixture_id":
+                    e["fixture"]["id"] = 999999
+                if bad == "missing_team_id":
+                    e["teams"]["away"].pop("id")
+                if bad == "goals_disagree":
+                    e["goals"]["home"] = 4
+                if bad == "score_missing":
+                    e["score"]["fulltime"] = None
+                if bad == "goals_missing":
+                    e["goals"] = {}
                 if bad == "kickoff":
                     e["fixture"]["date"] = "2026-10-27T17:00:00+00:00"
                 p = APIFootballResults(key="test", reviewed_targets=targets,
