@@ -265,7 +265,7 @@ jobs:
           python -m scripts.lab_v6_hypothesis_pruning
           python -m scripts.lab_v6_hypothesis_pruning --verify-only
       # LAB V5 research engine. Runs right after new FT results, reuses the
-      # feature cache (outside git) and can never block FT publication.
+      # feature cache (outside git); failure blocks publication of this LAB bundle.
       - name: Restore research feature cache
         uses: actions/cache/restore@v4
         with:
@@ -345,8 +345,13 @@ jobs:
           assert all(x['at_utc'] >= d['baseline_at'] for x in d['timeline'])
           print('MASTER_BRAIN_DISCOVERY_VALID', len(d['timeline']), d['prospective']['settled_total'])
           PY
+      # No partial producer output is eligible for publication, even when its
+      # step used continue-on-error. outcome (not conclusion) preserves failure.
       - name: Commit only LAB FT artifacts
+        env:
+          PUBLICATION_STEPS: ${{ toJSON(steps) }}
         run: |
+          python -m scripts.publication_guard outcomes --pipeline ft
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
@@ -373,6 +378,7 @@ jobs:
           if [ -f data/lab/discovery-state.json ]; then git add data/lab/discovery-state.json; fi
           if [ -f docs/lab/discoveries.json ]; then git add docs/lab/discoveries.json; fi
           git add -f data/lab/discovery-events-*.jsonl 2>/dev/null || true
+          python -m scripts.publication_guard seal --pipeline ft --manifest "$RUNNER_TEMP/publication-seal.json"
           if git diff --cached --quiet; then
             echo LAB_FT_NO_CHANGE
             exit 0
@@ -381,6 +387,7 @@ jobs:
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git rebase origin/main
+            python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
             if git push origin HEAD:main; then
               echo LAB_FT_PUBLISHED
               exit 0
