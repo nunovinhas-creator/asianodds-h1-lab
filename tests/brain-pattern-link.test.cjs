@@ -66,3 +66,25 @@ test("unknown schema and skipped markets cannot be converted into matches",()=>{
  assert.deepEqual(m.linked(game(),{patterns:[]}),[]);
  assert.deepEqual(m.linked(game(),null),[]);
 });
+test("real V5 snapshot: each displayed association has an exact definition and independently recorded sample",()=>{
+ const fs=require("node:fs"),path=require("node:path"),root=path.resolve(__dirname,"..");
+ const w=JSON.parse(fs.readFileSync(path.join(root,"docs/lab/pattern-watch.json"),"utf8"));
+ const r=JSON.parse(fs.readFileSync(path.join(root,"docs/lab/pattern-research.json"),"utf8"));
+ const definitions=new Map([...(r.patterns||[]),...(r.combinations_top||[])].map(x=>[x.id,x]));
+ const seen=new Set();
+ for(const game of w.future_strict||[]){
+  assert.equal(game.strict_condition,true);
+  assert.equal(seen.has(game.match_key),false,"No fixture may be counted twice");
+  seen.add(game.match_key);
+  const ko=Date.parse(game.kickoff_utc);
+  assert.ok((game.observations||[]).every(e=>Date.parse(e.observed_at)<ko));
+  for(const hit of m.linked(game,r)){
+   const definition=definitions.get(hit.id);
+   assert.ok(definition,hit.id);
+   assert.equal(m.condition(definition.definition,m.factMap(game)),true);
+   assert.ok(hit.known>=12&&hit.reference_known>=12&&hit.diff>=0.08);
+   assert.equal(definition.outcomes[hit.target].hits,hit.hits);
+   assert.equal(definition.outcomes[hit.target].known,hit.known);
+  }
+ }
+});
