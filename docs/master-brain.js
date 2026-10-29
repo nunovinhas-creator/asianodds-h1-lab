@@ -31,7 +31,7 @@
  const $=id=>document.getElementById(id);
  const create=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined&&text!==null)e.textContent=String(text);if(cls)e.className=cls;return e};
  const put=(id,value)=>{const n=$(id);if(n)n.textContent=value==null?"—":String(value)};
- const num=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("pt-PT"):"—";
+ const num=v=>v!==null&&v!==undefined&&v!==""&&typeof v!=="boolean"&&Number.isFinite(Number(v))?Number(v).toLocaleString("pt-PT"):"—";
  const perc=v=>typeof v==="number"&&Number.isFinite(v)?(v*100).toLocaleString("pt-PT",{maximumFractionDigits:1})+"%":"—";
  const nDec=(v,places=3)=>typeof v==="number"&&Number.isFinite(v)?v.toLocaleString("pt-PT",{maximumFractionDigits:places}):"—";
  const sign=v=>typeof v==="number"&&Number.isFinite(v)?(v>0?"+":"")+v.toLocaleString("pt-PT",{minimumFractionDigits:3,maximumFractionDigits:4}):"sem Total";
@@ -114,6 +114,20 @@
    if(key==="ft"){
      if(![body.matches,body.final_recorded,body.unverified].every(count)||body.final_recorded+body.unverified!==body.matches)fail();
      if(!Object.values(body.timing_counts).every(count)||Object.values(body.timing_counts).reduce((a,b)=>a+b,0)!==body.matches)fail();
+   }
+   if(key==="research"){
+     if(![body.scope.ft_confirmed,body.scope.research_eligible,body.generation.hypotheses_evaluated].every(count)||!Object.values(body.state_counts).every(count))fail();
+   }
+   if(key==="watch"){
+     if(!count(body.summary.strict_eligible)||body.summary.strict_eligible!==body.future_strict.length)fail();
+   }
+   if(key==="quality"&&(!Object.keys(body.acceptance_gates).length||Object.values(body.acceptance_gates).some(v=>typeof v!=="boolean")))fail();
+   if(key==="h1")for(const metric of [body.singles,body.triples]){
+     if(![metric.total,metric.pending,metric.settled].every(count)||metric.pending+metric.settled!==metric.total)fail();
+   }
+   if(key==="ft"){
+     if(!["future","grace","blocked_review","past_unverified_eligible","ft_confirmed"].every(k=>count(body.coverage_diagnostics[k])))fail();
+     if(body.coverage_diagnostics.ft_confirmed!==body.final_recorded)fail();
    }
    return body;
  }
@@ -492,6 +506,7 @@
      metric("d-future",num((f.coverage_diagnostics?.future||0)+(f.coverage_diagnostics?.grace||0)));
      metric("d-pending",num(f.coverage_diagnostics?.past_unverified_eligible||0));
    }
+   if(!f)for(const id of ["d-games","d-ft","d-future","d-pending"])metric(id,"—");
    const gates=clear("d-gates");if(q){
      for(const [key,value] of Object.entries(q.acceptance_gates||{}))gate(gates,GATE_LABELS[key]||key,!!value,"Comprovado","Pendente");
    }else empty(gates,"Auditoria V4 indisponível.");

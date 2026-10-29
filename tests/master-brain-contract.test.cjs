@@ -16,3 +16,14 @@ test('FT inconsistent/nonfinite counts rejected',()=>{
  for(const n of [NaN,-1,'485'])assert.throws(()=>validateData('ft',{...d,matches:n}));
  assert.throws(()=>validateData('ft',{...d,unverified:d.unverified+1}));
 });
+
+test('missing nested counters and string booleans are not zero/true',()=>{
+ const research=JSON.parse(fs.readFileSync('docs/lab/pattern-research.json'));
+ assert.throws(()=>validateData('research',{...research,scope:{}}));
+ const ft=JSON.parse(fs.readFileSync('docs/lab/ft-results.json'));
+ assert.throws(()=>validateData('ft',{...ft,coverage_diagnostics:{}}));
+ const quality=JSON.parse(fs.readFileSync('docs/lab/v4-audit.json'));
+ assert.throws(()=>validateData('quality',{...quality,acceptance_gates:{data_integrity:"false"}}));
+ const h1=JSON.parse(fs.readFileSync('docs/data.json'));
+ assert.throws(()=>validateData('h1',{...h1,singles:{...h1.singles,pending:h1.singles.total+1}}));
+});
