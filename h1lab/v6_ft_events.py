@@ -41,6 +41,14 @@ def quality(row):
         urls = reviewed.get("corroboration_urls") or []
         return ("REVIEWED_PUBLIC_CORROBORATED" if len(set(urls)) >= 2
                 else "REVIEWED_PUBLIC_UNCORROBORATED")
+    if source == "dual_provider_only":
+        attest = row.get("dual_provider_corroboration") or {}
+        proof = attest.get("attestation_sha256") or {}
+        chronology = attest.get("first_observed_at_utc") or {}
+        if (len(proof) >= 2 and set(proof) == set(chronology)
+                and attest.get("chronology_certified") is False):
+            return "TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED"
+        return "DUAL_PROVIDER_PROVENANCE_INCOMPLETE"
     sources = [part for part in source.split("_and_") if part]
     return ("MULTI_PROVIDER" if len(set(sources)) >= 2 else "SINGLE_PROVIDER")
 
@@ -64,7 +72,8 @@ def snapshot(row):
             "evidence_level": quality(row),
             "reason": row.get("reason") if score is None else None,
             "source_order_resolution": row.get("source_order_resolution") if score else None,
-            "reviewed_public_resolution": row.get("reviewed_public_resolution") if score else None}
+            "reviewed_public_resolution": row.get("reviewed_public_resolution") if score else None,
+            "dual_provider_corroboration": row.get("dual_provider_corroboration") if score else None}
 
 
 def event_hash(event):
