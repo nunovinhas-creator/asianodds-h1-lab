@@ -345,3 +345,40 @@ nem confirmação do resultado. O jogo continua sem FT verificado pelo sistema.
 A revisão futura deverá diagnosticar a priorização do jogo sem aumentar o
 número de pedidos de APIs ou contornar cooldowns. A alternativa GOAL
 `834934` continua apenas candidata, sem alias global nem liquidação.
+
+
+## V7.6 — Diagnóstico sem ambiguidade dos dois cooldowns (29/10/2026)
+
+A revisão do ledger real confirmou que a não seleção do Independiente–Defensa
+nos ciclos das 08h16, 08h53 e 09h31 corresponde ao backoff adaptativo, não
+a uma rejeição de identidade: GOAL teve evidência COMPLETE estável em
+29/10 às 05h38 UTC, com janela de 12h até aproximadamente 17h38 UTC.
+A tentativa individual API-Football ocorreu em 29/10 às 07h36 UTC e o
+cooldown **independente** de 24h só permite nova tentativa a partir de
+30/10 às 07h36 UTC. Os instantes são horários de elegibilidade, não
+promessas de chamada: orçamento, fila e estado do fornecedor continuam a
+prevalecer. A consulta usa agora `fixtures?id=...` em vez do antigo
+`fixtures?ids=...` quando existe um único ID.
+
+O diagnóstico de `plan_reviewed_ids` passa a publicar
+`FT_QUEUE_OR_APPROVED_ID_COOLDOWN`, `ft_queue_not_before_utc` e
+`api_id_not_before_utc` quando os dois bloqueios se aplicam a um jogo
+aprovado que não foi selecionado. Nenhum cooldown foi reduzido, não houve
+consulta manual, alteração de resultado ou aumento de quota.
+
+### GOAL 834934 continua candidato a crosswalk por jogo
+
+O GOAL `834934` está documentado na fila de revisão como candidato STRONG
+com KO e orientação coincidentes, mas a via automática `plan_goal_id`
+não o seleciona por ter múltiplas sugestões e motivo anterior
+`goal_identity_no_core_match`. A documentação GOAL confirma o endpoint
+`GET /v1/fixtures/:id`, mas o ID isolado não comprova identidade, reservas,
+cronologia ou marcador. A próxima intervenção pode introduzir uma aprovação
+restringida ao `match_key`, preservando colisões STRONG, o orçamento
+GOAL (ID em substituição de um dia), o cooldown de 24h, a verificação de
+`homeTeamFtScore/awayTeamFtScore` e a quarentena de qualquer conflito
+3–1/4–1. Não ativar conversão automática em FINAL nesta fase.
+
+Fontes documentais de enquadramento (não usadas como FT aceite):
+- https://goal-api.com/documentation
+- https://locoxelrojo.com/independiente/2026/10/27/goleo-la-reserva-de-independiente-y-sigue-en-lo-mas-alto/
