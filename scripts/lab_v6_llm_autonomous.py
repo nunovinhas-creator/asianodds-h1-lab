@@ -38,7 +38,8 @@ def choose_candidates(root):
         raise ValueError('NO_ELIGIBLE_AUTONOMOUS_COMBINATIONS')
     packet = build_packet(root)
     family = {item['code']: item['family'] for item in packet['feature_catalogue']}
-    assert len({f for x in selected for f in x['feature_codes'] if f not in family}) == 0
+    if any(c not in family for x in selected for c in x['feature_codes']):
+        raise ValueError('UNKNOWN_AUTO_FEATURE')
     return {
         'choices': selected, 'queue': proposal_queue,
         'policy': 'HASH_ORDER_OUTCOME_BLIND_PREFER_PAIRS_ONE_TRIPLE',
@@ -54,7 +55,8 @@ def utc_archives_today(root, today):
         obj = json.loads(path.read_text(encoding='utf-8'))
         date = obj.get('recorded_at_utc')
         if (isinstance(date, str) and date[:10] == today
-                and obj.get('autonomy', {}).get('trigger') == 'schedule'):
+                and isinstance(obj.get('autonomy'), dict)
+                and obj['autonomy'].get('trigger') == 'schedule'):
             total += 1
     return total
 
