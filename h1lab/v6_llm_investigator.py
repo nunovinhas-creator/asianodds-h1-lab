@@ -38,18 +38,20 @@ TOPICS = (
      'control': 'Separar categorias de antecedencia predefinidas e comparar com jogos sem o padrao.'},
 )
 SYSTEM = (
-    'Es investigador de hipoteses EM SOMBRA do MASTER BRAIN V6. Responde APENAS com JSON valido. '
-    'Nao recomendes apostas, dinheiro, alertas ou alteracoes de producao. '
-    'Nao afirmes lucro, edge, significancia estatistica, causalidade ou validacao. '
-    'Usa apenas os factos agregados e topicos fornecidos; nao inventes resultados, odds, jogos, FT ou timestamps. '
-    'Gera exatamente UMA proposta TESTAVEL, combinando apenas variaveis existentes no feature_catalogue. '
-    'Cada proposta deve ter status DRAFT, topic_id valido, hypothesis, null_hypothesis, '
-    'test_design, falsification, confounders e source_refs; aponta necessidades de dados em test_design. '
-    'Hipoteses selecionadas apos explorar resultados sao pos-hoc; exige teste prospectivo e controlo de testes multiplos. '
-    'A resposta DEVE ser um unico objeto com exatamente as chaves schema_version e proposals; ' +
-    'schema_version tem de ser o inteiro 1; proposals tem de ser um array com UMA proposta; ' +
-    'nao uses wrappers response, result, data ou markdown. ' +
-    'O modelo so sugere; nenhuma resposta promove uma estrategia.'
+    'Es investigador de hipoteses EM SOMBRA do MASTER BRAIN V6. Devolve APENAS um objeto JSON valido. '
+    'Nao recomendes apostas, valores, alertas ou mudancas de producao. '
+    'Nao afirmes edge, ROI, rentabilidade, causalidade ou significancia estatistica. '
+    'Usa apenas factos agregados e as definicoes no feature_catalogue; nao inventes resultados nem valores. '
+    'Gera exatamente UMA proposta TESTAVEL que combine 2 ou 3 feature_codes exatos de familias DISTINTAS do catalogo. '
+    'Mantem outcome OVER_2_5, baseline MARKET_MODEL_OVER25 e metric BRIER_SCORE ou LOG_LOSS. '
+    'Baseline e uma probabilidade derivada do Asian Total por Poisson, NAO uma odd transacionavel. '
+    'A unidade estatistica e MATCH: uma partida, nao uma mensagem. '
+    'Especifica control_group, data_needed e test_design com todos os feature_codes por escrito. '
+    'Desenha comparacao prospetiva fora da amostra vs baseline, controlos e criterios de falsificacao, '
+    'incluindo falta de FT, qualidade do preco, selecao multipla e teste temporal. '
+    'Nomes source_refs indicam PROVENIENCIA de definicoes/relatorios, nunca prova de efeito. '
+    'A resposta tem APENAS schema_version=1 e proposals=[uma proposta DRAFT]; sem wrappers nem markdown. '
+    'O modelo so sugere hipoteses por avaliar; nao ativa nenhuma estrategia.'
 )
 
 
@@ -160,10 +162,17 @@ def build_packet(root):
         'response_schema': {
             'schema_version': 1,
             'proposals': [{
-                'status': 'DRAFT', 'topic_id': 'T01',
-                'hypothesis': '...', 'null_hypothesis': '...',
-                'test_design': '...', 'falsification': '...',
-                'confounders': ['...'], 'source_refs': [SOURCES[0]]
+                'status': 'DRAFT', 'topic_id': 'T02',
+                'feature_codes': ['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'],
+                'outcome': 'OVER_2_5', 'baseline': 'MARKET_MODEL_OVER25', 'metric': 'BRIER_SCORE',
+                'hypothesis': 'A combinacao de alertas repetidos com golos implicitos estaveis pode melhorar o baseline.',
+                'null_hypothesis': 'A combinacao nao melhora o Brier score relativamente ao baseline.',
+                'control_group': 'Jogos futuros com probabilidade inicial e antecedencia comparaveis sem este cruzamento.',
+                'test_design': 'Congelar G_MULTI_ALERT e M_IMPLIED_GOALS_FLAT antes do KO e comparar Brier score por jogo OOS.',
+                'falsification': 'Rejeitar se o Brier score OOS nao melhorar face ao baseline em teste prospetivo.',
+                'data_needed': ['Capturas das duas variaveis feitas antes do KO', 'FT regulamentar confirmado com carimbo'],
+                'confounders': ['Antecedencia', 'Competicao'],
+                'source_refs': [SOURCES[4]],
             }]
         },
         'limitations': [
@@ -187,9 +196,12 @@ def validate_proposals(packet, response):
     proposals = response['proposals']
     if not isinstance(proposals, list) or not (1 <= len(proposals) <= 4):
         raise ValueError('Unbounded or empty proposals')
-    expected = {'status', 'topic_id', 'hypothesis', 'null_hypothesis', 'test_design', 'falsification', 'confounders', 'source_refs'}
+    expected = {'status', 'topic_id', 'feature_codes', 'outcome', 'baseline', 'metric',
+                'hypothesis', 'null_hypothesis', 'control_group', 'test_design',
+                'falsification', 'data_needed', 'confounders', 'source_refs'}
     allowed_topics = {t['id'] for t in packet['topics']}
     allowed_refs = set(packet['source_sha256'])
+    feature_families = {f['code']: f['family'] for f in packet['feature_catalogue']}
     used = set()
     for p in proposals:
         if not isinstance(p, dict) or set(p) != expected or p['status'] != 'DRAFT':
@@ -197,12 +209,25 @@ def validate_proposals(packet, response):
         if not isinstance(p['topic_id'], str) or p['topic_id'] not in allowed_topics or p['topic_id'] in used:
             raise ValueError('Unrecognized or duplicated topic')
         used.add(p['topic_id'])
-        for k in ('hypothesis', 'null_hypothesis', 'test_design', 'falsification'):
+        codes = p['feature_codes']
+        if (not isinstance(codes, list) or not 2 <= len(codes) <= 3
+                or any(not isinstance(code, str) or code not in feature_families for code in codes)
+                or len(set(codes)) != len(codes)
+                or len({feature_families[code] for code in codes}) < 2):
+            raise ValueError('Invalid feature combination: require 2-3 actual codes from distinct families')
+        if (p['outcome'] != 'OVER_2_5' or p['baseline'] != 'MARKET_MODEL_OVER25'
+                or p['metric'] not in ('BRIER_SCORE', 'LOG_LOSS')):
+            raise ValueError('Unsupported outcome, market baseline or metric')
+        if not all(code in p['test_design'] for code in codes):
+            raise ValueError('Test design does not mention all selected feature codes')
+        for k in ('hypothesis', 'null_hypothesis', 'control_group', 'test_design', 'falsification'):
             if not isinstance(p[k], str) or not (10 <= len(p[k]) <= 1200):
                 raise ValueError('Invalid proposal text: ' + k)
         if not isinstance(p['confounders'], list) or not (1 <= len(p['confounders']) <= 8) or any(not isinstance(s, str) or not 2 <= len(s) <= 200 for s in p['confounders']):
             raise ValueError('Invalid confounders')
-        if not isinstance(p['source_refs'], list) or not p['source_refs'] or any(not isinstance(s, str) for s in p['source_refs']) or not set(p['source_refs']) <= allowed_refs:
+        if not isinstance(p['data_needed'], list) or not (1 <= len(p['data_needed']) <= 5) or any(not isinstance(s, str) or not 10 <= len(s) <= 200 for s in p['data_needed']):
+            raise ValueError('Invalid data requirements')
+        if not isinstance(p['source_refs'], list) or not p['source_refs'] or any(not isinstance(s, str) for s in p['source_refs']) or not set(p['source_refs']) <= allowed_refs or SOURCES[4] not in p['source_refs']:
             raise ValueError('Unsupported references')
     return {'status': 'DRAFT_UNVALIDATED_HUMAN_REVIEW_REQUIRED',
             'source_sha256': packet['source_sha256'], 'proposals': proposals,
@@ -216,20 +241,8 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
         raise ValueError('An explicit HTTPS endpoint is required')
     if not isinstance(model, str) or not (1 <= len(model) <= 100):
         raise ValueError('An explicit model is required')
-    # JSON object mode ensures syntax, NOT the contract: provide a complete
-    # example with one proposal while keeping strict validation authoritative.
-    example = {
-        'schema_version': 1,
-        'proposals': [{
-            'status': 'DRAFT', 'topic_id': 'T01',
-            'hypothesis': 'O cruzamento de movimentos observados de Total e 1X2 pode acrescentar informacao ao baseline.',
-            'null_hypothesis': 'O cruzamento de Total e 1X2 nao melhora o baseline do mercado.',
-            'test_design': 'Registar coorte futura e comparar jogos com baseline e antecedencia semelhantes.',
-            'falsification': 'Rejeitar a proposta se a comparacao prospetiva nao mostrar melhoria robusta.',
-            'confounders': ['Competicao e antecedencia'],
-            'source_refs': [SOURCES[0]],
-        }],
-    }
+    # Keep the example and validated packet contract in sync.
+    example = packet['response_schema']
     messages = [
         {'role': 'system', 'content': SYSTEM},
         {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
@@ -237,7 +250,7 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
                                               'feature_catalogue': packet['feature_catalogue'],
                                               'response_schema': packet['response_schema'],
                                               'exact_output_example': example,
-                                              'instruction': 'Devolve UM objeto JSON com exatamente UMA proposta e sem outra chave.'}, ensure_ascii=False)}
+                                              'instruction': 'Devolve UMA proposta com feature_codes reais de pelo menos duas familias, metric e control_group. Segue as chaves exatas do exemplo.'}, ensure_ascii=False)}
     ]
     body = json.dumps({'model': model, 'messages': messages, 'temperature': 0,
                        'max_tokens': 1600, 'response_format': {'type': 'json_object'}}).encode('utf-8')
