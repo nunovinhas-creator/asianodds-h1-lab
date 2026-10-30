@@ -49,3 +49,18 @@ A PR acrescenta ao workflow manual a opção `cloudflare_once`; não muda qualqu
 Abrir Actions > V6 - Investigator LLM (manual only) > Run workflow e escolher `dossier` para teste a custo de IA zero. Para chamar o modelo UMA VEZ, selecionar `cloudflare_once` e escrever exatamente `CONSUMIR_IA_UMA_VEZ` no campo de confirmação. A Action executa no máximo um pedido HTTPS, sem retry, com timeout de 30 segundos e `max_tokens=1600`, usa `@cf/meta/llama-3.1-8b-instruct-fast` e grava apenas um relatório de hipóteses DRAFT num artefacto de 7 dias. Com tokens em falta, erro HTTP, resposta não JSON ou proposta inválida, o passo falha sem publicar sugestões falsas.
 
 No plano Cloudflare Workers Free, há 10.000 neurons gratuitos/dia partilhados por conta e o excesso é recusado; o código NÃO consulta a utilização atual nem fixa um orçamento de neurons a priori. Inspecionar a quota antes e depois do primeiro ensaio e não ativar recorrência. Nenhuma hipótese fica cientificamente validada ou afeta alertas e apostas. GitHub Actions pode consumir minutos do plano, mesmo quando a chamada IA é gratuita.
+
+## Revisão do contrato de investigação: cruzamentos testáveis (30/10/2026)
+
+Após uma primeira resposta real que apenas reformulou a pergunta T02, o Investigador passa a exigir, numa proposta única e nunca automaticamente promovida:
+
+- **feature_codes:** 2 a 3 códigos **existentes** no catálogo V5 (não nomes inventados), sem duplicações e de pelo menos duas famílias distintas; o plano deve mencionar os códigos literalmente.
+- **outcome:** apenas `OVER_2_5`. O baseline permitido é `MARKET_MODEL_OVER25`, a probabilidade **estimada via Poisson a partir das odds Asian Total**. Não corresponde a uma cotação Over 2.5 diretamente executável nem autoriza EV/ROI.
+- **metric:** `BRIER_SCORE` ou `LOG_LOSS`, comparação predefinida para novos jogos com freeze temporal e FT elegível. Uma métrica indicada pelo LLM é **protocolo proposto**, não um valor observado.
+- **control_group:** jogos comparáveis sem a combinação, com qualidade de preço, calendário, liga e baseline controlados quando disponíveis.
+- **data_needed:** fontes que faltam ou têm de ser confirmadas antes de testar (e.g., snapshots pre-KO e FT regulamentar).
+- **test_design, null_hypothesis, falsification, confounders:** operacionalização e condições em que a hipótese deve ser rejeitada. Contar partidas únicas, não mensagens repetidas. Controlo de múltiplas hipóteses e validação OOS só depois de pré-registo e revisão humana.
+
+Exemplo **ilustrativo, sem vantagem observada**: `G_MULTI_ALERT` e `M_IMPLIED_GOALS_FLAT` poderiam ser testados contra a probabilidade de mercado de Over 2,5 em jogos futuros, usando Brier score e grupo de controlo comparável. A referência `docs/lab/pattern-research.json` comprova a origem das **definições das variáveis**, não um efeito real ou rentabilidade.
+
+Uma proposta que apenas reescreve a pergunta sem códigos concretos, ou que utiliza métricas não suportadas como ROI/EV, passa a ser recusada. O validador confirma **estrutura e códigos**, não originalidade estatística, disponibilidade de jogos suficientes ou veracidade de argumentos livres; exige revisão científica humana. A alteração não adiciona chamadas à Cloudflare nem agendamentos; para testar um novo prompt contra IA real será necessária decisão expressa e medição da quota.
