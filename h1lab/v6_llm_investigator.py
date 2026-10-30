@@ -36,6 +36,9 @@ TOPICS = (
     {'id': 'T04', 'family': 'LEAD_TIME',
      'question': 'A antecedencia do primeiro sinal modifica a qualidade do baseline do mercado?',
      'control': 'Separar categorias de antecedencia predefinidas e comparar com jogos sem o padrao.'},
+    {'id': 'T05', 'family': 'OPEN_CATALOGUE_EXPLORATION',
+     'question': 'Que combinacao testavel e ainda nao validada de 2-3 variaveis de familias distintas do catalogo inteiro merece uma experiencia prospetiva?',
+     'control': 'Descrever controlos comparaveis e plano de falsificacao, nunca escolher por maior retorno observado.'},
 )
 SYSTEM = (
     'Es investigador de hipoteses EM SOMBRA do MASTER BRAIN V6. Devolve APENAS um objeto JSON valido. '
@@ -43,6 +46,8 @@ SYSTEM = (
     'Nao afirmes edge, ROI, rentabilidade, causalidade ou significancia estatistica. '
     'Usa apenas factos agregados e as definicoes no feature_catalogue; nao inventes resultados nem valores. '
     'Gera exatamente UMA proposta TESTAVEL que combine 2 ou 3 feature_codes exatos de familias DISTINTAS do catalogo. '
+    'Podes escolher livremente QUALQUER combinacao elegivel do catalogo completo, e o topico T05 ' +
+    'admite exploracao aberta alem das quatro perguntas ilustrativas; prioriza ser testavel, nao lucros historicos. '
     'Mantem outcome OVER_2_5, baseline MARKET_MODEL_OVER25 e metric BRIER_SCORE ou LOG_LOSS. '
     'Baseline e uma probabilidade derivada do Asian Total por Poisson, NAO uma odd transacionavel. '
     'A unidade estatistica e MATCH: uma partida, nao uma mensagem. '
