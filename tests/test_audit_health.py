@@ -3,7 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from datetime import datetime,timezone
-from scripts.audit_health import check, latest_result_checked_at, verify_ft_backlog
+from scripts.audit_health import (check, latest_result_checked_at, verify_ft_backlog,
+                                  ft_report_generation_at)
 
 class HealthTests(unittest.TestCase):
     def test_missing_outputs_never_healthy(self):
@@ -45,7 +46,8 @@ class HealthTests(unittest.TestCase):
             self.assertEqual(result['status'],'DEGRADED')
 
             ft=json.loads((root/'docs/lab/ft-results.json').read_text())
-            ft['execution_health']={'status':'DEGRADED','unexpected_errors':2}
+            ft['execution_health']={'status':'DEGRADED','unexpected_errors':2,
+                                    'measured_at':now.isoformat()}
             write('docs/lab/ft-results.json',ft)
             result=check(root,now)
             statuses={x['name']:x['status'] for x in result['checks']}
@@ -166,3 +168,53 @@ class HealthTests(unittest.TestCase):
             statuses={c['name']:c['status'] for c in check(root,now)['checks']}
             self.assertEqual(statuses['ft_counts'],'OK')
             self.assertEqual(statuses['ft_backlog'],'UNKNOWN')
+
+    def test_ft_generation_is_not_last_ledger_change(self):
+        # Actual 30/10 production: new diagnostic report and backlog at 13:24,
+        # with the ledger unchanged since 13:19. These are the SAME cycle.
+        ledger={'matches':{'a':{'status':'FINAL'},'b':{'status':'PENDING'}}}
+        report={'matches':2,'final_recorded':1,
+                'last_updated_at':'2026-10-30T13:19:23+00:00',
+                'execution_health':{
+                    'status':'NOT_ATTEMPTED',
+                    'measured_at':'2026-10-30T13:24:28+00:00'},
+                'coverage_diagnostics':{'past_unverified_eligible':1}}
+        backlog={'schema_version':1,'status':'FT_BACKLOG_AUDIT_OBSERVATION_ONLY',
+                 'measured_at':'2026-10-30T13:24:28+00:00',
+                 'total_matches':2,
+                 'classification':{'verified_ft':1,'past_due_unverified':1,
+                                   'past_due_never_checked':1},
+                 'overdue_games':[{'match_key':'b'}], 'overdue_omitted':0,
+                 'queue_plan':{'eligible':1,'selected':0,'deferred_by_capacity':1}}
+        self.assertEqual(ft_report_generation_at(report),'2026-10-30T13:24:28+00:00')
+        self.assertEqual(verify_ft_backlog(ledger,report,backlog)['overdue'],1)
+        self.assertEqual(report['last_updated_at'],'2026-10-30T13:19:23+00:00')
+
+    def test_ft_generation_mismatch_or_corrupt_runtime_stamp_fails_closed(self):
+        from copy import deepcopy
+        ledger={'matches':{'b':{'status':'PENDING'}}}
+        report={'matches':1,'final_recorded':0,
+                'last_updated_at':'2026-10-30T13:19:23+00:00',
+                'execution_health':{'status':'NOT_ATTEMPTED',
+                                    'measured_at':'2026-10-30T13:24:28Z'},
+                'coverage_diagnostics':{'past_unverified_eligible':1}}
+        backlog={'schema_version':1,'status':'FT_BACKLOG_AUDIT_OBSERVATION_ONLY',
+                 'measured_at':'2026-10-30T13:24:28Z',
+                 'total_matches':1,'classification':{'past_due_unverified':1,
+                 'past_due_never_checked':1},
+                 'overdue_games':[{'match_key':'b'}], 'overdue_omitted':0,
+                 'queue_plan':{'eligible':1,'selected':0,'deferred_by_capacity':1}}
+        bad=deepcopy(backlog)
+        bad['measured_at']='2026-10-30T13:19:23Z'
+        with self.assertRaisesRegex(ValueError,'different generations'):
+            verify_ft_backlog(ledger,report,bad)
+        for timestamp in ('not-a-timestamp','2026-10-30T13:24:28',None):
+            mutated=deepcopy(report)
+            mutated['execution_health']['measured_at']=timestamp
+            with self.subTest(timestamp=timestamp),self.assertRaises(ValueError):
+                ft_report_generation_at(mutated)
+                verify_ft_backlog(ledger,mutated,backlog)
+        legacy=deepcopy(report)
+        legacy.pop('execution_health')
+        self.assertEqual(ft_report_generation_at(legacy),
+                         '2026-10-30T13:19:23+00:00')
