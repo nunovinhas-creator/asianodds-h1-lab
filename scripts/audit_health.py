@@ -37,6 +37,33 @@ def latest_result_checked_at(audit):
 
 
 
+
+def ft_report_generation_at(ft):
+    """Generation clock != last FT ledger mutation.
+
+    A routine push can republish new diagnostics without changing a single
+    result. When execution metadata exists, its measured_at is authoritative
+    and MUST be valid; do not silently fall back to an older ledger stamp.
+    Historical reports without execution metadata remain readable.
+    """
+    execution = ft.get('execution_health')
+    if execution is not None:
+        if not isinstance(execution, dict):
+            raise ValueError('Invalid FT execution metadata')
+        raw = execution.get('measured_at')
+    else:
+        raw = ft.get('last_updated_at')
+    if not isinstance(raw, str):
+        raise ValueError('Missing FT report generation timestamp')
+    try:
+        stamp = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+    except ValueError as exc:
+        raise ValueError('Malformed FT report generation timestamp') from exc
+    if stamp.tzinfo is None:
+        raise ValueError('FT report generation must be timezone-aware')
+    return stamp.isoformat()
+
+
 def verify_ft_backlog(ledger, ft, backlog):
     """Validate one-game partitions; 'never checked' is a SUBSET of overdue."""
     if not isinstance(backlog,dict) or backlog.get('status')!='FT_BACKLOG_AUDIT_OBSERVATION_ONLY':
@@ -96,7 +123,7 @@ def verify_ft_backlog(ledger, ft, backlog):
     if not isinstance(backlog.get('measured_at'),str):
         raise ValueError('FT backlog timestamp missing')
     backlog_at=datetime.fromisoformat(backlog['measured_at'].replace('Z','+00:00'))
-    report_at=datetime.fromisoformat(ft['last_updated_at'].replace('Z','+00:00'))
+    report_at=datetime.fromisoformat(ft_report_generation_at(ft))
     if backlog_at.tzinfo is None or report_at.tzinfo is None:
         raise ValueError('FT backlog timestamp without timezone')
     if abs((backlog_at-report_at).total_seconds())>120:
@@ -128,7 +155,7 @@ def check(root, now):
             any(type(v) is not int or v<0 for v in timing.values()) or
             sum(timing.values())!=ft['matches']):raise ValueError('FT counters disagree')
         record('ft_counts','OK','ledger_report_timing_agree')
-        freshness('ft_publication',ft.get('last_updated_at'),90)
+        freshness('ft_publication',ft_report_generation_at(ft),90)
         execution=ft.get('execution_health')
         if execution is not None:
             if not isinstance(execution,dict):raise ValueError('Invalid FT execution health')
