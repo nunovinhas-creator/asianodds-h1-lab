@@ -29,6 +29,28 @@ test('missing nested counters and string booleans are not zero/true',()=>{
 });
 
 
+test('malformed nested watch data is rejected before future sort/render',()=>{
+ const original=JSON.parse(fs.readFileSync('docs/lab/pattern-watch.json'));
+ assert.ok(original.future_strict.length>0);
+ const malformed=[
+  {...original,future_strict:[{...original.future_strict[0],kickoff_utc:null},...original.future_strict.slice(1)]},
+  {...original,future_strict:[{...original.future_strict[0],observations:{}},...original.future_strict.slice(1)]},
+  {...original,future_strict:[{...original.future_strict[0],observations:[null]},...original.future_strict.slice(1)]}
+ ];
+ for(const bad of malformed)assert.throws(()=>validateData('watch',bad),/Contrato de dados inválido/);
+ assert.equal(validateData('watch',original),original);
+});
+test('nested research outcomes must be objects, not arrays or null',()=>{
+ const original=JSON.parse(fs.readFileSync('docs/lab/pattern-research.json'));
+ assert.ok(original.combinations_top.length>0);
+ const bad={...original,combinations_top:[
+  {...original.combinations_top[0],outcomes:{...original.combinations_top[0].outcomes,OVER_2_5:[]}},
+  ...original.combinations_top.slice(1)
+ ]};
+ assert.throws(()=>validateData('research',bad),/Contrato de dados inválido/);
+ assert.equal(validateData('research',original),original);
+});
+
 test('failed refresh cannot keep previous research metrics or discovery details visible',()=>{
  const oldDocument=global.document, nodes=new Map();
  function node(text=''){
