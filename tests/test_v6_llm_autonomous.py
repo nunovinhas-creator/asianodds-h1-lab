@@ -134,14 +134,20 @@ class AutonomousResearchTests(TestCase):
         self.assertEqual(user['exact_output_example']['proposals'][0]['feature_codes'],
                          pool[0]['feature_codes'])
         self.assertEqual(len(user['candidate_options']), len(pool))
+        self.assertNotIn('QUALQUER combinacao elegivel do catalogo completo', posted['messages'][0]['content'])
+        allowed={c for p in pool for c in p['feature_codes']}
+        self.assertTrue(all(f['code'] in allowed for f in user['feature_catalogue']))
         invalid = self.good_for(['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
         if sorted(invalid['proposals'][0]['feature_codes']) not in [
                 sorted(p['feature_codes']) for p in pool]:
-            with self.assertRaisesRegex(ValueError, 'AUTO_LLM_SELECTED_UNAPPROVED'):
+            with self.assertRaisesRegex(ValueError, 'AUTO_LLM_SELECTED_UNAPPROVED') as rejected:
                 investigator.invoke(self.packet,
                     endpoint='https://example.test/v1/chat/completions',
                     model='fake', opener=lambda req, timeout: Response(invalid),
                     candidate_options=[p['feature_codes'] for p in pool])
+            self.assertEqual(rejected.exception.audit['llm_calls'],1)
+            self.assertEqual(rejected.exception.audit['status'],'REJECTED_NOT_PUBLISHED')
+            self.assertRegex(rejected.exception.audit['response_sha256'],r'^[0-9a-f]{64}$')
 
     def test_publication_rejects_forged_provenance(self):
         codes = autonomy.choose_candidates(self.root)['choices'][0]['feature_codes']

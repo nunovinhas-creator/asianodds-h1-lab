@@ -271,6 +271,7 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
         demo = example['proposals'][0]
         demo['feature_codes'] = list(options[0])
         demo['topic_id'] = 'T05'
+        demo['hypothesis'] = 'A combinacao ' + ', '.join(options[0]) + ' pode acrescentar informacao ao baseline; investigar sem presumir efeito.'
         demo['test_design'] = (
             'Congelar ' + ', '.join(options[0]) +
             ' antes do KO; medir frequencia e FT por jogo e comparar log loss ou Brier em OOS.'
@@ -319,7 +320,9 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
     parsed_content = strict_json(content)
     try:
         result = validate_proposals(packet, parsed_content)
-        if options is not None and sorted(result['proposals'][0]['feature_codes']) not in options:
+        if options is not None and (len(result['proposals']) != 1
+                or result['proposals'][0]['topic_id'] != 'T05'
+                or sorted(result['proposals'][0]['feature_codes']) not in options):
             raise ValueError('AUTO_LLM_SELECTED_UNAPPROVED_OR_PREVIOUS_COMBINATION')
         result['provider_usage'] = provider_usage(envelope, model)
         return result

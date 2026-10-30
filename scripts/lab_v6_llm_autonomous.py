@@ -84,6 +84,8 @@ def run(root, *, mode, allow_network=False, confirm='', env=None,
         raise ValueError('AUTONOMOUS_NETWORK_NOT_AUTHORIZED')
     if env.get('GITHUB_REF') != 'refs/heads/main':
         raise ValueError('AUTO_NOT_MAIN')
+    if env.get('GITHUB_RUN_ATTEMPT') != '1':
+        raise ValueError('AUTO_RERUN_NOT_AUTHORIZED')
     event = env.get('GITHUB_EVENT_NAME')
     if event == 'schedule':
         if (env.get('GITHUB_RUN_ATTEMPT') != '1'
