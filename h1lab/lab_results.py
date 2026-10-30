@@ -331,6 +331,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     }
     attempts = 0
     unexpected_errors = 0
+    invalid_provider_results = 0
+    provider_failure_breakdown = Counter()
+    affected_provider_failure_keys = set()
     dual_errors = 0
     for _, _, _, key in candidates[:max_checks]:
         row = entries[key]
@@ -367,8 +370,16 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 found[provider] = _validate_result(candidate, key) if candidate is not None else None
                 reasons[provider] = ("invalid_provider_result" if candidate is not None and found[provider] is None
                                      else _safe_reason(reason))
+                if reasons[provider] == "invalid_provider_result":
+                    # A malformed or wrong-fixture FT is an operational failure,
+                    # even when the adapter returned normally (no exception).
+                    invalid_provider_results += 1
+                    provider_failure_breakdown[provider + ":invalid_result"] += 1
+                    affected_provider_failure_keys.add(key)
             except Exception as exc:
                 unexpected_errors += 1
+                provider_failure_breakdown[provider + ":exception"] += 1
+                affected_provider_failure_keys.add(key)
                 errors[provider] = type(exc).__name__
                 found[provider] = None
                 reasons[provider] = "provider_unavailable"  # never expose credentials/URLs
@@ -637,6 +648,20 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                   "legacy_last_checked_at": row.get("checked_at") if evidence_retry else None,
                   "evidence_attempts": row.get("evidence_attempts", 0),
                   "observed_alerts": row.get("observed_alerts", 0)}
+        visit = row.get("last_provider_visit")
+        if isinstance(visit, dict):
+            failures = {name: reason for name, reason in
+                        (visit.get("reasons") or {}).items()
+                        if reason in ("provider_unavailable", "invalid_provider_result")}
+            if failures:
+                # Public diagnostics: provider identifiers, static reason codes
+                # and exception CLASS only; never messages, tokens or URLs.
+                record["last_provider_failure"] = {
+                    "at": visit.get("at"), "reasons": failures,
+                    "exception_types": {name: typ for name, typ in
+                                        (visit.get("errors") or {}).items()
+                                        if name in failures},
+                }
         if row["status"] == "FINAL":
             record["home_goals"] = row["result"]["home_goals"]
             record["away_goals"] = row["result"]["away_goals"]
@@ -656,10 +681,15 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "pending_due_checks": max(0, len(candidates) - attempts),
         "ft_queue": queue_plan,
         "execution_health": {
-            "status": ("DEGRADED" if unexpected_errors or dual_errors else
+            "status": ("DEGRADED" if unexpected_errors or dual_errors or invalid_provider_results else
                        "ATTEMPTED" if attempts or dual_scanned else "NOT_ATTEMPTED"),
             "unexpected_errors": unexpected_errors + dual_errors,
-            "provider_errors": unexpected_errors, "dual_postcheck_errors": dual_errors,
+            "provider_errors": unexpected_errors,
+            "invalid_provider_results": invalid_provider_results,
+            "provider_failure_breakdown": dict(sorted(provider_failure_breakdown.items())),
+            "affected_matches_count": len(affected_provider_failure_keys),
+            "affected_match_keys": sorted(affected_provider_failure_keys)[:50],
+            "dual_postcheck_errors": dual_errors,
             "measured_at": now.isoformat(timespec="seconds"),
             "scope": "adapter execution only; not coverage or publication health",
         },
