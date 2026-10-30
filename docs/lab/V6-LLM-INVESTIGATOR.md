@@ -4,7 +4,7 @@ Estado: IMPLEMENTAÇÃO EXPERIMENTAL PARA REVISÃO. Não ativado em produção. 
 
 ## Âmbito técnico
 
-- Fontes somente leitura: quatro relatórios agregados existentes em docs/lab/: v6-p0-gates.json, v6-falsification.json, v6-readiness.json e v6-weekly-drift.json.
+- Fontes somente leitura: cinco relatórios existentes em docs/lab/: v6-p0-gates.json, v6-falsification.json, v6-readiness.json, v6-weekly-drift.json e pattern-research.json (deste último, só as 49 definições de variáveis V5, nunca os resultados históricos).
 - Contratos de schema, integridade sintática, limites de bytes, verificações de consistência e SHA-256 para cada ficheiro. Falhas bloqueiam o dossier; nenhum valor desconhecido é transformado em zero.
 - Quatro questões de investigação fixas sem seleção por ROI: Total com 1X2, episódios repetidos de alertas, Total com AH e antecedência.
 - O LLM, quando utilizado voluntariamente, só pode devolver propostas com estado DRAFT, hipótese nula, desenho de teste, falsificação, fatores de confusão e referências limitadas aos quatro relatórios. A resposta continua texto não fiável, sujeita a revisão humana. Não há estatística calculada pelo LLM.
@@ -33,7 +33,7 @@ Uma chamada HTTPS direta é suportada apenas por execução manual intencional a
     export MASTER_BRAIN_LLM_API_KEY=CHAVE_PRIVADA
     python -m scripts.lab_v6_llm_investigator --mode invoke --allow-network --endpoint https://fornecedor-escolhido.example/v1/chat/completions --model modelo-escolhido
 
-Não adicionar a chave a issues, logs, ficheiros ou workflows. A utilização de um serviço de IA poderá ter custos; este repositório não configura contas, preços nem credenciais. O timeout é limitado, os pedidos e respostas têm tamanho máximo e o dossier contém apenas quatro relatórios agregados. Um fornecedor pode não suportar response_format=json_object e nesse caso a execução falha, sem fallback silencioso.
+Não adicionar a chave a issues, logs, ficheiros ou workflows. A utilização de um serviço de IA poderá ter custos; este repositório não configura contas, preços nem credenciais. O timeout é limitado, os pedidos e respostas têm tamanho máximo e o dossier contém apenas indicadores agregados e definições de variáveis. Um fornecedor pode não suportar response_format=json_object e nesse caso a execução falha, sem fallback silencioso.
 
 ## Proteções e aprovação futura
 
