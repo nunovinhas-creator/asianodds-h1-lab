@@ -16,7 +16,7 @@ from pathlib import Path
 import re
 
 from h1lab.v6_llm_investigator import build_packet, strict_json, validate_proposals, provider_usage
-from h1lab.v6_discovery_planner import plan
+from h1lab.v6_discovery_planner import plan, candidate_id
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = Path("docs/lab/llm-investigator-index.json")
@@ -62,14 +62,14 @@ def publish(root, output, *, run_id, commit_sha, when):
         raise ValueError("RUN_TIMESTAMP_NOT_UTC")
     when = dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     packet = build_packet(root)
-    if not isinstance(output, dict) or set(output) - {"provider_usage"} != {"status", "source_sha256", "proposals", "notice"}:
+    if not isinstance(output, dict) or set(output) - {"provider_usage", "autonomy"} != {"status", "source_sha256", "proposals", "notice"}:
         raise ValueError("UNEXPECTED_INVESTIGATION_FORMAT")
     if output["source_sha256"] != packet["source_sha256"]:
         raise ValueError("INVESTIGATION_SOURCE_HASH_MISMATCH")
     validated = validate_proposals(
         packet, {"schema_version": 1, "proposals": output["proposals"]}
     )
-    if {k: v for k, v in output.items() if k != "provider_usage"} != validated:
+    if {k: v for k, v in output.items() if k not in ("provider_usage", "autonomy")} != validated:
         raise ValueError("INVESTIGATION_VALIDATION_MISMATCH")
     usage = output.get("provider_usage")
     if usage is not None:
@@ -77,6 +77,27 @@ def publish(root, output, *, run_id, commit_sha, when):
                 {"usage": usage.get("tokens")}, "@cf/meta/llama-3.1-8b-instruct-fast"):
             raise ValueError("INVALID_PROVIDER_USAGE")
     proposal = validated["proposals"][0]
+    autonomy = output.get("autonomy")
+    if autonomy is not None:
+        expected = {"schema_version", "trigger", "candidate_id",
+                    "candidate_pool_ids", "selection_policy",
+                    "daily_scheduled_call_slots", "account_neurons_verified", "status"}
+        if (not isinstance(autonomy, dict) or set(autonomy) != expected
+                or autonomy["schema_version"] != 1
+                or autonomy["trigger"] not in ("schedule", "workflow_dispatch")
+                or autonomy["status"] != "SHADOW_EXPLORATION_NOT_VALIDATION"
+                or autonomy["account_neurons_verified"] is not False
+                or autonomy["daily_scheduled_call_slots"] != 4
+                or autonomy["selection_policy"] !=
+                   "HASH_ORDER_OUTCOME_BLIND_PREFER_PAIRS_ONE_TRIPLE"
+                or not isinstance(autonomy["candidate_pool_ids"], list)
+                or not 1 <= len(autonomy["candidate_pool_ids"]) <= 3
+                or any(not isinstance(cid, str) or not re.fullmatch(r"[0-9a-f]{64}", cid)
+                       for cid in autonomy["candidate_pool_ids"])
+                or len(set(autonomy["candidate_pool_ids"])) != len(autonomy["candidate_pool_ids"])
+                or autonomy["candidate_id"] != candidate_id(proposal["feature_codes"])
+                or autonomy["candidate_id"] not in autonomy["candidate_pool_ids"]):
+            raise ValueError("INVALID_AUTONOMOUS_PROVENANCE")
     run = {
         "schema_version": 1,
         "state": STATUS,
@@ -88,6 +109,7 @@ def publish(root, output, *, run_id, commit_sha, when):
         "llm_calls": 1,
         "neurons_consumed": None,
         "provider_usage": usage,
+        "autonomy": autonomy,
         "scientific_acceptance": "INCONCLUSIVO",
         "source_sha256": packet["source_sha256"],
         "proposals": validated["proposals"],
@@ -141,7 +163,7 @@ def publish(root, output, *, run_id, commit_sha, when):
         "search_space": _frontier(packet["feature_catalogue"]),
         "llm_executions_recorded": len(history),
         "empirically_validated_strategies": 0,
-        "notice": "Only successful manually published runs are visible here; failed executions remain in GitHub Actions. No automatic polling or model calls.",
+        "notice": "Only successful published runs (manual or bounded autonomous) appear here; failures remain in GitHub Actions. Scientific validation remains human gated.",
     }
     # Regenerate the offline queue against ALL immutable archives, including
     # this run, in the same commit. No model calls or extra network requests.
