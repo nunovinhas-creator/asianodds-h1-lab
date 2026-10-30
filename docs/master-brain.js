@@ -120,6 +120,21 @@
    }
    if(key==="watch"){
      if(!count(body.summary.strict_eligible)||body.summary.strict_eligible!==body.future_strict.length)fail();
+     // Objects alone are not sufficient: futureRows sorts by kickoff and
+     // renders observation arrays. Fail closed before any partial rendering.
+     for(const row of [...body.future_strict,...body.future_other_original,...body.future_opposing]){
+       if(typeof row.match_label!=="string"||!row.match_label.trim()||
+          typeof row.kickoff_utc!=="string"||!Number.isFinite(Date.parse(row.kickoff_utc))||
+          typeof row.category!=="string"||!count(row.episodes)||
+          !Array.isArray(row.observations)||row.observations.some(v=>!object(v)))fail();
+     }
+   }
+   if(key==="research"){
+     // A malformed nested outcome must not crash radar/pattern sorting later.
+     for(const row of [...body.patterns,...body.combinations_top]){
+       if(typeof row.label!=="string"||!object(row.outcomes)||
+          !object(row.outcomes.OVER_2_5)||!object(row.outcomes.BTTS_YES))fail();
+     }
    }
    if(key==="quality"&&(!Object.keys(body.acceptance_gates).length||Object.values(body.acceptance_gates).some(v=>typeof v!=="boolean")))fail();
    if(key==="h1")for(const metric of [body.singles,body.triples]){
