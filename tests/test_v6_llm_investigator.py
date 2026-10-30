@@ -32,7 +32,10 @@ class InvestigatorTests(unittest.TestCase):
             mod.SOURCES[3]: {'schema_version': 1, 'latest': {'overall': 'INSUFFICIENT_HISTORY'}},
             mod.SOURCES[4]: {'schema_version': 1, 'pattern_catalogue': {
                 'G_FIRST_LEAD_LT_6H': {'family': 'TIME', 'description': 'Primeiro alerta a menos de 6h'},
-                'M_TOTAL_UP': {'family': '1X2', 'description': 'Movimento de Total para cima'}}},
+                'M_TOTAL_LINE_UP': {'family': 'TOTAL', 'description': 'Movimento de Total para cima'},
+                'G_MULTI_ALERT': {'family': 'SEQUENCE', 'description': 'Varios alertas antes do KO'},
+                'G_SINGLE_ALERT': {'family': 'SEQUENCE', 'description': 'Um alerta antes do KO'},
+                'M_IMPLIED_GOALS_FLAT': {'family': 'IMPLIED', 'description': 'Golos implicitos estaveis'}}},
         }
         for name, body in sources.items():
             target = self.root / name
@@ -45,12 +48,16 @@ class InvestigatorTests(unittest.TestCase):
                 for p in self.root.rglob('*') if p.is_file()}
 
     def proposal(self, **kw):
-        p = {'status': 'DRAFT', 'topic_id': 'T01',
-             'hypothesis': 'Co-observation could have incremental information beyond baseline.',
-             'null_hypothesis': 'No incremental information compared with baseline.',
-             'test_design': 'Predefine a future cohort and compare matched controls.',
-             'falsification': 'Reject if out-of-sample comparison fails.',
-             'confounders': ['Competition mix'], 'source_refs': [mod.SOURCES[0]]}
+        p = {'status': 'DRAFT', 'topic_id': 'T02',
+             'feature_codes': ['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'],
+             'outcome': 'OVER_2_5', 'baseline': 'MARKET_MODEL_OVER25', 'metric': 'BRIER_SCORE',
+             'hypothesis': 'Two V5 features can add information to the market baseline.',
+             'null_hypothesis': 'There is no improvement over the market reference.',
+             'control_group': 'Future games with matched initial probabilities and kickoff lead time.',
+             'test_design': 'Freeze G_MULTI_ALERT and M_IMPLIED_GOALS_FLAT before kickoff, compare Brier OOS.',
+             'falsification': 'Reject unless out-of-sample improvement is replicated.',
+             'data_needed': ['Verified future pre-kickoff snapshots', 'Independently verified 90-minute FT'],
+             'confounders': ['Competition mix'], 'source_refs': [mod.SOURCES[4]]}
         p.update(kw)
         return p
 
@@ -60,8 +67,8 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(packet['facts']['missing_capture'], 1)
         self.assertEqual(packet['facts']['scientific_state'], 'INCONCLUSIVO')
         self.assertEqual(len(packet['topics']), 4)
-        self.assertEqual(len(packet['feature_catalogue']), 2)
-        self.assertIn('M_TOTAL_UP', json.dumps(packet))
+        self.assertEqual(len(packet['feature_catalogue']), 5)
+        self.assertIn('M_TOTAL_LINE_UP', json.dumps(packet))
         self.assertEqual(self.snapshot(), self.before)
         self.assertNotIn('games', json.dumps(packet))
         self.assertNotIn('api_key', json.dumps(packet).lower())
@@ -86,8 +93,22 @@ class InvestigatorTests(unittest.TestCase):
         p = self.proposal()
         out = mod.validate_proposals(packet, {'schema_version': 1, 'proposals': [p]})
         self.assertEqual(out['status'], 'DRAFT_UNVALIDATED_HUMAN_REVIEW_REQUIRED')
-        for bad in ({**p, 'status': 'VALIDATED'}, {**p, 'source_refs': ['data/results.csv']},
-                    {**p, 'recommend_bet': 'Yes'}, {**p, 'hypothesis': ''}):
+        for bad in (
+            {**p, 'status': 'VALIDATED'},
+            {**p, 'source_refs': ['data/results.csv']},
+            {**p, 'source_refs': [mod.SOURCES[0]]},
+            {**p, 'recommend_bet': 'Yes'},
+            {**p, 'hypothesis': ''},
+            {**p, 'feature_codes': ['G_MULTI_ALERT', 'NOT_EXIST']},
+            {**p, 'feature_codes': ['G_MULTI_ALERT', 'G_MULTI_ALERT']},
+            {**p, 'feature_codes': ['G_MULTI_ALERT', 'G_SINGLE_ALERT']},
+            {**p, 'feature_codes': ['G_MULTI_ALERT', 'M_TOTAL_LINE_UP']},
+            {**p, 'outcome': 'BTTS_YES'},
+            {**p, 'baseline': 'BOOKMAKER_EV'},
+            {**p, 'metric': 'ROI'},
+            {**p, 'control_group': ''},
+            {**p, 'data_needed': []},
+        ):
             with self.subTest(bad=bad):
                 with self.assertRaises(ValueError):
                     mod.validate_proposals(packet, {'schema_version': 1, 'proposals': [bad]})
@@ -134,6 +155,9 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(user['exact_output_example']['schema_version'], 1)
         self.assertEqual(len(user['exact_output_example']['proposals']), 1)
         self.assertEqual(user['exact_output_example']['proposals'][0]['status'], 'DRAFT')
+        self.assertEqual(user['exact_output_example']['proposals'][0]['feature_codes'], ['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
+        self.assertEqual(user['exact_output_example']['proposals'][0]['metric'], 'BRIER_SCORE')
+        self.assertEqual(user['exact_output_example'], packet['response_schema'])
         self.assertIn('proposals', payload['messages'][0]['content'])
         self.assertEqual(self.snapshot(), self.before)
 
@@ -170,6 +194,9 @@ class InvestigatorTests(unittest.TestCase):
             self.proposal(topic_id={'unexpected': 'object'}),
             self.proposal(source_refs=[{'unexpected': 'object'}]),
             self.proposal(source_refs=[['unexpected']]),
+            self.proposal(feature_codes=[{'bad': True}, 'M_TOTAL_LINE_UP']),
+            self.proposal(feature_codes='G_MULTI_ALERT'),
+            self.proposal(feature_codes=['G_MULTI_ALERT', 123]),
         ]:
             with self.subTest(malformed=malformed):
                 with self.assertRaises(ValueError):
