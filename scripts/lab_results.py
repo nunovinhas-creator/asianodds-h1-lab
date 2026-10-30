@@ -29,6 +29,7 @@ from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
 from h1lab.lab_goal_reviewed import plan_reviewed_goal_id
 from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
+from h1lab.lab_ft_same_run import settle_new_cached_pairs
 from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empty_attestations
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
@@ -418,6 +419,26 @@ def main():
         priority_hints=research_hints, evidence_retry=True,
         approved_rechecks=approved_due)
 
+
+    # The first pass fetched COMPLETE provider dates. Fresh STRONG candidates
+    # can now be corroborated locally without any extra API or retry call.
+    next_ledger, report, fresh_dual = settle_new_cached_pairs(
+        state, catalog_v4, next_ledger, report, now,
+        previous_review=previous_review, api_football=api_football,
+        goal=goal, openfoot=openfoot, bsd_cache=bsd_finder.days,
+        sportscore_cache=sportscore.day_cache,
+        prior_attestations=prior_attestations,
+        score_hold_keys=bsd_official_hold_keys,
+        source_version=(11 if goal_enabled or openfoot_enabled else
+                        10 if api_football_poll else 9),
+        priority_hints=research_hints)
+    for key, proofs in fresh_dual.captured.items():
+        dual.captured.setdefault(key, {}).update(proofs)
+    dual.confirmations.update(fresh_dual.confirmations)
+    dual.revisions.update(fresh_dual.revisions)
+    dual.reasons.update(fresh_dual.reasons)
+    dual.outcomes.update(fresh_dual.outcomes)
+    dual.invalid_saved.update(fresh_dual.invalid_saved)
 
     # COMPLETE BSD dates discovered during the normal per-match
     # fallback also become reusable crosswalk evidence, even when they
