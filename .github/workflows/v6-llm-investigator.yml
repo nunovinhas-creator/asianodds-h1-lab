@@ -1,10 +1,27 @@
-name: V6 - Investigator LLM dossier (manual only)
+name: V6 - Investigator LLM (manual only)
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Offline dossier or one Cloudflare AI request"
+        required: true
+        type: choice
+        default: dossier
+        options:
+          - dossier
+          - cloudflare_once
+      confirmation:
+        description: "For cloudflare_once type CONSUMIR_IA_UMA_VEZ; otherwise leave blank"
+        required: false
+        type: string
+        default: ""
 permissions:
   contents: read
+concurrency:
+  group: v6-llm-manual
+  cancel-in-progress: false
 jobs:
-  dossier:
+  investigator:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -15,13 +32,30 @@ jobs:
       - name: Verify isolated investigator contract
         run: python -m unittest discover -s tests -p 'test_v6_llm_investigator.py' -v
       - name: Prepare bounded research dossier without external LLM requests
+        if: ${{ inputs.mode == 'dossier' }}
         run: |
           mkdir -p "$RUNNER_TEMP/v6-llm"
           python -m scripts.lab_v6_llm_investigator --mode dossier > "$RUNNER_TEMP/v6-llm/dossier.json"
           python -m json.tool "$RUNNER_TEMP/v6-llm/dossier.json" > /dev/null
-      - name: Upload offline dossier for human review
+      - name: Cloudflare Workers AI — ONE explicit request, no retries
+        if: ${{ inputs.mode == 'cloudflare_once' }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MASTER_BRAIN_LLM_API_KEY: ${{ secrets.MASTER_BRAIN_LLM_API_KEY }}
+          LLM_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$LLM_CONFIRMATION" != "CONSUMIR_IA_UMA_VEZ" ]; then
+            echo "::error::Confirmation missing. No AI request made."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/v6-llm"
+          python -m scripts.lab_v6_llm_investigator --mode cloudflare --allow-network > "$RUNNER_TEMP/v6-llm/investigation.json"
+          python -m json.tool "$RUNNER_TEMP/v6-llm/investigation.json" > /dev/null
+      - name: Upload manual-only research output for review
         uses: actions/upload-artifact@v4
+        if: ${{ success() }}
         with:
-          name: v6-llm-investigator-dossier
-          path: ${{ runner.temp }}/v6-llm/dossier.json
+          name: v6-llm-investigator-${{ inputs.mode }}
+          path: ${{ runner.temp }}/v6-llm/*.json
+          if-no-files-found: error
           retention-days: 7
