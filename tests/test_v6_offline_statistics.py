@@ -98,3 +98,11 @@ class OfflineStatisticsTests(TestCase):
     def test_duplicate_match_cannot_inflate_sample(self):
         with self.assertRaisesRegex(ValueError,'DUPLICATE_STATISTICAL_MATCH'):
             evaluate([row(),row()],CODES,'2026-01-04T00:00:00Z')
+
+    def test_uncertified_chronology_is_visible_but_never_scored(self):
+        r=row();e={'snapshot':{'status':'FINAL','evidence_level':'TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED',
+                             'score':{'home':2,'away':1}}}
+        attach_ft(r,e,datetime(2026,1,2,tzinfo=timezone.utc))
+        self.assertIsNone(r['y'])
+        self.assertEqual(r['provisional_score']['home'],2)
+        self.assertEqual(losses([r])['n'],0)

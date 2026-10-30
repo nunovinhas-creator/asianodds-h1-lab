@@ -108,12 +108,16 @@ def attach_ft(row, event, now):
     snap = event['snapshot']
     row['ft_status'] = snap['status']
     score = snap.get('score')
+    row['evidence_level'] = snap.get('evidence_level')
+    if snap.get('evidence_level') == 'TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED':
+        row['ft_status'] = 'ACCEPTED_WITH_UNCERTIFIED_CHRONOLOGY_EXCLUDED_FROM_SCORING'
+        row['provisional_score'] = score
+        return
     ko, decision = utc(row['kickoff_utc']), utc(row['decision_at'])
     checked, recorded = utc(event.get('source_last_checked_at')), utc(event.get('recorded_at'))
     if snap.get('kickoff_utc') and utc(snap['kickoff_utc']) != ko:
         row['ft_status'] = 'KICKOFF_MISMATCH'; return
-    good = {'SINGLE_PROVIDER','MULTI_PROVIDER','REVIEWED_PUBLIC_CORROBORATED',
-            'TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED'}
+    good = {'SINGLE_PROVIDER','MULTI_PROVIDER','REVIEWED_PUBLIC_CORROBORATED'}
     if snap['status'] != 'FINAL' or not score or snap.get('evidence_level') not in good:
         return
     if not checked or not recorded or checked < ko + timedelta(minutes=90) or checked <= decision or recorded < checked or recorded > now:
@@ -215,7 +219,8 @@ def evaluate(rows, codes, registered_at, *, prospective=False, trained_offset=No
                       'decision_at':r['decision_at'],'ft_status':r['ft_status'],'score':r.get('score'),
                       'market_probability':r['p'],'baseline_quality':r['baseline_quality'],
                       'source_event_ids':r['source_event_ids'],'ft_sha256':r.get('ft_sha256'),
-                      'ft_verified_at':r['ft_verified_at'],'lineage':r['lineage']} for r in group]}
+                      'ft_verified_at':r['ft_verified_at'],'lineage':r['lineage'],
+                      'evidence_level':r.get('evidence_level'),'provisional_score':r.get('provisional_score')} for r in group]}
 
 
 def catalogue_support(rows):

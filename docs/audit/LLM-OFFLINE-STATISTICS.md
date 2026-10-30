@@ -37,3 +37,8 @@ Synthetic tests exercise missing-as-unknown, post-KO exclusion, FT chronology/qu
 605 timelines; 597 usable, 8 without pre-KO observations. 165 accepted FT, 126 with clean baseline, 3 calendar days. 45 additional FT rows excluded by identity policy. Catalogue coverage: 10,185 combinations with membership, 7,233 with accepted FT, 121 with ≥30 FT and baseline. These counts are coverage, not discoveries.
 
 T05 (G_FIRST_LEAD_LT_6H + M_1X2_HOME_PROB_UP + M_TOTAL_LINE_UP): 3 historical games, 2 accepted FT (both Over), 1 pending; baseline Brier 0.15817, Log Loss 0.50088 on those TWO games. Wilson 95% interval for hit rate ~34.2%–100%. No available chronological training sample; model score and corrected hypothesis p remain null. INCONCLUSIVE. Five later captures excluded from independent monitoring because the games were already observed before proposal. These observations cannot validate the hypothesis.
+
+## Review correction (before merge)
+Explicit TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED evidence is now retained as a provisional score, excluded from ALL scoring, training, control outcomes and catalogue FT counts. Other accepted provider levels are policy acceptance, not an assertion of independent chronology certification. The earlier snapshot counts above are superseded by the regenerated JSON. No upstream result is changed. The dashboard explains this distinction.
+
+The sole automatic trigger is now the four daily cron slots. workflow_run was removed; manual dispatch remains for diagnostics, with the existing shared concurrency group. Publication remains fail-closed on a concurrent main update (no stale rebase or overwrite); a later scheduled run regenerates the report. This does not guarantee that every publication succeeds.
