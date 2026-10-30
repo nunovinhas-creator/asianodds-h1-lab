@@ -62,6 +62,30 @@ class EventSelection(unittest.TestCase):
         self.assertEqual((level, why), (CORE, "identity_core_name"))
         self.assertEqual(chosen["h"], "AS Roma")
 
+    def test_unique_exact_match_is_preserved(self):
+        chosen, level, reason = select_event(
+            SIG, [ev("Roma", "Cagliari"), ev("Torino", "Como")], names, ko)
+        self.assertEqual((level, reason), (EXACT, "identity_exact"))
+        self.assertEqual(chosen["h"], "Roma")
+
+    def test_exact_must_not_bypass_side_collision(self):
+        for other in (ev("AS Roma", "Cagliari"),
+                      ev("Roma", "Lazio"), ev("Lazio", "Roma")):
+            with self.subTest(other=other):
+                selected, level, reason = select_event(
+                    SIG, [ev("Roma", "Cagliari"), other], names, ko)
+                self.assertIsNone(selected)
+                self.assertIsNone(level)
+                self.assertIn(reason, ("identity_side_collision",
+                                      "identity_reversed_order_candidate"))
+
+    def test_exact_must_not_bypass_reversed_source_order(self):
+        selected, level, reason = select_event(
+            SIG, [ev("Roma", "Cagliari"), ev("Cagliari", "AS Roma")], names, ko)
+        self.assertIsNone(selected)
+        self.assertIsNone(level)
+        self.assertEqual(reason, "identity_reversed_order_candidate")
+
     def test_outside_window_rejected(self):
         self.assertIsNone(select_event(SIG, [ev("AS Roma", "Cagliari", "2026-10-27T22:00:00+00:00")], names, ko)[0])
 
