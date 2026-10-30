@@ -1,0 +1,173 @@
+"""Autonomous V6 discovery contract tests: wholly synthetic, never network."""
+from __future__ import annotations
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+from unittest import TestCase
+from unittest.mock import patch
+
+from tests import test_v6_llm_investigator as fixtures
+from h1lab import v6_llm_investigator as investigator
+from scripts import lab_v6_llm_autonomous as autonomy
+from scripts import lab_v6_llm_publish as publisher
+
+
+class AutonomousResearchTests(TestCase):
+    def setUp(self):
+        self.fixtures = fixtures.InvestigatorTests()
+        self.fixtures.setUp()
+        self.addCleanup(self.fixtures.doCleanups)
+        self.root = self.fixtures.root
+        self.packet = investigator.build_packet(self.root)
+        self.now = datetime(2026, 10, 30, 13, 44, tzinfo=timezone.utc)
+        self.env = {
+            'GITHUB_REF': 'refs/heads/main',
+            'GITHUB_EVENT_NAME': 'schedule',
+            'GITHUB_RUN_ATTEMPT': '1',
+            'GITHUB_EVENT_SCHEDULE': autonomy.SCHEDULE,
+            'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
+            'MASTER_BRAIN_LLM_API_KEY': 'FAKE_TOKEN_NEVER_LOG',
+        }
+
+    def good_for(self, codes):
+        return investigator.validate_proposals(self.packet, {
+            'schema_version': 1,
+            'proposals': [self.fixtures.proposal(
+                topic_id='T05', feature_codes=list(codes),
+                test_design='Freeze ' + ', '.join(codes) + ' before KO; compare OOS Brier score by match.'
+            )]
+        })
+
+    def test_preview_is_offline_deterministic_and_novel(self):
+        before = self.fixtures.snapshot()
+        one = autonomy.run(self.root, mode='preview', now=self.now)
+        two = autonomy.run(self.root, mode='preview', now=self.now)
+        self.assertEqual(one, two)
+        self.assertEqual(one['status'], 'PREVIEW_ONLY_NO_LLM_CALLS')
+        self.assertTrue(1 <= len(one['candidate_pool']) <= 3)
+        self.assertEqual(self.fixtures.snapshot(), before)
+        for candidate in one['candidate_pool']:
+            self.assertRegex(candidate['candidate_id'], r'^[0-9a-f]{64}$')
+
+    def test_scheduled_call_is_single_and_publisher_verifies(self):
+        chosen = autonomy.choose_candidates(self.root)['choices']
+        codes = chosen[0]['feature_codes']
+        output = self.good_for(codes)
+        with patch.object(autonomy, 'invoke', return_value=output) as ai:
+            result = autonomy.run(self.root, mode='live', allow_network=True,
+                                  env=self.env, now=self.now)
+        ai.assert_called_once()
+        self.assertEqual(ai.call_args.kwargs['candidate_options'],
+                         [x['feature_codes'] for x in chosen])
+        self.assertEqual(result['autonomy']['trigger'], 'schedule')
+        self.assertEqual(result['autonomy']['candidate_id'],
+                         autonomy.candidate_id(codes))
+        self.assertNotIn('FAKE_TOKEN_NEVER_LOG', json.dumps(result))
+        rec = publisher.publish(self.root, result, run_id='41046486111',
+                    commit_sha='b' * 40, when='2026-10-30T13:44:00Z')
+        self.assertEqual(rec['latest']['scientific_acceptance'], 'INCONCLUSIVO')
+        self.assertEqual(rec['latest']['autonomy']['trigger'], 'schedule')
+        self.assertEqual(rec['empirically_validated_strategies'], 0)
+        q = json.loads((self.root / publisher.QUEUE).read_text())
+        self.assertEqual(q['previously_proposed_unique'], 1)
+        self.assertNotIn(result['autonomy']['candidate_id'],
+                         [x['candidate_id'] for x in q['queue']])
+
+    def test_fails_closed_before_network_for_unapproved_or_replayed_run(self):
+        for update in [
+            {'GITHUB_REF': 'refs/heads/feature'},
+            {'GITHUB_EVENT_NAME': 'push'},
+            {'GITHUB_EVENT_SCHEDULE': '*/5 * * * *'},
+            {'GITHUB_RUN_ATTEMPT': '2'},
+            {'MASTER_BRAIN_LLM_API_KEY': ''},
+            {'CLOUDFLARE_ACCOUNT_ID': 'BAD'},
+        ]:
+            with self.subTest(update=update):
+                env = dict(self.env, **update)
+                with patch.object(autonomy, 'invoke') as ai:
+                    with self.assertRaises(ValueError):
+                        autonomy.run(self.root, mode='live', allow_network=True,
+                                     env=env, now=self.now)
+                    ai.assert_not_called()
+        with patch.object(autonomy, 'invoke') as ai:
+            with self.assertRaises(ValueError):
+                autonomy.run(self.root, mode='live', env=self.env, now=self.now)
+            ai.assert_not_called()
+
+    def test_manual_live_requires_explicit_confirmation(self):
+        env = dict(self.env, GITHUB_EVENT_NAME='workflow_dispatch')
+        with patch.object(autonomy, 'invoke') as ai:
+            with self.assertRaises(ValueError):
+                autonomy.run(self.root, mode='live', allow_network=True,
+                             env=env, now=self.now)
+            ai.assert_not_called()
+        codes = autonomy.choose_candidates(self.root)['choices'][0]['feature_codes']
+        with patch.object(autonomy, 'invoke', return_value=self.good_for(codes)) as ai:
+            result = autonomy.run(self.root, mode='live', allow_network=True,
+                     env=env, confirm=autonomy.AUTONOMY_CONFIRM, now=self.now)
+        ai.assert_called_once()
+        self.assertEqual(result['autonomy']['trigger'], 'workflow_dispatch')
+
+    def test_model_must_select_only_a_fresh_pool_candidate(self):
+        pool = autonomy.choose_candidates(self.root)['choices']
+        good = self.good_for(pool[0]['feature_codes'])
+        class Response:
+            status = 200
+            def __init__(self, obj):
+                self.body = json.dumps({'choices': [{'message': {
+                    'content': json.dumps({'schema_version': 1,
+                         'proposals': obj['proposals']})}}]}).encode()
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size): return self.body
+        captured = []
+        def opener(req, timeout):
+            captured.append(req)
+            return Response(good)
+        result = investigator.invoke(self.packet,
+              endpoint='https://example.test/v1/chat/completions',
+              model='fake', opener=opener,
+              candidate_options=[p['feature_codes'] for p in pool])
+        self.assertEqual(result['status'], 'DRAFT_UNVALIDATED_HUMAN_REVIEW_REQUIRED')
+        posted = json.loads(captured[0].data)
+        user = json.loads(posted['messages'][1]['content'])
+        self.assertEqual(user['exact_output_example']['proposals'][0]['feature_codes'],
+                         pool[0]['feature_codes'])
+        self.assertEqual(len(user['candidate_options']), len(pool))
+        invalid = self.good_for(['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
+        if sorted(invalid['proposals'][0]['feature_codes']) not in [
+                sorted(p['feature_codes']) for p in pool]:
+            with self.assertRaisesRegex(ValueError, 'AUTO_LLM_SELECTED_UNAPPROVED'):
+                investigator.invoke(self.packet,
+                    endpoint='https://example.test/v1/chat/completions',
+                    model='fake', opener=lambda req, timeout: Response(invalid),
+                    candidate_options=[p['feature_codes'] for p in pool])
+
+    def test_publication_rejects_forged_provenance(self):
+        codes = autonomy.choose_candidates(self.root)['choices'][0]['feature_codes']
+        data = self.good_for(codes)
+        data['autonomy'] = {
+            'schema_version': 1, 'trigger': 'schedule',
+            'candidate_id': '0' * 64, 'candidate_pool_ids': ['0' * 64],
+            'selection_policy': 'HASH_ORDER_OUTCOME_BLIND_PREFER_PAIRS_ONE_TRIPLE',
+            'daily_scheduled_call_slots': 4,
+            'account_neurons_verified': False,
+            'status': 'SHADOW_EXPLORATION_NOT_VALIDATION'}
+        with self.assertRaisesRegex(ValueError, 'INVALID_AUTONOMOUS_PROVENANCE'):
+            publisher.publish(self.root, data, run_id='41046486112',
+                        commit_sha='b' * 40, when='2026-10-30T13:44:00Z')
+
+    def test_workflow_uses_at_most_four_slots_with_isolated_writer(self):
+        root = Path(__file__).resolve().parents[1]
+        wf = (root / '.github/workflows/v6-llm-autonomous.yml').read_text()
+        manual = (root / '.github/workflows/v6-llm-investigator.yml').read_text()
+        self.assertIn("cron: '43 1,7,13,19 * * *'", wf)
+        self.assertIn('v6-llm-global', wf)
+        self.assertIn('v6-llm-global', manual)
+        self.assertIn('needs: discover', wf)
+        self.assertIn('contents: write', wf)
+        self.assertIn('contents: read', wf)
+        self.assertIn('AUTONOMIA_LLM_UMA_VEZ', wf)
+        self.assertIn('python -m scripts.lab_v6_llm_autonomous --mode live --allow-network', wf)
+        self.assertNotIn('re-run', wf.lower())
+        self.assertEqual(autonomy.MAX_DAILY_AUTOMATED_REQUESTS, 4)
