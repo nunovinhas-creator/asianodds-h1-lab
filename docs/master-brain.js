@@ -214,7 +214,7 @@
        const c=create("span");c.append(create("b","q "+nDec(o.q_bh))," corrigido");
        row.append(a,b,c);card.append(row);
        const bars=create("div",null,"bar-compare");bars.append(bar("Com padrão",o.rate,1),bar("Sem padrão",o.reference_rate,1,true));card.append(bars);
-       card.append(create("p","P nominal "+nDec(o.p_two_sided,4)+" · não significativo após correção por testes múltiplos."));
+       card.append(create("p","P nominal "+nDec(o.p_two_sided,4)+" · q corrigido por testes múltiplos apresentado acima. Associação exploratória; não comprova validação fora da amostra."));
        container.append(card);
      }
    }
