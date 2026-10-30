@@ -28,17 +28,18 @@ This is operational forward monitoring, not human preregistration of a confirmat
 
 ## Outputs and automation
 
-`docs/lab/llm-statistics.json` includes hashes, counts, cases, controls, temporal split keys, missing inputs and verdicts. Separate workflow runs after autonomous research or four times/day, with zero IA/API calls. PR runs only produce artifacts. Main runs publish just research report + immutable per-run history, rejecting a concurrent main change rather than rebasing stale evidence. Latest report includes generation time; clients warn when stale or missing. Independent of all betting workflows.
+`docs/lab/llm-statistics.json` includes hashes, counts, cases, controls, temporal split keys, missing inputs and verdicts. Separate workflow runs four times/day, with zero IA/API calls. PR runs only produce artifacts. Main runs publish just research report + immutable per-run history, rejecting a concurrent main change rather than rebasing stale evidence. Latest report includes generation time; clients warn when stale or missing. Independent of all betting workflows.
 
 Synthetic tests exercise missing-as-unknown, post-KO exclusion, FT chronology/quarantine, outcome-blind matching, train/result leakage, day clustering and no fitting on OOS. CI additionally replays REAL inputs twice, verifies deterministic equality and unchanged source files. These are different evidence classes.
 
-## Real snapshot: 2026-10-30 12:00 UTC
+## Corrected real snapshot: 2026-10-30 12:00 UTC
 
-605 timelines; 597 usable, 8 without pre-KO observations. 165 accepted FT, 126 with clean baseline, 3 calendar days. 45 additional FT rows excluded by identity policy. Catalogue coverage: 10,185 combinations with membership, 7,233 with accepted FT, 121 with ≥30 FT and baseline. These counts are coverage, not discoveries.
+605 timelines; 597 usable; 8 without pre-KO observations. **131 accepted FT, 98 clean baselines, 34 provisional FT excluded from all scoring**, 45 identity exclusions. Catalogue: 10,185 combinations with matches, 5,710 with accepted FT, **48 with at least 30 accepted FT and baseline**. Coverage is not discovery.
 
-T05 (G_FIRST_LEAD_LT_6H + M_1X2_HOME_PROB_UP + M_TOTAL_LINE_UP): 3 historical games, 2 accepted FT (both Over), 1 pending; baseline Brier 0.15817, Log Loss 0.50088 on those TWO games. Wilson 95% interval for hit rate ~34.2%–100%. No available chronological training sample; model score and corrected hypothesis p remain null. INCONCLUSIVE. Five later captures excluded from independent monitoring because the games were already observed before proposal. These observations cannot validate the hypothesis.
+**T05 is NAO_TESTAVEL in this snapshot:** 3 cases, zero accepted FT. Two scores previously counted are now provisional; the third is pending. Brier, Log Loss and hit-rate interval are null. There is no available training sample or scientific conclusion. Five later captures are excluded because the matches were already observed before registration.
 
-## Review correction (before merge)
-Explicit TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED evidence is now retained as a provisional score, excluded from ALL scoring, training, control outcomes and catalogue FT counts. Other accepted provider levels are policy acceptance, not an assertion of independent chronology certification. The earlier snapshot counts above are superseded by the regenerated JSON. No upstream result is changed. The dashboard explains this distinction.
+Explicit TWO_PROVIDER_FT_CHRONOLOGY_NOT_CERTIFIED evidence remains visible as provisional scores but cannot enter training, scoring, controls or catalogue FT counts. Other accepted levels indicate policy acceptance, not independent certification. Original result journals remain unchanged.
 
-The sole automatic trigger is now the four daily cron slots. workflow_run was removed; manual dispatch remains for diagnostics, with the existing shared concurrency group. Publication remains fail-closed on a concurrent main update (no stale rebase or overwrite); a later scheduled run regenerates the report. This does not guarantee that every publication succeeds.
+Historical pre-correction values (165 FT / 126 baselines / 121 combinations, and T05 2 FT) are obsolete and must not be used. Git history preserves the earlier assessment.
+
+The sole automatic trigger is four daily cron slots; manual dispatch remains available under the shared concurrency group. Publication rejects concurrent main changes rather than overwriting data. A failed publication is not a guarantee of a successful subsequent run.
