@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-30T15:31:45+00:00",
+ "generated_at": "2026-10-30T15:36:37+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 211
+  "timelines_published": 212
  },
  "schema_version": 1,
- "source_commit": "e625f159bce3a062624e8954d19656be4d5fb2e0",
+ "source_commit": "35f718d5f8df680fc4c73f8ccbe2f959b97186af",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 643,
+  "matches": 646,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 938,
+  "messages": 942,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 506,
+  "messages_on_repeated_matches": 508,
   "messages_v4_only": 0,
-  "messages_with_v4": 864,
-  "movement_episodes_upper_bound": 898,
+  "messages_with_v4": 868,
+  "movement_episodes_upper_bound": 902,
   "possibly_redundant_snapshots": 30,
   "post_kickoff_messages": 27,
   "related_message_pairs": 40,
@@ -50,25 +50,162 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 10
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 211,
+  "repeated_matches": 212,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1392
+   "V4_EXPLICIT": 1398
   },
   "total_line_reversals_on_repeated": 103,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 32,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 33,
    "CONTINUOUS": 156,
    "SAME_MOVEMENT_REPEAT": 40,
    "UNOBSERVED_CHANGE": 67
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 267,
-   "one_x_two:AGREE": 261,
-   "total:AGREE": 864
+   "asian_handicap:AGREE": 268,
+   "one_x_two:AGREE": 262,
+   "total:AGREE": 868
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51499",
+    "3571094759:51521"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51499",
+     "message_id": 51499,
+     "minutes_to_kickoff": 1115.4,
+     "observed_at": "2026-10-30T14:24:38+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.78,
+        "under_price": 1.97
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.96,
+        "under_price": 1.79
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51521",
+     "message_id": 51521,
+     "minutes_to_kickoff": 1045.8,
+     "observed_at": "2026-10-30T15:34:11+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.76,
+        "under_price": 2.0
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.96,
+        "under_price": 1.79
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-30T14:24:38+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T09:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-30T15:34:11+00:00",
+   "match_key": "2026-10-31,51591,24479",
+   "match_label": "CS Ştefăneşti vs CF Chindia Târgovişte",
+   "movement_episodes": [
+    [
+     "3571094759:51499"
+    ],
+    [
+     "3571094759:51521"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    4173.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.0,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51499",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51521",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51499",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.25,
+       "previous_after_line": 3.0,
+       "to": "3571094759:51521"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
