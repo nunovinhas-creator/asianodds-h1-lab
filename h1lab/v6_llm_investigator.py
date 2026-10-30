@@ -289,6 +289,9 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
             'A combinacao ' + joined + ' pode acrescentar informacao ao baseline, sem efeito presumido.')
         analysis_schema['null_hypothesis'] = (
             'A combinacao ' + joined + ' nao melhora o baseline.')
+        analysis_schema['falsification'] = (
+            'Rejeitar se o Log Loss fora da amostra nao melhorar contra o baseline; '
+            'controlar comparabilidade, cobertura FT e selecao multipla.')
         system = (
             'Es investigador cientifico do MASTER BRAIN em modo sombra. '
             'O Python JA SELECIONOU as variaveis; nao tens autoridade para selecionar, '
@@ -300,6 +303,8 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
             'data_needed e confounders, conforme o exemplo. '
             'Usa apenas as variaveis preselecionadas para formular um mecanismo '
             'falsificavel, controlos, limitações e dados prospetivos necessarios. '
+            'A metrica predefinida e LOG_LOSS; a falsificacao deve referir Log Loss OOS, '
+            'nunca usar Brier como criterio principal. '
             'Nao inventes numeros, resultados, significancia, ROI ou vantagens.'
         )
         messages = [
