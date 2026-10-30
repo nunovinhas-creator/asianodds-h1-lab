@@ -1,47 +1,53 @@
 {
   "api_football_search": {
-    "cached_days": 0,
+    "cached_days": 1,
     "configured": true,
     "date_errors": {},
-    "date_requests": 0,
+    "date_requests": 1,
     "id_requests": 0,
     "one_shot_activation": false,
-    "reason_counts": {},
-    "requested_days": [],
-    "requests": 0,
+    "reason_counts": {
+      "api_football_identity_no_core_match": 5
+    },
+    "requested_days": [
+      "2026-10-29"
+    ],
+    "requests": 1,
     "reviewed_errors": {},
     "reviewed_outcomes": {},
     "reviewed_targets": 0,
-    "rotation_days": [],
+    "rotation_days": [
+      "2026-10-29"
+    ],
     "scheduled_poll_enabled": true,
     "verified_in_run": 0
   },
   "bsd_date_search": {
     "core_name_results_recovered": 0,
-    "date_complete_days": 0,
-    "date_days_examined": 0,
+    "date_complete_days": 1,
+    "date_days_examined": 1,
     "date_detail_requests": 0,
     "date_incomplete_days": 0,
-    "date_list_requests": 0,
+    "date_list_requests": 1,
     "fallback_results_recovered": 0,
     "lookup_reason_counts": {
-      "bsd_date_cooldown_deferred": 10
+      "bsd_date_cooldown_deferred": 7
     }
   },
   "coverage_diagnostics": {
     "blocked_review": 0,
-    "ft_confirmed": 212,
-    "future": 206,
+    "ft_confirmed": 216,
+    "future": 216,
     "grace": 0,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
       "No unresolved game is treated as an incorrect pick or a settled bet."
     ],
-    "past_unverified_eligible": 134,
+    "past_unverified_eligible": 130,
     "provider_obstacles": [
       {
-        "matches": 92,
+        "matches": 91,
         "provider": "openfoot",
         "reason": "openfoot_identity_no_core_match"
       },
@@ -114,27 +120,29 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 340
+      "PENDING": 346
     }
   },
   "displayed_matches": 500,
   "espn_scoreboards": {
-    "cached_league_days": 0,
+    "cached_league_days": 2,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "unsupported_competition": 10
+      "espn_no_exact_match": 1,
+      "extra_time_penalties_unverified": 1,
+      "unsupported_competition": 6
     },
-    "requests": 0
+    "requests": 2
   },
   "execution_health": {
     "dual_postcheck_errors": 0,
-    "measured_at": "2026-10-30T05:11:26+00:00",
+    "measured_at": "2026-10-30T05:51:25+00:00",
     "provider_errors": 0,
     "scope": "adapter execution only; not coverage or publication health",
     "status": "ATTEMPTED",
     "unexpected_errors": 0
   },
-  "final_recorded": 212,
+  "final_recorded": 216,
   "fotmob_search": {
     "cached_days": 0,
     "licensed_automation_enabled": false,
@@ -146,7 +154,7 @@
     "adapter_invocations": {
       "api_football": {
         "confirmed": 13,
-        "invocations": 139
+        "invocations": 144
       },
       "bsd": {
         "confirmed": 33,
@@ -162,7 +170,7 @@
       },
       "goal": {
         "confirmed": 20,
-        "invocations": 239
+        "invocations": 244
       },
       "openfoot": {
         "confirmed": 3,
@@ -205,61 +213,77 @@
       "binding_conflicts": 0,
       "bindings_total": 3,
       "comparison_reason_counts": {
-        "no_verified_match_unknown_coverage_or_names": 134
+        "no_verified_match_unknown_coverage_or_names": 130
       },
-      "cooldown_blocked_games": 134,
+      "cooldown_blocked_games": 130,
       "coverage_absence_confirmed": 0,
       "coverage_absence_note": "No verified match cannot distinguish absence from names",
-      "date_http_by_path": {},
-      "date_requests": 0,
-      "deferred_days": {
-        "2026-10-29": "bsd_date_cooldown_deferred",
-        "2026-10-30": "bsd_date_cooldown_deferred"
+      "date_http_by_path": {
+        "discovery": 1
       },
-      "direct_id_requests_shared_with_monte": 0,
+      "date_requests": 1,
+      "deferred_days": {
+        "2026-10-28": "bsd_date_cooldown_deferred",
+        "2026-10-29": "bsd_date_cooldown_deferred"
+      },
+      "direct_id_requests_shared_with_monte": 2,
       "direct_lookup": {
         "conflicts": 0,
         "http_requests": 0,
         "ids_reused": 0,
         "known_ids": 3,
         "reasons": {
-          "bsd_registry_no_id": 10
+          "bsd_registry_no_id": 8
         }
       },
       "eligible_days_after": 0,
-      "eligible_days_before": 0,
+      "eligible_days_before": 1,
       "fallback_detail_requests": 0,
-      "http_total": 0,
+      "http_total": 3,
       "independent_of_ft_queue": true,
-      "monte_only_detail_requests": 0,
+      "monte_only_detail_requests": 2,
       "new_ids": 0,
-      "overdue_compared_with_complete_catalogue": 134,
+      "overdue_compared_with_complete_catalogue": 130,
       "overdue_without_id": 134,
-      "overdue_without_id_after": 134,
+      "overdue_without_id_after": 130,
       "persisted_id_new_finals": 0,
-      "planned_days": [],
+      "planned_days": [
+        "2026-10-27"
+      ],
       "post_reconcile": {
+        "compared_games": 8,
+        "complete_days": 1,
         "quarantined_bindings": 0,
         "total_id_bindings": 3
       },
       "pre_reconcile": {
+        "compared_games": 8,
+        "complete_days": 1,
         "quarantined_bindings": 0,
         "total_id_bindings": 3
       }
     },
-    "confirmed_provider_ids": 172,
+    "confirmed_provider_ids": 180,
     "date_rotation": {
       "api_football": {
         "date_budget": 3,
         "id_requests": 0,
-        "requested_days": [],
-        "selected_days": []
+        "requested_days": [
+          "2026-10-29"
+        ],
+        "selected_days": [
+          "2026-10-29"
+        ]
       },
       "goal": {
         "date_budget": 2,
         "id_requests": 0,
-        "requested_days": [],
-        "selected_days": []
+        "requested_days": [
+          "2026-10-29"
+        ],
+        "selected_days": [
+          "2026-10-29"
+        ]
       },
       "openfoot": {
         "date_budget": 2,
@@ -271,30 +295,30 @@
     "deferred_by_capacity": 0,
     "deferred_keys": [],
     "documented_ft_total": 31,
-    "dual_postcheck_confirmed": 0,
+    "dual_postcheck_confirmed": 4,
     "dual_postcheck_conflicts": 0,
-    "dual_postcheck_scanned": 14,
+    "dual_postcheck_scanned": 12,
     "dual_provider_consensus": {
       "conflicts_in_run": 0,
       "invalid_previous_claims": {},
       "reason_counts": {
         "cross_provider_team_identity_disagreement": 8,
-        "fewer_than_two_strong_providers": 9,
-        "not_unique_or_identity_changed": 1,
-        "two_verified_source_results_unavailable": 6
+        "fewer_than_two_strong_providers": 6,
+        "two_verified_source_results_unavailable": 2,
+        "verified_two_provider_regulation_ft": 4
       },
       "source_revision_quarantines": 0,
-      "validated_source_claims": 0,
-      "verified_in_run": 0
+      "validated_source_claims": 21,
+      "verified_in_run": 4
     },
     "durable_provider_attestations": {
       "conflict_keys": 0,
-      "inserted": 0,
-      "repeated": 0,
+      "inserted": 8,
+      "repeated": 13,
       "revisions_quarantined": 0,
-      "total_claims": 83
+      "total_claims": 91
     },
-    "eligible": 10,
+    "eligible": 8,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
@@ -311,22 +335,20 @@
       "observations": {}
     },
     "never_checked_deferred": 0,
-    "never_checked_eligible": 10,
-    "newly_confirmed": 0,
+    "never_checked_eligible": 0,
+    "newly_confirmed": 4,
     "provider_id_collisions": 0,
     "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
-    "selected": 10,
+    "selected": 8,
     "selected_keys": [
-      "2026-10-30,29994,61345",
-      "2026-10-29,63132,10045207",
-      "2026-10-29,10104951,64612",
-      "2026-10-29,10011118,73076",
-      "2026-10-29,23855,48536",
-      "2026-10-29,77341,29998",
-      "2026-10-29,161,699",
-      "2026-10-29,36386,10032010",
-      "2026-10-29,10023197,29218",
-      "2026-10-29,26893,30724"
+      "2026-10-28,59659,24852",
+      "2026-10-28,10002882,179",
+      "2026-10-28,10034327,23664",
+      "2026-10-29,84528,36647",
+      "2026-10-29,23031,10044547",
+      "2026-10-29,23615,24042",
+      "2026-10-29,79485,48553",
+      "2026-10-29,35858,26903"
     ]
   },
   "games": [
@@ -2450,6 +2472,32 @@
       "status": "PENDING"
     },
     {
+      "away": "Nara Club",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Kamatamare Sanuki",
+      "kickoff_utc": "2026-10-31T05:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,35829,35833",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "Ehime FC",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Tochigi SC",
+      "kickoff_utc": "2026-10-31T05:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,31603,1714",
+      "observed_alerts": 2,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "Yangpyeong FC",
       "evidence": null,
       "evidence_attempts": 0,
@@ -2471,6 +2519,19 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-31,1480,798",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "Jinju Citizen FC",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Jincheon HR",
+      "kickoff_utc": "2026-10-31T05:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,10093729,10026721",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -2562,6 +2623,19 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-31,59829,10012020",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "Miami FC",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Tampa Bay Rowdies",
+      "kickoff_utc": "2026-10-30T23:30:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,38337,26816",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -2788,6 +2862,32 @@
       "status": "PENDING"
     },
     {
+      "away": "SV Eintracht-Trier 05",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "FC 08 Homburg-Saar",
+      "kickoff_utc": "2026-10-30T18:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,22801,223",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "SV Lebring",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "SV Schermann Rohrbach",
+      "kickoff_utc": "2026-10-30T17:30:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,10104401,62277",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "Olympiakos Nicosia",
       "evidence": null,
       "evidence_attempts": 0,
@@ -2801,6 +2901,32 @@
       "status": "PENDING"
     },
     {
+      "away": "FK Sumperk",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "FC Hlučín",
+      "kickoff_utc": "2026-10-30T17:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,24578,40036",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "FC Neptunas Klaipeda",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "FK Kauno Zalgiris II",
+      "kickoff_utc": "2026-10-30T17:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,10026986,10027051",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "JS El Biar",
       "evidence": null,
       "evidence_attempts": 0,
@@ -2809,6 +2935,19 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,23427,10058642",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "SK Slovan Bratislava II",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "FK Pohronie",
+      "kickoff_utc": "2026-10-30T16:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,38992,35928",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -2913,6 +3052,19 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,26242,47866",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "FC Vihren Sandanski",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "PFC Rilski Sportist Samokov",
+      "kickoff_utc": "2026-10-30T12:15:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,21658,1510",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -3120,16 +3272,19 @@
     },
     {
       "away": "Gil Vicente FC",
-      "evidence": null,
+      "away_goals": 1,
+      "evidence": "dual_provider_only",
       "evidence_attempts": 1,
       "home": "SL Benfica",
+      "home_goals": 4,
       "kickoff_utc": "2026-10-29T20:45:00+00:00",
-      "last_checked_at": "2026-10-30T04:31:22+00:00",
-      "legacy_last_checked_at": "2026-10-30T04:31:22+00:00",
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,918,1180",
       "observed_alerts": 3,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
+      "reason": "ft_recorded_from_two_cached_providers",
+      "source": "https://v3.football.api-sports.io/fixtures?id=1589435",
+      "status": "FINAL"
     },
     {
       "away": "Alianza Lima",
@@ -3194,16 +3349,19 @@
     },
     {
       "away": "Maccabi Ironi Kiryat Ata Bialik",
-      "evidence": null,
+      "away_goals": 0,
+      "evidence": "dual_provider_only",
       "evidence_attempts": 0,
       "home": "Hapoel Tirat HaCarmel",
+      "home_goals": 1,
       "kickoff_utc": "2026-10-29T19:15:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": null,
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,85856,24863",
       "observed_alerts": 1,
-      "reason": "awaiting_ft",
-      "status": "PENDING"
+      "reason": "ft_recorded_from_two_cached_providers",
+      "source": "https://v3.football.api-sports.io/fixtures?id=1621379",
+      "status": "FINAL"
     },
     {
       "away": "ROHDA Raalte",
@@ -3223,16 +3381,19 @@
     },
     {
       "away": "CD Castellón",
-      "evidence": null,
+      "away_goals": 3,
+      "evidence": "dual_provider_only",
       "evidence_attempts": 0,
       "home": "UB Conquense",
+      "home_goals": 0,
       "kickoff_utc": "2026-10-29T19:00:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": null,
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,24116,1268",
       "observed_alerts": 1,
-      "reason": "awaiting_ft",
-      "status": "PENDING"
+      "reason": "ft_recorded_from_two_cached_providers",
+      "source": "https://v3.football.api-sports.io/fixtures?id=1644349",
+      "status": "FINAL"
     },
     {
       "away": "Águilas CF",
@@ -3320,25 +3481,28 @@
     },
     {
       "away": "Hapoel Tel-Aviv FC",
-      "evidence": null,
+      "away_goals": 3,
+      "evidence": "dual_provider_only",
       "evidence_attempts": 0,
       "home": "Maccabi Tel Aviv",
+      "home_goals": 2,
       "kickoff_utc": "2026-10-29T18:30:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": null,
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,1260,21609",
       "observed_alerts": 2,
-      "reason": "awaiting_ft",
-      "status": "PENDING"
+      "reason": "ft_recorded_from_two_cached_providers",
+      "source": "https://v3.football.api-sports.io/fixtures?id=1629043",
+      "status": "FINAL"
     },
     {
       "away": "Cusco FC (Real Garcilaso)",
       "evidence": null,
-      "evidence_attempts": 2,
+      "evidence_attempts": 3,
       "home": "Club Deportivo Los Chankas",
       "kickoff_utc": "2026-10-29T18:00:00+00:00",
-      "last_checked_at": "2026-10-30T01:31:24+00:00",
-      "legacy_last_checked_at": "2026-10-30T01:31:24+00:00",
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,79485,48553",
       "observed_alerts": 1,
       "reason": "no_verified_ft_yet",
@@ -3411,11 +3575,11 @@
     {
       "away": "Al-Qadisiyah FC (KSA)",
       "evidence": null,
-      "evidence_attempts": 2,
+      "evidence_attempts": 3,
       "home": "Al Riyadh",
       "kickoff_utc": "2026-10-29T18:00:00+00:00",
-      "last_checked_at": "2026-10-30T01:31:24+00:00",
-      "legacy_last_checked_at": "2026-10-30T01:31:24+00:00",
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,35858,26903",
       "observed_alerts": 2,
       "reason": "no_verified_ft_yet",
@@ -3424,11 +3588,11 @@
     {
       "away": "CD Coria",
       "evidence": null,
-      "evidence_attempts": 2,
+      "evidence_attempts": 3,
       "home": "UD San Sebastián de los Reyes",
       "kickoff_utc": "2026-10-29T18:00:00+00:00",
-      "last_checked_at": "2026-10-30T01:31:24+00:00",
-      "legacy_last_checked_at": "2026-10-30T01:31:24+00:00",
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,23615,24042",
       "observed_alerts": 4,
       "reason": "no_verified_ft_yet",
@@ -3485,11 +3649,11 @@
     {
       "away": "76 Igdir Belediyespor",
       "evidence": null,
-      "evidence_attempts": 2,
+      "evidence_attempts": 3,
       "home": "Eskisehirspor Kulubu",
       "kickoff_utc": "2026-10-29T17:30:00+00:00",
-      "last_checked_at": "2026-10-30T01:31:24+00:00",
-      "legacy_last_checked_at": "2026-10-30T01:31:24+00:00",
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,23031,10044547",
       "observed_alerts": 3,
       "reason": "no_verified_ft_yet",
@@ -3891,8 +4055,8 @@
       "evidence_attempts": 3,
       "home": "FC Petrzalka Akademia U19",
       "kickoff_utc": "2026-10-29T13:30:00+00:00",
-      "last_checked_at": "2026-10-30T01:31:24+00:00",
-      "legacy_last_checked_at": "2026-10-30T01:31:24+00:00",
+      "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,84528,36647",
       "observed_alerts": 2,
       "reason": "no_verified_ft_yet",
@@ -7173,185 +7337,31 @@
       "reason": "ft_recorded_with_source",
       "source": "https://sports.bzzoiro.com/api/v2/events/588268/",
       "status": "FINAL"
-    },
-    {
-      "away": "Calcio Como",
-      "away_goals": 3,
-      "evidence": "bsd_and_espn",
-      "evidence_attempts": 0,
-      "home": "Torino",
-      "home_goals": 1,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T09:37:44+00:00",
-      "match_key": "2026-10-27,294,32214",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://sports.bzzoiro.com/api/v2/events/210145/",
-      "status": "FINAL"
-    },
-    {
-      "away": "Harborough Town FC",
-      "away_goals": 0,
-      "evidence": "fotmob_only",
-      "evidence_attempts": 0,
-      "home": "Buxton FC",
-      "home_goals": 3,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T09:56:20+00:00",
-      "match_key": "2026-10-27,24168,10033571",
-      "observed_alerts": 2,
-      "reason": "ft_recorded_with_source",
-      "source": "https://www.fotmob.com/api/data/matchDetails?matchId=5907123",
-      "status": "FINAL"
-    },
-    {
-      "away": "Cagliari",
-      "away_goals": 2,
-      "evidence": "bsd_and_thesportsdb",
-      "evidence_attempts": 0,
-      "home": "Roma",
-      "home_goals": 4,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T08:29:48+00:00",
-      "match_key": "2026-10-27,240,227",
-      "observed_alerts": 2,
-      "reason": "ft_recorded_with_source",
-      "source": "https://sports.bzzoiro.com/api/v2/events/210138/",
-      "status": "FINAL"
-    },
-    {
-      "away": "Union Berlin",
-      "away_goals": 0,
-      "evidence": "bsd_only",
-      "evidence_attempts": 0,
-      "home": "1. FC Köln",
-      "home_goals": 5,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T08:29:48+00:00",
-      "match_key": "2026-10-27,226,1739",
-      "observed_alerts": 2,
-      "reason": "ft_recorded_with_source",
-      "source": "https://sports.bzzoiro.com/api/v2/events/602348/",
-      "status": "FINAL"
-    },
-    {
-      "away": "Karlsruher SC",
-      "away_goals": 0,
-      "evidence": "espn_only",
-      "evidence_attempts": 0,
-      "home": "Borussia Monchengladbach",
-      "home_goals": 2,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T08:09:07+00:00",
-      "match_key": "2026-10-27,199,224",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://site.api.espn.com/apis/site/v2/sports/soccer/ger.dfb_pokal/summary?event=401917031",
-      "status": "FINAL"
-    },
-    {
-      "away": "SV Werder Bremen",
-      "away_goals": 2,
-      "evidence": "bsd_only",
-      "evidence_attempts": 0,
-      "home": "Borussia Dortmund",
-      "home_goals": 3,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T07:25:23+00:00",
-      "match_key": "2026-10-27,194,203",
-      "observed_alerts": 3,
-      "reason": "ft_recorded_with_source",
-      "source": "https://sports.bzzoiro.com/api/v2/events/602342/",
-      "status": "FINAL"
-    },
-    {
-      "away": "Dagenham & Redbridge FC",
-      "away_goals": 1,
-      "evidence": "fotmob_only",
-      "evidence_attempts": 0,
-      "home": "Braintree Town FC",
-      "home_goals": 2,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T09:56:20+00:00",
-      "match_key": "2026-10-27,1541,1147",
-      "observed_alerts": 2,
-      "reason": "ft_recorded_with_source",
-      "source": "https://www.fotmob.com/api/data/matchDetails?matchId=5907642",
-      "status": "FINAL"
-    },
-    {
-      "away": "Peterborough United FC",
-      "away_goals": 0,
-      "evidence": "bsd_only",
-      "evidence_attempts": 0,
-      "home": "Bradford City FC",
-      "home_goals": 2,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T07:25:23+00:00",
-      "match_key": "2026-10-27,11,66",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://sports.bzzoiro.com/api/v2/events/604444/",
-      "status": "FINAL"
-    },
-    {
-      "away": "Stourbridge",
-      "away_goals": 1,
-      "evidence": "thesportsdb_and_api_football_and_goal",
-      "evidence_attempts": 0,
-      "home": "Real Bedford",
-      "home_goals": 0,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T11:01:55+00:00",
-      "match_key": "2026-10-27,10062284,24241",
-      "observed_alerts": 2,
-      "reason": "independent_ft_resolved_source_order_conflict",
-      "source": "https://www.thesportsdb.com/api/v1/json/123/lookupevent.php?id=2543821",
-      "status": "FINAL"
-    },
-    {
-      "away": "Rushden and Diamonds",
-      "away_goals": 0,
-      "evidence": "reviewed_public_only",
-      "evidence_attempts": 0,
-      "home": "Loughborough University",
-      "home_goals": 1,
-      "kickoff_utc": "2026-10-27T19:45:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T17:44:06+00:00",
-      "match_key": "2026-10-27,10030127,75",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://lborostudentsfc.co.uk/",
-      "status": "FINAL"
     }
   ],
   "goal_search": {
-    "cached_days": 0,
+    "cached_days": 1,
     "configured": true,
-    "date_requests": 0,
+    "date_requests": 1,
     "id_outcomes": {},
     "id_requests": 0,
     "poll_enabled": true,
-    "reason_counts": {},
-    "requested_days": [],
-    "requests": 0,
-    "rotation_days": [],
+    "reason_counts": {
+      "goal_identity_no_core_match": 5
+    },
+    "requested_days": [
+      "2026-10-29"
+    ],
+    "requests": 1,
+    "rotation_days": [
+      "2026-10-29"
+    ],
     "verified_in_run": 0
   },
-  "h1_alerts_count": 803,
-  "h1_signals_count_in_state": 172,
+  "h1_alerts_count": 814,
+  "h1_signals_count_in_state": 175,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-30T05:11:26+00:00",
+  "last_updated_at": "2026-10-30T05:51:25+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -7359,18 +7369,19 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 552,
-  "matches_omitted_from_display": 52,
+  "matches": 562,
+  "matches_omitted_from_display": 62,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": "7b23934fd656c7f9",
     "archive_status": "read_only_loaded",
-    "bsd_direct_event_requests": 0,
+    "bsd_direct_event_requests": 2,
     "catalog_matchday_groups": 7177,
-    "core_name_event_id_candidates": 0,
+    "core_name_event_id_candidates": 1,
     "exact_event_id_candidates": 0,
     "rate_limited": false,
     "reason_counts": {
-      "no_exact_archive_match": 10
+      "monte_bsd_identity_mismatch": 1,
+      "no_exact_archive_match": 7
     },
     "reviewed_bsd_ids_verified": 0,
     "verified_core_name_in_run": 0,
@@ -7398,33 +7409,34 @@
     "remaining_quarantined": 0
   },
   "sportscore_search": {
-    "cached_date_team_queries": 3,
+    "cached_date_team_queries": 7,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "sportscore_no_exact_match": 10
+      "cup_regulation_unverified": 2,
+      "sportscore_no_exact_match": 6
     },
-    "requests": 13,
+    "requests": 15,
     "reviewed_alias_ft_in_run": 0,
-    "targeted_searches": 10
+    "targeted_searches": 8
   },
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
-    "FINAL": 212,
-    "PENDING": 340
+    "FINAL": 216,
+    "PENDING": 346
   },
   "thesportsdb_search": {
-    "no_event": 10,
-    "requested": 10
+    "no_event": 8,
+    "requested": 8
   },
   "timing_counts": {
-    "ELIGIBLE_COOLDOWN": 45,
-    "ELIGIBLE_NEVER_QUERIED": 86,
+    "ELIGIBLE_COOLDOWN": 44,
+    "ELIGIBLE_NEVER_QUERIED": 83,
     "ELIGIBLE_RETRY_DUE": 3,
-    "FINAL_RECORDED": 212,
-    "FUTURE": 206
+    "FINAL_RECORDED": 216,
+    "FUTURE": 216
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 340,
+  "unverified": 346,
   "v6_ft_priority": {
     "budget": 30,
     "hinted_eligible": 7,
