@@ -3,6 +3,11 @@ on:
   workflow_run:
     workflows: ["Lab - Reconcile FT for all observed matches"]
     types: [completed]
+  workflow_call:
+    inputs:
+      upstream_conclusion:
+        required: true
+        type: string
   workflow_dispatch:
   pull_request:
     paths:
@@ -35,7 +40,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_lab_ft_operational_gate.py' -v
       - name: Observe current committed snapshots without network
         env:
-          FT_UPSTREAM: ${{ github.event.workflow_run.conclusion || 'not_applicable' }}
+          FT_UPSTREAM: ${{ inputs.upstream_conclusion || github.event.workflow_run.conclusion || 'not_applicable' }}
         run: |
           export FT_CHECKOUT_SHA="$(git rev-parse HEAD)"
           git status --porcelain

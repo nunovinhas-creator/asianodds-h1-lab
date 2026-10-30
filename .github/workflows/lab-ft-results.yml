@@ -399,3 +399,14 @@ jobs:
           done
           echo LAB_FT_PUBLISH_FAILED
           exit 1
+
+  # Direct job dependency also covers watchdog dispatches whose workflow_run
+  # completion event may not start a separate monitor. No provider calls.
+  integrity:
+    needs: reconcile
+    if: ${{ always() }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ft-operational-integrity.yml
+    with:
+      upstream_conclusion: ${{ needs.reconcile.result }}
