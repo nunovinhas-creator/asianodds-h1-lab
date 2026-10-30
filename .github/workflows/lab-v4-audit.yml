@@ -33,7 +33,7 @@ jobs:
           echo "LAB_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       # V6 is append-only and shadow-only. It records the actual processing
       # time, never a backdated Telegram timestamp, before any FT analysis.
-      # Failure does not block the established V4/Golden or H1 pipelines.
+      # Continue to collect diagnostics; the final barrier rejects partial bundles.
       - name: Freeze V6 market baselines and audit price quality (shadow)
         id: v6_capture
         continue-on-error: true
@@ -75,9 +75,9 @@ jobs:
         run: python -m scripts.lab_golden
       - name: Select high-information source events for Golden review
         run: python -m scripts.lab_golden_priority
-      # Descriptive per-match chronology. A failure here must not block the
-      # V4/Golden publication above; the previous JSON simply stays in place.
+      # Descriptive chronology participates in the atomic LAB publication bundle.
       - name: Build per-match chronology of repeated alerts
+        id: timeline
         continue-on-error: true
         run: |
           python -m unittest discover -s tests -p 'test_timeline.py'
@@ -86,13 +86,14 @@ jobs:
       # already-built timeline and refuses to consume a stale source commit.
       # Never changes H1, ROI, picks, FIFO or Telegram notifications.
       - name: Analyse repeated alert trajectories (exploratory only)
+        id: trajectory
         continue-on-error: true
         run: |
           python -m unittest discover -s tests -p 'test_trajectory_research.py' -v
           python -m scripts.lab_trajectory_research
-      # A purely aggregate readiness check: may fail without affecting V4, Golden,
-      # or the production H1 collector and its result reconciliation.
+      # Aggregate readiness check; failure blocks this LAB bundle, never the H1 collector.
       - name: Join repeated games with available H1 FT records (coverage only)
+        id: outcome
         continue-on-error: true
         run: |
           python -m unittest discover -s tests -p 'test_outcome_readiness.py' -v
@@ -144,8 +145,13 @@ jobs:
           python -m unittest discover -s tests -p 'test_v6_p0_gates.py' -v
           python -m scripts.lab_v6_p0
           python -m scripts.lab_v6_p0 --verify-only
+      # No partial producer output is eligible for publication, even when its
+      # step used continue-on-error. outcome (not conclusion) preserves failure.
       - name: Commit only shadow audit artifacts
+        env:
+          PUBLICATION_STEPS: ${{ toJSON(steps) }}
         run: |
+          python -m scripts.publication_guard outcomes --pipeline audit
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/lab/v4-audit.json docs/lab/golden-candidates.json docs/lab/golden-report.json docs/lab/golden-priority.json
@@ -186,11 +192,13 @@ jobs:
           if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
           if [ -f docs/lab/trajectory-research.json ]; then git add docs/lab/trajectory-research.json; fi
           if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
+          python -m scripts.publication_guard seal --pipeline audit --manifest "$RUNNER_TEMP/publication-seal.json"
           if ! git diff --cached --quiet; then
             git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
             for attempt in 1 2 3 4 5; do
               git fetch origin main
               git rebase origin/main
+              python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
               if git push origin HEAD:main; then
                 echo "LAB_AUDIT_PUBLISHED"
                 exit 0
