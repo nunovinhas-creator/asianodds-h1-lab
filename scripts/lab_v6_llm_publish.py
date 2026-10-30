@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from datetime import datetime, timezone
+from itertools import combinations
 import hashlib
 import json
 from math import comb
@@ -15,10 +16,12 @@ from pathlib import Path
 import re
 
 from h1lab.v6_llm_investigator import build_packet, strict_json, validate_proposals, provider_usage
+from h1lab.v6_discovery_planner import plan
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = Path("docs/lab/llm-investigator-index.json")
 ARCHIVE = Path("docs/lab/llm-investigator-runs")
+QUEUE = Path("docs/lab/llm-discovery-plan.json")
 STATUS = "SHADOW_DRAFT_NOT_EMPIRICALLY_VALIDATED"
 
 
@@ -41,7 +44,9 @@ def _frontier(features):
     return {
         "features_in_catalogue": n,
         "possible_pairs_distinct_families": comb(n, 2) - sum(comb(v, 2) for v in families.values() if v >= 2),
-        "possible_triples_two_or_more_families": comb(n, 3) - sum(comb(v, 3) for v in families.values() if v >= 3),
+        # The planner requires all 3 codes to have DIFFERENT families, not
+        # merely two or more families represented in a triple.
+        "possible_triples_distinct_families": sum(a * b * c for a, b, c in combinations(families.values(), 3)),
         "meaning": "SEARCH_SPACE_ONLY_NO_LLM_CALLS_OR_EMPIRICAL_TESTS",
     }
 
@@ -138,7 +143,17 @@ def publish(root, output, *, run_id, commit_sha, when):
         "empirically_validated_strategies": 0,
         "notice": "Only successful manually published runs are visible here; failed executions remain in GitHub Actions. No automatic polling or model calls.",
     }
+    # Regenerate the offline queue against ALL immutable archives, including
+    # this run, in the same commit. No model calls or extra network requests.
+    queue = plan(root, limit=10)
+    strict_space = index["search_space"]
+    if (queue["distinct_family_space"]["2"] != strict_space["possible_pairs_distinct_families"]
+            or queue["distinct_family_space"]["3"] != strict_space["possible_triples_distinct_families"]
+            or queue["remaining"] + queue["previously_proposed_unique"] !=
+                sum(queue["distinct_family_space"].values())):
+        raise ValueError("LLM_QUEUE_SEARCH_SPACE_MISMATCH")
     _save(index_path, index)
+    _save(root / QUEUE, queue)
     return index
 
 
