@@ -7,6 +7,7 @@ from __future__ import annotations
 from h1lab.lab_archive import monthly_paths, append_monthly
 
 import argparse
+import copy
 import json
 from pathlib import Path
 
@@ -23,10 +24,44 @@ def read(path, default=None):
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
 
 
-def put(path, value, limit):
+def serialize(value, limit, path):
     content = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n"
     if len(content.encode("utf-8")) > limit:
         raise ValueError("discovery data exceeded limit: " + str(path))
+    return content
+
+
+def bounded_public(value, limit=MAX_PUBLIC_BYTES):
+    """Bound only the web cache; preserve every pattern/latest and durable history."""
+    result = copy.deepcopy(value)
+    omitted = 0
+    while True:
+        if omitted:
+            result['limitations'] = [line for line in value.get('limitations', [])
+                                    if not line.startswith('Últimos 24 pontos')]
+            result['limitations'].append(
+                'Cache pública reduzida pelo limite de bytes; pontos antigos preservados no estado e arquivos Git.')
+            result['public_cache'] = {
+                'older_points_omitted': omitted,
+                'history_preserved_in': 'data/lab/discovery-state.json and discovery-events monthly archives',
+            }
+        try:
+            serialize(result, limit, PUBLIC)
+            return result
+        except ValueError:
+            # Drop the oldest cached point of each series, retaining at least
+            # its newest point. Never remove patterns, latest evidence or FT.
+            removable = [row for row in result['patterns'].values()
+                         if len(row.get('points', [])) > 1]
+            if not removable:
+                raise
+            for row in removable:
+                row['points'] = row['points'][1:]
+                omitted += 1
+
+
+def put(path, value, limit):
+    content = serialize(value, limit, path)
     if path.exists() and path.read_text(encoding="utf-8") == content:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +83,11 @@ def main(argv=None):
         raise ValueError("missing or malformed discovery inputs")
     prior = read(root / STATE)
     state, public, events = build(report, first, ledger, prior)
+    public = bounded_public(public)
+    # Fail before any journal/state mutation if the mandatory payload cannot
+    # fit. Publication guards remain in force; limits are not increased.
+    serialize(state, MAX_STATE_BYTES, STATE)
+    serialize(public, MAX_PUBLIC_BYTES, PUBLIC)
 
     # Archive immutable data FIRST; abort on any conflicting event ID. JSONL
     # is partitioned by UTC month. No event is dropped when the frontend cache rolls.
