@@ -1,0 +1,31 @@
+name: UI - Offline LLM statistics
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 3e1d9f6d554a318fe590dc147f243eb85ce71c31
+          path: integrated-engine
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate real JSON from integrated PR 131
+        working-directory: integrated-engine
+        run: python -m scripts.lab_v6_offline_statistics --output "$RUNNER_TEMP/integrated-statistics.json"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check docs/llm-statistics.js
+      - name: All six UI tests including real integrated producer
+        env:
+          LLM_STATISTICS_REPORT: ${{ runner.temp }}/integrated-statistics.json
+        run: |
+          test -s "$LLM_STATISTICS_REPORT"
+          node --test tests/llm-statistics-ui.test.cjs
