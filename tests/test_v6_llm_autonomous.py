@@ -157,6 +157,41 @@ class AutonomousResearchTests(TestCase):
             publisher.publish(self.root, data, run_id='41046486112',
                         commit_sha='b' * 40, when='2026-10-30T13:44:00Z')
 
+    def test_real_catalogue_prompt_stays_bounded_without_network(self):
+        # Uses the repository's true catalogue and aggregate scientific gate
+        # documents: catches oversized requests and example/schema drift.
+        root = Path(__file__).resolve().parents[1]
+        packet = investigator.build_packet(root)
+        pool = autonomy.choose_candidates(root)['choices']
+        codes = pool[0]['feature_codes']
+        example = self.fixtures.proposal(
+            topic_id='T05', feature_codes=codes,
+            test_design='Freeze ' + ', '.join(codes) + ' before KO and compare OOS Brier.'
+        )
+        mock_reply = json.dumps({'choices': [{
+            'message': {'content': json.dumps({
+                'schema_version': 1, 'proposals': [example]
+            })},
+            'finish_reason': 'stop',
+        }]}, ensure_ascii=False).encode('utf-8')
+        class Response:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size): return mock_reply
+        requests = []
+        def opener(req, timeout):
+            requests.append(req)
+            return Response()
+        result = investigator.invoke(packet,
+              endpoint='https://example.test/v1/chat/completions',
+              model='fake', api_key='DO_NOT_LOG',
+              candidate_options=[p['feature_codes'] for p in pool], opener=opener)
+        self.assertEqual(result['proposals'][0]['feature_codes'], codes)
+        self.assertEqual(len(requests), 1)
+        self.assertLessEqual(len(requests[0].data), 20_000)
+        self.assertNotIn(b'DO_NOT_LOG', requests[0].data)
+
     def test_workflow_uses_at_most_four_slots_with_isolated_writer(self):
         root = Path(__file__).resolve().parents[1]
         wf = (root / '.github/workflows/v6-llm-autonomous.yml').read_text()
