@@ -1,0 +1,83 @@
+{
+  "autonomy": {
+    "account_neurons_verified": false,
+    "candidate_id": "0015e581e38814c5dfc79e1b0447c531544f5fec0862c4b7462aad6499a50b8c",
+    "candidate_pool_ids": [
+      "0015e581e38814c5dfc79e1b0447c531544f5fec0862c4b7462aad6499a50b8c",
+      "004648f0b75e9765b91b97e78e1beb29a253901c07527d5e3e039b9e74b7e279",
+      "000e3c9c375f44a16adc6ca5d8dfb633b69ec474c3a2921e4e72d3d9aca27363"
+    ],
+    "daily_scheduled_call_slots": 4,
+    "schema_version": 1,
+    "selection_policy": "HASH_ORDER_OUTCOME_BLIND_PREFER_PAIRS_ONE_TRIPLE",
+    "status": "SHADOW_EXPLORATION_NOT_VALIDATION",
+    "trigger": "workflow_dispatch"
+  },
+  "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41058445984",
+  "limitations": "Manual AI draft, not a discovered edge, statistical test, ROI or recommendation.",
+  "llm_calls": 1,
+  "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+  "neurons_consumed": null,
+  "proposals": [
+    {
+      "baseline": "MARKET_MODEL_OVER25",
+      "confounders": [
+        "Antecedência",
+        "Competição"
+      ],
+      "control_group": "Jogos futuros com probabilidade inicial e antecedência comparáveis sem este cruzamento.",
+      "data_needed": [
+        "Capturas das duas variáveis feitas antes do KO",
+        "FT regulamentar confirmado com carimbo"
+      ],
+      "falsification": "Rejeitar se o Log Loss fora da amostra não melhorar contra o baseline; controlar comparabilidade, cobertura FT e seleção múltipla.",
+      "feature_codes": [
+        "G_FIRST_LEAD_LT_6H",
+        "M_LINE_LAMBDA_DISAGREE"
+      ],
+      "hypothesis": "A combinação de G_FIRST_LEAD_LT_6H e M_LINE_LAMBDA_DISAGREE pode acrescentar informação ao baseline, pois o primeiro alerta a menos de 6 horas do início pode indicar uma resposta rápida do time, enquanto a linha e golos implícitos movendo-se em sentidos opostos podem indicar uma mudança na dinâmica do jogo.",
+      "metric": "LOG_LOSS",
+      "null_hypothesis": "A combinação de G_FIRST_LEAD_LT_6H e M_LINE_LAMBDA_DISAGREE não melhora o baseline.",
+      "outcome": "OVER_2_5",
+      "source_refs": [
+        "docs/lab/pattern-research.json"
+      ],
+      "status": "DRAFT",
+      "test_design": "Congelar G_FIRST_LEAD_LT_6H, M_LINE_LAMBDA_DISAGREE antes do KO; comparar Log Loss OOS por jogo com o baseline e controlos emparelhados.",
+      "topic_id": "T05"
+    }
+  ],
+  "provider_usage": {
+    "account_quota_verified": false,
+    "measurement": "PROVIDER_TOKEN_COUNTERS",
+    "model_requested": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "neurons_consumed": null,
+    "tokens": {
+      "completion_tokens": 247,
+      "prompt_tokens": 790,
+      "total_tokens": 1037
+    }
+  },
+  "recorded_at_utc": "2026-10-30T12:51:06.936493Z",
+  "run_id": 41058445984,
+  "schema_version": 1,
+  "scientific_acceptance": "INCONCLUSIVO",
+  "source_commit": "f23d97f9f22c7c33fb7bed5d9ffd93b6d2681ffd",
+  "source_sha256": {
+    "docs/lab/pattern-research.json": "957a0f2954293fd0d8e40ac55490f0a333d2b2c0aca75dc5c94eab912418a7d2",
+    "docs/lab/v6-falsification.json": "f10e0cf9bf168ea88040d56ea412f848bd2cbae0b0905fedb5fe5e5572362443",
+    "docs/lab/v6-p0-gates.json": "199ecca2ad1b53efe665e956c82788320eff63be849ebc209e7e165a5c559aa0",
+    "docs/lab/v6-readiness.json": "04df25bcd17cbe316b1eacb712333f38530876562f95c64fb32be67df785abc4",
+    "docs/lab/v6-weekly-drift.json": "a482b80badd00fa57ebfd49f745b94af9016ca65266d540761ba188ceb3edfa8"
+  },
+  "state": "SHADOW_DRAFT_NOT_EMPIRICALLY_VALIDATED",
+  "summary": {
+    "feature_codes": [
+      "G_FIRST_LEAD_LT_6H",
+      "M_LINE_LAMBDA_DISAGREE"
+    ],
+    "metric": "LOG_LOSS",
+    "proposal_count": 1,
+    "topic_id": "T05"
+  }
+}
