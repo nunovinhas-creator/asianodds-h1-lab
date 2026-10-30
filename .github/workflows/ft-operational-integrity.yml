@@ -1,0 +1,53 @@
+name: FT - Read-only operational integrity
+on:
+  workflow_run:
+    workflows: ["Lab - Reconcile FT for all observed matches"]
+    types: [completed]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/lab_ft_operational_gate.py"
+      - "tests/test_lab_ft_operational_gate.py"
+      - ".github/workflows/ft-operational-integrity.yml"
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ft-readonly-integrity-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'main' }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify deterministic integrity gate
+        run: python -m unittest discover -s tests -p 'test_lab_ft_operational_gate.py' -v
+      - name: Observe current committed snapshots without network
+        env:
+          FT_UPSTREAM: ${{ github.event.workflow_run.conclusion || 'not_applicable' }}
+        run: |
+          echo "FT_CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git status --porcelain
+          python -m scripts.lab_ft_operational_gate \
+            --root . \
+            --upstream "$FT_UPSTREAM" \
+            --output "$RUNNER_TEMP/ft-health.json"
+      - name: Preserve integrity evidence even after gate failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ft-operational-health-${{ github.run_id }}
+          path: ${{ runner.temp }}/ft-health.json
+          if-no-files-found: warn
+          retention-days: 30
