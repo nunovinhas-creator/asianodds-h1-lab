@@ -19,6 +19,7 @@ class HealthTests(unittest.TestCase):
         r=check(root,now)
         statuses={x['name']:x['status'] for x in r['checks']}
         self.assertEqual(statuses['ft_counts'],'OK')
+        self.assertEqual(statuses['ft_backlog'],'OK')
         self.assertEqual(statuses['h1_replay'],'OK')
         self.assertEqual(statuses['collector'],'OK')
 
