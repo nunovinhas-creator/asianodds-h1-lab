@@ -1,9 +1,13 @@
 """No provider requests or production writes in default/validation paths."""
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+from contextlib import redirect_stdout
+from io import StringIO
 
 from h1lab import v6_llm_investigator as mod
 from scripts import lab_v6_llm_investigator as cli
@@ -131,10 +135,34 @@ class InvestigatorTests(unittest.TestCase):
         self.assertIn('workflow_dispatch:', workflow)
         self.assertNotIn('schedule:', workflow)
         self.assertNotIn('push:', workflow)
-        self.assertNotIn('MASTER_BRAIN_LLM_API_KEY', workflow)
+        self.assertIn('secrets.MASTER_BRAIN_LLM_API_KEY', workflow)
+        self.assertIn('secrets.CLOUDFLARE_ACCOUNT_ID', workflow)
+        self.assertIn("inputs.mode == 'cloudflare_once'", workflow)
+        self.assertIn('CONSUMIR_IA_UMA_VEZ', workflow)
         self.assertNotIn('--mode invoke', workflow)
         self.assertIn('--mode dossier', workflow)
         self.assertIn('contents: read', workflow)
+
+    def test_cloudflare_single_shot_requires_opt_in_and_secrets(self):
+        args = ['--root', str(self.root), '--mode', 'cloudflare']
+        with self.assertRaises(SystemExit):
+            cli.main(args)
+        with patch.dict(os.environ, {'CLOUDFLARE_ACCOUNT_ID': 'a' * 32}, clear=True):
+            with self.assertRaises(SystemExit):
+                cli.main(args + ['--allow-network'])
+        with patch.dict(os.environ, {
+            'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
+            'MASTER_BRAIN_LLM_API_KEY': 'fake-private-test-token',
+        }, clear=True):
+            with patch.object(cli, 'invoke', return_value={'status': 'DRAFT_UNVALIDATED_HUMAN_REVIEW_REQUIRED'}) as invoke_mock:
+                with redirect_stdout(StringIO()):
+                    cli.main(args + ['--allow-network'])
+                invoke_mock.assert_called_once()
+                kw = invoke_mock.call_args.kwargs
+                self.assertEqual(kw['model'], '@cf/meta/llama-3.1-8b-instruct-fast')
+                self.assertEqual(kw['endpoint'], 'https://api.cloudflare.com/client/v4/accounts/' + 'a' * 32 + '/ai/v1/chat/completions')
+                self.assertEqual(kw['api_key'], 'fake-private-test-token')
+        self.assertEqual(self.snapshot(), self.before)
 
     def test_cli_dossier_stdout_only(self):
         from contextlib import redirect_stdout
