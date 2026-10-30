@@ -2,6 +2,18 @@
   "empirically_validated_strategies": 0,
   "history": [
     {
+      "archive": "lab/llm-investigator-runs/41110517243.json",
+      "feature_codes": [
+        "G_MULTI_ALERT",
+        "M_BOTH_PRICES_UP_SAME_LINE"
+      ],
+      "metric": "LOG_LOSS",
+      "recorded_at_utc": "2026-10-30T18:52:16.607860Z",
+      "run_id": 41110517243,
+      "source_commit": "2259704c73cd30c82406dcf994c7508069b5fa30",
+      "topic_id": "T05"
+    },
+    {
       "archive": "lab/llm-investigator-runs/41058445984.json",
       "feature_codes": [
         "G_FIRST_LEAD_LT_6H",
@@ -30,19 +42,19 @@
   "latest": {
     "autonomy": {
       "account_neurons_verified": false,
-      "candidate_id": "0015e581e38814c5dfc79e1b0447c531544f5fec0862c4b7462aad6499a50b8c",
+      "candidate_id": "004648f0b75e9765b91b97e78e1beb29a253901c07527d5e3e039b9e74b7e279",
       "candidate_pool_ids": [
-        "0015e581e38814c5dfc79e1b0447c531544f5fec0862c4b7462aad6499a50b8c",
         "004648f0b75e9765b91b97e78e1beb29a253901c07527d5e3e039b9e74b7e279",
+        "00bbd5df9d6c816abab7d78de3facce9a8965c495a96af4708e09fc94053f9a6",
         "000e3c9c375f44a16adc6ca5d8dfb633b69ec474c3a2921e4e72d3d9aca27363"
       ],
       "daily_scheduled_call_slots": 4,
       "schema_version": 1,
       "selection_policy": "HASH_ORDER_OUTCOME_BLIND_PREFER_PAIRS_ONE_TRIPLE",
       "status": "SHADOW_EXPLORATION_NOT_VALIDATION",
-      "trigger": "workflow_dispatch"
+      "trigger": "schedule"
     },
-    "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41058445984",
+    "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41110517243",
     "limitations": "Manual AI draft, not a discovered edge, statistical test, ROI or recommendation.",
     "llm_calls": 1,
     "model": "@cf/meta/llama-3.1-8b-instruct-fast",
@@ -61,18 +73,18 @@
         ],
         "falsification": "Rejeitar se o Log Loss fora da amostra não melhorar contra o baseline; controlar comparabilidade, cobertura FT e seleção múltipla.",
         "feature_codes": [
-          "G_FIRST_LEAD_LT_6H",
-          "M_LINE_LAMBDA_DISAGREE"
+          "G_MULTI_ALERT",
+          "M_BOTH_PRICES_UP_SAME_LINE"
         ],
-        "hypothesis": "A combinação de G_FIRST_LEAD_LT_6H e M_LINE_LAMBDA_DISAGREE pode acrescentar informação ao baseline, pois o primeiro alerta a menos de 6 horas do início pode indicar uma resposta rápida do time, enquanto a linha e golos implícitos movendo-se em sentidos opostos podem indicar uma mudança na dinâmica do jogo.",
+        "hypothesis": "A combinação de G_MULTI_ALERT e M_BOTH_PRICES_UP_SAME_LINE pode acrescentar informação ao baseline, sem efeito presumido.",
         "metric": "LOG_LOSS",
-        "null_hypothesis": "A combinação de G_FIRST_LEAD_LT_6H e M_LINE_LAMBDA_DISAGREE não melhora o baseline.",
+        "null_hypothesis": "A combinação de G_MULTI_ALERT e M_BOTH_PRICES_UP_SAME_LINE não melhora o baseline.",
         "outcome": "OVER_2_5",
         "source_refs": [
           "docs/lab/pattern-research.json"
         ],
         "status": "DRAFT",
-        "test_design": "Congelar G_FIRST_LEAD_LT_6H, M_LINE_LAMBDA_DISAGREE antes do KO; comparar Log Loss OOS por jogo com o baseline e controlos emparelhados.",
+        "test_design": "Congelar G_MULTI_ALERT, M_BOTH_PRICES_UP_SAME_LINE antes do KO; comparar Log Loss OOS por jogo com o baseline e controlos emparelhados.",
         "topic_id": "T05"
       }
     ],
@@ -82,35 +94,35 @@
       "model_requested": "@cf/meta/llama-3.1-8b-instruct-fast",
       "neurons_consumed": null,
       "tokens": {
-        "completion_tokens": 247,
-        "prompt_tokens": 790,
-        "total_tokens": 1037
+        "completion_tokens": 188,
+        "prompt_tokens": 765,
+        "total_tokens": 953
       }
     },
-    "recorded_at_utc": "2026-10-30T12:51:06.936493Z",
-    "run_id": 41058445984,
+    "recorded_at_utc": "2026-10-30T18:52:16.607860Z",
+    "run_id": 41110517243,
     "schema_version": 1,
     "scientific_acceptance": "INCONCLUSIVO",
-    "source_commit": "f23d97f9f22c7c33fb7bed5d9ffd93b6d2681ffd",
+    "source_commit": "2259704c73cd30c82406dcf994c7508069b5fa30",
     "source_sha256": {
-      "docs/lab/pattern-research.json": "957a0f2954293fd0d8e40ac55490f0a333d2b2c0aca75dc5c94eab912418a7d2",
-      "docs/lab/v6-falsification.json": "f10e0cf9bf168ea88040d56ea412f848bd2cbae0b0905fedb5fe5e5572362443",
-      "docs/lab/v6-p0-gates.json": "199ecca2ad1b53efe665e956c82788320eff63be849ebc209e7e165a5c559aa0",
-      "docs/lab/v6-readiness.json": "04df25bcd17cbe316b1eacb712333f38530876562f95c64fb32be67df785abc4",
+      "docs/lab/pattern-research.json": "dbcb4808fc8c8abcec416f74275dea49837b3cdc5b79a10b71ed26d629594f8f",
+      "docs/lab/v6-falsification.json": "6c7dd3e41f0380c2f478c9fb4ab11b99e97c9618146f61a9810d52dbb802580b",
+      "docs/lab/v6-p0-gates.json": "6ef484d9f0d5ad81b254c51d087ba7faa63c7fb60bdb60811474c39bd0bc15b3",
+      "docs/lab/v6-readiness.json": "deecb71244d96b95af75b52c7b0a798b63274eb520d3b5f9c0fbacc2438aa875",
       "docs/lab/v6-weekly-drift.json": "a482b80badd00fa57ebfd49f745b94af9016ca65266d540761ba188ceb3edfa8"
     },
     "state": "SHADOW_DRAFT_NOT_EMPIRICALLY_VALIDATED",
     "summary": {
       "feature_codes": [
-        "G_FIRST_LEAD_LT_6H",
-        "M_LINE_LAMBDA_DISAGREE"
+        "G_MULTI_ALERT",
+        "M_BOTH_PRICES_UP_SAME_LINE"
       ],
       "metric": "LOG_LOSS",
       "proposal_count": 1,
       "topic_id": "T05"
     }
   },
-  "llm_executions_recorded": 2,
+  "llm_executions_recorded": 3,
   "notice": "Only successful published runs (manual or bounded autonomous) appear here; failures remain in GitHub Actions. Scientific validation remains human gated.",
   "schema_version": 1,
   "search_space": {
