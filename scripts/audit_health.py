@@ -160,7 +160,8 @@ def check(root, now):
         if execution is not None:
             if not isinstance(execution,dict):raise ValueError('Invalid FT execution health')
             execution_status=execution.get('status')
-            record('ft_execution','DEGRADED' if execution_status=='DEGRADED' else 'UNKNOWN',
+            record('ft_execution','DEGRADED' if execution_status=='DEGRADED' else
+                   'UNKNOWN' if execution_status in ('ATTEMPTED','NOT_ATTEMPTED') else 'FAILED',
                    execution_status if execution_status in ('DEGRADED','ATTEMPTED','NOT_ATTEMPTED') else 'invalid_execution_status')
         from h1lab.v6_ft_events import read_events,validate_against_ledger
         validate_against_ledger(read_events(root),ledger)
