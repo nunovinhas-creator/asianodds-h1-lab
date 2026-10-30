@@ -25,20 +25,20 @@
     "date_list_requests": 0,
     "fallback_results_recovered": 0,
     "lookup_reason_counts": {
-      "bsd_date_cooldown_deferred": 5
+      "bsd_date_cooldown_deferred": 10
     }
   },
   "coverage_diagnostics": {
     "blocked_review": 0,
     "ft_confirmed": 212,
-    "future": 205,
-    "grace": 1,
+    "future": 206,
+    "grace": 0,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
       "No unresolved game is treated as an incorrect pick or a settled bet."
     ],
-    "past_unverified_eligible": 133,
+    "past_unverified_eligible": 134,
     "provider_obstacles": [
       {
         "matches": 92,
@@ -114,7 +114,7 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 339
+      "PENDING": 340
     }
   },
   "displayed_matches": 500,
@@ -122,13 +122,13 @@
     "cached_league_days": 0,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "unsupported_competition": 6
+      "unsupported_competition": 10
     },
     "requests": 0
   },
   "execution_health": {
     "dual_postcheck_errors": 0,
-    "measured_at": "2026-10-30T04:31:22+00:00",
+    "measured_at": "2026-10-30T05:11:26+00:00",
     "provider_errors": 0,
     "scope": "adapter execution only; not coverage or publication health",
     "status": "ATTEMPTED",
@@ -205,9 +205,9 @@
       "binding_conflicts": 0,
       "bindings_total": 3,
       "comparison_reason_counts": {
-        "no_verified_match_unknown_coverage_or_names": 133
+        "no_verified_match_unknown_coverage_or_names": 134
       },
-      "cooldown_blocked_games": 133,
+      "cooldown_blocked_games": 134,
       "coverage_absence_confirmed": 0,
       "coverage_absence_note": "No verified match cannot distinguish absence from names",
       "date_http_by_path": {},
@@ -216,26 +216,26 @@
         "2026-10-29": "bsd_date_cooldown_deferred",
         "2026-10-30": "bsd_date_cooldown_deferred"
       },
-      "direct_id_requests_shared_with_monte": 1,
+      "direct_id_requests_shared_with_monte": 0,
       "direct_lookup": {
         "conflicts": 0,
         "http_requests": 0,
         "ids_reused": 0,
         "known_ids": 3,
         "reasons": {
-          "bsd_registry_no_id": 6
+          "bsd_registry_no_id": 10
         }
       },
       "eligible_days_after": 0,
       "eligible_days_before": 0,
       "fallback_detail_requests": 0,
-      "http_total": 1,
+      "http_total": 0,
       "independent_of_ft_queue": true,
-      "monte_only_detail_requests": 1,
+      "monte_only_detail_requests": 0,
       "new_ids": 0,
-      "overdue_compared_with_complete_catalogue": 133,
+      "overdue_compared_with_complete_catalogue": 134,
       "overdue_without_id": 134,
-      "overdue_without_id_after": 133,
+      "overdue_without_id_after": 134,
       "persisted_id_new_finals": 0,
       "planned_days": [],
       "post_reconcile": {
@@ -264,12 +264,8 @@
       "openfoot": {
         "date_budget": 2,
         "id_requests": 0,
-        "requested_days": [
-          "2026-10-29"
-        ],
-        "selected_days": [
-          "2026-10-29"
-        ]
+        "requested_days": [],
+        "selected_days": []
       }
     },
     "deferred_by_capacity": 0,
@@ -277,28 +273,28 @@
     "documented_ft_total": 31,
     "dual_postcheck_confirmed": 0,
     "dual_postcheck_conflicts": 0,
-    "dual_postcheck_scanned": 12,
+    "dual_postcheck_scanned": 14,
     "dual_provider_consensus": {
       "conflicts_in_run": 0,
       "invalid_previous_claims": {},
       "reason_counts": {
         "cross_provider_team_identity_disagreement": 8,
-        "fewer_than_two_strong_providers": 1,
-        "not_unique_or_identity_changed": 3,
+        "fewer_than_two_strong_providers": 9,
+        "not_unique_or_identity_changed": 1,
         "two_verified_source_results_unavailable": 6
       },
       "source_revision_quarantines": 0,
-      "validated_source_claims": 3,
+      "validated_source_claims": 0,
       "verified_in_run": 0
     },
     "durable_provider_attestations": {
       "conflict_keys": 0,
-      "inserted": 2,
-      "repeated": 1,
+      "inserted": 0,
+      "repeated": 0,
       "revisions_quarantined": 0,
       "total_claims": 83
     },
-    "eligible": 6,
+    "eligible": 10,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
@@ -315,18 +311,22 @@
       "observations": {}
     },
     "never_checked_deferred": 0,
-    "never_checked_eligible": 3,
-    "newly_confirmed": 1,
+    "never_checked_eligible": 10,
+    "newly_confirmed": 0,
     "provider_id_collisions": 0,
     "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
-    "selected": 6,
+    "selected": 10,
     "selected_keys": [
-      "2026-10-30,63702,30902",
-      "2026-10-30,53841,60358",
-      "2026-10-30,1444,1651",
-      "2026-10-29,153,599",
-      "2026-10-29,91415,10074696",
-      "2026-10-29,918,1180"
+      "2026-10-30,29994,61345",
+      "2026-10-29,63132,10045207",
+      "2026-10-29,10104951,64612",
+      "2026-10-29,10011118,73076",
+      "2026-10-29,23855,48536",
+      "2026-10-29,77341,29998",
+      "2026-10-29,161,699",
+      "2026-10-29,36386,10032010",
+      "2026-10-29,10023197,29218",
+      "2026-10-29,26893,30724"
     ]
   },
   "games": [
@@ -2489,6 +2489,19 @@
       "status": "PENDING"
     },
     {
+      "away": "Pumas UNAM Women",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Monterrey Women",
+      "kickoff_utc": "2026-10-31T03:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,98411,98350",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "Club Universidad Nacional (Pumas UNAM)",
       "evidence": null,
       "evidence_attempts": 0,
@@ -2874,7 +2887,7 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,58034,46858",
-      "observed_alerts": 1,
+      "observed_alerts": 2,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -7320,22 +7333,6 @@
       "reason": "ft_recorded_with_source",
       "source": "https://lborostudentsfc.co.uk/",
       "status": "FINAL"
-    },
-    {
-      "away": "AS Gubbio 1910",
-      "away_goals": 0,
-      "evidence": "goal_only",
-      "evidence_attempts": 0,
-      "home": "Team Altamura",
-      "home_goals": 0,
-      "kickoff_utc": "2026-10-27T19:30:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": "2026-10-28T10:41:23+00:00",
-      "match_key": "2026-10-27,87638,32238",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://api.goal-api.com/v1/fixtures/854785",
-      "status": "FINAL"
     }
   ],
   "goal_search": {
@@ -7351,10 +7348,10 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "h1_alerts_count": 801,
-  "h1_signals_count_in_state": 171,
+  "h1_alerts_count": 803,
+  "h1_signals_count_in_state": 172,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-30T04:31:22+00:00",
+  "last_updated_at": "2026-10-30T05:11:26+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -7362,38 +7359,31 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 551,
-  "matches_omitted_from_display": 51,
+  "matches": 552,
+  "matches_omitted_from_display": 52,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": "7b23934fd656c7f9",
     "archive_status": "read_only_loaded",
-    "bsd_direct_event_requests": 1,
+    "bsd_direct_event_requests": 0,
     "catalog_matchday_groups": 7177,
-    "core_name_event_id_candidates": 1,
+    "core_name_event_id_candidates": 0,
     "exact_event_id_candidates": 0,
     "rate_limited": false,
     "reason_counts": {
-      "no_exact_archive_match": 5,
-      "verified_bsd_ft_from_monte_core_name": 1
+      "no_exact_archive_match": 10
     },
     "reviewed_bsd_ids_verified": 0,
-    "verified_core_name_in_run": 1,
-    "verified_in_run": 1
+    "verified_core_name_in_run": 0,
+    "verified_in_run": 0
   },
   "openfoot_search": {
-    "cached_days": 1,
+    "cached_days": 0,
     "configured": true,
     "poll_enabled": true,
-    "reason_counts": {
-      "openfoot_identity_no_core_match": 3
-    },
-    "requested_days": [
-      "2026-10-29"
-    ],
-    "requests": 1,
-    "rotation_days": [
-      "2026-10-29"
-    ],
+    "reason_counts": {},
+    "requested_days": [],
+    "requests": 0,
+    "rotation_days": [],
     "verified_in_run": 0
   },
   "pending_due_checks": 0,
@@ -7408,38 +7398,37 @@
     "remaining_quarantined": 0
   },
   "sportscore_search": {
-    "cached_date_team_queries": 4,
+    "cached_date_team_queries": 3,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "sportscore_no_exact_match": 6
+      "sportscore_no_exact_match": 10
     },
-    "requests": 10,
+    "requests": 13,
     "reviewed_alias_ft_in_run": 0,
-    "targeted_searches": 6
+    "targeted_searches": 10
   },
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
     "FINAL": 212,
-    "PENDING": 339
+    "PENDING": 340
   },
   "thesportsdb_search": {
-    "no_event": 6,
-    "requested": 6
+    "no_event": 10,
+    "requested": 10
   },
   "timing_counts": {
     "ELIGIBLE_COOLDOWN": 45,
-    "ELIGIBLE_NEVER_QUERIED": 85,
+    "ELIGIBLE_NEVER_QUERIED": 86,
     "ELIGIBLE_RETRY_DUE": 3,
     "FINAL_RECORDED": 212,
-    "FUTURE": 205,
-    "IN_3H_GRACE": 1
+    "FUTURE": 206
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 339,
+  "unverified": 340,
   "v6_ft_priority": {
     "budget": 30,
-    "hinted_eligible": 6,
-    "hinted_selected": 6,
+    "hinted_eligible": 7,
+    "hinted_selected": 7,
     "hints_do_not_override": [
       "3h grace",
       "4h cooldown",
