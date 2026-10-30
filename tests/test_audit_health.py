@@ -46,7 +46,8 @@ class HealthTests(unittest.TestCase):
             self.assertEqual(result['status'],'DEGRADED')
 
             ft=json.loads((root/'docs/lab/ft-results.json').read_text())
-            ft['execution_health']={'status':'DEGRADED','unexpected_errors':2}
+            ft['execution_health']={'status':'DEGRADED','unexpected_errors':2,
+                                    'measured_at':now.isoformat()}
             write('docs/lab/ft-results.json',ft)
             result=check(root,now)
             statuses={x['name']:x['status'] for x in result['checks']}
