@@ -9,6 +9,33 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def latest_result_checked_at(audit):
+    """Return latest valid instant, not lexically greatest timestamp string.
+
+    Invalid present timestamps are reported separately: a fresh valid record
+    must not silently erase malformed producer evidence.
+    """
+    times, invalid = [], 0
+    for entry in audit.values():
+        if not isinstance(entry, dict):
+            continue
+        raw = entry.get('checked_at')
+        if raw is None:
+            continue
+        if not isinstance(raw, str):
+            invalid += 1
+            continue
+        try:
+            stamp = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+            if stamp.tzinfo is None:
+                invalid += 1
+            else:
+                times.append(stamp.astimezone(timezone.utc))
+        except ValueError:
+            invalid += 1
+    return (max(times).isoformat() if times else None), invalid
+
+
 def check(root, now):
     root=Path(root)
     if now.tzinfo is None: raise ValueError('aware clock required')
@@ -51,9 +78,13 @@ def check(root, now):
         record('h1_replay','OK','singles_and_fifo_metrics_agree')
         freshness('collector',state.get('collector',{}).get('last_poll_at'),90)
         audit=read('data/result_audit.json')
-        times=[v.get('checked_at') for v in audit.values() if isinstance(v,dict) and isinstance(v.get('checked_at'),str)]
+        # Compare instants, not strings: offset/DST changes invert lexical order.
+        latest, invalid = latest_result_checked_at(audit)
         # A latest attempted fixture is evidence of activity, never delivery proof.
-        freshness('h1_result_activity',max(times) if times else None,120)
+        freshness('h1_result_activity',latest,120)
+        if invalid:
+            record('h1_result_timestamp_integrity','DEGRADED',
+                   dict(reason='invalid_checked_at',invalid_entries=invalid))
     except (OSError,ValueError,KeyError,TypeError,AttributeError) as exc:
         record('h1_integrity','FAILED',type(exc).__name__)
     for name,path in [('research','docs/lab/pattern-research.json'),('watch','docs/lab/pattern-watch.json'),('v4','docs/lab/v4-audit.json')]:
