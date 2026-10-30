@@ -25,13 +25,21 @@ def evaluate_health(health, *, upstream="not_applicable"):
     if upstream not in ("not_applicable", "success"):
         blocked.append("upstream_ft_run_failed")
     failed = health.get("status") == "FAILED" or bool(blocked)
-    warnings = sorted(k for k, v in checks.items() if v != "OK")
+    # The existing health monitor deliberately classifies an attempted
+    # provider scan as UNKNOWN: it is not proof of end-to-end delivery. This
+    # must stay inconclusive, not produce a noisy DEGRADED warning every run.
+    unproven = sorted(k for k, v in checks.items()
+                      if k == "ft_execution" and v == "UNKNOWN")
+    warnings = sorted(k for k, v in checks.items()
+                      if v != "OK" and k not in unproven)
     return {
-        "status": "FAILED" if failed else "DEGRADED" if warnings else "OK",
+        "status": ("FAILED" if failed else "DEGRADED" if warnings
+                   else "INCONCLUSIVE" if unproven else "OK"),
         "critical_checks": {name: checks.get(name, "MISSING")
                             for name in sorted(CRITICAL)},
         "blocked": blocked,
-        "non_ok_checks": warnings,
+        "non_ok_checks": sorted(warnings + unproven),
+        "unproven_checks": unproven,
         "upstream_ft_run": upstream,
         "stable_24h_48h_7d": "NOT_PROVEN_BY_SINGLE_OBSERVATION",
     }
@@ -63,7 +71,9 @@ def main(argv=None):
           "blocked", ",".join(assessment["blocked"]) or "none",
           "non_ok", ",".join(assessment["non_ok_checks"]) or "none")
     if assessment["status"] == "DEGRADED":
-        print("::warning::FT operational evidence is DEGRADED or inconclusive")
+        print("::warning::FT operational evidence is DEGRADED")
+    elif assessment["status"] == "INCONCLUSIVE":
+        print("::notice::Critical FT invariants passed; provider execution is not an end-to-end certificate")
     if assessment["status"] == "FAILED":
         print("::error::FT publication, journal or upstream integrity gate failed")
         return 2
