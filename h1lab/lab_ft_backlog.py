@@ -78,7 +78,9 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
                            checked == now else "VISITED_NO_NEW_EVIDENCE"
                            if evidence_retry else "CONSULTED_THIS_RUN")
         elif key in deferred:
-            queue_state = "DEFERRED_BY_30_GAME_CAP"
+            queue_state = ("DEFERRED_NO_PROVIDER_POLL"
+                           if plan.get("selection_mode") == "NO_PROVIDER_POLL"
+                           else "DEFERRED_BY_30_GAME_CAP")
         elif next_eligible > now:
             queue_state = ("VISIT_COOLDOWN" if visit_due >= evidence_due
                            and visit_due > now else "ADAPTIVE_COOLDOWN")
@@ -139,6 +141,7 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
             "V7 evidence_attempts counts NEW authenticated evidence, not repeated snapshots.",
             "V7 queue_visited_at records an operational visit and independently blocks routine retry for 4h, even when evidence_checked_at is absent.",
             "DUE_NOT_SELECTED means due under both effective-evidence and visit cooldown gates; visit without evidence is NOT counted as an effective check.",
+            "DEFERRED_NO_PROVIDER_POLL is a data-only workflow or deliberate zero provider budget, not an exhausted thirty-game network cap.",
             "V7 last_checked_at/evidence_checked_at includes valid stable confirmations; failures and uncredentialed pushes are excluded.",
             "V7 stable_confirmations backs off identical complete lists 4h -> 12h -> 24h.",
             "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",

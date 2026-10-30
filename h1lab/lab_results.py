@@ -319,6 +319,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     queue_plan = {
         "eligible": len(candidates),
         "selected": len(selected_keys),
+        # A zero budget is deliberate on ordinary push-based refreshes:
+        # every candidate is deferred without provider network requests.
+        "selection_mode": "NO_PROVIDER_POLL" if max_checks == 0 else "BOUNDED_PROVIDER_POLL",
         "deferred_by_capacity": len(deferred_keys),
         "never_checked_eligible": sum(utc(entries[item[3]].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for item in candidates),
         "never_checked_deferred": sum(utc(entries[key].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for key in deferred_keys),
