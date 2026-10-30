@@ -54,8 +54,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/v6-auto"
           python -m scripts.lab_v6_llm_autonomous --mode live --allow-network > "$RUNNER_TEMP/v6-auto/investigation.json"
           python -m json.tool "$RUNNER_TEMP/v6-auto/investigation.json" >/dev/null
-      - name: Save bounded output
-        if: ${{ success() }}
+      - name: Save bounded output (including rejected response audit)
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: v6-llm-autonomous-result

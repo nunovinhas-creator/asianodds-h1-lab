@@ -271,6 +271,7 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
         demo = example['proposals'][0]
         demo['feature_codes'] = list(options[0])
         demo['topic_id'] = 'T05'
+        demo['hypothesis'] = 'A combinacao ' + ', '.join(options[0]) + ' pode acrescentar informacao ao baseline; investigar sem presumir efeito.'
         demo['test_design'] = (
             'Congelar ' + ', '.join(options[0]) +
             ' antes do KO; medir frequencia e FT por jogo e comparar log loss ou Brier em OOS.'
@@ -284,10 +285,14 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
             'as limitacoes em test_design e data_needed.'
         )
     messages = [
-        {'role': 'system', 'content': SYSTEM},
+        {'role': 'system', 'content': (SYSTEM if options is None else SYSTEM.replace(
+            'Podes escolher livremente QUALQUER combinacao elegivel do catalogo completo,',
+            'Escolhe exclusivamente UMA combinacao EXATA de candidate_options, sem misturar codigos entre opcoes,')
+            + (' candidate_options e uma restricao obrigatoria; liberdade apenas no raciocinio.' if options else ''))},
         {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
                                               'source_sha256': packet['source_sha256'],
-                                              'feature_catalogue': packet['feature_catalogue'],
+                                              'feature_catalogue': [f for f in packet['feature_catalogue']
+                                                  if options is None or any(f['code'] in x for x in options)],
                                               'response_schema': example,
                                               'exact_output_example': example,
                                               'candidate_options': options,
@@ -315,7 +320,9 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
     parsed_content = strict_json(content)
     try:
         result = validate_proposals(packet, parsed_content)
-        if options is not None and sorted(result['proposals'][0]['feature_codes']) not in options:
+        if options is not None and (len(result['proposals']) != 1
+                or result['proposals'][0]['topic_id'] != 'T05'
+                or sorted(result['proposals'][0]['feature_codes']) not in options):
             raise ValueError('AUTO_LLM_SELECTED_UNAPPROVED_OR_PREVIOUS_COMBINATION')
         result['provider_usage'] = provider_usage(envelope, model)
         return result
@@ -323,7 +330,11 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
         # No model-generated strings are shown in failures.
         finish_reason = envelope.get('choices', [{}])[0].get('finish_reason', 'unknown')
         finish_reason = finish_reason if finish_reason in ('stop', 'length', 'content_filter') else 'other'
-        raise ValueError('LLM_RESPONSE_REJECTED: finish_reason=' + str(finish_reason) + '; ' + str(exc)) from None
+        error = ValueError('LLM_RESPONSE_REJECTED: finish_reason=' + str(finish_reason) + '; ' + str(exc))
+        error.audit = {'status': 'REJECTED_NOT_PUBLISHED', 'llm_calls': 1,
+                       'finish_reason': finish_reason, 'provider_usage': provider_usage(envelope, model),
+                       'candidate_options': options, 'response_sha256': hashlib.sha256(raw).hexdigest()}
+        raise error from None
 
 
 def provider_usage(envelope, model):
