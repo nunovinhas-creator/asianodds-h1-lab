@@ -25,7 +25,10 @@ class GuardTests(unittest.TestCase):
 
     def test_truncated_and_nonfinite_documents_rejected(self):
         for name, content in [('x.json', b'{"count":'), ('x.json', b'{"count":NaN}'),
-                              ('x.json', b'null'), ('x.jsonl', b'{}\n{'),
+                              ('x.json', b'null'), ('x.json', b'{"score":1e999}'),
+                              ('x.json', b'{"score":-1e999}'),
+                              ('x.jsonl', b'{"nested":{"value":1e999}}\n'),
+                              ('x.jsonl', b'{}\n{'),
                               ('x.jsonl', b'{}'), ('x.jsonl', b'{}\n\n')]:
             with self.subTest(name=name, content=content), self.assertRaises(ValueError):
                 g.validate(name, content)
