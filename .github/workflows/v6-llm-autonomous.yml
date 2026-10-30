@@ -1,0 +1,109 @@
+name: V6 - LLM Autonomous Research (bounded)
+on:
+  schedule:
+    # Four predetermined opportunities/day in UTC. Each run makes at most one
+    # API request, with no retries. Times avoid GitHub's top-of-hour load.
+    - cron: '43 1,7,13,19 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Offline preview (free) or ONE explicit live request'
+        type: choice
+        options: [preview, live_once]
+        default: preview
+        required: true
+      confirmation:
+        description: 'For live_once type AUTONOMIA_LLM_UMA_VEZ'
+        type: string
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+concurrency:
+  group: v6-llm-global
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify autonomous safety contract offline
+        run: python -m unittest tests.test_v6_llm_autonomous -v
+      - name: Inspect candidate pool, zero AI usage
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'preview' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/v6-auto"
+          python -m scripts.lab_v6_llm_autonomous --mode preview > "$RUNNER_TEMP/v6-auto/preview.json"
+          python -m json.tool "$RUNNER_TEMP/v6-auto/preview.json" >/dev/null
+      - name: ONE LLM call with novel candidate pool, no retries
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live_once') }}
+        env:
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MASTER_BRAIN_LLM_API_KEY: ${{ secrets.MASTER_BRAIN_LLM_API_KEY }}
+          LLM_AUTO_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/v6-auto"
+          python -m scripts.lab_v6_llm_autonomous --mode live --allow-network > "$RUNNER_TEMP/v6-auto/investigation.json"
+          python -m json.tool "$RUNNER_TEMP/v6-auto/investigation.json" >/dev/null
+      - name: Save bounded output
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: v6-llm-autonomous-result
+          path: ${{ runner.temp }}/v6-auto/*.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: discover
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.mode == 'live_once') && needs.discover.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: v6-llm-autonomous-result
+          path: ${{ runner.temp }}/v6-auto-review
+      - name: Validate and prepare research-only publication
+        env:
+          RESEARCH_RUN_ID: ${{ github.run_id }}
+          RESEARCH_SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          python -m scripts.lab_v6_llm_publish --input "$RUNNER_TEMP/v6-auto-review/investigation.json" --run-id "$RESEARCH_RUN_ID" --source-commit "$RESEARCH_SOURCE_COMMIT"
+      - name: Publish audit, immutable record, and updated offline queue together
+        env:
+          RESEARCH_RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/lab/llm-investigator-index.json docs/lab/llm-discovery-plan.json "docs/lab/llm-investigator-runs/$RESEARCH_RUN_ID.json"
+          git diff --cached --quiet && exit 0
+          git commit -m "data(llm): autonomous DRAFT $RESEARCH_RUN_ID [skip ci]"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo "LLM_AUTO_DRAFT_PUBLISHED=$RESEARCH_RUN_ID"
+              exit 0
+            fi
+            echo "::warning::Research publication push retry $attempt (no model retry)"
+          done
+          echo "::error::LLM_AUTO_PUBLISH_FAILED"
+          exit 1
