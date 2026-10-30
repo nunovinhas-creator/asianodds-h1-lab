@@ -1,5 +1,6 @@
 """No-network regression for same-run cached FT corroboration."""
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
@@ -88,6 +89,17 @@ class SameRunRecoveryTests(unittest.TestCase):
         self.assertEqual(report["ft_queue"]["dual_postcheck_conflicts"],1)
         self.assertEqual(report["ft_queue"]["same_run_cached_postcheck"]
                          ["score_conflicts"],1)
+
+    def test_second_pass_exception_degrades_health_without_exposing_payload(self):
+        with patch("h1lab.lab_ft_same_run.TwoProviderConsensus.lookup",
+                   side_effect=RuntimeError("sensitive provider payload")):
+            ledger,report,_=self.run_replay()
+        self.assertEqual(ledger["matches"][KEY]["status"],"PENDING")
+        self.assertEqual(report["execution_health"]["status"],"DEGRADED")
+        self.assertEqual(report["execution_health"]["dual_postcheck_errors"],1)
+        self.assertEqual(report["ft_queue"]["same_run_cached_postcheck"]
+                         ["execution_errors"],1)
+        self.assertNotIn("sensitive",str(report))
 
     def test_official_hold_blocks_even_agreed_ft(self):
         ledger,report,_=self.run_replay(hold=[KEY])
