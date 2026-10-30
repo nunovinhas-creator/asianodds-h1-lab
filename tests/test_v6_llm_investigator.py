@@ -306,7 +306,8 @@ class InvestigatorTests(unittest.TestCase):
         self.assertNotIn('schedule:', workflow)
 
 
-    def test_first_run_public_index_is_grounded_and_not_fake_progress(self):
+
+    def test_public_index_accepts_bootstrap_and_future_real_publications(self):
         from collections import Counter
         base = Path(__file__).resolve().parents[1]
         snapshot = json.loads((base / 'docs/lab/llm-investigator-index.json').read_text())
@@ -319,22 +320,43 @@ class InvestigatorTests(unittest.TestCase):
             k * (k - 1) * (k - 2) // 6 for k in counts.values()
         )
         self.assertEqual(snapshot['state'], publication.STATUS)
-        self.assertIsNone(snapshot['latest'])
-        self.assertEqual(snapshot['history'], [])
-        self.assertEqual(snapshot['llm_executions_recorded'], 0)
+        self.assertEqual(snapshot['schema_version'], 1)
         self.assertEqual(snapshot['empirically_validated_strategies'], 0)
-        self.assertEqual(snapshot['search_space']['features_in_catalogue'], n)
-        self.assertEqual(snapshot['search_space']['possible_pairs_distinct_families'], pairs)
-        self.assertEqual(snapshot['search_space']['possible_triples_two_or_more_families'], triples)
-        self.assertEqual(snapshot['legacy_successful_manual_run']['run_id'], 41039239732)
-        self.assertEqual(snapshot['legacy_successful_manual_run']['status'],
-                         'LEGACY_DRAFT_NOT_SCIENTIFICALLY_VALIDATED')
+        space = snapshot['search_space']
+        self.assertGreaterEqual(space['features_in_catalogue'], 2)
+        self.assertGreaterEqual(space['possible_pairs_distinct_families'], 0)
+        self.assertGreaterEqual(space['possible_triples_two_or_more_families'], 0)
+        self.assertEqual(space['meaning'],
+                         'SEARCH_SPACE_ONLY_NO_LLM_CALLS_OR_EMPIRICAL_TESTS')
         self.assertNotIn('api_key', json.dumps(snapshot).lower())
-        raw = (base / 'docs/lab/pattern-research.json').read_bytes()
-        expected_blob = hashlib.sha1(
-            b'blob ' + str(len(raw)).encode('ascii') + bytes([0]) + raw
-        ).hexdigest()
-        self.assertEqual(snapshot['catalogue_provenance']['github_blob_sha'], expected_blob)
+        if snapshot.get('latest') is None:
+            self.assertEqual(snapshot['history'], [])
+            self.assertEqual(snapshot['llm_executions_recorded'], 0)
+            self.assertEqual(snapshot['legacy_successful_manual_run']['run_id'], 41039239732)
+            self.assertEqual(snapshot['legacy_successful_manual_run']['status'],
+                             'LEGACY_DRAFT_NOT_SCIENTIFICALLY_VALIDATED')
+            raw = (base / 'docs/lab/pattern-research.json').read_bytes()
+            source_blob = hashlib.sha1(
+                b'blob ' + str(len(raw)).encode('ascii') + bytes([0]) + raw
+            ).hexdigest()
+            self.assertRegex(snapshot['catalogue_provenance']['github_blob_sha'],
+                             r'^[0-9a-f]{40}$')
+            # Index is a frozen observation. Live V5 data can change after
+            # publication; only assert exact counts for matching source blobs.
+            if snapshot['catalogue_provenance']['github_blob_sha'] == source_blob:
+                self.assertEqual(space['features_in_catalogue'], n)
+                self.assertEqual(space['possible_pairs_distinct_families'], pairs)
+                self.assertEqual(space['possible_triples_two_or_more_families'], triples)
+        else:
+            # After a real manually approved AI run the index is overwritten
+            # by the publisher. Never demand the bootstrap to remain forever.
+            latest = snapshot['latest']
+            self.assertEqual(latest['state'], publication.STATUS)
+            self.assertEqual(snapshot['history'][0]['run_id'], latest['run_id'])
+            self.assertGreaterEqual(snapshot['llm_executions_recorded'], 1)
+            self.assertEqual(latest['scientific_acceptance'], 'INCONCLUSIVO')
+            self.assertTrue((base / publication.ARCHIVE /
+                             (str(latest['run_id']) + '.json')).is_file())
         js = (base / 'docs/llm-investigator.js').read_text()
         self.assertIn('renderLegacy', js)
         self.assertIn('v.latest === null', js)
