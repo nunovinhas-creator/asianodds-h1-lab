@@ -210,6 +210,50 @@ class ConsensusTests(unittest.TestCase):
         self.assertIn(KEY,journal2["conflicts"])
         self.assertIsNone(engine(prior=journal2).lookup(SIGNAL)[0])
 
+    def test_current_invalid_event_cannot_be_replaced_by_saved_ft(self):
+        first = engine()
+        first.adapters["goal"].cache.clear()
+        first.lookup(SIGNAL)
+        journal, _ = merge_attestations(empty_attestations(), first.captured, now=NOW)
+        mutations = [
+            lambda a: a["fixture"]["status"].update(short="LIVE"),
+            lambda a: a["fixture"]["status"].update(short="AET"),
+            lambda a: a["score"]["fulltime"].update(home=None),
+            lambda a: a["teams"]["home"].update(name="Another Club"),
+            lambda a: a["league"].update(name="Another League"),
+        ]
+        for mutate in mutations:
+            with self.subTest(mutate=mutate):
+                second = engine(prior=journal)
+                mutate(second.adapters["api_football"].days[DAY][0])
+                final, reason = second.lookup(SIGNAL)
+                self.assertIsNone(final)
+                self.assertEqual(reason, "dual_provider_current_evidence_invalid")
+                self.assertNotIn(KEY, second.confirmations)
+
+    def test_complete_current_cache_missing_or_duplicating_id_blocks_saved_ft(self):
+        first = engine()
+        first.adapters["goal"].cache.clear()
+        first.lookup(SIGNAL)
+        journal, _ = merge_attestations(empty_attestations(), first.captured, now=NOW)
+        af, _ = fixtures()
+        for rows in ([], [af, copy.deepcopy(af)]):
+            with self.subTest(rows=rows):
+                second = engine(prior=journal)
+                second.adapters["api_football"].days[DAY] = rows
+                self.assertEqual(second.lookup(SIGNAL),
+                    (None, "dual_provider_current_evidence_invalid"))
+
+    def test_goal_current_invalid_status_also_blocks_saved_ft(self):
+        first = engine()
+        first.adapters["api_football"].days.clear()
+        first.lookup(SIGNAL)
+        journal, _ = merge_attestations(empty_attestations(), first.captured, now=NOW)
+        second = engine(prior=journal)
+        second.adapters["goal"].cache[DAY][0]["matchStatus"] = "LIVE"
+        self.assertEqual(second.lookup(SIGNAL),
+            (None, "dual_provider_current_evidence_invalid"))
+
     def test_damaged_or_future_saved_proof_cannot_complete_consensus(self):
         first=engine()
         first.adapters["goal"].cache.clear()
