@@ -36,6 +36,76 @@ def latest_result_checked_at(audit):
     return (max(times).isoformat() if times else None), invalid
 
 
+
+def verify_ft_backlog(ledger, ft, backlog):
+    """Validate one-game partitions; 'never checked' is a SUBSET of overdue."""
+    if not isinstance(backlog,dict) or backlog.get('status')!='FT_BACKLOG_AUDIT_OBSERVATION_ONLY':
+        raise ValueError('Invalid FT backlog status/schema')
+    if backlog.get('schema_version')!=1:
+        raise ValueError('Invalid FT backlog schema')
+    classifications=backlog.get('classification')
+    if not isinstance(classifications,dict):
+        raise ValueError('FT backlog classification missing')
+    if any(type(v) is not int or v<0 for v in classifications.values()):
+        raise ValueError('FT backlog non-integer/negative classification')
+    matches=ledger['matches']
+    n=len(matches)
+    if (backlog.get('total_matches')!=n or ft.get('matches')!=n
+            or classifications.get('verified_ft',0)!=ft.get('final_recorded')):
+        raise ValueError('FT backlog vs ledger/report mismatch')
+    exclusive=('verified_ft','future','in_3h_grace','past_due_unverified',
+               'quarantined_or_identity_review','unknown_kickoff')
+    if any(k not in (*exclusive,'past_due_never_checked','past_due_expired')
+           for k in classifications):
+        raise ValueError('FT backlog unexpected classification')
+    if sum(classifications.get(k,0) for k in exclusive)!=n:
+        raise ValueError('FT backlog nonexclusive partition')
+    overdue=classifications.get('past_due_unverified',0)
+    if (classifications.get('past_due_never_checked',0)>overdue
+            or classifications.get('past_due_expired',0)>overdue):
+        raise ValueError('FT backlog subset exceeds overdue')
+    if (not isinstance(backlog.get('overdue_games'),list)
+            or type(backlog.get('overdue_omitted')) is not int
+            or backlog['overdue_omitted']<0
+            or len(backlog['overdue_games'])+backlog['overdue_omitted']!=overdue):
+        raise ValueError('FT backlog displayed overdue count mismatch')
+    seen=set()
+    for row in backlog['overdue_games']:
+        if not isinstance(row,dict):
+            raise ValueError('FT backlog overdue game invalid')
+        key=row.get('match_key')
+        if not isinstance(key,str) or key not in matches or key in seen:
+            raise ValueError('FT backlog duplicate/unknown fixture identity')
+        if matches[key].get('status')=='FINAL':
+            raise ValueError('FT backlog verified match reported overdue')
+        seen.add(key)
+    diag=ft.get('coverage_diagnostics')
+    if (not isinstance(diag,dict)
+            or diag.get('past_unverified_eligible')!=overdue):
+        raise ValueError('FT backlog differs from coverage diagnostics')
+    queue=backlog.get('queue_plan')
+    if not isinstance(queue,dict):
+        raise ValueError('FT backlog queue plan missing')
+    for key in ('eligible','selected','deferred_by_capacity'):
+        if type(queue.get(key)) is not int or queue[key]<0:
+            raise ValueError('FT backlog invalid queue count')
+    if queue['selected']+queue['deferred_by_capacity']!=queue['eligible']:
+        raise ValueError('FT backlog queue capacity mismatch')
+    if queue['selected']>30:
+        raise ValueError('FT backlog exceeds batch limit')
+    if not isinstance(backlog.get('measured_at'),str):
+        raise ValueError('FT backlog timestamp missing')
+    backlog_at=datetime.fromisoformat(backlog['measured_at'].replace('Z','+00:00'))
+    report_at=datetime.fromisoformat(ft['last_updated_at'].replace('Z','+00:00'))
+    if backlog_at.tzinfo is None or report_at.tzinfo is None:
+        raise ValueError('FT backlog timestamp without timezone')
+    if abs((backlog_at-report_at).total_seconds())>120:
+        raise ValueError('FT backlog and FT report are different generations')
+    return {'matches':n,'final':classifications.get('verified_ft',0),
+            'overdue':overdue,'never_checked_subset':classifications.get('past_due_never_checked',0),
+            'omitted':backlog['overdue_omitted']}
+
+
 def check(root, now):
     root=Path(root)
     if now.tzinfo is None: raise ValueError('aware clock required')
@@ -68,6 +138,15 @@ def check(root, now):
         from h1lab.v6_ft_events import read_events,validate_against_ledger
         validate_against_ledger(read_events(root),ledger)
         record('ft_journal','OK','hash_lineage_and_current_ledger_agree')
+        try:
+            backlog=read('docs/lab/ft-backlog.json')
+            details=verify_ft_backlog(ledger,ft,backlog)
+            record('ft_backlog','OK',details)
+            freshness('ft_backlog_publication',backlog.get('measured_at'),90)
+        except FileNotFoundError:
+            record('ft_backlog','UNKNOWN','backlog_file_missing')
+        except (OSError,ValueError,KeyError,TypeError,AttributeError) as exc:
+            record('ft_backlog','FAILED',dict(reason='backlog_invalid',error_type=type(exc).__name__))
     except (OSError,ValueError,KeyError,TypeError,AttributeError) as exc:
         record('ft_integrity','FAILED',type(exc).__name__)
     try:
