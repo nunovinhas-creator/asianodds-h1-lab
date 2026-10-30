@@ -27,7 +27,7 @@
         },
         {
           "code": "F02_RISING_VS_FLAT",
-          "n": 8,
+          "n": 9,
           "name": "Subidas vs estabilidade",
           "required": "two episode-category cells with >=10 genuine scored FT each",
           "result": "INSUFFICIENT_N"
@@ -41,49 +41,49 @@
         },
         {
           "code": "F04_LEAD_TIME_STRATA",
-          "n": 12,
+          "n": 13,
           "name": "Antecedência do alerta",
           "required": "two lead-time strata each with >=20 eligible FT",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F05_COMPETITION_CONTEXT",
-          "n": 12,
+          "n": 13,
           "name": "Contexto da competição",
           "required": "two heuristic competition types with >=20 scored FT each",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F06_LEAVE_DAY_OUT_AND_TRIM",
-          "n": 12,
+          "n": 13,
           "name": "Robustez entre dias",
           "required": "30 selected FT spanning 3 days, leave-one-day-out and trim highest 5% absolute residual",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F07_RESIDUAL_VS_MARKET",
-          "n": 12,
+          "n": 13,
           "name": "Diferença face ao mercado",
           "required": ">=1000 FT after hypothesis registration across >=3 weeks; mean residual > 5 pp",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F08_COMPETING_MARKET_LINE",
-          "n": 12,
+          "n": 13,
           "name": "Linha como explicação alternativa",
           "required": "two market-line bins with >=20 selected AND 20 controls each",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F09_MATCHED_MARKET_PEERS",
-          "n": 10,
+          "n": 11,
           "name": "Jogos comparáveis",
           "required": "30 no-reuse peers within lambda 0.25 and lead time 6h",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F10_PROSPECTIVE_CONFIRMATION",
-          "n": 12,
+          "n": 13,
           "name": "Validação cronológica",
           "required": "1000 registered genuine FT in >=3 weeks AND source coverage 14-day gate",
           "result": "INSUFFICIENT_N"
@@ -91,7 +91,7 @@
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
       "frozen_matches": 395,
-      "ft_verified": 98,
+      "ft_verified": 100,
       "games": [
         {
           "event_id": "3571094759:51310",
@@ -14848,15 +14848,21 @@
           },
           "frozen_known_at": "2026-10-29T16:46:26+00:00",
           "ft": {
-            "checked_at": null,
-            "event_id": "FT6:fbba0c5090fa885c7bba54ff0ee2",
-            "evidence_level": "NOT_YET_VERIFIED",
-            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
-            "scientific_event_sha256": null,
-            "score": null,
-            "sha256": "f4dbe771b20eb4cedb388750ea64a9374a563df84c149fdb4508a1989430b0f8",
-            "source_url": null,
-            "status": "PENDING"
+            "checked_at": "2026-10-30T02:33:33+00:00",
+            "event_id": "FT6:fba148ef188df2ea116b3a5aabbd",
+            "evidence_level": "SINGLE_PROVIDER",
+            "science_status": "SCIENCE_FT_CONFIRMED",
+            "scientific_event_sha256": "dff018767c1a4cfed0fb42f3ea0f13fbb0924285aa6318c666db485e09790a88",
+            "score": {
+              "away": 1,
+              "evidence": "bsd_only",
+              "home": 2,
+              "identity_match": "REVIEWED_PAIR",
+              "source": "https://sports.bzzoiro.com/api/v2/events/602469/"
+            },
+            "sha256": "762defc59ecb901afdac21ee007b5572bde65a9c717f00ac29a1f02c68cd39be",
+            "source_url": "https://sports.bzzoiro.com/api/v2/events/602469/",
+            "status": "FINAL_WITH_AFTER_KICKOFF_VERIFICATION"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-10-29T23:30:00+00:00",
@@ -15668,15 +15674,21 @@
           },
           "frozen_known_at": "2026-10-29T18:36:30+00:00",
           "ft": {
-            "checked_at": null,
-            "event_id": "FT6:ca93ccf8a1309d7dfcf33721ca56",
-            "evidence_level": "NOT_YET_VERIFIED",
-            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
-            "scientific_event_sha256": null,
-            "score": null,
-            "sha256": "d15c31fe056d684f410629fa36bb9d0c83c0ef841559f5bad70b9a17732ed17c",
-            "source_url": null,
-            "status": "PENDING"
+            "checked_at": "2026-10-30T02:33:33+00:00",
+            "event_id": "FT6:eb861254405125d2529181b5ef8b",
+            "evidence_level": "SINGLE_PROVIDER",
+            "science_status": "SCIENCE_FT_CONFIRMED",
+            "scientific_event_sha256": "7857dfc8ab77d0fa322b210833f8c8ee54928a659de22122be61198e9066dee8",
+            "score": {
+              "away": 0,
+              "evidence": "espn_only",
+              "home": 2,
+              "identity_match": "CORE_NAME",
+              "source": "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.copa_del_rey/summary?event=401928523"
+            },
+            "sha256": "4775fc8706e7238d7222561d73c086217aa010b01d03dac2c3f12f6139d43d22",
+            "source_url": "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.copa_del_rey/summary?event=401928523",
+            "status": "FINAL_WITH_AFTER_KICKOFF_VERIFICATION"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-10-29T19:00:00+00:00",
@@ -29451,21 +29463,21 @@
     "forecasts": "49885d5fd3f0c93e8d92b653fc7a190af3bba481fe4d5c7c2490f9cd6dc74029",
     "observations": "ffbebe72996e687f97291e665831e8c5695bd76a046869150937f81a6f4043f8",
     "patterns": "c9013453c53cb752ae9231e43fbbfde68d3b503c5607abeaa7c0fca4dec729a7",
-    "science_evidence": "b305247591c9731ed5591f67aab62a7ac5d67431ddb6630dea53d5131ada10b3",
-    "universal_ft": "be20b0b7b68786e7802f70f82e46429978a414d52c6b27b88a60a964a00f168b",
+    "science_evidence": "7857dfc8ab77d0fa322b210833f8c8ee54928a659de22122be61198e9066dee8",
+    "universal_ft": "4775fc8706e7238d7222561d73c086217aa010b01d03dac2c3f12f6139d43d22",
     "v4_revisions": "19eaf7d55439e3d4a2da71df716b81fa06811cb59922b330f50d49b58dad6b3e"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
   "totals": {
     "evidence_quality": {
-      "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 98,
-      "PENDING": 297,
+      "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 100,
+      "PENDING": 295,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 140,
       "V4_VERSION_VERIFIED_BEFORE_FREEZE": 255
     },
     "frozen_snapshots": 490,
-    "ft_universal_events": 795,
+    "ft_universal_events": 797,
     "unique_matches": 395,
     "v4_revision_events": 724
   }
