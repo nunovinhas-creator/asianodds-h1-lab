@@ -7,6 +7,28 @@ from scripts.audit_health import (check, latest_result_checked_at, verify_ft_bac
                                   ft_report_generation_at)
 
 class HealthTests(unittest.TestCase):
+    def test_invalid_execution_status_blocks_operational_gate(self):
+        from unittest.mock import patch
+        from scripts.lab_ft_operational_gate import evaluate_health
+        root = Path(__file__).resolve().parents[1]
+        original = Path.read_text
+        now = datetime.fromisoformat(json.loads(
+            (root/'docs/data.json').read_text())['generated_at'])
+        for invalid in ('BROKEN_SCHEMA', None, 1, [], {}):
+            with self.subTest(invalid=invalid):
+                def altered(path, *args, **kwargs):
+                    text = original(path, *args, **kwargs)
+                    if path == root/'docs/lab/ft-results.json':
+                        value = json.loads(text)
+                        value['execution_health']['status'] = invalid
+                        return json.dumps(value)
+                    return text
+                with patch.object(Path, 'read_text', altered):
+                    result = check(root, now)
+                statuses = {x['name']: x['status'] for x in result['checks']}
+                self.assertEqual(statuses['ft_execution'], 'FAILED')
+                self.assertEqual(evaluate_health(result)['status'], 'FAILED')
+
     def test_missing_outputs_never_healthy(self):
         with tempfile.TemporaryDirectory() as t:
             r=check(t,datetime(2026,10,29,tzinfo=timezone.utc))
