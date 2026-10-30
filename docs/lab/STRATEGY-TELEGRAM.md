@@ -1,4 +1,4 @@
-# MASTER BRAIN — alertas Telegram: cinco estratégias V5
+# ARQUIVO HISTÓRICO — cinco estratégias V5 (29/10/2026)\n\n**Desativado no Telegram em 30/10/2026.** A configuração atualmente ativa é [E4 isolada e combinada](TELEGRAM-E4.md). O conteúdo abaixo descreve o sistema anterior e não deve ser interpretado como notificações atuais.\n\n# MASTER BRAIN — alertas Telegram: cinco estratégias V5
 
 **Ativação:** PR #110, substitui exclusivamente a etapa de notificações em `.github/workflows/collect.yml`. **O coletor H1, o reconciliador FT e os seus estados não são desligados.** O emissor anterior (`h1lab.pattern_notify`) deixa de ser chamado; `data/pattern-notifications.json` mantém os recibos antigos inalterados.
 

@@ -306,9 +306,10 @@ class FiveStrategyTests(unittest.TestCase):
 
     def test_workflow_switch_disables_generic_sender(self):
         text=(REPO/".github/workflows/collect.yml").read_text(encoding="utf-8")
-        self.assertIn("python -m h1lab.strategy_notify",text)
+        self.assertIn("python -m h1lab.e4_notify",text)
+        self.assertNotIn("run: python -m h1lab.strategy_notify",text)
         self.assertNotIn("run: python -m h1lab.pattern_notify",text)
-        self.assertIn("git add data/strategy-notifications.json",text)
+        self.assertIn("git add data/e4-notifications.json",text)
 
     def test_real_root_runner_does_not_send_or_create_legacy_receipts(self):
         with tempfile.TemporaryDirectory() as tmp:
