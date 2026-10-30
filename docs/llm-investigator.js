@@ -122,7 +122,10 @@
       if (!run || !Number.isSafeInteger(run.run_id) || !v.history.length || v.history[0].run_id !== run.run_id) {
         throw new Error("Índice e última execução não coincidem");
       }
-      text(state, "Modo manual · último cruzamento publicado · sem investigação em segundo plano.");
+      const automatic = run.autonomy && run.autonomy.status === "SHADOW_EXPLORATION_NOT_VALIDATION";
+      text(state, automatic
+        ? "Investigador autónomo controlado · última proposta publicada · máximo de 4 oportunidades/dia, sem garantia de execução"
+        : "Última proposta manual publicada · autonomia agendada separadamente, sem resultados automáticos confirmados neste registo.");
       text($("latest-meta"), "Run #" + run.run_id + " · " + run.recorded_at_utc + " · Modelo " + run.model + " · Neurons: não medidos no relatório");
       if (run.provider_usage) {
         const u = run.provider_usage;
@@ -131,6 +134,12 @@
           " · Neurons: não medidos · quota da conta não verificada");
       }
       renderProposal(Array.isArray(run.proposals) ? run.proposals[0] : null);
+      if (automatic) {
+        block(latest, "Seleção autónoma e proveniência",
+              "Candidato " + String(run.autonomy.candidate_id || "").slice(0, 14) +
+              " · origem " + run.autonomy.trigger +
+              " · escolha offline sem seleção pelo ROI. A IA produziu uma hipótese, não um teste empírico.");
+      }
       v.history.forEach(e => history.appendChild(row(e)));
     } catch (err) {
       text(state, "Erro na leitura do relatório. Consultar GitHub Actions; não é possível confirmar o estado atual.");

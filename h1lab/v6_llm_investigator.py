@@ -6,6 +6,7 @@ Telegram message or betting output is read or modified by this module.
 from __future__ import annotations
 
 import hashlib
+import copy
 import json
 import math
 import re
@@ -239,23 +240,58 @@ def validate_proposals(packet, response):
             'notice': 'Untrusted LLM text; contract validation is not factual validation. No effects on V6 or bets.'}
 
 
-def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
-    """One explicitly requested, bounded request. Never called by repo workflows."""
+def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_options=None):
+    """At most one bounded request; optional offline-selected research choices."""
     parsed = urlsplit(endpoint)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError('An explicit HTTPS endpoint is required')
     if not isinstance(model, str) or not (1 <= len(model) <= 100):
         raise ValueError('An explicit model is required')
-    # Keep the example and validated packet contract in sync.
+    # Automated discovery: a deterministic offline planner supplies NEW eligible
+    # combinations. The LLM can freely reason about mechanisms, controls and
+    # falsification, but may not quietly switch to a previously used combination.
     example = packet['response_schema']
+    candidate_instruction = 'Devolve UMA proposta com feature_codes reais de pelo menos duas familias, metric e control_group. Segue as chaves exatas do exemplo.'
+    options = None
+    if candidate_options is not None:
+        if (not isinstance(candidate_options, list) or not 1 <= len(candidate_options) <= 3):
+            raise ValueError('INVALID_AUTO_CANDIDATE_POOL')
+        families = {f['code']: f['family'] for f in packet['feature_catalogue']}
+        options = []
+        for codes in candidate_options:
+            if (not isinstance(codes, list) or not 2 <= len(codes) <= 3
+                    or any(not isinstance(c, str) or c not in families for c in codes)
+                    or len(set(codes)) != len(codes)
+                    or len({families[c] for c in codes}) != len(codes)):
+                raise ValueError('INVALID_AUTO_CANDIDATE_POOL')
+            options.append(sorted(codes))
+        if len({tuple(x) for x in options}) != len(options):
+            raise ValueError('DUPLICATE_AUTO_CANDIDATE')
+        example = copy.deepcopy(packet['response_schema'])
+        demo = example['proposals'][0]
+        demo['feature_codes'] = list(options[0])
+        demo['topic_id'] = 'T05'
+        demo['test_design'] = (
+            'Congelar ' + ', '.join(options[0]) +
+            ' antes do KO; medir frequencia e FT por jogo e comparar log loss ou Brier em OOS.'
+        )
+        candidate_instruction = (
+            'Escolhe exatamente UMA das combinacoes de candidate_options (sem criar outra); '
+            'podes raciocinar livremente sobre mecanismos, enviesamentos, hipoteses alternativas, '
+            'controlos, falsificacao, sazonalidade, selecao e limites dos dados. '
+            'Nao inventes numeros nem alegues resultados. Usa T05 e segue EXATAMENTE o esquema. '
+            'Se nenhuma combinacao parecer promissora, escolhe a mais falsificavel e explicita '
+            'as limitacoes em test_design e data_needed.'
+        )
     messages = [
         {'role': 'system', 'content': SYSTEM},
         {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
                                               'source_sha256': packet['source_sha256'],
                                               'feature_catalogue': packet['feature_catalogue'],
-                                              'response_schema': packet['response_schema'],
+                                              'response_schema': example,
                                               'exact_output_example': example,
-                                              'instruction': 'Devolve UMA proposta com feature_codes reais de pelo menos duas familias, metric e control_group. Segue as chaves exatas do exemplo.'}, ensure_ascii=False)}
+                                              'candidate_options': options,
+                                              'instruction': candidate_instruction}, ensure_ascii=False)}
     ]
     body = json.dumps({'model': model, 'messages': messages, 'temperature': 0,
                        'max_tokens': 1600, 'response_format': {'type': 'json_object'}}).encode('utf-8')
@@ -279,6 +315,8 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
     parsed_content = strict_json(content)
     try:
         result = validate_proposals(packet, parsed_content)
+        if options is not None and sorted(result['proposals'][0]['feature_codes']) not in options:
+            raise ValueError('AUTO_LLM_SELECTED_UNAPPROVED_OR_PREVIOUS_COMBINATION')
         result['provider_usage'] = provider_usage(envelope, model)
         return result
     except (ValueError, KeyError, TypeError) as exc:

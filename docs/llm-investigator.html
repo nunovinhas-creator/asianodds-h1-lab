@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#090f19">
-  <meta name="description" content="MASTER BRAIN — acompanhar o Investigador LLM: cruzamentos propostos, evidência e histórico manual auditável.">
+  <meta name="description" content="MASTER BRAIN — Investigador LLM autónomo controlado, cruzamentos, consumo e propostas DRAFT auditáveis.">
   <title>Investigador LLM | MASTER BRAIN</title>
   <link rel="stylesheet" href="./master-brain.css">
   <link rel="stylesheet" href="./llm-investigator.css">
-  <script defer src="./llm-investigator.js?v=20261030-strict-families-127"></script>
+  <script defer src="./llm-investigator.js?v=20261030-autonomous-v1"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Saltar para a investigação</a>
@@ -28,7 +28,8 @@
       <p>A IA propõe hipóteses a partir do catálogo V5. O motor estatístico e os resultados reais é que poderão, mais tarde, testá-las. Aqui podes acompanhar o que a IA propôs e as fontes usadas — sem confundir sugestões com apostas.</p>
       <div class="llm-flag" id="runtime-state" role="status" aria-live="polite">A consultar o relatório publicado…</div>
       <div class="llm-actions">
-        <a class="llm-action" href="https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/v6-llm-investigator.yml">Execuções e investigação manual</a>
+        <a class="llm-action" href="https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/v6-llm-autonomous.yml">Execuções autónomas e pré-visualização</a>
+        <a class="llm-action secondary" href="https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/v6-llm-investigator.yml">Investigação manual</a>
         <a class="llm-action secondary" href="./lab/llm-investigator-index.json">Dados publicados (JSON)</a>
         <button id="refresh-llm" type="button">Atualizar painel</button>
       </div>
@@ -43,18 +44,18 @@
       <section class="llm-panel" aria-labelledby="latest-heading">
         <div class="llm-panel-heading"><div><div class="eyebrow">ÚLTIMA INVESTIGAÇÃO PUBLICADA</div><h2 id="latest-heading">O que a LLM propôs</h2></div><span class="llm-chip">DRAFT · NÃO VALIDADO</span></div>
         <p class="llm-muted" id="latest-meta">A verificar a primeira experiência real e as propostas do novo contrato…</p>
-        <div id="latest-detail" class="llm-detail" aria-live="polite"><p>A recuperar a investigação real anterior; novas propostas só aparecem após execução manual.</p></div>
+        <div id="latest-detail" class="llm-detail" aria-live="polite"><p>A recuperar o histórico da investigação; novos registos só após chamadas válidas e publicação.</p></div>
       </section>
       <aside class="llm-panel" aria-labelledby="limits-heading">
         <div class="eyebrow">FONTE E MÉTODO</div>
         <h2 id="limits-heading">O que está realmente a acontecer</h2>
         <div class="llm-timeline">
           <div><b>01 · Explorar</b><span>49 variáveis potenciais V5, incluindo Total, 1X2, handicap, tempo e movimentos. Não significa que todos os cruzamentos tenham sido testados.</span></div>
-          <div><b>02 · Propor</b><span>Apenas quando executado manualmente: um pedido à Cloudflare Workers AI e uma proposta sujeita ao validador.</span></div>
+          <div><b>02 · Propor</b><span>Quatro oportunidades por dia (01h43, 07h43, 13h43 e 19h43 UTC), uma única chamada no máximo por execução. A LLM desenvolve e critica a hipótese; não inventa resultados.</span></div>
           <div><b>03 · Rever</b><span>Requer cruzamento concreto, hipótese nula, grupo de controlo e dados necessários para um teste futuro.</span></div>
           <div><b>04 · Testar</b><span>Gates V6 e resultados FT prospetivos verificados; nenhuma promoção automática para Telegram ou apostas.</span></div>
         </div>
-        <p class="llm-warning">A ferramenta não trabalha autonomamente entre execuções manuais. Não existem pesquisas científicas contínuas nem custo de neurons por simplesmente veres este painel.</p>
+        <p class="llm-warning">A autonomia é limitada a quatro oportunidades diárias e pode falhar ou ser atrasada pelo GitHub Actions. A quota real da conta e os neurons por chamada não são medidos automaticamente; acompanhar na Cloudflare. Ver o painel não faz chamadas à IA. Nenhuma hipótese é uma aposta validada.</p>
       </aside>
     </div>
     <section class="llm-panel" aria-label="Primeiro ensaio histórico antes do novo painel">
@@ -74,9 +75,9 @@
       <p>Enumeração com uma variável por família. Ordem determinística, sem seleção por ROI. Candidatos ainda não são hipóteses propostas, testadas ou validadas.</p>
       <ul id="offline-queue"></ul>
     </section>
-    <script src="./llm-discovery-plan.js?v=20261030-strict-families-127" defer></script>
+    <script src="./llm-discovery-plan.js?v=20261030-autonomous-v1" defer></script>
   </main>
-  <footer>MASTER BRAIN · PROPOSTAS EXPLORATÓRIAS · SEM PROVAS DE RENTABILIDADE · <span title="Versão dos recursos estáticos">Painel v20261030.127</span> ·  <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/issues/63">Gate científico V6</a></footer>
+  <footer>MASTER BRAIN · PROPOSTAS EXPLORATÓRIAS · SEM PROVAS DE RENTABILIDADE · <span title="Versão dos recursos estáticos">Painel v20261030.AUTO1</span> ·  <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/issues/63">Gate científico V6</a></footer>
 </div>
 </body>
 </html>

@@ -308,8 +308,8 @@ class InvestigatorTests(unittest.TestCase):
         self.assertIn('llm-investigator.html', home)
         self.assertIn('llm-investigator-index.json', page)
         # Every incompatible schema change must refresh the static-script URL.
-        self.assertIn('llm-investigator.js?v=20261030-strict-families-127', page)
-        self.assertIn('llm-discovery-plan.js?v=20261030-strict-families-127', page)
+        self.assertIn('llm-investigator.js?v=20261030-autonomous-v1', page)
+        self.assertIn('llm-discovery-plan.js?v=20261030-autonomous-v1', page)
         self.assertNotIn('llm-investigator.js?v=20261030-initial-state', page)
         self.assertIn('possible_triples_distinct_families', js)
         self.assertNotIn('possible_triples_two_or_more_families', js)

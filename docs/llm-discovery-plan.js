@@ -14,7 +14,7 @@
     status.textContent = "Fotografia offline · pares: " + p.distinct_family_space["2"] +
       " · triplos com três famílias: " + p.distinct_family_space["3"] +
       " · por propor: " + p.remaining + " · já propostos: " + p.previously_proposed_unique +
-      " · 0 chamadas IA · 0 testes empíricos. Atualização manual; não acompanha novas execuções automaticamente.";
+      " · fila gerada sem IA · 0 testes empíricos. Atualizada após cada publicação de investigação válida; pode haver atraso de GitHub Pages.";
     queue.replaceChildren();
     p.queue.forEach(c => {
       const li = document.createElement("li");
