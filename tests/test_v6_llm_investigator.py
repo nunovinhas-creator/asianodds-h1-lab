@@ -28,7 +28,7 @@ class InvestigatorTests(unittest.TestCase):
             mod.SOURCES[3]: {'schema_version': 1, 'latest': {'overall': 'INSUFFICIENT_HISTORY'}},
             mod.SOURCES[4]: {'schema_version': 1, 'pattern_catalogue': {
                 'G_FIRST_LEAD_LT_6H': {'family': 'TIME', 'description': 'Primeiro alerta a menos de 6h'},
-                'M_TOTAL_UP': {'family': 'MARKET', 'description': 'Movimento de Total para cima'}}},
+                'M_TOTAL_UP': {'family': '1X2', 'description': 'Movimento de Total para cima'}}},
         }
         for name, body in sources.items():
             target = self.root / name
