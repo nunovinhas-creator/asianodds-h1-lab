@@ -50,7 +50,7 @@ function render(){
  const filter=byId("filter").value,query=byId("search").value.toLocaleLowerCase();
  const view=games.filter(g=>{
   const flags=Object.values(g.last_attempt_provider_reasons||{}).join(" ").toLowerCase();
-  const ok=filter==="all" || filter==="never"&&g.attempts===0 ||
+  const ok=filter==="all" || filter==="never"&&g.last_checked_at==null ||
    filter==="capacity"&&g.queue_state==="DEFERRED_BY_30_GAME_CAP" ||
    filter==="cooldown"&&g.queue_state==="ADAPTIVE_COOLDOWN" ||
    filter==="review"&&(/identity|regulation|ambiguous|conflict/.test(flags)) ||
