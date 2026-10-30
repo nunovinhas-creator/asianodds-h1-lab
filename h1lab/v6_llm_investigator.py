@@ -107,7 +107,7 @@ def build_packet(root):
             raise ValueError('Invalid feature catalogue entry')
         family = details['family']
         description = details['description']
-        if not re.fullmatch(r'[A-Z][A-Z_]{1,30}', family) or len(description) > 140 or any(ord(c) < 32 for c in description):
+        if not re.fullmatch(r'[A-Z0-9][A-Z0-9_]{1,30}', family) or len(description) > 140 or any(ord(c) < 32 for c in description):
             raise ValueError('Unsafe feature description')
         features.append({'code': code, 'family': family, 'description': description})
     if len(features) > 60:
