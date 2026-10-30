@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-30T09:51:39+00:00",
+ "generated_at": "2026-10-30T09:56:42+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,52 +23,296 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 188
+  "timelines_published": 189
  },
  "schema_version": 1,
- "source_commit": "b6ce13aa5b0fcc07fcb240e33881671e54ccad66",
+ "source_commit": "231331dd6dc274924396f3e9c66363604853f829",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 597,
+  "matches": 598,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 859,
+  "messages": 861,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 450,
+  "messages_on_repeated_matches": 452,
   "messages_v4_only": 0,
-  "messages_with_v4": 785,
-  "movement_episodes_upper_bound": 822,
-  "possibly_redundant_snapshots": 27,
+  "messages_with_v4": 787,
+  "movement_episodes_upper_bound": 823,
+  "possibly_redundant_snapshots": 28,
   "post_kickoff_messages": 23,
-  "related_message_pairs": 37,
+  "related_message_pairs": 38,
   "related_pairs_by_class": {
-   "SAME_MOVEMENT_DIFFERENT_MESSAGE": 37
+   "SAME_MOVEMENT_DIFFERENT_MESSAGE": 38
   },
   "related_pairs_by_evidence": {
-   "IDENTICAL_TOTAL_SNAPSHOT": 27,
+   "IDENTICAL_TOTAL_SNAPSHOT": 28,
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 10
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 188,
+  "repeated_matches": 189,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1252
+   "V4_EXPLICIT": 1256
   },
   "total_line_reversals_on_repeated": 88,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 31,
    "CONTINUOUS": 136,
-   "SAME_MOVEMENT_REPEAT": 37,
+   "SAME_MOVEMENT_REPEAT": 38,
    "UNOBSERVED_CHANGE": 58
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 236,
-   "one_x_two:AGREE": 231,
-   "total:AGREE": 785
+   "asian_handicap:AGREE": 237,
+   "one_x_two:AGREE": 232,
+   "total:AGREE": 787
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51441",
+    "3571094759:51442"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51441",
+     "message_id": 51441,
+     "minutes_to_kickoff": 12816.8,
+     "observed_at": "2026-10-30T09:53:11+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 1.88,
+        "home_price": 1.98,
+        "line": -1.0
+       },
+       "before": {
+        "away_price": 2.0,
+        "home_price": 1.88,
+        "line": -0.75
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 1.64,
+        "before": 1.72
+       },
+       "2": {
+        "after": 3.98,
+        "before": 3.31
+       },
+       "X": {
+        "after": 5.2,
+        "before": 4.79
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 4.0,
+        "over_price": 2.0,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 3.75,
+        "over_price": 1.84,
+        "under_price": 1.98
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": -11.5,
+     "trigger_market": "1x2",
+     "trigger_selection": "1",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51442",
+     "message_id": 51442,
+     "minutes_to_kickoff": 12816.8,
+     "observed_at": "2026-10-30T09:53:12+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.0,
+        "over_price": 2.0,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 3.75,
+        "over_price": 1.84,
+        "under_price": 1.98
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-30T09:53:11+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-08T07:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-30T09:53:12+00:00",
+   "match_key": "2026-11-08,10052947,10012059",
+   "match_label": "Yunnan Yukun vs Wuhan Three Towns",
+   "movement_episodes": [
+    [
+     "3571094759:51441",
+     "3571094759:51442"
+    ]
+   ],
+   "movement_episodes_upper_bound": 1,
+   "possibly_redundant_event_ids": [
+    "3571094759:51442"
+   ],
+   "post_kickoff_messages": 0,
+   "related_messages": [
+    {
+     "action": "ANNOTATE_ONLY_NEVER_DELETE",
+     "classification": "SAME_MOVEMENT_DIFFERENT_MESSAGE",
+     "events": [
+      "3571094759:51441",
+      "3571094759:51442"
+     ],
+     "evidence": "IDENTICAL_TOTAL_SNAPSHOT",
+     "identical_markets": [
+      "total"
+     ],
+     "mixed_origin": false,
+     "possibly_redundant_snapshot": true,
+     "separation_seconds": 1.0,
+     "shared_markets": [
+      "total"
+     ],
+     "total_fields_differing": [],
+     "trigger_markets": [
+      "1x2",
+      "total"
+     ]
+    }
+   ],
+   "seconds_between_messages": [
+    1.0
+   ],
+   "trajectory": {
+    "asian_handicap": {
+     "first_observed_line": -0.75,
+     "last_observed_line": -1.0,
+     "net_observed_change": -0.25,
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "after": -1.0,
+       "before": -0.75,
+       "event_id": "3571094759:51441",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": []
+    },
+    "one_x_two": {
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "1": [
+        1.72,
+        1.64
+       ],
+       "2": [
+        3.31,
+        3.98
+       ],
+       "X": [
+        4.79,
+        5.2
+       ],
+       "event_id": "3571094759:51441",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "transitions": []
+    },
+    "total": {
+     "first_observed_line": 3.75,
+     "last_observed_line": 4.0,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 4.0,
+       "before": 3.75,
+       "event_id": "3571094759:51441",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.0,
+       "before": 3.75,
+       "event_id": "3571094759:51442",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51441",
+       "line": "SAME_MOVEMENT_REPEAT",
+       "next_before_line": 3.75,
+       "previous_after_line": 4.0,
+       "to": "3571094759:51442"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
