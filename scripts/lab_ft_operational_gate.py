@@ -48,7 +48,7 @@ def main(argv=None):
     assessment = evaluate_health(health, upstream=args.upstream)
     result = {"schema_version": 1,
               "observed_at_utc": now.isoformat(timespec="seconds"),
-              "root_commit": os.environ.get("GITHUB_SHA", "local"),
+              "root_commit": os.environ.get("FT_CHECKOUT_SHA", "local"),
               "health": health, "assessment": assessment,
               "limitations": [
                   "One observation does not prove 24h, 48h or 7d stability.",
