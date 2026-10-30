@@ -128,7 +128,52 @@ class InvestigatorTests(unittest.TestCase):
         self.assertNotIn('secret-DO-NOT-PRINT', request.data.decode())
         self.assertEqual(payload['temperature'], 0)
         self.assertEqual(payload['max_tokens'], 1600)
+        self.assertEqual(payload['response_format'], {'type': 'json_object'})
+        self.assertEqual(len(payload['messages']), 2)
+        user = json.loads(payload['messages'][1]['content'])
+        self.assertEqual(user['exact_output_example']['schema_version'], 1)
+        self.assertEqual(len(user['exact_output_example']['proposals']), 1)
+        self.assertEqual(user['exact_output_example']['proposals'][0]['status'], 'DRAFT')
+        self.assertIn('proposals', payload['messages'][0]['content'])
         self.assertEqual(self.snapshot(), self.before)
+
+    def test_model_contract_mismatch_is_fail_closed_with_safe_diagnostics(self):
+        packet = mod.build_packet(self.root)
+        class Response:
+            status = 200
+            def __init__(self, content, finish_reason):
+                self.payload = json.dumps({
+                    'choices': [{'message': {'content': content}, 'finish_reason': finish_reason}]
+                }).encode('utf-8')
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self, size): return self.payload
+        for invalid, reason, expect in [
+            ({'response': 'TOP_SECRET_MODEL_TEXT'}, 'stop', 'unexpected_keys=True'),
+            ({'proposals': [self.proposal()]}, 'length', 'version_1=False'),
+            ({'schema_version': 1, 'proposals': 'TOP_SECRET_MODEL_TEXT'}, 'stop', 'Unbounded or empty'),
+        ]:
+            with self.subTest(invalid=invalid):
+                response = Response(json.dumps(invalid), reason)
+                with self.assertRaises(ValueError) as caught:
+                    mod.invoke(packet, endpoint='https://example.test/v1/chat/completions',
+                               model='test', opener=lambda req, timeout: response)
+                error = str(caught.exception)
+                self.assertIn('LLM_RESPONSE_REJECTED', error)
+                self.assertIn(expect, error)
+                self.assertNotIn('TOP_SECRET_MODEL_TEXT', error)
+        self.assertEqual(self.snapshot(), self.before)
+
+    def test_malformed_proposal_fields_fail_as_validation_errors(self):
+        packet = mod.build_packet(self.root)
+        for malformed in [
+            self.proposal(topic_id={'unexpected': 'object'}),
+            self.proposal(source_refs=[{'unexpected': 'object'}]),
+            self.proposal(source_refs=[['unexpected']]),
+        ]:
+            with self.subTest(malformed=malformed):
+                with self.assertRaises(ValueError):
+                    mod.validate_proposals(packet, {'schema_version': 1, 'proposals': [malformed]})
 
     def test_workflow_only_manual_no_provider_credentials(self):
         workflow = (Path(__file__).resolve().parents[1] / '.github/workflows/v6-llm-investigator.yml').read_text()
