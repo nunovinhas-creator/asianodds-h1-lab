@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T13:21:35+00:00",
+  "generated_at": "2026-10-30T13:26:41+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 131,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 65.5
+      "matches": 132,
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 65.7
     },
     "both_total_and_1x2": {
       "matches": 132,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 66.0
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 65.7
     },
     "opposing_intra_alert_directions": {
-      "matches": 48,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 24.0
+      "matches": 49,
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 24.4
     },
     "with_ambiguous_repeats": {
       "matches": 30,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 15.0
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 14.9
     },
     "with_identical_total_snapshots": {
       "matches": 29,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 14.5
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 14.4
     },
     "with_mixed_origin_total": {
       "matches": 20,
-      "of_repeated_matches_analysed": 200,
+      "of_repeated_matches_analysed": 201,
       "percentage_descriptive": 10.0
     },
     "with_only_legacy_total": {
       "matches": 9,
-      "of_repeated_matches_analysed": 200,
+      "of_repeated_matches_analysed": 201,
       "percentage_descriptive": 4.5
     },
     "with_only_v4_total": {
-      "matches": 171,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 85.5
+      "matches": 172,
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 85.6
     },
     "with_post_kickoff_alerts": {
       "matches": 13,
-      "of_repeated_matches_analysed": 200,
+      "of_repeated_matches_analysed": 201,
       "percentage_descriptive": 6.5
     },
     "with_related_alerts": {
       "matches": 39,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 19.5
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 19.4
     },
     "with_unobserved_line_gaps": {
-      "matches": 55,
-      "of_repeated_matches_analysed": 200,
-      "percentage_descriptive": 27.5
+      "matches": 56,
+      "of_repeated_matches_analysed": 201,
+      "percentage_descriptive": 27.9
     }
   },
   "opposing_direction_examples": [
@@ -115,6 +115,19 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,1290,1507",
       "match_label": "AEL Larisa vs OFI Crete"
+    },
+    {
+      "directions": [
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50843",
+        "3571094759:51483"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-30,892,63183",
+      "match_label": "AFC Rapid Bucureşti vs FC Csikszereda Miercurea Ciuc"
     },
     {
       "directions": [
@@ -246,37 +259,22 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-01,543,10016552",
       "match_label": "CD Tenerife vs FC Andorra"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50624",
-        "3571094759:50789",
-        "3571094759:50977"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-28,55001,10054174",
-      "match_label": "CS Sporting Voinţa Lieşti vs ACS FC Bacau"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 621,
+    "all_distinct_matches": 622,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 480,
-    "messages_in_source": 901,
-    "repeated_matches_analysed": 200,
-    "repeated_matches_in_source": 200,
+    "events_analysed": 482,
+    "messages_in_source": 903,
+    "repeated_matches_analysed": 201,
+    "repeated_matches_in_source": 201,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "dd8459a3082c8748f1b8009a4fa2c1792fe9538f",
-  "source_generated_at": "2026-10-30T13:21:34+00:00",
+  "source_commit": "afcfb2bcf5d59dc8777ce0040c0faac43c49cf1b",
+  "source_generated_at": "2026-10-30T13:26:41+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
@@ -284,16 +282,16 @@
       "AFTER_KICKOFF": 13,
       "T_0_TO_60": 89,
       "T_360_TO_1440": 70,
-      "T_60_TO_360": 80,
-      "T_OVER_1440": 54,
+      "T_60_TO_360": 81,
+      "T_OVER_1440": 55,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 16,
       "T_0_TO_60": 133,
       "T_360_TO_1440": 116,
-      "T_60_TO_360": 115,
-      "T_OVER_1440": 100,
+      "T_60_TO_360": 116,
+      "T_OVER_1440": 101,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
@@ -301,17 +299,17 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 438
+      "V4_EXPLICIT": 440
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 36.7,
-      "FLAT": 26.9,
+      "FLAT": 26.8,
       "UP": 36.5
     },
-    "down": 176,
+    "down": 177,
     "flat": 129,
-    "messages_with_total": 480,
-    "up": 175,
+    "messages_with_total": 482,
+    "up": 176,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
@@ -322,6 +320,6 @@
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 10,
     "same_movement_repeat": 39,
-    "unobserved_change": 62
+    "unobserved_change": 63
   }
 }
