@@ -305,6 +305,61 @@ class InvestigatorTests(unittest.TestCase):
         self.assertIn('llm-investigator-runs/', workflow)
         self.assertNotIn('schedule:', workflow)
 
+
+    def test_first_run_public_index_is_grounded_and_not_fake_progress(self):
+        from collections import Counter
+        base = Path(__file__).resolve().parents[1]
+        snapshot = json.loads((base / 'docs/lab/llm-investigator-index.json').read_text())
+        actual = json.loads((base / 'docs/lab/pattern-research.json').read_text())
+        catalogue = actual['pattern_catalogue']
+        counts = Counter(item['family'] for item in catalogue.values())
+        n = len(catalogue)
+        pairs = n * (n - 1) // 2 - sum(k * (k - 1) // 2 for k in counts.values())
+        triples = n * (n - 1) * (n - 2) // 6 - sum(
+            k * (k - 1) * (k - 2) // 6 for k in counts.values()
+        )
+        self.assertEqual(snapshot['state'], publication.STATUS)
+        self.assertIsNone(snapshot['latest'])
+        self.assertEqual(snapshot['history'], [])
+        self.assertEqual(snapshot['llm_executions_recorded'], 0)
+        self.assertEqual(snapshot['empirically_validated_strategies'], 0)
+        self.assertEqual(snapshot['search_space']['features_in_catalogue'], n)
+        self.assertEqual(snapshot['search_space']['possible_pairs_distinct_families'], pairs)
+        self.assertEqual(snapshot['search_space']['possible_triples_two_or_more_families'], triples)
+        self.assertEqual(snapshot['legacy_successful_manual_run']['run_id'], 41039239732)
+        self.assertEqual(snapshot['legacy_successful_manual_run']['status'],
+                         'LEGACY_DRAFT_NOT_SCIENTIFICALLY_VALIDATED')
+        self.assertNotIn('api_key', json.dumps(snapshot).lower())
+        raw = (base / 'docs/lab/pattern-research.json').read_bytes()
+        expected_blob = hashlib.sha1(
+            b'blob ' + str(len(raw)).encode('ascii') + b'\\x00' + raw
+        ).hexdigest()
+        self.assertEqual(snapshot['catalogue_provenance']['github_blob_sha'], expected_blob)
+        js = (base / 'docs/llm-investigator.js').read_text()
+        self.assertIn('renderLegacy', js)
+        self.assertIn('v.latest === null', js)
+        self.assertIn('history.replaceChildren', js)
+        self.assertNotIn('innerHTML', js)
+
+    def test_first_real_new_run_replaces_bootstrap_without_forging_history(self):
+        base = Path(__file__).resolve().parents[1]
+        bootstrap = (base / 'docs/lab/llm-investigator-index.json').read_text()
+        initial = self.root / publication.INDEX
+        initial.parent.mkdir(parents=True, exist_ok=True)
+        initial.write_text(bootstrap)
+        packet = mod.build_packet(self.root)
+        output = mod.validate_proposals(packet, {
+            'schema_version': 1, 'proposals': [self.proposal()]
+        })
+        result = publication.publish(self.root, output,
+                   run_id='41039239734', commit_sha='b' * 40,
+                   when='2026-10-30T10:30:00Z')
+        self.assertEqual(result['latest']['run_id'], 41039239734)
+        self.assertEqual(result['llm_executions_recorded'], 1)
+        self.assertEqual([x['run_id'] for x in result['history']], [41039239734])
+        self.assertEqual(result['empirically_validated_strategies'], 0)
+        self.assertIsNotNone(result['latest']['proposals'][0]['feature_codes'])
+
     def test_cli_dossier_stdout_only(self):
         from contextlib import redirect_stdout
         from io import StringIO
