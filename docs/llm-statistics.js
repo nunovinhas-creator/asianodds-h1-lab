@@ -41,7 +41,7 @@
     root.append(el('div','PYTHON · DADOS REAIS · ZERO CHAMADAS IA','eyebrow'),el('h2','O que já foi testado com jogos reais'));
     const age = Date.now()-new Date(d.generated_at).getTime();
     root.append(el('p',`Fotografia de ${date(d.generated_at)} (Portugal continental). ${age>18*3600000?'ATENÇÃO: relatório com mais de 18 horas; os dados podem ter mudado.':'Análise exploratória, sem aprovação científica.'}`, age>18*3600000?'llm-warning':'llm-muted'));
-    root.append(el('p','IA: formula cruzamentos. Python: conta casos, verifica FT e calcula métricas. Comprovação: nenhuma hipótese aprovada; requer protocolo independente e amostras adequadas.'));
+    root.append(el('p','IA: formula cruzamentos. Python: conta casos, classifica a evidência FT e calcula métricas. Comprovação: nenhuma hipótese aprovada; requer protocolo independente e amostras adequadas.'));
     const metrics=el('div',undefined,'llm-metrics');
     const ft=d.coverage.ft;
     metrics.append(metric('Hipóteses arquivadas',num(d.hypotheses.length),'Propostas distintas'),
@@ -49,6 +49,7 @@
       metric('FT com baseline limpo',num(ft.baseline.n),'Probabilidade derivada do Total por Poisson'),
       metric('Comprovações científicas','0','Exploração e monitorização independentes'));
     root.append(metrics);
+    root.append(el('p','FT aceite significa que passou a política do motor; não equivale a certificação independente da cronologia. Resultados explicitamente sem cronologia certificada são mostrados como provisórios e excluídos das métricas.', 'llm-warning'));
     const cov=d.catalogue_support.counts;
     root.append(el('p',`${num(cov.with_at_least_30_ft_and_baseline)} de ${num(cov.crossings)} cruzamentos têm pelo menos 30 FT e baseline. É cobertura de dados: não significa ${num(cov.crossings)} testes nem vantagens encontradas. Histórico FT: ${num(ft.days)} dias.`));
     const states=el('p',undefined,'llm-muted');
@@ -65,7 +66,7 @@
         ['Monitorização prospetiva',p.group.matches,p.group.ft,p.group.pending,p.group.baseline.n,num(p.group.baseline.brier),num(p.group.baseline.log_loss)]]));
       detail.append(el('p',`Comparação com ambos os FT conhecidos: ${a.complete_pairs.group.ft} pares. Sem controlo compatível: ${a.unmatched_group} casos. Critérios: probabilidade ±5 pp, mesma antecedência, até 7 dias, sem reutilizar controlos nem consultar FT na seleção.`));
       const ci=a.group.rate_ci95;
-      detail.append(el('p',ci?`Frequência histórica Over 2,5: ${num(100*a.group.rate)}% (${a.group.hits}/${a.group.ft}); intervalo 95%: ${num(100*ci[0])}%–${num(100*ci[1])}%. Não demonstra vantagem.`:'Ainda sem FT suficiente para estimar frequência.'));
+      detail.append(el('p',ci?`Frequência histórica Over 2,5: ${num(100*a.group.rate)}% (${a.group.hits}/${a.group.ft}); intervalo 95%: ${num(100*ci[0])}%–${num(100*ci[1])}%. Não demonstra vantagem.`:'Ainda sem FT aceite suficiente para estimar frequência.'));
       detail.append(el('h3','Teste temporal e modelo'));
       const t=a.temporal;
       detail.append(el('p',`Corte por dia: ${t.split_day}. Treino elegível: ${t.train_n}; teste com baseline: ${t.test_baseline.n}. Offset treinado: ${num(t.offset)}. Log Loss do modelo: ${num(t.test_model?.log_loss)}; Brier do modelo: ${num(t.test_model?.brier)}. p corrigido no universo completo: ${num(h.p_bonferroni_search_space)}.`));
@@ -75,7 +76,7 @@
       detail.append(table(['Variável','Jogos com valor desconhecido'],Object.entries(a.unknown_by_code).map(([c,n])=>[c,n])));
       detail.append(el('p',`Exclusões prospetivas: ${Object.entries(h.prospective_exclusions).map(([k,n])=>`${k}: ${n}`).join(' · ')||'Nenhuma'}. Não são convertidas em resultados negativos.`));
       detail.append(el('h3','Jogos que cumprem o cruzamento'));
-      detail.append(table(['Jogo','Início (Portugal)','FT','Probabilidade mercado','Captura'],a.games.map(g=>[g.match_label,date(g.kickoff_utc),g.score?g.score.join('–'):`${g.ft_status} · pendente de aceitação`,g.market_probability==null?'Ausente':`${num(100*g.market_probability)}%`,date(g.decision_at)])));
+      detail.append(table(['Jogo','Início (Portugal)','FT','Probabilidade mercado','Captura'],a.games.map(g=>[g.match_label,date(g.kickoff_utc),g.score?g.score.join('–'):g.provisional_score?`Provisório ${g.provisional_score.home}–${g.provisional_score.away} · cronologia não certificada; excluído das métricas`:`${g.ft_status} · pendente de aceitação`,g.market_probability==null?'Ausente':`${num(100*g.market_probability)}%`,date(g.decision_at)])));
       const raw=el('a','Consultar dados e proveniência completos');raw.href='./lab/llm-statistics.json';detail.append(raw);
       root.append(detail);
     }
