@@ -260,6 +260,8 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
                 'source_sha256': packet['source_sha256'],
                 'feature_catalogue': packet['feature_catalogue'],
                 'response_schema': packet['response_schema'],
+                'exact_output_example': packet['response_schema'],
+                'candidate_options': None,
                 'instruction': 'Devolve uma proposta DRAFT no formato indicado.'
             }, ensure_ascii=False)}
         ]
