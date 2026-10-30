@@ -163,6 +163,38 @@ class V7Tests(unittest.TestCase):
         self.assertEqual(row["next_eligible_at"],
                          "2026-10-29T19:00:00+00:00")
 
+    def test_zero_budget_push_does_not_claim_thirty_game_cap(self):
+        previous = {"schema_version": 1, "matches": {}}
+        ledger, report, checked = reconcile(
+            {"alerts": [GAME], "signals": []}, [], previous,
+            now=NOW, max_checks=0, evidence_retry=True,
+            bsd_lookup=lambda s: self.fail("BSD must not be called"),
+            tsdb_lookup=lambda s: self.fail("TSDB must not be called"))
+        self.assertEqual(checked, 0)
+        queue = report["ft_queue"]
+        self.assertEqual(queue["selection_mode"], "NO_PROVIDER_POLL")
+        self.assertEqual(queue["deferred_by_capacity"], 1)
+        backlog = audit(ledger, NOW, evidence_retry=True, queue_plan=queue)
+        item = backlog["overdue_games"][0]
+        self.assertEqual(item["queue_state"], "DEFERRED_NO_PROVIDER_POLL")
+        self.assertEqual(item["evidence_attempts"], 0)
+        self.assertIsNone(item["last_queue_visit_at"])
+        self.assertEqual(item["next_eligible_at"], NOW.isoformat(timespec="seconds"))
+
+    def test_positive_budget_retains_capacity_label(self):
+        previous = {"schema_version": 1, "matches": {}}
+        games = [GAME, {**GAME, "match_key": "2026-10-27,101,202"}]
+        ledger, report, checked = reconcile(
+            {"alerts": games, "signals": []}, [], previous,
+            now=NOW, max_checks=1, evidence_retry=True,
+            bsd_lookup=lambda _: (None, "not_found"),
+            tsdb_lookup=lambda _: (None, "not_found"))
+        self.assertEqual(checked, 1)
+        self.assertEqual(report["ft_queue"]["selection_mode"], "BOUNDED_PROVIDER_POLL")
+        backlog = audit(ledger, NOW, evidence_retry=True, queue_plan=report["ft_queue"])
+        states = {row["queue_state"] for row in backlog["overdue_games"]}
+        self.assertIn("DEFERRED_BY_30_GAME_CAP", states)
+
     def test_backlog_selected_without_evidence_stays_visibly_visited(self):
         previous = {"schema_version": 1, "matches": {
             GAME["match_key"]: {**GAME, "status": "PENDING",
