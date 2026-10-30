@@ -251,6 +251,14 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(first['empirically_validated_strategies'], 0)
         self.assertIsNone(first['latest']['neurons_consumed'])
         self.assertEqual(first['latest']['llm_calls'], 1)
+        q = json.loads((self.root / publication.QUEUE).read_text())
+        self.assertEqual(q['previously_proposed_unique'], 1)
+        self.assertEqual(q['remaining'], 15)
+        self.assertEqual(q['distinct_family_space'], {'2': 9, '3': 7})
+        self.assertEqual(first['search_space']['possible_pairs_distinct_families'], 9)
+        self.assertEqual(first['search_space']['possible_triples_distinct_families'], 7)
+        self.assertNotIn('possible_triples_two_or_more_families', first['search_space'])
+        self.assertEqual(q['archive_sha256'].keys(), {'41039239732.json'})
         self.assertEqual(first['latest']['summary']['feature_codes'],
                          ['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
         self.assertGreater(first['search_space']['possible_pairs_distinct_families'], 0)
@@ -261,6 +269,9 @@ class InvestigatorTests(unittest.TestCase):
         second = publication.publish(self.root, output, run_id='41039239733',
                     commit_sha=commit, when='2026-10-30T10:16:00Z')
         self.assertEqual([x['run_id'] for x in second['history']], [41039239733, 41039239732])
+        q2 = json.loads((self.root / publication.QUEUE).read_text())
+        self.assertEqual(q2['previously_proposed_unique'], 1)
+        self.assertEqual(len(q2['archive_sha256']), 2)
         self.assertEqual(json.loads((self.root / publication.ARCHIVE / '41039239732.json').read_text()), archived)
         with self.assertRaises(ValueError):
             publication.publish(self.root, output, run_id='41039239732',
@@ -303,6 +314,7 @@ class InvestigatorTests(unittest.TestCase):
         self.assertIn('github.ref ==', workflow)
         self.assertIn('actions/download-artifact@v4', workflow)
         self.assertIn('llm-investigator-runs/', workflow)
+        self.assertIn('docs/lab/llm-discovery-plan.json', workflow)
         self.assertNotIn('schedule:', workflow)
 
 
