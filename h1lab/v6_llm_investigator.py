@@ -42,10 +42,13 @@ SYSTEM = (
     'Nao recomendes apostas, dinheiro, alertas ou alteracoes de producao. '
     'Nao afirmes lucro, edge, significancia estatistica, causalidade ou validacao. '
     'Usa apenas os factos agregados e topicos fornecidos; nao inventes resultados, odds, jogos, FT ou timestamps. '
-    'Desenha no maximo 4 propostas TESTAVEIS combinando apenas variaveis existentes no feature_catalogue. '
+    'Gera exatamente UMA proposta TESTAVEL, combinando apenas variaveis existentes no feature_catalogue. '
     'Cada proposta deve ter status DRAFT, topic_id valido, hypothesis, null_hypothesis, '
     'test_design, falsification, confounders e source_refs; aponta necessidades de dados em test_design. '
     'Hipoteses selecionadas apos explorar resultados sao pos-hoc; exige teste prospectivo e controlo de testes multiplos. '
+    'A resposta DEVE ser um unico objeto com exatamente as chaves schema_version e proposals; ' +
+    'schema_version tem de ser o inteiro 1; proposals tem de ser um array com UMA proposta; ' +
+    'nao uses wrappers response, result, data ou markdown. ' +
     'O modelo so sugere; nenhuma resposta promove uma estrategia.'
 )
 
@@ -174,8 +177,13 @@ def build_packet(root):
 
 
 def validate_proposals(packet, response):
-    if not isinstance(response, dict) or set(response) != {'schema_version', 'proposals'} or response['schema_version'] != 1:
-        raise ValueError('Unexpected model response schema')
+    if not isinstance(response, dict) or set(response) != {'schema_version', 'proposals'} or response.get('schema_version') != 1:
+        # Log only boolean schema diagnostics, never model text.
+        flags = ('object=' + str(isinstance(response, dict)) +
+                 ', version_1=' + str(isinstance(response, dict) and response.get('schema_version') == 1) +
+                 ', proposals_present=' + str(isinstance(response, dict) and 'proposals' in response) +
+                 ', unexpected_keys=' + str(isinstance(response, dict) and bool(set(response) - {'schema_version', 'proposals'})))
+        raise ValueError('Unexpected model response schema (' + flags + ')')
     proposals = response['proposals']
     if not isinstance(proposals, list) or not (1 <= len(proposals) <= 4):
         raise ValueError('Unbounded or empty proposals')
@@ -186,7 +194,7 @@ def validate_proposals(packet, response):
     for p in proposals:
         if not isinstance(p, dict) or set(p) != expected or p['status'] != 'DRAFT':
             raise ValueError('Invalid proposal contract')
-        if p['topic_id'] not in allowed_topics or p['topic_id'] in used:
+        if not isinstance(p['topic_id'], str) or p['topic_id'] not in allowed_topics or p['topic_id'] in used:
             raise ValueError('Unrecognized or duplicated topic')
         used.add(p['topic_id'])
         for k in ('hypothesis', 'null_hypothesis', 'test_design', 'falsification'):
@@ -194,7 +202,7 @@ def validate_proposals(packet, response):
                 raise ValueError('Invalid proposal text: ' + k)
         if not isinstance(p['confounders'], list) or not (1 <= len(p['confounders']) <= 8) or any(not isinstance(s, str) or not 2 <= len(s) <= 200 for s in p['confounders']):
             raise ValueError('Invalid confounders')
-        if not isinstance(p['source_refs'], list) or not p['source_refs'] or not set(p['source_refs']) <= allowed_refs or any(not isinstance(s, str) for s in p['source_refs']):
+        if not isinstance(p['source_refs'], list) or not p['source_refs'] or any(not isinstance(s, str) for s in p['source_refs']) or not set(p['source_refs']) <= allowed_refs:
             raise ValueError('Unsupported references')
     return {'status': 'DRAFT_UNVALIDATED_HUMAN_REVIEW_REQUIRED',
             'source_sha256': packet['source_sha256'], 'proposals': proposals,
@@ -208,12 +216,28 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
         raise ValueError('An explicit HTTPS endpoint is required')
     if not isinstance(model, str) or not (1 <= len(model) <= 100):
         raise ValueError('An explicit model is required')
+    # JSON object mode ensures syntax, NOT the contract: provide a complete
+    # example with one proposal while keeping strict validation authoritative.
+    example = {
+        'schema_version': 1,
+        'proposals': [{
+            'status': 'DRAFT', 'topic_id': 'T01',
+            'hypothesis': 'O cruzamento de movimentos observados de Total e 1X2 pode acrescentar informacao ao baseline.',
+            'null_hypothesis': 'O cruzamento de Total e 1X2 nao melhora o baseline do mercado.',
+            'test_design': 'Registar coorte futura e comparar jogos com baseline e antecedencia semelhantes.',
+            'falsification': 'Rejeitar a proposta se a comparacao prospetiva nao mostrar melhoria robusta.',
+            'confounders': ['Competicao e antecedencia'],
+            'source_refs': [SOURCES[0]],
+        }],
+    }
     messages = [
         {'role': 'system', 'content': SYSTEM},
         {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
                                               'source_sha256': packet['source_sha256'],
                                               'feature_catalogue': packet['feature_catalogue'],
-                                              'response_schema': packet['response_schema']}, ensure_ascii=False)}
+                                              'response_schema': packet['response_schema'],
+                                              'exact_output_example': example,
+                                              'instruction': 'Devolve UM objeto JSON com exatamente UMA proposta e sem outra chave.'}, ensure_ascii=False)}
     ]
     body = json.dumps({'model': model, 'messages': messages, 'temperature': 0,
                        'max_tokens': 1600, 'response_format': {'type': 'json_object'}}).encode('utf-8')
@@ -234,4 +258,11 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
     content = envelope['choices'][0]['message']['content']
     if not isinstance(content, str) or len(content) > MAX_RESPONSE_BYTES:
         raise ValueError('Invalid LLM content')
-    return validate_proposals(packet, strict_json(content))
+    parsed_content = strict_json(content)
+    try:
+        return validate_proposals(packet, parsed_content)
+    except (ValueError, KeyError, TypeError) as exc:
+        # No model-generated strings are shown in failures.
+        finish_reason = envelope.get('choices', [{}])[0].get('finish_reason', 'unknown')
+        finish_reason = finish_reason if finish_reason in ('stop', 'length', 'content_filter') else 'other'
+        raise ValueError('LLM_RESPONSE_REJECTED: finish_reason=' + str(finish_reason) + '; ' + str(exc)) from None
