@@ -244,3 +244,28 @@ jobs:
           PY
       - name: Validate external five-minute cron fallback
         run: node --test scheduler/worker.test.mjs
+
+      - name: FT cached consensus on real snapshots (offline, no provider budget)
+        env:
+          LAB_RESULTS_MAX_CHECKS: "0"
+          BSD_API_KEY: ""
+          API_FOOTBALL_KEY: ""
+          API_FOOTBALL: ""
+          GOAL_API_KEY: ""
+          OPENFOOT_API_KEY: ""
+        run: |
+          python - <<'PY'
+          import socket
+          def no_network(*args, **kwargs):
+              raise AssertionError("unexpected HTTP/socket in offline FT replay")
+          socket.socket = no_network
+          from scripts.lab_results import main
+          result = main()
+          same_run = result["ft_queue"]["same_run_cached_postcheck"]
+          assert same_run["adapter_http_requests"] == 0
+          assert result["ft_queue"]["selection_mode"] == "NO_PROVIDER_POLL"
+          assert result["ft_queue"]["selected"] == 0
+          assert result["final_recorded"] + result["unverified"] == result["matches"]
+          print("LAB_FT_OFFLINE_REAL_SNAPSHOT_OK", result["matches"],
+                result["final_recorded"], same_run)
+          PY
