@@ -81,6 +81,16 @@ def settle_new_cached_pairs(state, v4rows, ledger, report, now, *,
         for field in REPORT_FIELDS:
             report[field] = refresh[field]
         ledger = updated
+        # An unexpected exception in the offline second pass must not be
+        # hidden by the original first-pass execution_health snapshot.
+        replay_errors = refresh["execution_health"]["dual_postcheck_errors"]
+        if replay_errors:
+            original_health = report["execution_health"]
+            original_health["status"] = "DEGRADED"
+            original_health["dual_postcheck_errors"] = (
+                original_health.get("dual_postcheck_errors", 0) + replay_errors)
+            original_health["unexpected_errors"] = (
+                original_health.get("unexpected_errors", 0) + replay_errors)
         for metric in ("dual_postcheck_scanned", "dual_postcheck_confirmed",
                        "dual_postcheck_conflicts"):
             report["ft_queue"][metric] = (
@@ -92,6 +102,9 @@ def settle_new_cached_pairs(state, v4rows, ledger, report, now, *,
         "score_conflicts": sum(
             item.get("status") == "SCORE_CONFLICT"
             for item in secondary.outcomes.values()),
+        "execution_errors": (
+            refresh["execution_health"]["dual_postcheck_errors"]
+            if new_keys else 0),
         "adapter_http_requests": 0,
         "scope": "new STRONG review pairs on COMPLETE already-fetched day lists",
     }
