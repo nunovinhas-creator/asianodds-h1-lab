@@ -59,3 +59,54 @@ jobs:
           path: ${{ runner.temp }}/v6-llm/*.json
           if-no-files-found: error
           retention-days: 7
+
+  publish:
+    # Separate trust boundary: no Cloudflare API token in the publishing job.
+    needs: investigator
+    if: ${{ github.ref == 'refs/heads/main' && inputs.mode == 'cloudflare_once' && needs.investigator.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download only validated research artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: v6-llm-investigator-cloudflare_once
+          path: ${{ runner.temp }}/v6-llm-reviewed
+      - name: Verify result and prepare public research report
+        env:
+          RESEARCH_RUN_ID: ${{ github.run_id }}
+          RESEARCH_SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          python -m scripts.lab_v6_llm_publish \
+            --input "$RUNNER_TEMP/v6-llm-reviewed/investigation.json" \
+            --run-id "$RESEARCH_RUN_ID" --source-commit "$RESEARCH_SOURCE_COMMIT"
+      - name: Atomic commit and bounded retries for concurrent data pushes
+        env:
+          RESEARCH_RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/lab/llm-investigator-index.json "docs/lab/llm-investigator-runs/$RESEARCH_RUN_ID.json"
+          git diff --cached --quiet && exit 0
+          git commit -m "data(llm): manually reviewed draft run $RESEARCH_RUN_ID [skip ci]"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo "LLM_DRAFT_PUBLISHED_RUN=$RESEARCH_RUN_ID"
+              exit 0
+            fi
+            echo "::warning::LLM publication retry $attempt after concurrent push"
+          done
+          echo "::error::LLM_PUBLICATION_FAILED_AFTER_THREE_RETRIES"
+          exit 1

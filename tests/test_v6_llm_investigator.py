@@ -11,6 +11,7 @@ from io import StringIO
 
 from h1lab import v6_llm_investigator as mod
 from scripts import lab_v6_llm_investigator as cli
+from scripts import lab_v6_llm_publish as publication
 
 
 class InvestigatorTests(unittest.TestCase):
@@ -66,7 +67,8 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(packet['status'], 'SHADOW_RESEARCH_DOSSIER_NOT_VALIDATION')
         self.assertEqual(packet['facts']['missing_capture'], 1)
         self.assertEqual(packet['facts']['scientific_state'], 'INCONCLUSIVO')
-        self.assertEqual(len(packet['topics']), 4)
+        self.assertEqual(len(packet['topics']), 5)
+        self.assertIn('T05', {t['id'] for t in packet['topics']})
         self.assertEqual(len(packet['feature_catalogue']), 5)
         self.assertIn('M_TOTAL_LINE_UP', json.dumps(packet))
         self.assertEqual(self.snapshot(), self.before)
@@ -235,6 +237,73 @@ class InvestigatorTests(unittest.TestCase):
                 self.assertEqual(kw['endpoint'], 'https://api.cloudflare.com/client/v4/accounts/' + 'a' * 32 + '/ai/v1/chat/completions')
                 self.assertEqual(kw['api_key'], 'fake-private-test-token')
         self.assertEqual(self.snapshot(), self.before)
+
+
+    def test_manual_publication_provenance_and_immutable_archive(self):
+        packet = mod.build_packet(self.root)
+        output = mod.validate_proposals(packet, {
+            'schema_version': 1, 'proposals': [self.proposal()]
+        })
+        commit = 'a' * 40
+        first = publication.publish(self.root, output, run_id='41039239732',
+                    commit_sha=commit, when='2026-10-30T10:15:00Z')
+        self.assertEqual(first['state'], publication.STATUS)
+        self.assertEqual(first['empirically_validated_strategies'], 0)
+        self.assertIsNone(first['latest']['neurons_consumed'])
+        self.assertEqual(first['latest']['llm_calls'], 1)
+        self.assertEqual(first['latest']['summary']['feature_codes'],
+                         ['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
+        self.assertGreater(first['search_space']['possible_pairs_distinct_families'], 0)
+        self.assertEqual(len(first['history']), 1)
+        self.assertEqual(json.loads((self.root / publication.INDEX).read_text()), first)
+        archived = json.loads((self.root / publication.ARCHIVE / '41039239732.json').read_text())
+        self.assertEqual(archived, first['latest'])
+        second = publication.publish(self.root, output, run_id='41039239733',
+                    commit_sha=commit, when='2026-10-30T10:16:00Z')
+        self.assertEqual([x['run_id'] for x in second['history']], [41039239733, 41039239732])
+        self.assertEqual(json.loads((self.root / publication.ARCHIVE / '41039239732.json').read_text()), archived)
+        with self.assertRaises(ValueError):
+            publication.publish(self.root, output, run_id='41039239732',
+                                commit_sha=commit, when='2026-10-30T10:17:00Z')
+
+    def test_publication_rejects_forgery_and_invalid_identifiers(self):
+        packet = mod.build_packet(self.root)
+        valid = mod.validate_proposals(packet, {
+            'schema_version': 1, 'proposals': [self.proposal()]
+        })
+        bad = json.loads(json.dumps(valid))
+        bad['source_sha256'][mod.SOURCES[0]] = '0' * 64
+        with self.assertRaises(ValueError):
+            publication.publish(self.root, bad, run_id='41039239735',
+                                commit_sha='a' * 40, when='2026-10-30T10:00:00Z')
+        with self.assertRaises(ValueError):
+            publication.publish(self.root, valid, run_id='../oops',
+                                commit_sha='a' * 40, when='2026-10-30T10:00:00Z')
+        with self.assertRaises(ValueError):
+            publication.publish(self.root, valid, run_id='41039239735',
+                                commit_sha='not-a-sha', when='2026-10-30T10:00:00Z')
+        with self.assertRaises(ValueError):
+            publication.publish(self.root, {'status': 'VALIDATED', 'proposals': []},
+                                run_id='41039239735', commit_sha='a' * 40,
+                                when='2026-10-30T10:00:00Z')
+        self.assertEqual(self.snapshot(), self.before)
+
+    def test_web_view_read_only_and_escapes_generated_text(self):
+        base = Path(__file__).resolve().parents[1]
+        page = (base / 'docs/llm-investigator.html').read_text()
+        js = (base / 'docs/llm-investigator.js').read_text()
+        home = (base / 'docs/index.html').read_text()
+        workflow = (base / '.github/workflows/v6-llm-investigator.yml').read_text()
+        self.assertIn('llm-investigator.html', home)
+        self.assertIn('llm-investigator-index.json', page)
+        self.assertIn('textContent', js)
+        self.assertNotIn('innerHTML', js)
+        self.assertIn('needs: investigator', workflow)
+        self.assertIn('contents: write', workflow)
+        self.assertIn('github.ref ==', workflow)
+        self.assertIn('actions/download-artifact@v4', workflow)
+        self.assertIn('llm-investigator-runs/', workflow)
+        self.assertNotIn('schedule:', workflow)
 
     def test_cli_dossier_stdout_only(self):
         from contextlib import redirect_stdout
