@@ -17,6 +17,8 @@ on:
       - 'tests/test_lab_ft_v7.py'
       - 'h1lab/lab_ft_crosswalk.py'
       - 'h1lab/lab_ft_dual_consensus.py'
+      - 'h1lab/lab_ft_same_run.py'
+      - 'tests/test_lab_ft_same_run.py'
       - 'h1lab/lab_ft_attestations.py'
       - 'data/lab/ft-provider-attestations.json'
       - 'h1lab/lab_bsd_payload.py'
@@ -123,6 +125,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_lab_ft_v7.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_fair_queue.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_dual_consensus.py' -v
+          python -m unittest discover -s tests -p 'test_lab_ft_same_run.py' -v
           python -m unittest discover -s tests -p 'test_lab_bsd_payload.py' -v
           python -m unittest discover -s tests -p 'test_lab_ft_rotation.py' -v
           python -m unittest discover -s tests -p 'test_lab_goal_id_probe.py' -v
