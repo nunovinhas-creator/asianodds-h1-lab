@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T12:31:32+00:00",
+  "generated_at": "2026-10-30T12:36:38+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 126,
-      "of_repeated_matches_analysed": 193,
+      "matches": 128,
+      "of_repeated_matches_analysed": 196,
       "percentage_descriptive": 65.3
     },
     "both_total_and_1x2": {
-      "matches": 127,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 65.8
+      "matches": 128,
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 65.3
     },
     "opposing_intra_alert_directions": {
-      "matches": 45,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 23.3
+      "matches": 47,
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 24.0
     },
     "with_ambiguous_repeats": {
       "matches": 30,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 15.5
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 15.3
     },
     "with_identical_total_snapshots": {
       "matches": 28,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 14.5
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 14.3
     },
     "with_mixed_origin_total": {
       "matches": 20,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 10.4
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 10.2
     },
     "with_only_legacy_total": {
       "matches": 9,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 4.7
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 4.6
     },
     "with_only_v4_total": {
-      "matches": 164,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 85.0
+      "matches": 167,
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 85.2
     },
     "with_post_kickoff_alerts": {
       "matches": 13,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 6.7
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 6.6
     },
     "with_related_alerts": {
       "matches": 38,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 19.7
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 19.4
     },
     "with_unobserved_line_gaps": {
-      "matches": 54,
-      "of_repeated_matches_analysed": 193,
-      "percentage_descriptive": 28.0
+      "matches": 55,
+      "of_repeated_matches_analysed": 196,
+      "percentage_descriptive": 28.1
     }
   },
   "opposing_direction_examples": [
@@ -115,6 +115,19 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,1290,1507",
       "match_label": "AEL Larisa vs OFI Crete"
+    },
+    {
+      "directions": [
+        "DOWN",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:51450",
+        "3571094759:51462"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-30,10064585,10066534",
+      "match_label": "Ajman Club U23 vs Al Ain U23"
     },
     {
       "directions": [
@@ -248,51 +261,38 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,55001,10054174",
       "match_label": "CS Sporting Voinţa Lieşti vs ACS FC Bacau"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:51039",
-        "3571094759:51125"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-29,58921,37833",
-      "match_label": "Delfin SC vs CSD Independiente Del Valle"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 609,
+    "all_distinct_matches": 611,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 463,
-    "messages_in_source": 879,
-    "repeated_matches_analysed": 193,
-    "repeated_matches_in_source": 193,
+    "events_analysed": 469,
+    "messages_in_source": 884,
+    "repeated_matches_analysed": 196,
+    "repeated_matches_in_source": 196,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "37e0421fac08db24fc1736a4ea84be03b5257be4",
-  "source_generated_at": "2026-10-30T12:31:32+00:00",
+  "source_commit": "a9d65adb3990be4b3838987ee908d56ca29c6b58",
+  "source_generated_at": "2026-10-30T12:36:38+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 13,
-      "T_0_TO_60": 86,
-      "T_360_TO_1440": 66,
-      "T_60_TO_360": 76,
+      "T_0_TO_60": 88,
+      "T_360_TO_1440": 68,
+      "T_60_TO_360": 77,
       "T_OVER_1440": 53,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 16,
-      "T_0_TO_60": 129,
-      "T_360_TO_1440": 111,
-      "T_60_TO_360": 109,
+      "T_0_TO_60": 131,
+      "T_360_TO_1440": 114,
+      "T_60_TO_360": 110,
       "T_OVER_1440": 98,
       "UNKNOWN": 0
     },
@@ -301,27 +301,27 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 421
+      "V4_EXPLICIT": 427
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.9,
-      "FLAT": 26.8,
-      "UP": 37.4
+      "DOWN": 36.0,
+      "FLAT": 26.7,
+      "UP": 37.3
     },
-    "down": 166,
-    "flat": 124,
-    "messages_with_total": 463,
-    "up": 173,
+    "down": 169,
+    "flat": 125,
+    "messages_with_total": 469,
+    "up": 175,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 32,
-    "continuous": 139,
+    "continuous": 141,
     "identical_total_pairs": 28,
     "related_pairs": 38,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 10,
     "same_movement_repeat": 38,
-    "unobserved_change": 61
+    "unobserved_change": 62
   }
 }
