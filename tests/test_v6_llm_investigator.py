@@ -344,7 +344,7 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(queue['distinct_family_space'], {'2': 1056, '3': 13134})
         self.assertGreaterEqual(space['features_in_catalogue'], 2)
         self.assertGreaterEqual(space['possible_pairs_distinct_families'], 0)
-        self.assertGreaterEqual(space['possible_triples_two_or_more_families'], 0)
+        self.assertGreaterEqual(space['possible_triples_distinct_families'], 0)
         self.assertEqual(space['meaning'],
                          'SEARCH_SPACE_ONLY_NO_LLM_CALLS_OR_EMPIRICAL_TESTS')
         self.assertNotIn('api_key', json.dumps(snapshot).lower())
