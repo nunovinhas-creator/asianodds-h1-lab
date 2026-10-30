@@ -37,7 +37,7 @@ jobs:
         env:
           FT_UPSTREAM: ${{ github.event.workflow_run.conclusion || 'not_applicable' }}
         run: |
-          echo "FT_CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          export FT_CHECKOUT_SHA="$(git rev-parse HEAD)"
           git status --porcelain
           python -m scripts.lab_ft_operational_gate \
             --root . \
