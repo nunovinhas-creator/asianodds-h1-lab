@@ -332,7 +332,7 @@ class InvestigatorTests(unittest.TestCase):
         self.assertNotIn('api_key', json.dumps(snapshot).lower())
         raw = (base / 'docs/lab/pattern-research.json').read_bytes()
         expected_blob = hashlib.sha1(
-            b'blob ' + str(len(raw)).encode('ascii') + b'\\x00' + raw
+            b'blob ' + str(len(raw)).encode('ascii') + bytes([0]) + raw
         ).hexdigest()
         self.assertEqual(snapshot['catalogue_provenance']['github_blob_sha'], expected_blob)
         js = (base / 'docs/llm-investigator.js').read_text()
