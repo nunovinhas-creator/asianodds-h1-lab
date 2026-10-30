@@ -1,0 +1,71 @@
+{
+  "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41046486099",
+  "limitations": "Manual AI draft, not a discovered edge, statistical test, ROI or recommendation.",
+  "llm_calls": 1,
+  "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+  "neurons_consumed": null,
+  "proposals": [
+    {
+      "baseline": "MARKET_MODEL_OVER25",
+      "confounders": [
+        "Antecedencia",
+        "Competicao"
+      ],
+      "control_group": "Jogos futuros com probabilidade inicial e antecedencia comparaveis sem este cruzamento.",
+      "data_needed": [
+        "Capturas das tres variaveis feitas antes do KO",
+        "FT regulamentar confirmado com carimbo"
+      ],
+      "falsification": "Rejeitar se o log loss OOS nao melhorar face ao baseline em teste prospetivo.",
+      "feature_codes": [
+        "G_FIRST_LEAD_LT_6H",
+        "M_1X2_HOME_PROB_UP",
+        "M_TOTAL_LINE_UP"
+      ],
+      "hypothesis": "A combinacao de primeiro alerta a menos de 6 h, probabilidade da casa subindo e linha total subindo pode melhorar o baseline.",
+      "metric": "LOG_LOSS",
+      "null_hypothesis": "A combinacao nao melhora o log loss relativamente ao baseline.",
+      "outcome": "OVER_2_5",
+      "source_refs": [
+        "docs/lab/pattern-research.json"
+      ],
+      "status": "DRAFT",
+      "test_design": "Congelar G_FIRST_LEAD_LT_6H, M_1X2_HOME_PROB_UP e M_TOTAL_LINE_UP antes do KO e comparar log loss por jogo OOS.",
+      "topic_id": "T05"
+    }
+  ],
+  "provider_usage": {
+    "account_quota_verified": false,
+    "measurement": "PROVIDER_TOKEN_COUNTERS",
+    "model_requested": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "neurons_consumed": null,
+    "tokens": {
+      "completion_tokens": 301,
+      "prompt_tokens": 3556,
+      "total_tokens": 3857
+    }
+  },
+  "recorded_at_utc": "2026-10-30T11:13:28.364441Z",
+  "run_id": 41046486099,
+  "schema_version": 1,
+  "scientific_acceptance": "INCONCLUSIVO",
+  "source_commit": "aa31add90b7e856cda39963ad2d3089980c63d2e",
+  "source_sha256": {
+    "docs/lab/pattern-research.json": "43854d2718d79ab9fd7c55890bc04fd46ee5246c9d9369cb3a440274fd7ec672",
+    "docs/lab/v6-falsification.json": "679e1b64b1afb621d9bba9824cade8070d1b2989ec8cf4fc9f68fbfbe91824f2",
+    "docs/lab/v6-p0-gates.json": "b167fada5f0d8d3f52829435e7001f2b8d827e03db24da12d3973c0edfd5d63d",
+    "docs/lab/v6-readiness.json": "c4153fbc846b6fc1f5a45a97e62b19406a73735a808b1be166b2ddf0d8272eaf",
+    "docs/lab/v6-weekly-drift.json": "a482b80badd00fa57ebfd49f745b94af9016ca65266d540761ba188ceb3edfa8"
+  },
+  "state": "SHADOW_DRAFT_NOT_EMPIRICALLY_VALIDATED",
+  "summary": {
+    "feature_codes": [
+      "G_FIRST_LEAD_LT_6H",
+      "M_1X2_HOME_PROB_UP",
+      "M_TOTAL_LINE_UP"
+    ],
+    "metric": "LOG_LOSS",
+    "proposal_count": 1,
+    "topic_id": "T05"
+  }
+}
