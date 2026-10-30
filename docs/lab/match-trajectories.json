@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-30T20:56:31+00:00",
+ "generated_at": "2026-10-30T21:01:39+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 231
+  "timelines_published": 232
  },
  "schema_version": 1,
- "source_commit": "3dcc1257e89b0829f1f1481281bcb3aea5521a73",
+ "source_commit": "5a04126d5b8b7d577a7823f67cfebc3052406c38",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 671,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 993,
+  "messages": 994,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 553,
+  "messages_on_repeated_matches": 555,
   "messages_v4_only": 0,
-  "messages_with_v4": 919,
-  "movement_episodes_upper_bound": 952,
+  "messages_with_v4": 920,
+  "movement_episodes_upper_bound": 953,
   "possibly_redundant_snapshots": 31,
   "post_kickoff_messages": 31,
   "related_message_pairs": 41,
@@ -50,25 +50,326 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 10
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 231,
+  "repeated_matches": 232,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1494
+   "V4_EXPLICIT": 1497
   },
   "total_line_reversals_on_repeated": 117,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 34,
-   "CONTINUOUS": 171,
+   "CONTINUOUS": 172,
    "SAME_MOVEMENT_REPEAT": 41,
    "UNOBSERVED_CHANGE": 76
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 291,
-   "one_x_two:AGREE": 284,
-   "total:AGREE": 919
+   "asian_handicap:AGREE": 292,
+   "one_x_two:AGREE": 285,
+   "total:AGREE": 920
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51568",
+    "3571094759:51576"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51568",
+     "message_id": 51568,
+     "minutes_to_kickoff": 1300.3,
+     "observed_at": "2026-10-30T19:19:39+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 1.88,
+        "home_price": 1.88,
+        "line": -0.5
+       },
+       "before": {
+        "away_price": 1.77,
+        "home_price": 1.8,
+        "line": -0.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 1.88,
+        "before": 1.8
+       },
+       "2": {
+        "after": 3.63,
+        "before": 4.08
+       },
+       "X": {
+        "after": 3.5,
+        "before": 3.55
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.79,
+        "under_price": 1.99
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.77,
+        "under_price": 1.99
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": -14.6,
+     "trigger_market": "1x2",
+     "trigger_selection": "2",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51576",
+     "message_id": 51576,
+     "minutes_to_kickoff": 1203.8,
+     "observed_at": "2026-10-30T20:56:11+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 1.78,
+        "home_price": 1.95,
+        "line": -0.5
+       },
+       "before": {
+        "away_price": 1.87,
+        "home_price": 1.9,
+        "line": -0.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 1.95,
+        "before": 1.9
+       },
+       "2": {
+        "after": 3.28,
+        "before": 3.56
+       },
+       "X": {
+        "after": 3.41,
+        "before": 3.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.78,
+        "under_price": 1.95
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.79,
+        "under_price": 1.99
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": -10.9,
+     "trigger_market": "1x2",
+     "trigger_selection": "2",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-30T19:19:39+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T17:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-30T20:56:11+00:00",
+   "match_key": "2026-10-31,10045481,98661",
+   "match_label": "Strasbourg Women vs Le Havre AC FA Women",
+   "movement_episodes": [
+    [
+     "3571094759:51568"
+    ],
+    [
+     "3571094759:51576"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    5792.0
+   ],
+   "trajectory": {
+    "asian_handicap": {
+     "first_observed_line": -0.5,
+     "last_observed_line": -0.5,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": -0.5,
+       "before": -0.5,
+       "event_id": "3571094759:51568",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": -0.5,
+       "before": -0.5,
+       "event_id": "3571094759:51576",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51568",
+       "line": "CONTINUOUS",
+       "next_before_line": -0.5,
+       "previous_after_line": -0.5,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51576"
+      }
+     ]
+    },
+    "one_x_two": {
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "1": [
+        1.8,
+        1.88
+       ],
+       "2": [
+        4.08,
+        3.63
+       ],
+       "X": [
+        3.55,
+        3.5
+       ],
+       "event_id": "3571094759:51568",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "1": [
+        1.9,
+        1.95
+       ],
+       "2": [
+        3.56,
+        3.28
+       ],
+       "X": [
+        3.5,
+        3.41
+       ],
+       "event_id": "3571094759:51576",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "transitions": [
+      {
+       "changed_selections": [
+        "1",
+        "2"
+       ],
+       "from": "3571094759:51568",
+       "prices": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51576"
+      }
+     ]
+    },
+    "total": {
+     "first_observed_line": 2.5,
+     "last_observed_line": 2.5,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.5,
+       "before": 2.5,
+       "event_id": "3571094759:51568",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.5,
+       "before": 2.5,
+       "event_id": "3571094759:51576",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51568",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.5,
+       "previous_after_line": 2.5,
+       "prices_at_line": "UNCHANGED",
+       "to": "3571094759:51576"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
