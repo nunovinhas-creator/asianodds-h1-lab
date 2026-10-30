@@ -40,13 +40,22 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
-      # ONLY E4 Over 2.5 goes to Telegram, separated into isolated/combined.
+      # E4 remains the only V5 strategy notifier. Frozen T05 is a separate,
+      # clearly EXPERIMENTAL LLM research crossing, never a validated pick.
       # E1/E2/E3/E5, generic Pattern Watch, H1 singles and triples are SILENT.
       - name: Notify MASTER BRAIN E4 isolated or combined (exploratory)
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python -m h1lab.e4_notify
+      # Independent, unvalidated T05 research signal. Does not alter E4.
+      # Historical examples are sent once as a separate, explicitly past recap.
+      - name: Notify T05 Over 2.5 (experimental crossing, 12h)
+        continue-on-error: true
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python -m h1lab.t05_notify
       - name: Store data for dashboard
         run: |
           git config user.name 'github-actions[bot]'
@@ -54,6 +63,7 @@ jobs:
           git add data/state.json docs/data.json
           if [ -f data/pattern-notifications.json ]; then git add data/pattern-notifications.json; fi
           if [ -f data/e4-notifications.json ]; then git add data/e4-notifications.json; fi
+          if [ -f data/t05-notifications.json ]; then git add data/t05-notifications.json; fi
           if [ -d data/lab ]; then git add data/lab; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data: collect and notify H1 [skip ci]'
