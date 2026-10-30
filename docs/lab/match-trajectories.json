@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-30T22:31:33+00:00",
+ "generated_at": "2026-10-30T22:36:47+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 235
  },
  "schema_version": 1,
- "source_commit": "4a29d9bbd6373f459dd7d8320adab579050e2f27",
+ "source_commit": "7a5f870d3afd73f6cf705835509514d77bb689b3",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 675,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 1003,
+  "messages": 1004,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 563,
+  "messages_on_repeated_matches": 564,
   "messages_v4_only": 0,
-  "messages_with_v4": 929,
-  "movement_episodes_upper_bound": 961,
+  "messages_with_v4": 930,
+  "movement_episodes_upper_bound": 962,
   "possibly_redundant_snapshots": 31,
   "post_kickoff_messages": 31,
   "related_message_pairs": 42,
@@ -53,27 +53,28 @@
   "repeated_matches": 235,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1514
+   "V4_EXPLICIT": 1515
   },
-  "total_line_reversals_on_repeated": 119,
+  "total_line_reversals_on_repeated": 120,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 34,
    "CONTINUOUS": 175,
    "SAME_MOVEMENT_REPEAT": 42,
-   "UNOBSERVED_CHANGE": 77
+   "UNOBSERVED_CHANGE": 78
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 296,
    "one_x_two:AGREE": 289,
-   "total:AGREE": 929
+   "total:AGREE": 930
   }
  },
  "timelines": [
   {
-   "event_count": 2,
+   "event_count": 3,
    "event_ids": [
     "3571094759:51582",
-    "3571094759:51583"
+    "3571094759:51583",
+    "3571094759:51586"
    ],
    "events": [
     {
@@ -177,6 +178,38 @@
        "status": "AGREE"
       }
      }
+    },
+    {
+     "event_id": "3571094759:51586",
+     "message_id": 51586,
+     "minutes_to_kickoff": 626.6,
+     "observed_at": "2026-10-30T22:33:26+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.85,
+        "under_price": 1.78
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 1.91,
+        "under_price": 1.72
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
     }
    ],
    "first_observed_at": "2026-10-30T22:06:54+00:00",
@@ -188,7 +221,7 @@
     "per_message_conflicts": [],
     "team_names_consistent": true
    },
-   "last_observed_at": "2026-10-30T22:08:52+00:00",
+   "last_observed_at": "2026-10-30T22:33:26+00:00",
    "match_key": "2026-10-31,51539,37390",
    "match_label": "Maccabi Herzliya U19 vs Maccabi Haifa FC U19",
    "movement_episodes": [
@@ -197,14 +230,18 @@
     ],
     [
      "3571094759:51583"
+    ],
+    [
+     "3571094759:51586"
     ]
    ],
-   "movement_episodes_upper_bound": 2,
+   "movement_episodes_upper_bound": 3,
    "possibly_redundant_event_ids": [],
    "post_kickoff_messages": 0,
    "related_messages": [],
    "seconds_between_messages": [
-    118.0
+    118.0,
+    1474.0
    ],
    "trajectory": {
     "asian_handicap": {
@@ -254,11 +291,11 @@
     },
     "total": {
      "first_observed_line": 3.75,
-     "last_observed_line": 3.75,
-     "net_observed_change": 0.0,
-     "observations": 2,
+     "last_observed_line": 3.25,
+     "net_observed_change": -0.5,
+     "observations": 3,
      "origins": {
-      "V4_EXPLICIT": 2
+      "V4_EXPLICIT": 3
      },
      "points": [
       {
@@ -274,6 +311,13 @@
        "event_id": "3571094759:51583",
        "move": "UP",
        "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.5,
+       "event_id": "3571094759:51586",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
       }
      ],
      "reversals": [
@@ -283,6 +327,13 @@
        "evidence": "intra",
        "from": "DOWN",
        "to": "UP"
+      },
+      {
+       "after_event": "3571094759:51583",
+       "at_event": "3571094759:51586",
+       "evidence": "gap",
+       "from": "UP",
+       "to": "DOWN"
       }
      ],
      "transitions": [
@@ -293,6 +344,14 @@
        "previous_after_line": 3.5,
        "prices_at_line": "UNCHANGED",
        "to": "3571094759:51583"
+      },
+      {
+       "from": "3571094759:51583",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.5,
+       "previous_after_line": 3.75,
+       "to": "3571094759:51586",
+       "unobserved_direction": "DOWN"
       }
      ]
     }
