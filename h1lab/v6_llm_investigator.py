@@ -345,7 +345,7 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
             analysis = parsed_content['analysis']
             # Reject references to OTHER catalogue codes without exposing text.
             referenced = set(re.findall(
-                r'\\b(?:G|M)_[A-Z0-9_]+\\b',
+                r'\b(?:G|M)_[A-Z0-9_]+\b',
                 json.dumps(analysis, ensure_ascii=False)))
             if referenced - set(fixed_codes):
                 raise ValueError('AUTO_LLM_TEXT_REFERENCES_UNAPPROVED_FEATURE')
