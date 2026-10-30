@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
@@ -20,6 +21,7 @@ SOURCES = (
     'docs/lab/v6-falsification.json',
     'docs/lab/v6-readiness.json',
     'docs/lab/v6-weekly-drift.json',
+    'docs/lab/pattern-research.json',
 )
 TOPICS = (
     {'id': 'T01', 'family': 'TOTAL_1X2',
@@ -40,7 +42,7 @@ SYSTEM = (
     'Nao recomendes apostas, dinheiro, alertas ou alteracoes de producao. '
     'Nao afirmes lucro, edge, significancia estatistica, causalidade ou validacao. '
     'Usa apenas os factos agregados e topicos fornecidos; nao inventes resultados, odds, jogos, FT ou timestamps. '
-    'Desenha no maximo 4 propostas TESTAVEIS, sem as registar como hipoteses cientificas. '
+    'Desenha no maximo 4 propostas TESTAVEIS combinando apenas variaveis existentes no feature_catalogue. '
     'Cada proposta deve ter status DRAFT, topic_id valido, hypothesis, null_hypothesis, '
     'test_design, falsification, confounders e source_refs; aponta necessidades de dados em test_design. '
     'Hipoteses selecionadas apos explorar resultados sao pos-hoc; exige teste prospectivo e controlo de testes multiplos. '
@@ -75,7 +77,7 @@ def _load(root, name):
     path = Path(root) / name
     if not path.is_file() or path.is_symlink():
         raise ValueError('Missing or unsafe source: ' + name)
-    if path.stat().st_size > MAX_SOURCE_BYTES:
+    if path.stat().st_size > (600_000 if name == SOURCES[4] else MAX_SOURCE_BYTES):
         raise ValueError('Unbounded source: ' + name)
     raw = path.read_bytes()
     data = strict_json(raw.decode('utf-8'))
@@ -93,6 +95,23 @@ def build_packet(root):
     fals = source_data[SOURCES[1]]
     readiness = source_data[SOURCES[2]]
     drift = source_data[SOURCES[3]]
+    research = source_data[SOURCES[4]]
+    catalogue = research.get('pattern_catalogue')
+    if not isinstance(catalogue, dict) or not catalogue:
+        raise ValueError('Missing V5 feature catalogue')
+    features = []
+    for code, details in sorted(catalogue.items()):
+        if not isinstance(code, str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{1,60}', code):
+            raise ValueError('Unsafe feature code')
+        if not isinstance(details, dict) or not isinstance(details.get('family'), str) or not isinstance(details.get('description'), str):
+            raise ValueError('Invalid feature catalogue entry')
+        family = details['family']
+        description = details['description']
+        if not re.fullmatch(r'[A-Z][A-Z_]{1,30}', family) or len(description) > 140 or any(ord(c) < 32 for c in description):
+            raise ValueError('Unsafe feature description')
+        features.append({'code': code, 'family': family, 'description': description})
+    if len(features) > 60:
+        raise ValueError('Unexpected unbounded feature catalogue')
     if gates.get('scientific_state') != 'INCONCLUSIVO' or fals.get('overall') != 'INCONCLUSIVO':
         raise ValueError('Unexpected scientific state; review this version before using LLM')
     seven = gates['gates']['7_days']
@@ -133,6 +152,7 @@ def build_packet(root):
         'source_sha256': digests,
         'facts': facts,
         'topics': list(TOPICS),
+        'feature_catalogue': features,
         'instructions': SYSTEM,
         'response_schema': {
             'schema_version': 1,
@@ -192,6 +212,7 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
         {'role': 'system', 'content': SYSTEM},
         {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
                                               'source_sha256': packet['source_sha256'],
+                                              'feature_catalogue': packet['feature_catalogue'],
                                               'response_schema': packet['response_schema']}, ensure_ascii=False)}
     ]
     body = json.dumps({'model': model, 'messages': messages, 'temperature': 0,
