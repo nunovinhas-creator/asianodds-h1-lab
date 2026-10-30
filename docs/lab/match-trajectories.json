@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-30T08:46:35+00:00",
+ "generated_at": "2026-10-30T08:51:39+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 185
  },
  "schema_version": 1,
- "source_commit": "1a32d60eb3c9ae6912f697f5aeb316976edeb1ab",
+ "source_commit": "020027a6fa8b25081bf64ad1d888ea55c241f7e1",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 589,
+  "matches": 590,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 847,
+  "messages": 849,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 443,
+  "messages_on_repeated_matches": 444,
   "messages_v4_only": 0,
-  "messages_with_v4": 773,
-  "movement_episodes_upper_bound": 810,
+  "messages_with_v4": 775,
+  "movement_episodes_upper_bound": 812,
   "possibly_redundant_snapshots": 27,
   "post_kickoff_messages": 23,
   "related_message_pairs": 37,
@@ -53,27 +53,28 @@
   "repeated_matches": 185,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1230
+   "V4_EXPLICIT": 1232
   },
-  "total_line_reversals_on_repeated": 87,
+  "total_line_reversals_on_repeated": 88,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 30,
-   "CONTINUOUS": 133,
+   "CONTINUOUS": 134,
    "SAME_MOVEMENT_REPEAT": 37,
    "UNOBSERVED_CHANGE": 58
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 231,
    "one_x_two:AGREE": 226,
-   "total:AGREE": 773
+   "total:AGREE": 775
   }
  },
  "timelines": [
   {
-   "event_count": 2,
+   "event_count": 3,
    "event_ids": [
     "3571094759:51425",
-    "3571094759:51426"
+    "3571094759:51426",
+    "3571094759:51430"
    ],
    "events": [
     {
@@ -177,6 +178,38 @@
        "status": "AGREE"
       }
      }
+    },
+    {
+     "event_id": "3571094759:51430",
+     "message_id": 51430,
+     "minutes_to_kickoff": 9.6,
+     "observed_at": "2026-10-30T08:50:26+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 2.08,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.98,
+        "under_price": 2.09
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
     }
    ],
    "first_observed_at": "2026-10-30T08:14:15+00:00",
@@ -188,7 +221,7 @@
     "per_message_conflicts": [],
     "team_names_consistent": true
    },
-   "last_observed_at": "2026-10-30T08:20:27+00:00",
+   "last_observed_at": "2026-10-30T08:50:26+00:00",
    "match_key": "2026-10-30,1466,10061980",
    "match_label": "Brisbane Roar FC vs Auckland FC",
    "movement_episodes": [
@@ -197,14 +230,18 @@
     ],
     [
      "3571094759:51426"
+    ],
+    [
+     "3571094759:51430"
     ]
    ],
-   "movement_episodes_upper_bound": 2,
+   "movement_episodes_upper_bound": 3,
    "possibly_redundant_event_ids": [],
    "post_kickoff_messages": 0,
    "related_messages": [],
    "seconds_between_messages": [
-    372.0
+    372.0,
+    1799.0
    ],
    "trajectory": {
     "asian_handicap": {
@@ -254,11 +291,11 @@
     },
     "total": {
      "first_observed_line": 2.75,
-     "last_observed_line": 2.5,
-     "net_observed_change": -0.25,
-     "observations": 2,
+     "last_observed_line": 2.75,
+     "net_observed_change": 0.0,
+     "observations": 3,
      "origins": {
-      "V4_EXPLICIT": 2
+      "V4_EXPLICIT": 3
      },
      "points": [
       {
@@ -274,9 +311,24 @@
        "event_id": "3571094759:51426",
        "move": "FLAT",
        "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.75,
+       "before": 2.5,
+       "event_id": "3571094759:51430",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
       }
      ],
-     "reversals": [],
+     "reversals": [
+      {
+       "after_event": "3571094759:51425",
+       "at_event": "3571094759:51430",
+       "evidence": "intra",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
      "transitions": [
       {
        "from": "3571094759:51425",
@@ -285,6 +337,14 @@
        "previous_after_line": 2.5,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:51426"
+      },
+      {
+       "from": "3571094759:51426",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.5,
+       "previous_after_line": 2.5,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51430"
       }
      ]
     }
