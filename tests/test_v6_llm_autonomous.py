@@ -144,6 +144,7 @@ class AutonomousResearchTests(TestCase):
         user = json.loads(json.loads(requests[0].data)['messages'][1]['content'])
         self.assertEqual(user['fixed_codes'], codes)
         self.assertEqual(set(user['response_schema']['analysis']), set(fields))
+        self.assertIn('Log Loss', user['response_schema']['analysis']['falsification'])
         self.assertNotIn('candidate_options', user)
         self.assertTrue(all(f['code'] in codes for f in user['feature_catalogue']))
 
