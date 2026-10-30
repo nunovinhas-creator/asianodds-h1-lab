@@ -209,6 +209,14 @@ class TwoProviderConsensus:
                     self.invalid_saved["identity_or_timestamp_invalid"] += 1
                     continue
                 observed = next((x for x in verified if x[0] == provider), None)
+                # A complete current listing takes precedence over an older
+                # attestation. Missing/invalid/ambiguous current evidence must
+                # not silently fall back to a formerly valid final score.
+                # Cross-run recovery remains available when this provider was
+                # not fetched (no complete cache), without additional HTTP.
+                if observed is None and self._rows(provider, day) is not None:
+                    self.invalid_saved["current_evidence_invalid"] += 1
+                    return self._fail(key, "current_evidence_invalid")
                 if observed is not None:
                     if (observed[1] != proof["fixture_id"] or
                         observed[2]["home_goals"] != proof["home_goals"] or
