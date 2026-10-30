@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-30T10:41:58+00:00",
+ "generated_at": "2026-10-30T10:46:34+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 189
+  "timelines_published": 190
  },
  "schema_version": 1,
- "source_commit": "efec57c01628df6c117d5e346f7771ea5a4e4a4b",
+ "source_commit": "cc74af84b095e780aaf01313c73e504d6e5a95eb",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 601,
+  "matches": 602,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 865,
+  "messages": 867,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 453,
+  "messages_on_repeated_matches": 455,
   "messages_v4_only": 0,
-  "messages_with_v4": 791,
-  "movement_episodes_upper_bound": 827,
+  "messages_with_v4": 793,
+  "movement_episodes_upper_bound": 829,
   "possibly_redundant_snapshots": 28,
   "post_kickoff_messages": 23,
   "related_message_pairs": 38,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 10
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 189,
+  "repeated_matches": 190,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1264
+   "V4_EXPLICIT": 1268
   },
-  "total_line_reversals_on_repeated": 89,
+  "total_line_reversals_on_repeated": 90,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 31,
    "CONTINUOUS": 137,
    "SAME_MOVEMENT_REPEAT": 38,
-   "UNOBSERVED_CHANGE": 58
+   "UNOBSERVED_CHANGE": 59
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 239,
-   "one_x_two:AGREE": 234,
-   "total:AGREE": 791
+   "asian_handicap:AGREE": 240,
+   "one_x_two:AGREE": 235,
+   "total:AGREE": 793
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51414",
+    "3571094759:51447"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51414",
+     "message_id": 51414,
+     "minutes_to_kickoff": 221.5,
+     "observed_at": "2026-10-30T07:18:30+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.85,
+        "under_price": 1.84
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.93,
+        "under_price": 1.79
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51447",
+     "message_id": 51447,
+     "minutes_to_kickoff": 14.2,
+     "observed_at": "2026-10-30T10:45:50+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.83,
+        "under_price": 1.92
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.99,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-30T07:18:30+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-30T11:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-30T10:45:50+00:00",
+   "match_key": "2026-10-30,67037,49232",
+   "match_label": "KS Gornik Zabrze U19 vs Lech Poznan U19",
+   "movement_episodes": [
+    [
+     "3571094759:51414"
+    ],
+    [
+     "3571094759:51447"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    12440.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.0,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.5,
+       "before": 3.25,
+       "event_id": "3571094759:51414",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51447",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51414",
+       "at_event": "3571094759:51447",
+       "evidence": "gap",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51414",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.25,
+       "previous_after_line": 3.5,
+       "to": "3571094759:51447",
+       "unobserved_direction": "DOWN"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
