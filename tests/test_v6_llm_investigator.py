@@ -26,6 +26,9 @@ class InvestigatorTests(unittest.TestCase):
                               'check_result_counts': {'PASS': 1, 'INSUFFICIENT_N': 9}},
             mod.SOURCES[2]: {'schema_version': 1, 'status': 'WARMUP'},
             mod.SOURCES[3]: {'schema_version': 1, 'latest': {'overall': 'INSUFFICIENT_HISTORY'}},
+            mod.SOURCES[4]: {'schema_version': 1, 'pattern_catalogue': {
+                'G_FIRST_LEAD_LT_6H': {'family': 'TIME', 'description': 'Primeiro alerta a menos de 6h'},
+                'M_TOTAL_UP': {'family': 'MARKET', 'description': 'Movimento de Total para cima'}}},
         }
         for name, body in sources.items():
             target = self.root / name
@@ -53,6 +56,8 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(packet['facts']['missing_capture'], 1)
         self.assertEqual(packet['facts']['scientific_state'], 'INCONCLUSIVO')
         self.assertEqual(len(packet['topics']), 4)
+        self.assertEqual(len(packet['feature_catalogue']), 2)
+        self.assertIn('M_TOTAL_UP', json.dumps(packet))
         self.assertEqual(self.snapshot(), self.before)
         self.assertNotIn('games', json.dumps(packet))
         self.assertNotIn('api_key', json.dumps(packet).lower())
