@@ -247,14 +247,26 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
         raise ValueError('An explicit HTTPS endpoint is required')
     if not isinstance(model, str) or not (1 <= len(model) <= 100):
         raise ValueError('An explicit model is required')
-    # Automated discovery: a deterministic offline planner supplies NEW eligible
-    # combinations. The LLM can freely reason about mechanisms, controls and
-    # falsification, but may not quietly switch to a previously used combination.
-    example = packet['response_schema']
-    candidate_instruction = 'Devolve UMA proposta com feature_codes reais de pelo menos duas familias, metric e control_group. Segue as chaves exatas do exemplo.'
+    # Autonomous mode: Python owns the candidate, never the model.
+    # A response containing creative text only cannot silently substitute a
+    # different feature combination or recycle an archived hypothesis.
     options = None
-    if candidate_options is not None:
-        if (not isinstance(candidate_options, list) or not 1 <= len(candidate_options) <= 3):
+    fixed_codes = None
+    if candidate_options is None:
+        messages = [
+            {'role': 'system', 'content': SYSTEM},
+            {'role': 'user', 'content': json.dumps({
+                'facts': packet['facts'], 'topics': packet['topics'],
+                'source_sha256': packet['source_sha256'],
+                'feature_catalogue': packet['feature_catalogue'],
+                'response_schema': packet['response_schema'],
+                'exact_output_example': packet['response_schema'],
+                'candidate_options': None,
+                'instruction': 'Devolve uma proposta DRAFT no formato indicado.'
+            }, ensure_ascii=False)}
+        ]
+    else:
+        if not isinstance(candidate_options, list) or not 1 <= len(candidate_options) <= 3:
             raise ValueError('INVALID_AUTO_CANDIDATE_POOL')
         families = {f['code']: f['family'] for f in packet['feature_catalogue']}
         options = []
@@ -267,37 +279,46 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
             options.append(sorted(codes))
         if len({tuple(x) for x in options}) != len(options):
             raise ValueError('DUPLICATE_AUTO_CANDIDATE')
-        example = copy.deepcopy(packet['response_schema'])
-        demo = example['proposals'][0]
-        demo['feature_codes'] = list(options[0])
-        demo['topic_id'] = 'T05'
-        demo['hypothesis'] = 'A combinacao ' + ', '.join(options[0]) + ' pode acrescentar informacao ao baseline; investigar sem presumir efeito.'
-        demo['test_design'] = (
-            'Congelar ' + ', '.join(options[0]) +
-            ' antes do KO; medir frequencia e FT por jogo e comparar log loss ou Brier em OOS.'
+        fixed_codes = options[0]  # precommitted, outcome-blind, deterministic
+        example = packet['response_schema']['proposals'][0]
+        text_fields = ('hypothesis', 'null_hypothesis', 'control_group',
+                       'falsification', 'data_needed', 'confounders')
+        analysis_schema = {k: copy.deepcopy(example[k]) for k in text_fields}
+        joined = ', '.join(fixed_codes)
+        analysis_schema['hypothesis'] = (
+            'A combinacao ' + joined + ' pode acrescentar informacao ao baseline, sem efeito presumido.')
+        analysis_schema['null_hypothesis'] = (
+            'A combinacao ' + joined + ' nao melhora o baseline.')
+        analysis_schema['falsification'] = (
+            'Rejeitar se o Log Loss fora da amostra nao melhorar contra o baseline; '
+            'controlar comparabilidade, cobertura FT e selecao multipla.')
+        system = (
+            'Es investigador cientifico do MASTER BRAIN em modo sombra. '
+            'O Python JA SELECIONOU as variaveis; nao tens autoridade para selecionar, '
+            'modificar ou sugerir outro cruzamento. Nao devolvas feature_codes, '
+            'topic_id, test_design, metric, outcome, baseline ou source_refs: '
+            'esses campos pertencem exclusivamente ao Python. '
+            'Devolve APENAS JSON com schema_version=1 e analysis contendo '
+            'exatamente hypothesis, null_hypothesis, control_group, falsification, '
+            'data_needed e confounders, conforme o exemplo. '
+            'Usa apenas as variaveis preselecionadas para formular um mecanismo '
+            'falsificavel, controlos, limitações e dados prospetivos necessarios. '
+            'A metrica predefinida e LOG_LOSS; a falsificacao deve referir Log Loss OOS, '
+            'nunca usar Brier como criterio principal. '
+            'Nao inventes numeros, resultados, significancia, ROI ou vantagens.'
         )
-        candidate_instruction = (
-            'Escolhe exatamente UMA das combinacoes de candidate_options (sem criar outra); '
-            'podes raciocinar livremente sobre mecanismos, enviesamentos, hipoteses alternativas, '
-            'controlos, falsificacao, sazonalidade, selecao e limites dos dados. '
-            'Nao inventes numeros nem alegues resultados. Usa T05 e segue EXATAMENTE o esquema. '
-            'Se nenhuma combinacao parecer promissora, escolhe a mais falsificavel e explicita '
-            'as limitacoes em test_design e data_needed.'
-        )
-    messages = [
-        {'role': 'system', 'content': (SYSTEM if options is None else SYSTEM.replace(
-            'Podes escolher livremente QUALQUER combinacao elegivel do catalogo completo,',
-            'Escolhe exclusivamente UMA combinacao EXATA de candidate_options, sem misturar codigos entre opcoes,')
-            + (' candidate_options e uma restricao obrigatoria; liberdade apenas no raciocinio.' if options else ''))},
-        {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
-                                              'source_sha256': packet['source_sha256'],
-                                              'feature_catalogue': [f for f in packet['feature_catalogue']
-                                                  if options is None or any(f['code'] in x for x in options)],
-                                              'response_schema': example,
-                                              'exact_output_example': example,
-                                              'candidate_options': options,
-                                              'instruction': candidate_instruction}, ensure_ascii=False)}
-    ]
+        messages = [
+            {'role': 'system', 'content': system},
+            {'role': 'user', 'content': json.dumps({
+                'facts': packet['facts'],
+                'fixed_codes': fixed_codes,
+                'feature_catalogue': [f for f in packet['feature_catalogue']
+                                      if f['code'] in fixed_codes],
+                'response_schema': {'schema_version': 1, 'analysis': analysis_schema},
+                'instruction': ('Escreve a analise EXCLUSIVAMENTE sobre ' + joined +
+                                '. Nao escolhas outras variaveis ou combinacoes.')
+            }, ensure_ascii=False)}
+        ]
     body = json.dumps({'model': model, 'messages': messages, 'temperature': 0,
                        'max_tokens': 1600, 'response_format': {'type': 'json_object'}}).encode('utf-8')
     if len(body) > 20_000:
@@ -319,11 +340,37 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
         raise ValueError('Invalid LLM content')
     parsed_content = strict_json(content)
     try:
+        if fixed_codes is not None:
+            fields = {'hypothesis', 'null_hypothesis', 'control_group',
+                      'falsification', 'data_needed', 'confounders'}
+            if (not isinstance(parsed_content, dict)
+                    or set(parsed_content) != {'schema_version', 'analysis'}
+                    or parsed_content.get('schema_version') != 1
+                    or not isinstance(parsed_content.get('analysis'), dict)
+                    or set(parsed_content['analysis']) != fields):
+                raise ValueError('AUTO_LLM_ANALYSIS_CONTRACT_INVALID')
+            analysis = parsed_content['analysis']
+            # Reject references to OTHER catalogue codes without exposing text.
+            referenced = set(re.findall(
+                r'\b(?:G|M)_[A-Z0-9_]+\b',
+                json.dumps(analysis, ensure_ascii=False)))
+            if referenced - set(fixed_codes):
+                raise ValueError('AUTO_LLM_TEXT_REFERENCES_UNAPPROVED_FEATURE')
+            proposal = {
+                'status': 'DRAFT', 'topic_id': 'T05',
+                'feature_codes': list(fixed_codes), 'outcome': 'OVER_2_5',
+                'baseline': 'MARKET_MODEL_OVER25', 'metric': 'LOG_LOSS',
+                'test_design': ('Congelar ' + ', '.join(fixed_codes) +
+                                ' antes do KO; comparar Log Loss OOS por jogo '
+                                'com o baseline e controlos emparelhados.'),
+                'source_refs': [SOURCES[4]],
+                **analysis,
+            }
+            parsed_content = {'schema_version': 1, 'proposals': [proposal]}
         result = validate_proposals(packet, parsed_content)
-        if options is not None and (len(result['proposals']) != 1
-                or result['proposals'][0]['topic_id'] != 'T05'
-                or sorted(result['proposals'][0]['feature_codes']) not in options):
-            raise ValueError('AUTO_LLM_SELECTED_UNAPPROVED_OR_PREVIOUS_COMBINATION')
+        if fixed_codes is not None and (len(result['proposals']) != 1
+                or result['proposals'][0]['feature_codes'] != fixed_codes):
+            raise ValueError('AUTO_FIXED_CANDIDATE_INVARIANT_VIOLATION')
         result['provider_usage'] = provider_usage(envelope, model)
         return result
     except (ValueError, KeyError, TypeError) as exc:

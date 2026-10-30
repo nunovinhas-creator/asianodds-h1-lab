@@ -108,46 +108,67 @@ class AutonomousResearchTests(TestCase):
         ai.assert_called_once()
         self.assertEqual(result['autonomy']['trigger'], 'workflow_dispatch')
 
-    def test_model_must_select_only_a_fresh_pool_candidate(self):
+    def test_auto_model_supplies_text_not_candidate_identity(self):
         pool = autonomy.choose_candidates(self.root)['choices']
-        good = self.good_for(pool[0]['feature_codes'])
+        codes = pool[0]['feature_codes']
+        complete = self.good_for(codes)['proposals'][0]
+        fields = ('hypothesis', 'null_hypothesis', 'control_group',
+                  'falsification', 'data_needed', 'confounders')
+        model_reply = {'schema_version': 1,
+                       'analysis': {k: complete[k] for k in fields}}
+
         class Response:
             status = 200
             def __init__(self, obj):
-                self.body = json.dumps({'choices': [{'message': {
-                    'content': json.dumps({'schema_version': 1,
-                         'proposals': obj['proposals']})}}]}).encode()
+                self.body = json.dumps({'choices': [{
+                    'message': {'content': json.dumps(obj)},
+                    'finish_reason': 'stop'}]}).encode()
             def __enter__(self): return self
             def __exit__(self, *args): return False
             def read(self, size): return self.body
-        captured = []
+
+        requests = []
         def opener(req, timeout):
-            captured.append(req)
-            return Response(good)
+            requests.append(req)
+            return Response(model_reply)
+
         result = investigator.invoke(self.packet,
-              endpoint='https://example.test/v1/chat/completions',
-              model='fake', opener=opener,
-              candidate_options=[p['feature_codes'] for p in pool])
+            endpoint='https://example.test/v1/chat/completions',
+            model='fake', opener=opener,
+            candidate_options=[p['feature_codes'] for p in pool])
         self.assertEqual(result['status'], 'DRAFT_UNVALIDATED_HUMAN_REVIEW_REQUIRED')
-        posted = json.loads(captured[0].data)
-        user = json.loads(posted['messages'][1]['content'])
-        self.assertEqual(user['exact_output_example']['proposals'][0]['feature_codes'],
-                         pool[0]['feature_codes'])
-        self.assertEqual(len(user['candidate_options']), len(pool))
-        self.assertNotIn('QUALQUER combinacao elegivel do catalogo completo', posted['messages'][0]['content'])
-        allowed={c for p in pool for c in p['feature_codes']}
-        self.assertTrue(all(f['code'] in allowed for f in user['feature_catalogue']))
-        invalid = self.good_for(['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
-        if sorted(invalid['proposals'][0]['feature_codes']) not in [
-                sorted(p['feature_codes']) for p in pool]:
-            with self.assertRaisesRegex(ValueError, 'AUTO_LLM_SELECTED_UNAPPROVED') as rejected:
-                investigator.invoke(self.packet,
-                    endpoint='https://example.test/v1/chat/completions',
-                    model='fake', opener=lambda req, timeout: Response(invalid),
-                    candidate_options=[p['feature_codes'] for p in pool])
-            self.assertEqual(rejected.exception.audit['llm_calls'],1)
-            self.assertEqual(rejected.exception.audit['status'],'REJECTED_NOT_PUBLISHED')
-            self.assertRegex(rejected.exception.audit['response_sha256'],r'^[0-9a-f]{64}$')
+        self.assertEqual(result['proposals'][0]['feature_codes'], codes)
+        self.assertEqual(result['proposals'][0]['topic_id'], 'T05')
+        self.assertEqual(result['proposals'][0]['metric'], 'LOG_LOSS')
+        self.assertEqual(len(requests), 1)
+        user = json.loads(json.loads(requests[0].data)['messages'][1]['content'])
+        self.assertEqual(user['fixed_codes'], codes)
+        self.assertEqual(set(user['response_schema']['analysis']), set(fields))
+        self.assertIn('Log Loss', user['response_schema']['analysis']['falsification'])
+        self.assertNotIn('candidate_options', user)
+        self.assertTrue(all(f['code'] in codes for f in user['feature_catalogue']))
+
+        # Even a valid-looking response cannot smuggle a different code into
+        # free-text analysis. The output remains unpublishable.
+        foreign = next(f['code'] for f in self.packet['feature_catalogue']
+                       if f['code'] not in codes and f['code'].startswith(('G_', 'M_')))
+        bad = json.loads(json.dumps(model_reply))
+        bad['analysis']['hypothesis'] += ' E tambem ' + foreign + '.'
+        with self.assertRaisesRegex(ValueError, 'AUTO_LLM_TEXT_REFERENCES_UNAPPROVED_FEATURE') as rejected:
+            investigator.invoke(self.packet,
+                endpoint='https://example.test/v1/chat/completions',
+                model='fake', opener=lambda req, timeout: Response(bad),
+                candidate_options=[p['feature_codes'] for p in pool])
+        self.assertEqual(rejected.exception.audit['llm_calls'], 1)
+        self.assertEqual(rejected.exception.audit['status'], 'REJECTED_NOT_PUBLISHED')
+
+        # Legacy whole-proposal response must not be silently reinterpreted.
+        with self.assertRaisesRegex(ValueError, 'AUTO_LLM_ANALYSIS_CONTRACT_INVALID'):
+            investigator.invoke(self.packet,
+                endpoint='https://example.test/v1/chat/completions',
+                model='fake', opener=lambda req, timeout: Response({
+                    'schema_version': 1, 'proposals': [complete]}),
+                candidate_options=[p['feature_codes'] for p in pool])
 
     def test_publication_rejects_forged_provenance(self):
         codes = autonomy.choose_candidates(self.root)['choices'][0]['feature_codes']
@@ -164,8 +185,6 @@ class AutonomousResearchTests(TestCase):
                         commit_sha='b' * 40, when='2026-10-30T13:44:00Z')
 
     def test_real_catalogue_prompt_stays_bounded_without_network(self):
-        # Uses the repository's true catalogue and aggregate scientific gate
-        # documents: catches oversized requests and example/schema drift.
         root = Path(__file__).resolve().parents[1]
         packet = investigator.build_packet(root)
         pool = autonomy.choose_candidates(root)['choices']
@@ -174,10 +193,11 @@ class AutonomousResearchTests(TestCase):
             topic_id='T05', feature_codes=codes,
             test_design='Freeze ' + ', '.join(codes) + ' before KO and compare OOS Brier.'
         )
+        fields = ('hypothesis', 'null_hypothesis', 'control_group',
+                  'falsification', 'data_needed', 'confounders')
+        response = {'schema_version': 1, 'analysis': {k: example[k] for k in fields}}
         mock_reply = json.dumps({'choices': [{
-            'message': {'content': json.dumps({
-                'schema_version': 1, 'proposals': [example]
-            })},
+            'message': {'content': json.dumps(response)},
             'finish_reason': 'stop',
         }]}, ensure_ascii=False).encode('utf-8')
         class Response:
@@ -197,6 +217,9 @@ class AutonomousResearchTests(TestCase):
         self.assertEqual(len(requests), 1)
         self.assertLessEqual(len(requests[0].data), 20_000)
         self.assertNotIn(b'DO_NOT_LOG', requests[0].data)
+        user = json.loads(json.loads(requests[0].data)['messages'][1]['content'])
+        self.assertEqual(user['fixed_codes'], codes)
+        self.assertNotIn('feature_codes', user['response_schema']['analysis'])
 
     def test_workflow_uses_at_most_four_slots_with_isolated_writer(self):
         root = Path(__file__).resolve().parents[1]
