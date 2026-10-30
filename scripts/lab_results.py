@@ -23,6 +23,7 @@ from h1lab.lab_bsd_search import BSDDateFallback, date_in_cooldown, summary as b
 from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
+from h1lab.lab_ft_index_probe import plan_index_ids, IndexProbe
 from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
@@ -368,6 +369,14 @@ def main():
         api_football.reviewed_targets = approved_targets
         rotation["api_football"] = rotation["api_football"][:min(
             2, max(0, 89 - api_today))]
+    strict_targets = (plan_index_ids(
+        preview_keys, _preview_ledger["matches"], previous_day_index, now,
+        reserved=[v["provider_fixture_id"] for v in approved_targets.values()],
+        max_batch=20-len(approved_targets))
+        if api_football_poll and api_today < 90 else {})
+    strict_probe = IndexProbe(api_football, strict_targets)
+    if strict_targets:
+        rotation["api_football"] = rotation["api_football"][:min(2,max(0,89-api_today))]
     goal.allowed_days = frozenset(rotation["goal"])
     openfoot.allowed_days = frozenset(rotation["openfoot"])
     api_football.allowed_days = frozenset(rotation["api_football"])
@@ -408,7 +417,7 @@ def main():
         bsd_lookup=bsd_with_monte, tsdb_lookup=tsdb.lookup,
         espn_lookup=espn.lookup, sportscore_lookup=sportscore.lookup,
         fotmob_lookup=fotmob.lookup if fotmob_enabled else None,
-        api_football_lookup=api_football.lookup if api_football_poll else None,
+        api_football_lookup=strict_probe.lookup if api_football_poll else None,
         goal_lookup=goal.lookup if goal_enabled else None,
         openfoot_lookup=openfoot.lookup if openfoot_enabled else None,
         dual_lookup=dual.lookup if goal_enabled or api_football_poll or openfoot_enabled else None,
@@ -672,6 +681,10 @@ def main():
     report["fotmob_search"] = fotmob.summary()
     report["fotmob_search"]["licensed_automation_enabled"] = fotmob_enabled
     report["api_football_search"] = api_football.summary()
+    report["api_football_search"]["strict_index_probe"] = {
+        "planned": len(strict_targets), "outcomes": dict(sorted(strict_probe.outcomes.items())),
+        "scope": "strict cached identities; shared ID batch, not extra requests"}
+
     report["goal_search"] = goal.summary()
     report["goal_search"]["poll_enabled"] = goal_enabled
     report["openfoot_search"] = openfoot.summary()

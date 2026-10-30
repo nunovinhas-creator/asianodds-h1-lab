@@ -253,7 +253,8 @@ class APIFootballResults:
                 try:
                     self.id_cache = self.id_fetch(
                         sorted(set(v["provider_fixture_id"]
-                                   for v in self.reviewed_targets.values())),
+                                   for v in self.reviewed_targets.values())
+                               | set(getattr(self, "extra_fixture_ids", []))),
                         self.key)
                 except (OSError, ValueError, KeyError, TypeError) as exc:
                     self.id_cache = {}
