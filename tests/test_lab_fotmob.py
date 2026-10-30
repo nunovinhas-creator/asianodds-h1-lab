@@ -46,7 +46,9 @@ class FotMobLabTests(unittest.TestCase):
                 result,why=FotMobResults(fetch=lambda day:games).lookup(S)
                 self.assertIsNone(result)
                 self.assertIn(why,("fotmob_ambiguous_club_or_fixture",
-                                   "fotmob_reversed_order_candidate"))
+                                   "fotmob_reversed_order_candidate",
+                                   "fotmob_identity_side_collision",
+                                   "fotmob_identity_reversed_order_candidate"))
 
     def test_knockout_penalties_et_and_ambiguous_final(self):
         for label in ("Pen","AET","After extra time","","Final",None):

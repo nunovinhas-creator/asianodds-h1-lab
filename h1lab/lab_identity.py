@@ -142,14 +142,24 @@ def select_event(signal, events, names, kickoff, window_seconds=WINDOW_SECONDS):
             continue
         in_window.append((ev, eh, ea))
     exact = [x for x in in_window if pair_level(home, away, x[1], x[2]) == EXACT]
-    if len(exact) == 1:
-        return exact[0][0], EXACT, "identity_exact"
     if len(exact) > 1:
         return None, None, "identity_ambiguous_exact"
-    core = [x for x in in_window if pair_level(home, away, x[1], x[2]) == CORE]
+    # An EXACT match is a strong naming match, not proof that the fixture is
+    # unique. A reversed event or a second event containing either club must
+    # quarantine an EXACT result just as it quarantines a CORE_NAME result.
     reversed_ = [x for x in in_window if pair_level(home, away, x[2], x[1]) is not None]
     if reversed_:
         return None, None, "identity_reversed_order_candidate"
+    if exact:
+        chosen = exact[0][0]
+        hc, ac = core_tokens(home), core_tokens(away)
+        for ev, eh, ea in in_window:
+            if ev is chosen:
+                continue
+            if {core_tokens(eh), core_tokens(ea)} & {hc, ac}:
+                return None, None, "identity_side_collision"
+        return chosen, EXACT, "identity_exact"
+    core = [x for x in in_window if pair_level(home, away, x[1], x[2]) == CORE]
     if not core:
         return None, None, "identity_no_core_match"
     if len(core) > 1:
