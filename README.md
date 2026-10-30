@@ -4,6 +4,8 @@
 
 Observatório experimental de odds asiáticas: recolhe alertas estruturados de um canal Telegram autorizado, regista movimentos de mercado, forma sinais e triplas H1 simuladas e investiga combinações de padrões com resultados finais. **Não executa apostas reais, não garante rentabilidade e não ativa automaticamente estratégias descobertas pelo LAB.**
 
+**Investigador LLM V6 experimental:** [painel visual de cruzamentos](https://nunovinhas-creator.github.io/asianodds-h1-lab/llm-investigator.html) · [workflow manual](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/workflows/v6-llm-investigator.yml) · [metodologia e limites](docs/lab/V6-LLM-INVESTIGATOR.md). Apenas chamadas Cloudflare confirmadas manualmente produzem propostas DRAFT; sem cron de IA, alertas automáticos, provas de rentabilidade ou alterações às apostas.
+
 
 **V10 — descoberta e persistência de IDs BSD:** os jogos sem ID no Monte-Carlos passam a aproveitar listagens BSD completas, verificadas por `count`/`next`, até 3 datas por execução e um intervalo mínimo de 4 horas por dia. A associação inicial exige equipa casa/fora, categoria, orientação, KO ±5 minutos e unicidade; o ID é persistido para futuras consultas diretas por `/api/v2/events/{id}/`, sem pesquisas repetidas por `team_name`. Marcadores só são registados após confirmar o próprio detalhe BSD. [Critérios e métricas](docs/lab/ft-bsd-id-discovery.md).
 
