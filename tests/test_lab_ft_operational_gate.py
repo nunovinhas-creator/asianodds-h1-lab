@@ -14,7 +14,8 @@ def health(*, overrides=None, status="OK"):
 class FTHealthGateTests(unittest.TestCase):
     def test_valid_snapshots_do_not_claim_24h_stability(self):
         result = evaluate_health(health(), upstream="success")
-        self.assertEqual(result["status"], "DEGRADED")
+        self.assertEqual(result["status"], "INCONCLUSIVE")
+        self.assertEqual(result["unproven_checks"], ["ft_execution"])
         self.assertEqual(result["blocked"], [])
         self.assertEqual(result["stable_24h_48h_7d"],
                          "NOT_PROVEN_BY_SINGLE_OBSERVATION")
