@@ -124,6 +124,12 @@
       }
       text(state, "Modo manual · último cruzamento publicado · sem investigação em segundo plano.");
       text($("latest-meta"), "Run #" + run.run_id + " · " + run.recorded_at_utc + " · Modelo " + run.model + " · Neurons: não medidos no relatório");
+      if (run.provider_usage) {
+        const u = run.provider_usage;
+        text($("latest-meta"), "Run #" + run.run_id + " · " + run.recorded_at_utc +
+          " · Modelo " + run.model + " · Tokens: " + JSON.stringify(u.tokens || {}) +
+          " · Neurons: não medidos · quota da conta não verificada");
+      }
       renderProposal(Array.isArray(run.proposals) ? run.proposals[0] : null);
       v.history.forEach(e => history.appendChild(row(e)));
     } catch (err) {

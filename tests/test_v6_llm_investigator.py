@@ -382,6 +382,28 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(result['empirically_validated_strategies'], 0)
         self.assertIsNotNone(result['latest']['proposals'][0]['feature_codes'])
 
+    def test_usage_is_allowlisted_and_unknown_is_not_free(self):
+        usage = mod.provider_usage({'usage': {'prompt_tokens': 100,
+            'completion_tokens': 20, 'total_tokens': 120,
+            'secret': 'NEVER_EXPORT'}}, '@cf/meta/llama-3.1-8b-instruct-fast')
+        self.assertEqual(usage['tokens']['total_tokens'], 120)
+        self.assertIsNone(usage['neurons_consumed'])
+        self.assertFalse(usage['account_quota_verified'])
+        self.assertNotIn('NEVER_EXPORT', json.dumps(usage))
+        self.assertEqual(mod.provider_usage({}, 'x')['tokens'], {})
+        output = mod.validate_proposals(mod.build_packet(self.root),
+            {'schema_version': 1, 'proposals': [self.proposal()]})
+        output['provider_usage'] = usage
+        result = publication.publish(self.root, output, run_id='41039239739',
+            commit_sha='c' * 40, when='2026-10-30T11:00:00Z')
+        self.assertEqual(result['latest']['provider_usage'], usage)
+
+    def test_three_features_require_three_families(self):
+        p = self.proposal(feature_codes=['G_MULTI_ALERT', 'G_SINGLE_ALERT', 'M_IMPLIED_GOALS_FLAT'],
+            test_design='Freeze G_MULTI_ALERT G_SINGLE_ALERT M_IMPLIED_GOALS_FLAT before kickoff.')
+        with self.assertRaises(ValueError):
+            mod.validate_proposals(mod.build_packet(self.root), {'schema_version': 1, 'proposals': [p]})
+
     def test_cli_dossier_stdout_only(self):
         from contextlib import redirect_stdout
         from io import StringIO

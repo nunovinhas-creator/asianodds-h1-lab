@@ -14,7 +14,7 @@ from math import comb
 from pathlib import Path
 import re
 
-from h1lab.v6_llm_investigator import build_packet, strict_json, validate_proposals
+from h1lab.v6_llm_investigator import build_packet, strict_json, validate_proposals, provider_usage
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = Path("docs/lab/llm-investigator-index.json")
@@ -57,15 +57,20 @@ def publish(root, output, *, run_id, commit_sha, when):
         raise ValueError("RUN_TIMESTAMP_NOT_UTC")
     when = dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     packet = build_packet(root)
-    if not isinstance(output, dict) or set(output) != {"status", "source_sha256", "proposals", "notice"}:
+    if not isinstance(output, dict) or set(output) - {"provider_usage"} != {"status", "source_sha256", "proposals", "notice"}:
         raise ValueError("UNEXPECTED_INVESTIGATION_FORMAT")
     if output["source_sha256"] != packet["source_sha256"]:
         raise ValueError("INVESTIGATION_SOURCE_HASH_MISMATCH")
     validated = validate_proposals(
         packet, {"schema_version": 1, "proposals": output["proposals"]}
     )
-    if output != validated:
+    if {k: v for k, v in output.items() if k != "provider_usage"} != validated:
         raise ValueError("INVESTIGATION_VALIDATION_MISMATCH")
+    usage = output.get("provider_usage")
+    if usage is not None:
+        if not isinstance(usage, dict) or usage != provider_usage(
+                {"usage": usage.get("tokens")}, "@cf/meta/llama-3.1-8b-instruct-fast"):
+            raise ValueError("INVALID_PROVIDER_USAGE")
     proposal = validated["proposals"][0]
     run = {
         "schema_version": 1,
@@ -77,6 +82,7 @@ def publish(root, output, *, run_id, commit_sha, when):
         "model": "@cf/meta/llama-3.1-8b-instruct-fast",
         "llm_calls": 1,
         "neurons_consumed": None,
+        "provider_usage": usage,
         "scientific_acceptance": "INCONCLUSIVO",
         "source_sha256": packet["source_sha256"],
         "proposals": validated["proposals"],

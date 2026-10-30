@@ -218,7 +218,7 @@ def validate_proposals(packet, response):
         if (not isinstance(codes, list) or not 2 <= len(codes) <= 3
                 or any(not isinstance(code, str) or code not in feature_families for code in codes)
                 or len(set(codes)) != len(codes)
-                or len({feature_families[code] for code in codes}) < 2):
+                or len({feature_families[code] for code in codes}) != len(codes)):
             raise ValueError('Invalid feature combination: require 2-3 actual codes from distinct families')
         if (p['outcome'] != 'OVER_2_5' or p['baseline'] != 'MARKET_MODEL_OVER25'
                 or p['metric'] not in ('BRIER_SCORE', 'LOG_LOSS')):
@@ -278,9 +278,30 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen):
         raise ValueError('Invalid LLM content')
     parsed_content = strict_json(content)
     try:
-        return validate_proposals(packet, parsed_content)
+        result = validate_proposals(packet, parsed_content)
+        result['provider_usage'] = provider_usage(envelope, model)
+        return result
     except (ValueError, KeyError, TypeError) as exc:
         # No model-generated strings are shown in failures.
         finish_reason = envelope.get('choices', [{}])[0].get('finish_reason', 'unknown')
         finish_reason = finish_reason if finish_reason in ('stop', 'length', 'content_filter') else 'other'
         raise ValueError('LLM_RESPONSE_REJECTED: finish_reason=' + str(finish_reason) + '; ' + str(exc)) from None
+
+
+def provider_usage(envelope, model):
+    """Allowlisted provider counters; absence is unknown, never zero cost.
+
+    Token counters are not an account-level quota measurement. Do not guess
+    neuron rates for model aliases absent from the current pricing table.
+    """
+    usage = envelope.get('usage')
+    counters = {}
+    if isinstance(usage, dict):
+        for key in ('prompt_tokens', 'completion_tokens', 'total_tokens'):
+            value = usage.get(key)
+            if type(value) is int and 0 <= value <= 10_000_000:
+                counters[key] = value
+    return {'model_requested': model, 'tokens': counters,
+            'neurons_consumed': None,
+            'measurement': 'PROVIDER_TOKEN_COUNTERS' if counters else 'UNAVAILABLE',
+            'account_quota_verified': False}
