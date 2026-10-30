@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import subprocess
 from pathlib import Path
@@ -60,17 +61,24 @@ def reject_constant(value):
     raise ValueError('Non-finite JSON value')
 
 
+def finite_float(value):
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError('Non-finite JSON number')
+    return number
+
+
 def validate(name, content):
     text = content.decode('utf-8')
     if name.endswith('.json'):
-        value = json.loads(text, parse_constant=reject_constant)
+        value = json.loads(text, parse_constant=reject_constant, parse_float=finite_float)
         if not isinstance(value, (dict, list)):
             raise ValueError('Invalid JSON document: ' + name)
     elif name.endswith('.jsonl'):
         if text and not text.endswith('\n'):
             raise ValueError('Unterminated journal: ' + name)
         for line in text.splitlines():
-            if not isinstance(json.loads(line, parse_constant=reject_constant), dict):
+            if not isinstance(json.loads(line, parse_constant=reject_constant, parse_float=finite_float), dict):
                 raise ValueError('Invalid journal event: ' + name)
 
 
