@@ -133,6 +133,51 @@ class V7Tests(unittest.TestCase):
                          "2026-10-28T17:00:00+00:00")
         self.assertEqual(game["evidence_attempts"], 0)
 
+    def test_backlog_visit_without_evidence_is_not_immediately_due(self):
+        previous = {"schema_version": 1, "matches": {
+            GAME["match_key"]: {**GAME, "status": "PENDING",
+                "attempts": 4, "evidence_attempts": 0,
+                "checked_at": "2026-10-28T17:00:00+00:00",
+                "queue_visited_at": "2026-10-28T18:30:00+00:00"}}}
+        report = audit(previous, NOW, evidence_retry=True)
+        row = report["overdue_games"][0]
+        self.assertEqual(report["classification"]["past_due_never_checked"], 1)
+        self.assertEqual(row["queue_state"], "VISIT_COOLDOWN")
+        self.assertIsNone(row["last_checked_at"])
+        self.assertEqual(row["last_queue_visit_at"],
+                         "2026-10-28T18:30:00+00:00")
+        self.assertEqual(row["next_eligible_at"],
+                         "2026-10-28T22:30:00+00:00")
+        after = audit(previous, NOW + timedelta(hours=4), evidence_retry=True)
+        self.assertEqual(after["overdue_games"][0]["queue_state"],
+                         "DUE_NOT_SELECTED")
+
+    def test_backlog_longer_evidence_backoff_wins_over_visit_cooldown(self):
+        previous = {"schema_version": 1, "matches": {
+            GAME["match_key"]: {**GAME, "status": "PENDING",
+                "evidence_attempts": 1, "stable_confirmations": 2,
+                "evidence_checked_at": "2026-10-28T19:00:00+00:00",
+                "queue_visited_at": "2026-10-28T19:30:00+00:00"}}}
+        row = audit(previous, NOW, evidence_retry=True)["overdue_games"][0]
+        self.assertEqual(row["queue_state"], "ADAPTIVE_COOLDOWN")
+        self.assertEqual(row["next_eligible_at"],
+                         "2026-10-29T19:00:00+00:00")
+
+    def test_backlog_selected_without_evidence_stays_visibly_visited(self):
+        previous = {"schema_version": 1, "matches": {
+            GAME["match_key"]: {**GAME, "status": "PENDING",
+                "evidence_attempts": 0,
+                "queue_visited_at": NOW.isoformat()}}}
+        report = audit(previous, NOW, evidence_retry=True,
+                       queue_plan={"selected_keys": [GAME["match_key"]],
+                                   "deferred_keys": []})
+        row = report["overdue_games"][0]
+        self.assertEqual(row["queue_state"], "VISITED_NO_NEW_EVIDENCE")
+        self.assertIsNone(row["last_checked_at"])
+        self.assertEqual(row["evidence_attempts"], 0)
+        self.assertEqual(row["next_eligible_at"],
+                         "2026-10-29T00:00:00+00:00")
+
     def test_oldest_never_examined_date_beats_newer_v6_hints(self):
         # Regression of actual 28 October 2026 FT run: 30 newer games
         # excluded all eight unresolved 27-Oct games from authenticated day

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
-from .lab_results import DELAY, retry_wait, utc
+from .lab_results import DELAY, RETRY, retry_wait, utc
 
 PROVIDERS=("bsd","thesportsdb","espn","sportscore","api_football","goal","openfoot","fotmob")
 STATUS="FT_BACKLOG_AUDIT_OBSERVATION_ONLY"
@@ -51,6 +51,9 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
         groups["past_due_unverified"]+=1
         day=ko.date().isoformat()
         checked=utc(item.get("evidence_checked_at" if evidence_retry else "checked_at"))
+        # Operational visits without a COMPLETE provider snapshot still block
+        # new routine visits for four hours. They are NOT FT evidence.
+        visit=utc(item.get("queue_visited_at")) if evidence_retry else None
         provider_reasons=item.get("provider_reasons") or {}
         if not isinstance(provider_reasons,dict):
             provider_reasons={}
@@ -65,7 +68,9 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
                 obstacles[(provider,str(provider_reasons[provider]))]+=1
         if item.get("status")=="EXPIRED_UNVERIFIED":
             groups["past_due_expired"]+=1
-        next_eligible = (checked + retry_wait(item) if checked is not None else now)
+        evidence_due = checked + retry_wait(item) if checked is not None else now
+        visit_due = visit + RETRY if visit is not None else now
+        next_eligible = max(evidence_due, visit_due)
         if item.get("status") == "EXPIRED_UNVERIFIED":
             queue_state = "OUTSIDE_30_DAY_API_WINDOW"
         elif key in chosen:
@@ -75,7 +80,8 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
         elif key in deferred:
             queue_state = "DEFERRED_BY_30_GAME_CAP"
         elif next_eligible > now:
-            queue_state = "ADAPTIVE_COOLDOWN"
+            queue_state = ("VISIT_COOLDOWN" if visit_due >= evidence_due
+                           and visit_due > now else "ADAPTIVE_COOLDOWN")
         else:
             queue_state = "DUE_NOT_SELECTED"
         overdue.append({
@@ -84,6 +90,7 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
             "last_checked_at":(item.get("evidence_checked_at") if evidence_retry
                                else item.get("checked_at")),
             "legacy_last_checked_at": item.get("checked_at") if evidence_retry else None,
+            "last_queue_visit_at": (item.get("queue_visited_at") if evidence_retry else None),
             "evidence_attempts": item.get("evidence_attempts", 0),
             "stable_confirmations": item.get("stable_confirmations", 0),
             "last_stable_at": item.get("last_stable_at"),
@@ -130,6 +137,8 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
             "last_attempt_provider_reasons are NOT lifetime provider-attempt counters.",
             "provider_attempts counts adapter invocations, including cache hits; not HTTP requests.",
             "V7 evidence_attempts counts NEW authenticated evidence, not repeated snapshots.",
+            "V7 queue_visited_at records an operational visit and independently blocks routine retry for 4h, even when evidence_checked_at is absent.",
+            "DUE_NOT_SELECTED means due under both effective-evidence and visit cooldown gates; visit without evidence is NOT counted as an effective check.",
             "V7 last_checked_at/evidence_checked_at includes valid stable confirmations; failures and uncredentialed pushes are excluded.",
             "V7 stable_confirmations backs off identical complete lists 4h -> 12h -> 24h.",
             "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",
