@@ -288,7 +288,7 @@ def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_opt
         {'role': 'user', 'content': json.dumps({'facts': packet['facts'], 'topics': packet['topics'],
                                               'source_sha256': packet['source_sha256'],
                                               'feature_catalogue': packet['feature_catalogue'],
-                                              'response_schema': packet['response_schema'],
+                                              'response_schema': example,
                                               'exact_output_example': example,
                                               'candidate_options': options,
                                               'instruction': candidate_instruction}, ensure_ascii=False)}
