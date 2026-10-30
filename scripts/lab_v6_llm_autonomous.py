@@ -139,6 +139,8 @@ def main(argv=None):
         result = run(args.root, mode=args.mode, allow_network=args.allow_network,
                      confirm=os.environ.get('LLM_AUTO_CONFIRMATION', ''))
     except (ValueError, KeyError, TypeError) as exc:
+        audit = getattr(exc, 'audit', {'status': 'BLOCKED_OR_FAILED_USAGE_UNKNOWN', 'llm_calls': None})
+        print(json.dumps(audit, sort_keys=True, allow_nan=False))
         print('AUTONOMOUS_DISCOVERY_BLOCKED: ' + type(exc).__name__ + ' (' +
               str(exc)[:120] + ')', file=sys.stderr)
         return 2
