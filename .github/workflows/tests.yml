@@ -255,12 +255,13 @@ jobs:
           OPENFOOT_API_KEY: ""
         run: |
           python - <<'PY'
-          import socket
-          def no_network(*args, **kwargs):
-              raise AssertionError("unexpected HTTP/socket in offline FT replay")
-          socket.socket = no_network
+          from unittest.mock import patch
           from scripts.lab_results import main
-          result = main()
+          # Keep the socket CLASS intact (SSL imports subclass it), but
+          # prohibit TCP connections throughout the real-snapshot replay.
+          with patch("socket.socket.connect", side_effect=AssertionError(
+                    "unexpected TCP connection in offline FT replay")):
+              result = main()
           same_run = result["ft_queue"]["same_run_cached_postcheck"]
           assert same_run["adapter_http_requests"] == 0
           assert result["ft_queue"]["selection_mode"] == "NO_PROVIDER_POLL"
