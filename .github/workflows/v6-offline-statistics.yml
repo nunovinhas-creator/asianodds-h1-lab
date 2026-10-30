@@ -1,0 +1,77 @@
+name: V6 - Offline LLM statistics (research only)
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '18 2,8,14,20 * * *'
+  workflow_run:
+    workflows: ['V6 - LLM Autonomous Research (bounded)']
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: v6-offline-statistics-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Synthetic adversarial tests (no network)
+        run: python -m unittest tests.test_v6_offline_statistics -v
+      - name: Real historical replay and source immutability
+        run: |
+          python - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          from datetime import datetime,timezone
+          from h1lab.v6_offline_statistics import build
+          from scripts.lab_v6_offline_statistics import main
+          paths=[p for p in Path('data').rglob('*') if p.is_file()]
+          before={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+          now=datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+          report=main(['--now',now])
+          assert report==build(Path('.'),now=datetime.fromisoformat(now))
+          assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in before.items())
+          assert report['llm_calls']==0 and report['validated']==0
+          assert all(not h['scientifically_proven'] for h in report['hypotheses'])
+          print('REAL_REPLAY_OK',report['coverage'],report['catalogue_support']['counts'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-llm-statistics-${{ github.run_id }}
+          path: docs/lab/llm-statistics.json
+          retention-days: 14
+  publish:
+    needs: evaluate
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: offline-llm-statistics-${{ github.run_id }}
+          path: ${{ runner.temp }}/statistics
+      - name: Publish research report and immutable run history only
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/statistics/llm-statistics.json" docs/lab/llm-statistics.json
+          mkdir -p docs/lab/llm-statistics-runs
+          test ! -e "docs/lab/llm-statistics-runs/$RUN_ID.json"
+          cp docs/lab/llm-statistics.json "docs/lab/llm-statistics-runs/$RUN_ID.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/lab/llm-statistics.json "docs/lab/llm-statistics-runs/$RUN_ID.json"
+          git commit -m "data(llm): offline statistical audit $RUN_ID [skip ci]"
+          git push origin HEAD:main
