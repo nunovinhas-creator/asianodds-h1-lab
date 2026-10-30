@@ -251,6 +251,14 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(first['empirically_validated_strategies'], 0)
         self.assertIsNone(first['latest']['neurons_consumed'])
         self.assertEqual(first['latest']['llm_calls'], 1)
+        q = json.loads((self.root / publication.QUEUE).read_text())
+        self.assertEqual(q['previously_proposed_unique'], 1)
+        self.assertEqual(q['remaining'], 15)
+        self.assertEqual(q['distinct_family_space'], {'2': 9, '3': 7})
+        self.assertEqual(first['search_space']['possible_pairs_distinct_families'], 9)
+        self.assertEqual(first['search_space']['possible_triples_distinct_families'], 7)
+        self.assertNotIn('possible_triples_two_or_more_families', first['search_space'])
+        self.assertEqual(q['archive_sha256'].keys(), {'41039239732.json'})
         self.assertEqual(first['latest']['summary']['feature_codes'],
                          ['G_MULTI_ALERT', 'M_IMPLIED_GOALS_FLAT'])
         self.assertGreater(first['search_space']['possible_pairs_distinct_families'], 0)
@@ -261,6 +269,9 @@ class InvestigatorTests(unittest.TestCase):
         second = publication.publish(self.root, output, run_id='41039239733',
                     commit_sha=commit, when='2026-10-30T10:16:00Z')
         self.assertEqual([x['run_id'] for x in second['history']], [41039239733, 41039239732])
+        q2 = json.loads((self.root / publication.QUEUE).read_text())
+        self.assertEqual(q2['previously_proposed_unique'], 1)
+        self.assertEqual(len(q2['archive_sha256']), 2)
         self.assertEqual(json.loads((self.root / publication.ARCHIVE / '41039239732.json').read_text()), archived)
         with self.assertRaises(ValueError):
             publication.publish(self.root, output, run_id='41039239732',
@@ -303,6 +314,7 @@ class InvestigatorTests(unittest.TestCase):
         self.assertIn('github.ref ==', workflow)
         self.assertIn('actions/download-artifact@v4', workflow)
         self.assertIn('llm-investigator-runs/', workflow)
+        self.assertIn('docs/lab/llm-discovery-plan.json', workflow)
         self.assertNotIn('schedule:', workflow)
 
 
@@ -323,9 +335,16 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(snapshot['schema_version'], 1)
         self.assertEqual(snapshot['empirically_validated_strategies'], 0)
         space = snapshot['search_space']
+        self.assertNotIn('possible_triples_two_or_more_families', space)
+        self.assertEqual(space['features_in_catalogue'], 49)
+        self.assertEqual(space['possible_pairs_distinct_families'], 1056)
+        self.assertEqual(space['possible_triples_distinct_families'], 13134)
+        queue = json.loads((base / 'docs/lab/llm-discovery-plan.json').read_text())
+        self.assertEqual(queue['remaining'] + queue['previously_proposed_unique'], 14190)
+        self.assertEqual(queue['distinct_family_space'], {'2': 1056, '3': 13134})
         self.assertGreaterEqual(space['features_in_catalogue'], 2)
         self.assertGreaterEqual(space['possible_pairs_distinct_families'], 0)
-        self.assertGreaterEqual(space['possible_triples_two_or_more_families'], 0)
+        self.assertGreaterEqual(space['possible_triples_distinct_families'], 0)
         self.assertEqual(space['meaning'],
                          'SEARCH_SPACE_ONLY_NO_LLM_CALLS_OR_EMPIRICAL_TESTS')
         self.assertNotIn('api_key', json.dumps(snapshot).lower())
@@ -365,10 +384,15 @@ class InvestigatorTests(unittest.TestCase):
 
     def test_first_real_new_run_replaces_bootstrap_without_forging_history(self):
         base = Path(__file__).resolve().parents[1]
-        bootstrap = (base / 'docs/lab/llm-investigator-index.json').read_text()
+        # Real repository state is now nonempty. Construct a true initial
+        # snapshot explicitly so this test remains valid after new AI runs.
+        bootstrap = json.loads((base / 'docs/lab/llm-investigator-index.json').read_text())
+        bootstrap['latest'] = None
+        bootstrap['history'] = []
+        bootstrap['llm_executions_recorded'] = 0
         initial = self.root / publication.INDEX
         initial.parent.mkdir(parents=True, exist_ok=True)
-        initial.write_text(bootstrap)
+        initial.write_text(json.dumps(bootstrap))
         packet = mod.build_packet(self.root)
         output = mod.validate_proposals(packet, {
             'schema_version': 1, 'proposals': [self.proposal()]
@@ -378,6 +402,9 @@ class InvestigatorTests(unittest.TestCase):
                    when='2026-10-30T10:30:00Z')
         self.assertEqual(result['latest']['run_id'], 41039239734)
         self.assertEqual(result['llm_executions_recorded'], 1)
+        plan_result = json.loads((self.root / publication.QUEUE).read_text())
+        self.assertEqual(plan_result['previously_proposed_unique'], 1)
+        self.assertEqual(plan_result['remaining'] + plan_result['previously_proposed_unique'], 16)
         self.assertEqual([x['run_id'] for x in result['history']], [41039239734])
         self.assertEqual(result['empirically_validated_strategies'], 0)
         self.assertIsNotNone(result['latest']['proposals'][0]['feature_codes'])

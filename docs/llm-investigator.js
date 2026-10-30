@@ -96,8 +96,8 @@
       }
       const s = v.search_space;
       text($("features-count"), s.features_in_catalogue);
-      if (Number.isSafeInteger(s.possible_pairs_distinct_families) && Number.isSafeInteger(s.possible_triples_two_or_more_families)) {
-        text($("combos-count"), (s.possible_pairs_distinct_families + s.possible_triples_two_or_more_families).toLocaleString("pt-PT"));
+      if (Number.isSafeInteger(s.possible_pairs_distinct_families) && Number.isSafeInteger(s.possible_triples_distinct_families)) {
+        text($("combos-count"), (s.possible_pairs_distinct_families + s.possible_triples_distinct_families).toLocaleString("pt-PT"));
       }
       text($("runs-count"), v.llm_executions_recorded);
       text($("validated-count"), 0);
