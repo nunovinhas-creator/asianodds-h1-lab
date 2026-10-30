@@ -1,14 +1,14 @@
 # V6.3 #16 — Investigador LLM (protótipo em sombra, desativado por defeito)
 
-Estado: IMPLEMENTAÇÃO EXPERIMENTAL PARA REVISÃO. Não ativado em produção. Referências: issues #63 (V6) e #107 (fiabilidade). A execução científica V6.3 permanece dependente dos gates de 7/14 dias, cronologia independente, pelo menos 1000 FT prospetivos elegíveis da hipótese em 3 semanas e autorização sobre #15. Este módulo não satisfaz esses requisitos.
+Estado: LABORATÓRIO EXPERIMENTAL MANUAL INTEGRADO, mas não validado cientificamente nem ligado à produção de apostas. Referências: issues #63 (V6) e #107 (fiabilidade). A execução científica V6.3 permanece dependente dos gates de 7/14 dias, cronologia independente, pelo menos 1000 FT prospetivos elegíveis da hipótese em 3 semanas e autorização sobre #15. Este módulo não satisfaz esses requisitos.
 
 ## Âmbito técnico
 
 - Fontes somente leitura: cinco relatórios existentes em docs/lab/: v6-p0-gates.json, v6-falsification.json, v6-readiness.json, v6-weekly-drift.json e pattern-research.json (deste último, só as 49 definições de variáveis V5, nunca os resultados históricos).
 - Contratos de schema, integridade sintática, limites de bytes, verificações de consistência e SHA-256 para cada ficheiro. Falhas bloqueiam o dossier; nenhum valor desconhecido é transformado em zero.
-- Quatro questões de investigação fixas sem seleção por ROI: Total com 1X2, episódios repetidos de alertas, Total com AH e antecedência.
+- Quatro temas exemplificativos e T05 de exploração livre do catálogo V5; uma proposta de cruzamento por chamada manual, nunca escolhida por ROI.
 - O LLM, quando utilizado voluntariamente, só pode devolver propostas com estado DRAFT, hipótese nula, desenho de teste, falsificação, fatores de confusão e referências limitadas às cinco fontes. A resposta continua texto não fiável, sujeita a revisão humana. Não há estatística calculada pelo LLM.
-- Não há leitura de mensagens Telegram, previsões congeladas, journals de dados brutos, tokens ou dados de apostas. Não escreve ficheiros do repositório.
+- O motor não lê mensagens Telegram, previsões congeladas, journals de dados brutos ou dados de apostas. Somente o job de publicação, separado do job com a chave Cloudflare, grava propostas DRAFT em `docs/lab/llm-investigator-index.json` e em `docs/lab/llm-investigator-runs/<run_id>.json` depois da validação; nunca escreve em H1, FT ou memórias V6.
 
 ## Como utilizar sem custos nem rede
 
@@ -64,3 +64,9 @@ Após uma primeira resposta real que apenas reformulou a pergunta T02, o Investi
 Exemplo **ilustrativo, sem vantagem observada**: `G_MULTI_ALERT` e `M_IMPLIED_GOALS_FLAT` poderiam ser testados contra a probabilidade de mercado de Over 2,5 em jogos futuros, usando Brier score e grupo de controlo comparável. A referência `docs/lab/pattern-research.json` comprova a origem das **definições das variáveis**, não um efeito real ou rentabilidade.
 
 Uma proposta que apenas reescreve a pergunta sem códigos concretos, ou que utiliza métricas não suportadas como ROI/EV, passa a ser recusada. O validador confirma **estrutura e códigos**, não originalidade estatística, disponibilidade de jogos suficientes ou veracidade de argumentos livres; exige revisão científica humana. A alteração não adiciona chamadas à Cloudflare nem agendamentos; para testar um novo prompt contra IA real será necessária decisão expressa e medição da quota.
+
+## Painel visual, acesso e limites
+
+O [painel do Investigador LLM](https://nunovinhas-creator.github.io/asianodds-h1-lab/llm-investigator.html) está no menu principal e mostra o último cruzamento, hipótese nula, métrica, controlo, desenho OOS, falsificação, proveniência e histórico. O número de pares e triplos possíveis entre as famílias do catálogo é apenas um universo matemático, **não** uma contagem de experiências feitas. A primeira resposta histórica de 30/10 está identificada à parte como formato antigo.
+
+Após cada `cloudflare_once` manual bem-sucedido, um **job separado** relê e valida os dados, os códigos e os hashes, criando o registo público de auditoria e um índice. Este job recebe `contents: write`, mas não recebe o token Cloudflare. Os retries aplicam-se apenas ao Git push, nunca à IA. Os jobs falhados permanecem em Actions, sem se tornarem falsamente descobertas. Não existe agendamento LLM nem monitorização contínua da quota neurons. O tema T05 permite ao modelo propor 2-3 variáveis de quaisquer famílias válidas, mas não realiza a exploração exaustiva do universo. Continuam a aplicar-se todos os gates científicos V6.
