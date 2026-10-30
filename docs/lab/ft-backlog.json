@@ -1,12 +1,26 @@
 {
   "classification": {
-    "future": 255,
-    "in_3h_grace": 12,
-    "past_due_never_checked": 77,
-    "past_due_unverified": 133,
+    "future": 251,
+    "in_3h_grace": 17,
+    "past_due_never_checked": 78,
+    "past_due_unverified": 134,
     "verified_ft": 219
   },
-  "deferred_games": [],
+  "deferred_games": [
+    "2026-10-28,10048297,44160",
+    "2026-10-28,1290,1507",
+    "2026-10-28,1325,630",
+    "2026-10-28,1670,48955",
+    "2026-10-28,23038,31261",
+    "2026-10-28,36622,84845",
+    "2026-10-28,42312,231",
+    "2026-10-28,508,715",
+    "2026-10-28,67154,51135",
+    "2026-10-28,88730,89130",
+    "2026-10-30,10085872,58277",
+    "2026-10-30,53841,60358",
+    "2026-10-30,63702,30902"
+  ],
   "last_attempt_obstacles": [
     {
       "games": 102,
@@ -89,7 +103,7 @@
       "reviewed_outcomes": {},
       "reviewed_targets": 0,
       "rotation_days": [],
-      "scheduled_poll_enabled": true,
+      "scheduled_poll_enabled": false,
       "verified_in_run": 0
     },
     "bsd": {
@@ -100,9 +114,7 @@
       "date_incomplete_days": 0,
       "date_list_requests": 0,
       "fallback_results_recovered": 0,
-      "lookup_reason_counts": {
-        "bsd_date_cooldown_deferred": 9
-      }
+      "lookup_reason_counts": {}
     },
     "goal": {
       "cached_days": 0,
@@ -110,7 +122,7 @@
       "date_requests": 0,
       "id_outcomes": {},
       "id_requests": 0,
-      "poll_enabled": true,
+      "poll_enabled": false,
       "reason_counts": {},
       "requested_days": [],
       "requests": 0,
@@ -120,7 +132,7 @@
     "openfoot": {
       "cached_days": 0,
       "configured": true,
-      "poll_enabled": true,
+      "poll_enabled": false,
       "reason_counts": {},
       "requested_days": [],
       "requests": 0,
@@ -128,26 +140,22 @@
       "verified_in_run": 0
     },
     "sportscore": {
-      "cached_date_team_queries": 6,
+      "cached_date_team_queries": 0,
       "confirmed_in_run": 0,
-      "reason_counts": {
-        "source_home_away_conflict": 2,
-        "sportscore_no_exact_match": 8
-      },
-      "requests": 14,
+      "reason_counts": {},
+      "requests": 0,
       "reviewed_alias_ft_in_run": 0,
-      "targeted_searches": 8
+      "targeted_searches": 0
     },
-    "thesportsdb": {
-      "no_event": 10,
-      "requested": 10
-    }
+    "thesportsdb": {}
   },
   "limitations": [
     "FUTURE and IN_3H_GRACE games are NOT overdue.",
     "last_attempt_provider_reasons are NOT lifetime provider-attempt counters.",
     "provider_attempts counts adapter invocations, including cache hits; not HTTP requests.",
     "V7 evidence_attempts counts NEW authenticated evidence, not repeated snapshots.",
+    "V7 queue_visited_at records an operational visit and independently blocks routine retry for 4h, even when evidence_checked_at is absent.",
+    "DUE_NOT_SELECTED means due under both effective-evidence and visit cooldown gates; visit without evidence is NOT counted as an effective check.",
     "V7 last_checked_at/evidence_checked_at includes valid stable confirmations; failures and uncredentialed pushes are excluded.",
     "V7 stable_confirmations backs off identical complete lists 4h -> 12h -> 24h.",
     "next_eligible_at is the routine retry date; a proven new provider/version may trigger earlier.",
@@ -155,7 +163,7 @@
     "No missing FT becomes a loss, an invented score, or an H1 settlement.",
     "A single observed result is not an independently corroborated source."
   ],
-  "measured_at": "2026-10-30T12:51:29+00:00",
+  "measured_at": "2026-10-30T13:19:23+00:00",
   "overdue_by_kickoff_utc_day": {
     "2026-10-27": {
       "last_check_without_provider": {
@@ -194,17 +202,17 @@
     },
     "2026-10-30": {
       "last_check_without_provider": {
-        "api_football": 6,
-        "bsd": 9,
-        "espn": 9,
-        "fotmob": 9,
-        "goal": 7,
-        "openfoot": 6,
-        "sportscore": 9,
-        "thesportsdb": 9
+        "api_football": 7,
+        "bsd": 10,
+        "espn": 10,
+        "fotmob": 10,
+        "goal": 8,
+        "openfoot": 7,
+        "sportscore": 10,
+        "thesportsdb": 10
       },
-      "never_checked": 6,
-      "overdue": 9
+      "never_checked": 7,
+      "overdue": 10
     }
   },
   "overdue_games": [
@@ -226,11 +234,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,28864,57490",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 49.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 49.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -275,7 +284,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -297,11 +306,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,34322,10061098",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 49.1,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 49.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -346,7 +356,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -368,11 +378,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,37979,10062891",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 49.1,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 49.6,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -417,7 +428,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -439,11 +450,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,28841,52294",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 48.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 49.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -488,7 +500,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -510,11 +522,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10085003,90827",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 47.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 48.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -559,7 +572,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -581,11 +594,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,29823,1748",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 47.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 48.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -630,7 +644,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -652,11 +666,12 @@
         "thesportsdb": "tsdb_http_429"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10055350,95346",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 47.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 47.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -701,7 +716,7 @@
           "last_reason": "tsdb_http_429"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -723,11 +738,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10088406,95346",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 47.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 47.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -772,7 +788,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -794,11 +810,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,25166,10017249",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 47.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 47.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -843,7 +860,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -865,11 +882,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,33309,10004830",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 47.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 47.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -914,7 +932,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -936,11 +954,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10017124,26965",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 46.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 47.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -985,7 +1004,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1007,11 +1026,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,35322,34260",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 46.6,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 47.1,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1056,7 +1076,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1078,11 +1098,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10084669,27483",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 46.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 46.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1127,7 +1148,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1149,11 +1170,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10055158,10031495",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 45.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 46.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1198,7 +1220,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1220,11 +1242,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,1382,93089",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 45.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 46.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1269,7 +1292,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1291,11 +1314,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10062890,63625",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 45.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1340,7 +1364,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1362,11 +1386,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,25155,25145",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 45.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1411,7 +1436,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1433,10 +1458,83 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10007744,36060",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.7,
+      "provider_attempts": {
+        "bsd": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "monte_no_exact_archive_match"
+        },
+        "espn": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "espn_unsupported_competition"
+        },
+        "goal": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "goal_identity_no_core_match"
+        },
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        },
+        "sportscore": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "sportscore_no_exact_match"
+        },
+        "thesportsdb": {
+          "confirmed": 0,
+          "first_at": "2026-10-28T22:36:16+00:00",
+          "invocations": 1,
+          "last_at": "2026-10-28T22:36:16+00:00",
+          "last_reason": "tsdb_limited_this_run"
+        }
+      },
+      "queue_state": "VISIT_COOLDOWN",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Rodina",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "FK Gazovik Orenburg",
+      "kickoff_utc": "2026-10-28T13:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "bsd": "monte_no_exact_archive_match",
+        "espn": "espn_unsupported_competition",
+        "goal": "goal_identity_no_core_match",
+        "openfoot": "openfoot_identity_no_core_match",
+        "sportscore": "sportscore_no_exact_match",
+        "thesportsdb": "tsdb_limited_this_run"
+      },
+      "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
+      "last_stable_at": null,
+      "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
+      "match_key": "2026-10-28,22960,80848",
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
       "overdue_hours": 45.3,
       "provider_attempts": {
         "bsd": {
@@ -1482,78 +1580,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Rodina",
-      "evidence_attempts": 0,
-      "examined_provider_days": {},
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "FK Gazovik Orenburg",
-      "kickoff_utc": "2026-10-28T13:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "bsd": "monte_no_exact_archive_match",
-        "espn": "espn_unsupported_competition",
-        "goal": "goal_identity_no_core_match",
-        "openfoot": "openfoot_identity_no_core_match",
-        "sportscore": "sportscore_no_exact_match",
-        "thesportsdb": "tsdb_limited_this_run"
-      },
-      "last_checked_at": null,
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
-      "match_key": "2026-10-28,22960,80848",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.9,
-      "provider_attempts": {
-        "bsd": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "monte_no_exact_archive_match"
-        },
-        "espn": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "espn_unsupported_competition"
-        },
-        "goal": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "goal_identity_no_core_match"
-        },
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        },
-        "sportscore": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "sportscore_no_exact_match"
-        },
-        "thesportsdb": {
-          "confirmed": 0,
-          "first_at": "2026-10-28T22:36:16+00:00",
-          "invocations": 1,
-          "last_at": "2026-10-28T22:36:16+00:00",
-          "last_reason": "tsdb_limited_this_run"
-        }
-      },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1575,11 +1602,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,33793,10009931",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1624,7 +1652,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1646,11 +1674,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,55001,10054174",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -1695,7 +1724,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1717,13 +1746,14 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,71247,31104",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1745,13 +1775,14 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,87424,84849",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1773,13 +1804,14 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,96453,68023",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1801,13 +1833,14 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,35505,10014418",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.6,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 45.1,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1829,13 +1862,14 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,10033957,40507",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.4,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 44.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1857,13 +1891,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,28981,26885",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 44.1,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 44.6,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1885,13 +1920,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,10008528,70702",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 43.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 44.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1913,13 +1949,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,49014,10016874",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 43.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 44.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1941,13 +1978,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,62924,10087106",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 43.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 44.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1969,13 +2007,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,84620,10030071",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 43.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 44.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1997,13 +2036,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,95405,39929",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 43.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 44.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2025,13 +2065,14 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T19:01:24+00:00",
       "match_key": "2026-10-28,29695,32137",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 43.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 43.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2053,11 +2094,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T20:56:45+00:00",
       "match_key": "2026-10-28,72758,29209",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 40.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2102,7 +2144,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2124,11 +2166,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,10038651,1140",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 40.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2173,7 +2216,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2195,11 +2238,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,1149,244",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 40.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2244,7 +2288,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2266,11 +2310,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,1390,22937",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 40.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2315,7 +2360,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2337,11 +2382,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,28162,10042394",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 40.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2386,7 +2432,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2408,11 +2454,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,29287,10047786",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 40.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2457,7 +2504,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2479,11 +2526,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,1374,1095",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2528,7 +2576,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2550,11 +2598,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T21:46:17+00:00",
       "match_key": "2026-10-28,49848,10061106",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 39.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2599,7 +2648,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2621,11 +2670,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10008447,82391",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2670,7 +2720,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2692,11 +2742,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,10016992,35194",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2741,7 +2792,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2763,11 +2814,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,1495,34889",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2812,7 +2864,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2834,11 +2886,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,175,23624",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2883,7 +2936,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2905,11 +2958,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,23167,181",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -2954,7 +3008,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2976,11 +3030,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,28220,35187",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 38.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3025,7 +3080,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3047,11 +3102,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,35186,28216",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.4,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 38.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3096,7 +3152,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3118,11 +3174,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,52228,35192",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.4,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 38.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3167,7 +3224,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3189,11 +3246,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,84555,40505",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.4,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 38.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3238,7 +3296,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3260,11 +3318,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-28T22:36:16+00:00",
       "match_key": "2026-10-28,953,848",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.4,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 38.8,
       "provider_attempts": {
         "bsd": {
           "confirmed": 0,
@@ -3309,7 +3368,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3324,13 +3383,14 @@
       "kickoff_utc": "2026-10-28T19:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,24835,32671",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 38.1,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 38.6,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3345,13 +3405,14 @@
       "kickoff_utc": "2026-10-28T20:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,10008540,533",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 37.9,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 38.3,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3366,13 +3427,14 @@
       "kickoff_utc": "2026-10-28T20:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,23874,184",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 37.9,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 38.3,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3387,13 +3449,14 @@
       "kickoff_utc": "2026-10-28T20:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,29148,10007370",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 37.9,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 38.3,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3408,13 +3471,14 @@
       "kickoff_utc": "2026-10-28T22:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-28,10058785,1098",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 35.9,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 36.3,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3429,13 +3493,14 @@
       "kickoff_utc": "2026-10-29T10:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,10093741,10063173",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 23.9,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 24.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3450,13 +3515,14 @@
       "kickoff_utc": "2026-10-29T10:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,33515,90234",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 23.9,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 24.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3471,13 +3537,14 @@
       "kickoff_utc": "2026-10-29T11:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,1733,1730",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 22.9,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 23.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3492,13 +3559,14 @@
       "kickoff_utc": "2026-10-29T14:35:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,26905,10102771",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 19.3,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 19.7,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3513,13 +3581,14 @@
       "kickoff_utc": "2026-10-29T15:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,10016347,10050382",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 18.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 19.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3534,13 +3603,14 @@
       "kickoff_utc": "2026-10-29T15:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,10053070,27345",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 18.9,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 19.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3555,13 +3625,14 @@
       "kickoff_utc": "2026-10-29T15:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,27557,63419",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 18.9,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 19.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3576,13 +3647,14 @@
       "kickoff_utc": "2026-10-29T15:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,39399,10054369",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 18.9,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 19.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3597,13 +3669,14 @@
       "kickoff_utc": "2026-10-29T16:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,164,162",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 17.9,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 18.3,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3618,13 +3691,14 @@
       "kickoff_utc": "2026-10-29T18:30:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,340,339",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 15.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 15.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3639,13 +3713,14 @@
       "kickoff_utc": "2026-10-29T18:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,1178,46490",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 15.1,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 15.6,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3660,13 +3735,14 @@
       "kickoff_utc": "2026-10-29T18:45:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,23681,927",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 15.1,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 15.6,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3681,13 +3757,14 @@
       "kickoff_utc": "2026-10-29T19:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,10104676,31997",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 14.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 15.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3702,13 +3779,14 @@
       "kickoff_utc": "2026-10-29T19:30:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,10085375,926",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 14.4,
+      "next_eligible_at": "2026-10-30T16:11:25+00:00",
+      "overdue_hours": 14.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3723,13 +3801,14 @@
       "kickoff_utc": "2026-10-29T23:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-29,773,570",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 10.9,
+      "next_eligible_at": "2026-10-30T14:56:26+00:00",
+      "overdue_hours": 11.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3744,13 +3823,14 @@
       "kickoff_utc": "2026-10-30T01:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T08:57:06+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,53841,60358",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 8.9,
+      "next_eligible_at": "2026-10-30T13:19:23+00:00",
+      "overdue_hours": 9.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3765,13 +3845,14 @@
       "kickoff_utc": "2026-10-30T01:00:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T08:57:06+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,63702,30902",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 8.9,
+      "next_eligible_at": "2026-10-30T13:19:23+00:00",
+      "overdue_hours": 9.3,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3786,13 +3867,14 @@
       "kickoff_utc": "2026-10-30T02:10:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,29994,61345",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 7.7,
+      "next_eligible_at": "2026-10-30T13:36:25+00:00",
+      "overdue_hours": 8.2,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3807,13 +3889,14 @@
       "kickoff_utc": "2026-10-30T08:30:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,10103723,10062478",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 1.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 1.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3828,13 +3911,14 @@
       "kickoff_utc": "2026-10-30T08:30:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,48112,26737",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 1.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 1.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3849,13 +3933,36 @@
       "kickoff_utc": "2026-10-30T08:30:00+00:00",
       "last_attempt_provider_reasons": {},
       "last_checked_at": null,
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-30,48389,26758",
-      "next_eligible_at": "2026-10-30T12:51:29+00:00",
-      "overdue_hours": 1.4,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 1.8,
       "provider_attempts": {},
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
+      "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 0,
+      "away": "Ironi Beit Shemesh",
+      "evidence_attempts": 0,
+      "examined_provider_days": {},
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Sderot",
+      "kickoff_utc": "2026-10-30T10:00:00+00:00",
+      "last_attempt_provider_reasons": {},
+      "last_checked_at": null,
+      "last_queue_visit_at": null,
+      "last_stable_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-30,10085872,58277",
+      "next_eligible_at": "2026-10-30T13:19:23+00:00",
+      "overdue_hours": 0.3,
+      "provider_attempts": {},
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -3894,11 +4001,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T18:25:22+00:00",
+      "last_queue_visit_at": "2026-10-29T18:25:22+00:00",
       "last_stable_at": "2026-10-29T18:25:22+00:00",
       "legacy_last_checked_at": "2026-10-29T18:25:22+00:00",
       "match_key": "2026-10-27,65565,23714",
       "next_eligible_at": "2026-10-30T18:25:22+00:00",
-      "overdue_hours": 68.9,
+      "overdue_hours": 69.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -3961,11 +4069,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T18:25:22+00:00",
+      "last_queue_visit_at": "2026-10-29T18:25:22+00:00",
       "last_stable_at": "2026-10-29T18:25:22+00:00",
       "legacy_last_checked_at": "2026-10-29T18:25:22+00:00",
       "match_key": "2026-10-27,845,26962",
       "next_eligible_at": "2026-10-30T18:25:22+00:00",
-      "overdue_hours": 66.9,
+      "overdue_hours": 67.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4028,11 +4137,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T18:25:22+00:00",
+      "last_queue_visit_at": "2026-10-29T18:25:22+00:00",
       "last_stable_at": "2026-10-29T18:25:22+00:00",
       "legacy_last_checked_at": "2026-10-29T18:25:22+00:00",
       "match_key": "2026-10-27,10017282,84806",
       "next_eligible_at": "2026-10-30T18:25:22+00:00",
-      "overdue_hours": 65.9,
+      "overdue_hours": 66.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4095,11 +4205,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T18:25:22+00:00",
+      "last_queue_visit_at": "2026-10-29T18:25:22+00:00",
       "last_stable_at": "2026-10-29T18:25:22+00:00",
       "legacy_last_checked_at": "2026-10-29T18:25:22+00:00",
       "match_key": "2026-10-27,25158,84806",
       "next_eligible_at": "2026-10-30T18:25:22+00:00",
-      "overdue_hours": 65.9,
+      "overdue_hours": 66.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4162,11 +4273,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T18:25:22+00:00",
+      "last_queue_visit_at": "2026-10-29T18:25:22+00:00",
       "last_stable_at": "2026-10-29T18:25:22+00:00",
       "legacy_last_checked_at": "2026-10-29T18:25:22+00:00",
       "match_key": "2026-10-27,33791,86126",
       "next_eligible_at": "2026-10-30T18:25:22+00:00",
-      "overdue_hours": 65.9,
+      "overdue_hours": 66.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4225,11 +4337,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-29T19:41:24+00:00",
+      "last_queue_visit_at": "2026-10-29T19:41:24+00:00",
       "last_stable_at": "2026-10-29T19:41:24+00:00",
       "legacy_last_checked_at": "2026-10-29T19:41:24+00:00",
       "match_key": "2026-10-29,1631,97842",
       "next_eligible_at": "2026-10-30T19:41:24+00:00",
-      "overdue_hours": 33.9,
+      "overdue_hours": 34.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4288,11 +4401,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-29T19:41:24+00:00",
+      "last_queue_visit_at": "2026-10-29T19:41:24+00:00",
       "last_stable_at": "2026-10-29T19:41:24+00:00",
       "legacy_last_checked_at": "2026-10-29T19:41:24+00:00",
       "match_key": "2026-10-29,58921,37833",
       "next_eligible_at": "2026-10-30T19:41:24+00:00",
-      "overdue_hours": 33.9,
+      "overdue_hours": 34.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4355,11 +4469,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T20:21:24+00:00",
+      "last_queue_visit_at": "2026-10-29T20:21:24+00:00",
       "last_stable_at": "2026-10-29T20:21:24+00:00",
       "legacy_last_checked_at": "2026-10-29T20:21:24+00:00",
       "match_key": "2026-10-28,10045949,1749",
       "next_eligible_at": "2026-10-30T20:21:24+00:00",
-      "overdue_hours": 42.9,
+      "overdue_hours": 43.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4450,11 +4565,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T20:21:24+00:00",
+      "last_queue_visit_at": "2026-10-29T20:21:24+00:00",
       "last_stable_at": "2026-10-29T20:21:24+00:00",
       "legacy_last_checked_at": "2026-10-29T20:21:24+00:00",
       "match_key": "2026-10-28,39239,76813",
       "next_eligible_at": "2026-10-30T20:21:24+00:00",
-      "overdue_hours": 42.9,
+      "overdue_hours": 43.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4545,11 +4661,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T20:21:24+00:00",
+      "last_queue_visit_at": "2026-10-29T20:21:24+00:00",
       "last_stable_at": "2026-10-29T20:21:24+00:00",
       "legacy_last_checked_at": "2026-10-29T20:21:24+00:00",
       "match_key": "2026-10-28,10020287,10060085",
       "next_eligible_at": "2026-10-30T20:21:24+00:00",
-      "overdue_hours": 41.9,
+      "overdue_hours": 42.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4612,11 +4729,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-29T08:16:30+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,59659,24852",
-      "next_eligible_at": "2026-10-30T01:01:26+00:00",
-      "overdue_hours": 40.4,
+      "next_eligible_at": "2026-10-30T14:16:23+00:00",
+      "overdue_hours": 40.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4668,7 +4786,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -4707,11 +4825,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-29T08:16:30+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,10002882,179",
-      "next_eligible_at": "2026-10-30T01:01:26+00:00",
-      "overdue_hours": 39.9,
+      "next_eligible_at": "2026-10-30T14:16:23+00:00",
+      "overdue_hours": 40.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4763,7 +4882,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -4802,11 +4921,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-29T08:16:30+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,10034327,23664",
-      "next_eligible_at": "2026-10-30T01:01:26+00:00",
-      "overdue_hours": 39.6,
+      "next_eligible_at": "2026-10-30T14:16:23+00:00",
+      "overdue_hours": 40.1,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4858,7 +4978,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -4897,11 +5017,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,10094747,10071960",
-      "next_eligible_at": "2026-10-30T09:01:26+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T13:36:25+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -4953,7 +5074,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -4992,11 +5113,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,1284,298",
-      "next_eligible_at": "2026-10-30T09:01:26+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T13:36:25+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5048,7 +5170,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5087,11 +5209,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,36655,23605",
-      "next_eligible_at": "2026-10-30T09:01:26+00:00",
-      "overdue_hours": 38.9,
+      "next_eligible_at": "2026-10-30T13:36:25+00:00",
+      "overdue_hours": 39.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5143,7 +5266,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5178,11 +5301,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,85128,10051245",
-      "next_eligible_at": "2026-10-30T09:01:26+00:00",
-      "overdue_hours": 38.1,
+      "next_eligible_at": "2026-10-30T13:36:25+00:00",
+      "overdue_hours": 38.6,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5206,7 +5330,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5241,11 +5365,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-29T21:01:26+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-29T21:01:26+00:00",
       "match_key": "2026-10-28,31124,540",
-      "next_eligible_at": "2026-10-30T09:01:26+00:00",
-      "overdue_hours": 37.9,
+      "next_eligible_at": "2026-10-30T13:36:25+00:00",
+      "overdue_hours": 38.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5269,7 +5394,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5308,11 +5433,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-29T22:56:26+00:00",
+      "last_queue_visit_at": "2026-10-30T11:31:31+00:00",
       "last_stable_at": "2026-10-29T22:56:26+00:00",
       "legacy_last_checked_at": "2026-10-29T22:56:26+00:00",
       "match_key": "2026-10-27,77680,51172",
-      "next_eligible_at": "2026-10-30T10:56:26+00:00",
-      "overdue_hours": 63.9,
+      "next_eligible_at": "2026-10-30T15:31:31+00:00",
+      "overdue_hours": 64.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5336,7 +5462,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "DUE_NOT_SELECTED",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5359,11 +5485,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T00:16:27+00:00",
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": "2026-10-30T00:16:27+00:00",
       "legacy_last_checked_at": "2026-10-30T00:16:27+00:00",
       "match_key": "2026-10-29,39164,26446",
-      "next_eligible_at": "2026-10-30T12:16:27+00:00",
-      "overdue_hours": 25.4,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 25.8,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -5373,7 +5500,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5396,11 +5523,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T00:16:27+00:00",
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": "2026-10-30T00:16:27+00:00",
       "legacy_last_checked_at": "2026-10-30T00:16:27+00:00",
       "match_key": "2026-10-29,36057,76976",
-      "next_eligible_at": "2026-10-30T12:16:27+00:00",
-      "overdue_hours": 21.7,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 22.2,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -5410,7 +5538,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5433,11 +5561,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T00:16:27+00:00",
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": "2026-10-30T00:16:27+00:00",
       "legacy_last_checked_at": "2026-10-30T00:16:27+00:00",
       "match_key": "2026-10-29,10057571,34014",
-      "next_eligible_at": "2026-10-30T12:16:27+00:00",
-      "overdue_hours": 21.4,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 21.8,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -5447,7 +5576,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5470,11 +5599,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T00:16:27+00:00",
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": "2026-10-30T00:16:27+00:00",
       "legacy_last_checked_at": "2026-10-30T00:16:27+00:00",
       "match_key": "2026-10-29,27890,95354",
-      "next_eligible_at": "2026-10-30T12:16:27+00:00",
-      "overdue_hours": 21.4,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 21.8,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -5484,7 +5614,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5507,11 +5637,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T00:16:27+00:00",
+      "last_queue_visit_at": "2026-10-30T12:51:29+00:00",
       "last_stable_at": "2026-10-30T00:16:27+00:00",
       "legacy_last_checked_at": "2026-10-30T00:16:27+00:00",
       "match_key": "2026-10-29,40832,42528",
-      "next_eligible_at": "2026-10-30T12:16:27+00:00",
-      "overdue_hours": 21.4,
+      "next_eligible_at": "2026-10-30T16:51:29+00:00",
+      "overdue_hours": 21.8,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -5521,7 +5652,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5560,11 +5691,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,10048297,44160",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5616,7 +5748,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5655,11 +5787,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,1325,630",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5711,7 +5844,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5750,11 +5883,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,1670,48955",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5806,7 +5940,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5845,11 +5979,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,36622,84845",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5901,7 +6036,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -5940,11 +6075,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,508,715",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -5996,7 +6132,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -6035,11 +6171,12 @@
         "thesportsdb": "tsdb_http_429"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,67154,51135",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6091,7 +6228,7 @@
           "last_reason": "tsdb_http_429"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -6130,11 +6267,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,88730,89130",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.9,
+      "overdue_hours": 41.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6186,7 +6324,7 @@
           "last_reason": "tsdb_limited_this_run"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -6225,11 +6363,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,1290,1507",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.4,
+      "overdue_hours": 40.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6281,7 +6420,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -6320,11 +6459,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,23038,31261",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.4,
+      "overdue_hours": 40.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6376,7 +6516,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -6415,11 +6555,12 @@
         "thesportsdb": "no_event"
       },
       "last_checked_at": "2026-10-30T00:56:21+00:00",
+      "last_queue_visit_at": "2026-10-30T00:56:21+00:00",
       "last_stable_at": "2026-10-30T00:56:21+00:00",
       "legacy_last_checked_at": "2026-10-30T00:56:21+00:00",
       "match_key": "2026-10-28,42312,231",
       "next_eligible_at": "2026-10-30T12:56:21+00:00",
-      "overdue_hours": 40.4,
+      "overdue_hours": 40.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6471,7 +6612,7 @@
           "last_reason": "no_event"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "DEFERRED_BY_30_GAME_CAP",
       "stable_confirmations": 1,
       "status": "PENDING"
     },
@@ -6494,11 +6635,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T04:31:22+00:00",
+      "last_queue_visit_at": "2026-10-30T04:31:22+00:00",
       "last_stable_at": "2026-10-30T04:31:22+00:00",
       "legacy_last_checked_at": "2026-10-30T04:31:22+00:00",
       "match_key": "2026-10-29,153,599",
       "next_eligible_at": "2026-10-30T16:31:22+00:00",
-      "overdue_hours": 17.4,
+      "overdue_hours": 17.8,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6531,11 +6673,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T04:31:22+00:00",
+      "last_queue_visit_at": "2026-10-30T04:31:22+00:00",
       "last_stable_at": "2026-10-30T04:31:22+00:00",
       "legacy_last_checked_at": "2026-10-30T04:31:22+00:00",
       "match_key": "2026-10-29,91415,10074696",
       "next_eligible_at": "2026-10-30T16:31:22+00:00",
-      "overdue_hours": 17.4,
+      "overdue_hours": 17.8,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6574,11 +6717,12 @@
         "goal": "goal_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T05:51:25+00:00",
+      "last_queue_visit_at": "2026-10-30T05:51:25+00:00",
       "last_stable_at": "2026-10-30T05:51:25+00:00",
       "legacy_last_checked_at": "2026-10-30T05:51:25+00:00",
       "match_key": "2026-10-29,84528,36647",
       "next_eligible_at": "2026-10-30T17:51:25+00:00",
-      "overdue_hours": 20.4,
+      "overdue_hours": 20.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6630,11 +6774,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,30222,27521",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 33.6,
+      "overdue_hours": 34.1,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6658,7 +6803,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6693,11 +6838,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": "2026-10-29T21:01:26+00:00",
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,1619,30923",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 33.4,
+      "overdue_hours": 33.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -6721,7 +6867,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6744,11 +6890,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,10104951,64612",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 21.0,
+      "overdue_hours": 21.5,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6758,7 +6905,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6781,11 +6928,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,63132,10045207",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 21.0,
+      "overdue_hours": 21.5,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6795,7 +6943,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6818,11 +6966,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,10011118,73076",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 20.9,
+      "overdue_hours": 21.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6832,7 +6981,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6855,11 +7004,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,10023197,29218",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 16.9,
+      "overdue_hours": 17.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6869,7 +7019,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6892,11 +7042,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,161,699",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 16.9,
+      "overdue_hours": 17.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6906,7 +7057,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6929,11 +7080,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,23855,48536",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 16.9,
+      "overdue_hours": 17.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6943,7 +7095,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -6966,11 +7118,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,26893,30724",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 16.9,
+      "overdue_hours": 17.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -6980,7 +7133,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -7003,11 +7156,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,36386,10032010",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 16.9,
+      "overdue_hours": 17.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -7017,7 +7171,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -7040,11 +7194,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T09:36:25+00:00",
+      "last_queue_visit_at": "2026-10-30T09:36:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T09:36:25+00:00",
       "match_key": "2026-10-29,77341,29998",
       "next_eligible_at": "2026-10-30T13:36:25+00:00",
-      "overdue_hours": 16.9,
+      "overdue_hours": 17.3,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -7054,7 +7209,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -7083,11 +7238,12 @@
         "goal": "goal_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T10:16:23+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-30T10:16:23+00:00",
       "legacy_last_checked_at": "2026-10-30T10:16:23+00:00",
       "match_key": "2026-10-29,23031,10044547",
       "next_eligible_at": "2026-10-30T22:16:23+00:00",
-      "overdue_hours": 16.4,
+      "overdue_hours": 16.8,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7133,11 +7289,12 @@
         "goal": "goal_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T10:16:23+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-30T10:16:23+00:00",
       "legacy_last_checked_at": "2026-10-30T10:16:23+00:00",
       "match_key": "2026-10-29,23615,24042",
       "next_eligible_at": "2026-10-30T22:16:23+00:00",
-      "overdue_hours": 15.9,
+      "overdue_hours": 16.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7183,11 +7340,12 @@
         "goal": "goal_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T10:16:23+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-30T10:16:23+00:00",
       "legacy_last_checked_at": "2026-10-30T10:16:23+00:00",
       "match_key": "2026-10-29,35858,26903",
       "next_eligible_at": "2026-10-30T22:16:23+00:00",
-      "overdue_hours": 15.9,
+      "overdue_hours": 16.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7233,11 +7391,12 @@
         "goal": "goal_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T10:16:23+00:00",
+      "last_queue_visit_at": "2026-10-30T10:16:23+00:00",
       "last_stable_at": "2026-10-30T10:16:23+00:00",
       "legacy_last_checked_at": "2026-10-30T10:16:23+00:00",
       "match_key": "2026-10-29,79485,48553",
       "next_eligible_at": "2026-10-30T22:16:23+00:00",
-      "overdue_hours": 15.9,
+      "overdue_hours": 16.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7293,11 +7452,12 @@
         "thesportsdb": "tsdb_limited_this_run"
       },
       "last_checked_at": "2026-10-30T10:56:26+00:00",
+      "last_queue_visit_at": "2026-10-30T10:56:26+00:00",
       "last_stable_at": "2026-10-29T22:56:26+00:00",
       "legacy_last_checked_at": "2026-10-30T10:56:26+00:00",
       "match_key": "2026-10-27,10107877,10107878",
       "next_eligible_at": "2026-10-30T14:56:26+00:00",
-      "overdue_hours": 63.9,
+      "overdue_hours": 64.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7321,7 +7481,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -7356,11 +7516,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T12:11:25+00:00",
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T12:11:25+00:00",
       "match_key": "2026-10-30,37844,1615",
       "next_eligible_at": "2026-10-30T16:11:25+00:00",
-      "overdue_hours": 9.9,
+      "overdue_hours": 10.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7384,7 +7545,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -7419,11 +7580,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T12:11:25+00:00",
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T12:11:25+00:00",
       "match_key": "2026-10-30,54005,66088",
       "next_eligible_at": "2026-10-30T16:11:25+00:00",
-      "overdue_hours": 9.9,
+      "overdue_hours": 10.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7447,7 +7609,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -7476,11 +7638,12 @@
         "openfoot": "openfoot_identity_no_core_match"
       },
       "last_checked_at": "2026-10-30T12:11:25+00:00",
+      "last_queue_visit_at": "2026-10-30T12:11:25+00:00",
       "last_stable_at": null,
       "legacy_last_checked_at": "2026-10-30T12:11:25+00:00",
       "match_key": "2026-10-30,99437,99433",
       "next_eligible_at": "2026-10-30T16:11:25+00:00",
-      "overdue_hours": 0.9,
+      "overdue_hours": 1.3,
       "provider_attempts": {
         "api_football": {
           "confirmed": 0,
@@ -7497,7 +7660,7 @@
           "last_reason": "openfoot_identity_no_core_match"
         }
       },
-      "queue_state": "ADAPTIVE_COOLDOWN",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     }
@@ -7552,8 +7715,8 @@
       "approved_selected": 0,
       "decisions": {
         "2026-10-27,77621,67110": {
-          "reason": "NOT_SELECTED_IN_CURRENT_FT_QUEUE",
-          "status": "REJECTED"
+          "reason": "PUSH_NO_AUTHENTICATED_PROVIDER_CALLS",
+          "status": "DEFERRED"
         }
       },
       "error_details": {},
@@ -7564,37 +7727,32 @@
       "binding_conflicts": 0,
       "bindings_total": 4,
       "comparison_reason_counts": {
-        "no_verified_match_unknown_coverage_or_names": 133
+        "no_verified_match_unknown_coverage_or_names": 134
       },
-      "cooldown_blocked_games": 133,
+      "cooldown_blocked_games": 134,
       "coverage_absence_confirmed": 0,
       "coverage_absence_note": "No verified match cannot distinguish absence from names",
       "date_http_by_path": {},
       "date_requests": 0,
-      "deferred_days": {
-        "2026-10-28": "bsd_date_cooldown_deferred",
-        "2026-10-29": "bsd_date_cooldown_deferred"
-      },
-      "direct_id_requests_shared_with_monte": 2,
+      "deferred_days": {},
+      "direct_id_requests_shared_with_monte": 0,
       "direct_lookup": {
         "conflicts": 0,
         "http_requests": 0,
         "ids_reused": 0,
         "known_ids": 4,
-        "reasons": {
-          "bsd_registry_no_id": 10
-        }
+        "reasons": {}
       },
       "eligible_days_after": 0,
       "eligible_days_before": 0,
       "fallback_detail_requests": 0,
-      "http_total": 2,
+      "http_total": 0,
       "independent_of_ft_queue": true,
-      "monte_only_detail_requests": 2,
+      "monte_only_detail_requests": 0,
       "new_ids": 0,
-      "overdue_compared_with_complete_catalogue": 133,
-      "overdue_without_id": 133,
-      "overdue_without_id_after": 133,
+      "overdue_compared_with_complete_catalogue": 134,
+      "overdue_without_id": 134,
+      "overdue_without_id_after": 134,
       "persisted_id_new_finals": 0,
       "planned_days": [],
       "post_reconcile": {
@@ -7615,7 +7773,7 @@
         "selected_days": []
       },
       "goal": {
-        "date_budget": 2,
+        "date_budget": 0,
         "id_requests": 0,
         "requested_days": [],
         "selected_days": []
@@ -7627,19 +7785,15 @@
         "selected_days": []
       }
     },
-    "deferred_by_capacity": 0,
+    "deferred_by_capacity": 13,
     "documented_ft_total": 31,
     "dual_postcheck_confirmed": 0,
     "dual_postcheck_conflicts": 0,
-    "dual_postcheck_scanned": 9,
+    "dual_postcheck_scanned": 0,
     "dual_provider_consensus": {
       "conflicts_in_run": 0,
       "invalid_previous_claims": {},
-      "reason_counts": {
-        "cross_provider_team_identity_disagreement": 8,
-        "fewer_than_two_strong_providers": 9,
-        "two_verified_source_results_unavailable": 2
-      },
+      "reason_counts": {},
       "source_revision_quarantines": 0,
       "validated_source_claims": 0,
       "verified_in_run": 0
@@ -7651,7 +7805,7 @@
       "revisions_quarantined": 0,
       "total_claims": 91
     },
-    "eligible": 10,
+    "eligible": 13,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
@@ -7659,22 +7813,17 @@
     },
     "goal_reviewed_id_probe": {
       "approved_selected": 0,
-      "decisions": {
-        "2026-10-27,77621,67110": {
-          "reason": "NOT_SELECTED_IN_CURRENT_FT_QUEUE",
-          "status": "DEFERRED"
-        }
-      },
+      "decisions": {},
       "observations": {}
     },
-    "never_checked_deferred": 0,
-    "never_checked_eligible": 5,
+    "never_checked_deferred": 3,
+    "never_checked_eligible": 3,
     "newly_confirmed": 0,
     "provider_id_collisions": 0,
     "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
-    "selected": 10
+    "selected": 0
   },
   "schema_version": 1,
   "status": "FT_BACKLOG_AUDIT_OBSERVATION_ONLY",
-  "total_matches": 619
+  "total_matches": 621
 }
