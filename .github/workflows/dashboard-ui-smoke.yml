@@ -7,6 +7,8 @@ on:
       - "docs/dashboard.css"
       - "docs/lab.html"
       - "tests/dashboard-ui.test.cjs"
+      - "docs/master-brain.js"
+      - "tests/master-brain-contract.test.cjs"
       - ".github/workflows/dashboard-ui-smoke.yml"
   push:
     branches: [main]
@@ -16,6 +18,8 @@ on:
       - "docs/dashboard.css"
       - "docs/lab.html"
       - "tests/dashboard-ui.test.cjs"
+      - "docs/master-brain.js"
+      - "tests/master-brain-contract.test.cjs"
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,7 +35,8 @@ jobs:
       - name: Syntax and deterministic dashboard tests
         run: |
           node --check docs/dashboard.js
-          node --test tests/dashboard-ui.test.cjs
+          node --check docs/master-brain.js
+          node --test tests/dashboard-ui.test.cjs tests/master-brain-contract.test.cjs
       - name: Confirm protected production logic was not modified
         run: |
           git status --porcelain
