@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-31T09:36:50+00:00",
+ "generated_at": "2026-10-31T09:41:40+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 270
+  "timelines_published": 272
  },
  "schema_version": 1,
- "source_commit": "64c49218a0d4f251ede6b9561a3c02bd886ef5cc",
+ "source_commit": "92cda4f9a096af537cfc127ba62d354e67a23683",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 778,
+  "matches": 789,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 1153,
+  "messages": 1166,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 645,
+  "messages_on_repeated_matches": 649,
   "messages_v4_only": 0,
-  "messages_with_v4": 1079,
-  "movement_episodes_upper_bound": 1109,
+  "messages_with_v4": 1092,
+  "movement_episodes_upper_bound": 1122,
   "possibly_redundant_snapshots": 32,
   "post_kickoff_messages": 35,
   "related_message_pairs": 44,
@@ -50,25 +50,308 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 12
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 270,
+  "repeated_matches": 272,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1741
+   "V4_EXPLICIT": 1758
   },
-  "total_line_reversals_on_repeated": 140,
+  "total_line_reversals_on_repeated": 141,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 39,
-   "CONTINUOUS": 203,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 40,
+   "CONTINUOUS": 204,
    "SAME_MOVEMENT_REPEAT": 44,
    "UNOBSERVED_CHANGE": 89
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 335,
-   "one_x_two:AGREE": 327,
-   "total:AGREE": 1079
+   "asian_handicap:AGREE": 337,
+   "one_x_two:AGREE": 329,
+   "total:AGREE": 1092
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51680",
+    "3571094759:51745"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51680",
+     "message_id": 51680,
+     "minutes_to_kickoff": 464.8,
+     "observed_at": "2026-10-31T07:15:11+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 1.81,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 2.06,
+        "under_price": 1.81
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51745",
+     "message_id": 51745,
+     "minutes_to_kickoff": 323.8,
+     "observed_at": "2026-10-31T09:36:12+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 1.81,
+        "under_price": 2.04
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 2.06,
+        "under_price": 1.81
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-31T07:15:11+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T15:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-31T09:36:12+00:00",
+   "match_key": "2026-10-31,108,137",
+   "match_label": "Ayr United FC vs Queen's Park FC (SCO)",
+   "movement_episodes": [
+    [
+     "3571094759:51680"
+    ],
+    [
+     "3571094759:51745"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    8461.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.5,
+     "last_observed_line": 2.25,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.25,
+       "before": 2.5,
+       "event_id": "3571094759:51680",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.25,
+       "before": 2.5,
+       "event_id": "3571094759:51745",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51680",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.5,
+       "previous_after_line": 2.25,
+       "to": "3571094759:51745"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51599",
+    "3571094759:51740"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51599",
+     "message_id": 51599,
+     "minutes_to_kickoff": 706.5,
+     "observed_at": "2026-10-31T00:43:31+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.79,
+        "under_price": 1.77
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.93,
+        "under_price": 1.77
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51740",
+     "message_id": 51740,
+     "minutes_to_kickoff": 173.9,
+     "observed_at": "2026-10-31T09:36:06+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.96,
+        "under_price": 1.75
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.7,
+        "under_price": 1.98
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-31T00:43:31+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T12:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-31T09:36:06+00:00",
+   "match_key": "2026-10-31,10002139,64076",
+   "match_label": "Kezmarok vs MSK Tesla Stropkov",
+   "movement_episodes": [
+    [
+     "3571094759:51599"
+    ],
+    [
+     "3571094759:51740"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    31955.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 3.25,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:51599",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:51740",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51599",
+       "at_event": "3571094759:51740",
+       "evidence": "intra",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51599",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51740"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
