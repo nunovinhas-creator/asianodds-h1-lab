@@ -40,14 +40,21 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
-      # Sole outbound Telegram signal: >=3 separate V4 explicit Total-line moves.
-      # E4, T05, generic V5, H1 singles and triples are all DISABLED as senders.
+      # Original Telegram rule 1 remains: >=3 separate V4 Total-line movements.
+      # Legacy E4, T05, generic V5, H1 singles and triples stay DISABLED.
       # Keeps all future fixtures (no 12h cutoff) and sends once per match.
       - name: Notify MASTER BRAIN 3 verified Total movements
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python -m h1lab.three_moves_notify
+      # ADDITIVE alert. The existing three-movement sender above is unchanged.
+      # At least two independent upward V4 Total moves, net >= 0.50, no V4 fall.
+      - name: Notify MASTER BRAIN 2 distinct Total rises (additional)
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python -m h1lab.two_up_notify
       - name: Store data for dashboard
         run: |
           git config user.name 'github-actions[bot]'
@@ -55,6 +62,7 @@ jobs:
           git add data/state.json docs/data.json
           if [ -f data/pattern-notifications.json ]; then git add data/pattern-notifications.json; fi
           if [ -f data/three-total-moves-notifications.json ]; then git add data/three-total-moves-notifications.json; fi
+          if [ -f data/two-up-total-notifications.json ]; then git add data/two-up-total-notifications.json; fi
           if [ -d data/lab ]; then git add data/lab; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data: collect and notify H1 [skip ci]'
