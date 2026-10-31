@@ -13,6 +13,8 @@ from pathlib import Path
 
 from h1lab.discovery_timeline import build
 from h1lab.discovery_public_pages import paginate, PAGE_LIMIT
+from h1lab import lab_discovery_dual_state as dual_state
+from h1lab import lab_discovery_store as segmented_store
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path("data/lab/discovery-state.json")
@@ -75,6 +77,8 @@ def put(path, value, limit):
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--state-backend", choices=("legacy", "dual"), default="legacy",
+                        help="Dual requires preexisting verified segment store; no auto-bootstrap")
     args = parser.parse_args(argv)
     root = args.root
     report = read(root / "docs/lab/pattern-research.json")
@@ -82,7 +86,12 @@ def main(argv=None):
     ledger = read(root / "data/lab/ft-ledger.json", {"matches": {}})
     if not isinstance(report, dict) or not isinstance(first, dict) or not isinstance(ledger, dict):
         raise ValueError("missing or malformed discovery inputs")
-    prior = read(root / STATE)
+    # Existing production and historical replay use legacy by default.
+    # Dual is an explicit, unconfigured CLI mode for isolated validation.
+    prior = (read(root / STATE) if args.state_backend == "legacy" else
+             dual_state.load(root, format="dual"))
+    expected_generation = (dual_state.current_generation(root)
+                           if args.state_backend == "dual" else None)
     state, full_public, events = build(report, first, ledger, prior)
     # All public pattern points are preserved in immutable content-addressed
     # pages. Only the small manifest remains in discoveries.json.
@@ -90,6 +99,9 @@ def main(argv=None):
     # Preflight the complete root/page set before ANY journal/state writes.
     serialize(state, MAX_STATE_BYTES, STATE)
     serialize(public, MAX_PUBLIC_BYTES, PUBLIC)
+    if args.state_backend == "dual":
+        # Preflight shard/member constraints BEFORE touching event journals.
+        segmented_store.partition(state)
 
     # Archive immutable data FIRST; abort on any conflicting event ID. JSONL
     # is partitioned by UTC month. No event is dropped when the frontend cache rolls.
@@ -126,12 +138,17 @@ def main(argv=None):
     # publication guard additionally seals all reachable page bytes in Git.
     for relative, raw in sorted(pages.items()):
         put(root / "docs/lab" / relative, json.loads(raw), PAGE_LIMIT)
-    a = put(root / STATE, state, MAX_STATE_BYTES)
+    if args.state_backend == "dual":
+        result = dual_state.write_dual(root, state, expected_generation=expected_generation)
+        a = result["changed"]
+    else:
+        a = put(root / STATE, state, MAX_STATE_BYTES)
     b = put(root / PUBLIC, public, MAX_PUBLIC_BYTES)
     print("MASTER_BRAIN_DISCOVERY", "baseline", prior is None,
           "events_new", len(events), "published_patterns", len(state["patterns"]),
           "prospective_ft", len(state["prospective_settled"]),
-          "state_changed", a, "public_changed", b, "public_pages", len(pages))
+          "state_changed", a, "public_changed", b, "public_pages", len(pages),
+          "state_backend", args.state_backend)
     return public
 
 
