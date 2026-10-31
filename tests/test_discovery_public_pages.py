@@ -1,11 +1,13 @@
 import copy
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 from scripts import publication_guard as guard
+from scripts.lab_discoveries import main as generate_discovery
 
 from h1lab.discovery_public_pages import paginate, verify, encode, PAGE_LIMIT
 
@@ -67,6 +69,28 @@ class DiscoveryPublicPagesTests(unittest.TestCase):
         for field in ("schema_version", "status", "timeline", "prospective",
                       "baseline_at", "patterns"):
             self.assertEqual(rebuilt[field], original[field])
+
+    def test_complete_offline_producer_replay_with_real_inputs(self):
+        source = Path(__file__).resolve().parents[1]
+        input_files = ("docs/lab/pattern-research.json",
+                       "data/lab/pattern-watch-first-seen.json",
+                       "data/lab/ft-ledger.json",
+                       "data/lab/discovery-state.json")
+        with tempfile.TemporaryDirectory() as td:
+            root_dir = Path(td)
+            for relative in input_files:
+                destination = root_dir / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source / relative, destination)
+            generated = generate_discovery(["--root", td])
+            published = json.loads((root_dir / "docs/lab/discoveries.json").read_text())
+            stored = json.loads((root_dir / "data/lab/discovery-state.json").read_text())
+            page_files = {p["path"]: (root_dir / "docs/lab" / p["path"]).read_bytes()
+                          for p in published["pattern_pages"]}
+            self.assertEqual(verify(published, page_files), len(stored["patterns"]))
+            self.assertEqual(generated, published)
+            self.assertEqual(reconstruct(published, page_files)["patterns"],
+                             stored["patterns"])
 
     def test_deterministic_and_reusable_content_addressed_pages(self):
         source = sample(40)
