@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T19:41:40+00:00",
+  "generated_at": "2026-10-31T19:46:34+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 200,
-      "of_repeated_matches_analysed": 326,
-      "percentage_descriptive": 61.3
+      "matches": 201,
+      "of_repeated_matches_analysed": 327,
+      "percentage_descriptive": 61.5
     },
     "both_total_and_1x2": {
       "matches": 214,
-      "of_repeated_matches_analysed": 326,
-      "percentage_descriptive": 65.6
+      "of_repeated_matches_analysed": 327,
+      "percentage_descriptive": 65.4
     },
     "opposing_intra_alert_directions": {
-      "matches": 84,
-      "of_repeated_matches_analysed": 326,
-      "percentage_descriptive": 25.8
+      "matches": 85,
+      "of_repeated_matches_analysed": 327,
+      "percentage_descriptive": 26.0
     },
     "with_ambiguous_repeats": {
       "matches": 45,
-      "of_repeated_matches_analysed": 326,
+      "of_repeated_matches_analysed": 327,
       "percentage_descriptive": 13.8
     },
     "with_identical_total_snapshots": {
       "matches": 38,
-      "of_repeated_matches_analysed": 326,
-      "percentage_descriptive": 11.7
+      "of_repeated_matches_analysed": 327,
+      "percentage_descriptive": 11.6
     },
     "with_mixed_origin_total": {
       "matches": 20,
-      "of_repeated_matches_analysed": 326,
+      "of_repeated_matches_analysed": 327,
       "percentage_descriptive": 6.1
     },
     "with_only_legacy_total": {
       "matches": 9,
-      "of_repeated_matches_analysed": 326,
+      "of_repeated_matches_analysed": 327,
       "percentage_descriptive": 2.8
     },
     "with_only_v4_total": {
-      "matches": 297,
-      "of_repeated_matches_analysed": 326,
+      "matches": 298,
+      "of_repeated_matches_analysed": 327,
       "percentage_descriptive": 91.1
     },
     "with_post_kickoff_alerts": {
       "matches": 31,
-      "of_repeated_matches_analysed": 326,
+      "of_repeated_matches_analysed": 327,
       "percentage_descriptive": 9.5
     },
     "with_related_alerts": {
       "matches": 51,
-      "of_repeated_matches_analysed": 326,
+      "of_repeated_matches_analysed": 327,
       "percentage_descriptive": 15.6
     },
     "with_unobserved_line_gaps": {
       "matches": 97,
-      "of_repeated_matches_analysed": 326,
-      "percentage_descriptive": 29.8
+      "of_repeated_matches_analysed": 327,
+      "percentage_descriptive": 29.7
     }
   },
   "opposing_direction_examples": [
@@ -102,6 +102,19 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-31,1247,28715",
       "match_label": "1.FK Příbram vs FK MAS Táborsko"
+    },
+    {
+      "directions": [
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:51956",
+        "3571094759:51961"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-31,230,231",
+      "match_label": "AC Milan vs Internazionale"
     },
     {
       "directions": [
@@ -246,41 +259,28 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-28,198,1738",
       "match_label": "Bayern München vs 1. FC Magdeburg"
-    },
-    {
-      "directions": [
-        "UP",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:51747",
-        "3571094759:51830"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-31,234,1296",
-      "match_label": "Bologna vs AC Monza Brianza"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 918,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 783,
-    "messages_in_source": 1375,
-    "repeated_matches_analysed": 326,
-    "repeated_matches_in_source": 326,
+    "events_analysed": 785,
+    "messages_in_source": 1376,
+    "repeated_matches_analysed": 327,
+    "repeated_matches_in_source": 327,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "f024f209d56b81e0c922c62ed21592925754c32c",
-  "source_generated_at": "2026-10-31T19:41:40+00:00",
+  "source_commit": "90cce8525d809a520f927085ebee04c3a9319bd7",
+  "source_generated_at": "2026-10-31T19:46:34+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 31,
-      "T_0_TO_60": 165,
+      "T_0_TO_60": 166,
       "T_360_TO_1440": 121,
       "T_60_TO_360": 128,
       "T_OVER_1440": 98,
@@ -288,7 +288,7 @@
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 37,
-      "T_0_TO_60": 232,
+      "T_0_TO_60": 234,
       "T_360_TO_1440": 189,
       "T_60_TO_360": 177,
       "T_OVER_1440": 148,
@@ -299,22 +299,22 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 741
+      "V4_EXPLICIT": 743
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 36.0,
-      "FLAT": 29.1,
+      "DOWN": 36.1,
+      "FLAT": 29.0,
       "UP": 34.9
     },
-    "down": 282,
+    "down": 283,
     "flat": 228,
-    "messages_with_total": 783,
-    "up": 273,
+    "messages_with_total": 785,
+    "up": 274,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 48,
-    "continuous": 251,
+    "continuous": 252,
     "identical_total_pairs": 38,
     "related_pairs": 51,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
