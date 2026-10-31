@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 from h1lab.discovery_timeline import build
+from h1lab.discovery_public_pages import paginate, PAGE_LIMIT
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path("data/lab/discovery-state.json")
@@ -82,10 +83,11 @@ def main(argv=None):
     if not isinstance(report, dict) or not isinstance(first, dict) or not isinstance(ledger, dict):
         raise ValueError("missing or malformed discovery inputs")
     prior = read(root / STATE)
-    state, public, events = build(report, first, ledger, prior)
-    public = bounded_public(public)
-    # Fail before any journal/state mutation if the mandatory payload cannot
-    # fit. Publication guards remain in force; limits are not increased.
+    state, full_public, events = build(report, first, ledger, prior)
+    # All public pattern points are preserved in immutable content-addressed
+    # pages. Only the small manifest remains in discoveries.json.
+    public, pages = paginate(full_public, root_limit=MAX_PUBLIC_BYTES)
+    # Preflight the complete root/page set before ANY journal/state writes.
     serialize(state, MAX_STATE_BYTES, STATE)
     serialize(public, MAX_PUBLIC_BYTES, PUBLIC)
 
@@ -120,12 +122,16 @@ def main(argv=None):
                 json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n"
                 for item in fresh])
 
+    # Write all immutable pages before publishing their manifest. The FT
+    # publication guard additionally seals all reachable page bytes in Git.
+    for relative, raw in sorted(pages.items()):
+        put(root / "docs/lab" / relative, json.loads(raw), PAGE_LIMIT)
     a = put(root / STATE, state, MAX_STATE_BYTES)
     b = put(root / PUBLIC, public, MAX_PUBLIC_BYTES)
     print("MASTER_BRAIN_DISCOVERY", "baseline", prior is None,
           "events_new", len(events), "published_patterns", len(state["patterns"]),
           "prospective_ft", len(state["prospective_settled"]),
-          "state_changed", a, "public_changed", b)
+          "state_changed", a, "public_changed", b, "public_pages", len(pages))
     return public
 
 
