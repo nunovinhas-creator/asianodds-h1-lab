@@ -232,6 +232,7 @@ class APIFootballResults:
             raise ValueError("Unsafe API-Football reviewed targets")
         self.id_fetch=id_fetch
         self.id_cache=None
+        self.id_batch_error=None
         self.reasons=Counter()
 
     def lookup(self,signal):
@@ -253,13 +254,16 @@ class APIFootballResults:
                 try:
                     self.id_cache = self.id_fetch(
                         sorted(set(v["provider_fixture_id"]
-                                   for v in self.reviewed_targets.values())),
+                                   for v in self.reviewed_targets.values())
+                               | set(getattr(self, "extra_fixture_ids", []))),
                         self.key)
                 except (OSError, ValueError, KeyError, TypeError) as exc:
                     self.id_cache = {}
-                    self.reviewed_error_details[key] = failure_from(exc)
-                    self.reasons["api_football_reviewed_id_unavailable"] += 1
-                    return failed("api_football_reviewed_id_unavailable")
+                    self.id_batch_error = failure_from(exc)
+            if self.id_batch_error is not None:
+                self.reviewed_error_details[key] = dict(self.id_batch_error)
+                self.reasons["api_football_reviewed_id_unavailable"] += 1
+                return failed("api_football_reviewed_id_unavailable")
             event = self.id_cache.get(reviewed["provider_fixture_id"])
             if event is None:
                 self.reasons["api_football_reviewed_id_missing"] += 1
