@@ -37,6 +37,12 @@ class DurableHTTP429Tests(unittest.TestCase):
             self.assertEqual(datetime.fromisoformat(r['blocked_until_utc']),NOW+timedelta(seconds=seconds))
         self.assertFalse(active(record_429({},'thesportsdb',NOW,'0'),'thesportsdb',NOW))
 
+    def test_fractional_attempt_time_never_rounds_retry_deadline_down(self):
+        when=NOW+timedelta(microseconds=500000)
+        state=record_429({},'thesportsdb',when,'120')
+        self.assertTrue(active(state,'thesportsdb',NOW+timedelta(seconds=120)))
+        self.assertFalse(active(state,'thesportsdb',when+timedelta(seconds=120)))
+
     def test_transport_or_other_http_error_never_creates_429_deadline(self):
         for exc in [OSError('network'),HTTPError('https://provider.invalid',503,'unavailable',{},None)]:
             with patch('h1lab.results.api_events',side_effect=exc):

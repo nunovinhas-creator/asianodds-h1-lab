@@ -43,6 +43,6 @@ def record_429(state,provider,now,retry_after=None):
                 until=value.astimezone(timezone.utc);basis='HTTP_RETRY_AFTER_DATE'
         except (ValueError,TypeError,OverflowError):
             pass
-    out[provider]={'http_status':429,'attempted_at_utc':now.isoformat(timespec='seconds'),
-        'blocked_until_utc':until.isoformat(timespec='seconds'),'basis':basis}
+    out[provider]={'http_status':429,'attempted_at_utc':now.isoformat(),
+        'blocked_until_utc':until.isoformat(),'basis':basis}
     return validate(out)
