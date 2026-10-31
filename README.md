@@ -1,5 +1,7 @@
 # MASTER BRAIN — AsianOdds H1 + Observatório V4 + Cérebro V5
 
+**Telegram desde 31/10/2026 (após integração):** único emissor automático: jogos futuros com **pelo menos três movimentos distintos da linha Total comprovados por V4 explícito antes do KO**. Sem limite de 12 horas ou máximo de seis alertas; um aviso por jogo e recibos autónomos. E4, T05, outras estratégias e H1/triplas deixam de enviar alertas pelo workflow de recolha. Movimentos suspeitos de repetição ou não observados não contam. [Critérios e limitações](docs/lab/TELEGRAM-THREE-TOTAL-MOVES.md).
+
 **MASTER BRAIN** é o novo nome e a interface principal da ferramenta (anteriormente UNDER TESTE). O **cérebro V5**, as hipóteses de investigação e o observatório de jogos futuros são agora os painéis principais. **Under H1 e triplas passam para arquivo secundário** em [h1.html](https://nunovinhas-creator.github.io/asianodds-h1-lab/h1.html#h1), mantendo os motores e os resultados originais.
 
 Observatório experimental de odds asiáticas: recolhe alertas estruturados de um canal Telegram autorizado, regista movimentos de mercado, forma sinais e triplas H1 simuladas e investiga combinações de padrões com resultados finais. **Não executa apostas reais, não garante rentabilidade e não ativa automaticamente estratégias descobertas pelo LAB.**
