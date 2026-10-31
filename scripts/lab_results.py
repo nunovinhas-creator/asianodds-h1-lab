@@ -30,6 +30,7 @@ from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
+from h1lab.lab_ft_recovery_turn import due as old_id_due, recovery_turn
 from h1lab.lab_goal_reviewed import plan_reviewed_goal_id
 from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
 from h1lab.lab_ft_same_run import settle_new_cached_pairs
@@ -276,6 +277,17 @@ def main():
         if isinstance(row, dict)
     }
     approved_due -= {key for key, why in blocked_approved.items() if why}
+    # Plan locators without HTTP before the general queue cap. Otherwise an
+    # old usable ID outside the first 30 never competes for an existing slot.
+    api_today = historical_days.get('usage', {}).get('api_football', {}).get(now.date().isoformat(), 0)
+    old_keys = sorted(k for k, r in existing['matches'].items() if old_id_due(r, now))
+    # Existing API-Football strict day-index identity checks are unchanged.
+    # GOAL historical IDs remain audit-only until the original competition
+    # identity has independent, reviewed evidence (not merely a provider label).
+    proposed_api = (plan_index_ids(old_keys, existing['matches'], previous_day_index, now,
+                                  max_batch=1)
+                    if api_football_poll and api_today < 90 and id_batch_limit and not approved_due else {})
+    old_id_turn = recovery_turn(proposed_api, {}, existing['matches'])
     _preview_ledger, preview, _ = reconcile(
         state, catalog_v4, existing, now=now,
         bsd_lookup=lambda unused: (None, "preview_only"),
@@ -284,7 +296,7 @@ def main():
                                10 if api_football_poll else None),
         max_checks=0, force_recheck=recovery_once,
         priority_hints=research_hints, evidence_retry=True,
-        approved_rechecks=approved_due)
+        approved_rechecks=approved_due, recovery_keys=old_id_turn)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
     # Data-only, zero-HTTP planning. The scheduled FT workflow itself
     # requests at most three COMPLETE BSD day catalogues (max 3 pages
@@ -327,8 +339,7 @@ def main():
     # date request, but does NOT need a date request to be eligible.
     # This prevents a successful COMPLETE day list's adaptive cooldown from
     # indefinitely starving a reviewed ID once the game itself is due.
-    # If 1 date is selected, reserve 2 daily slots (1 date + 1 ID);
-    # if no date is eligible, reserve just 1 slot (ID only).
+    # Existing GOAL approvals and daily rotation are preserved unchanged.
     goal_id_slot = goal_enabled and (
         goal_today <= (78 if rotation["goal"] else 79))
     goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
@@ -447,7 +458,7 @@ def main():
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
         priority_hints=research_hints, evidence_retry=True,
-        approved_rechecks=approved_due)
+        approved_rechecks=approved_due, recovery_keys=old_id_turn)
 
 
     # The first pass fetched COMPLETE provider dates. Fresh STRONG candidates
