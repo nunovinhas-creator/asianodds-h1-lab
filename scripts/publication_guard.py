@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -104,7 +105,7 @@ def seal(pipeline, manifest):
                 if not isinstance(item, dict) or not isinstance(item.get('path'), str):
                     raise ValueError('Invalid discovery page path')
                 relative = item['path']
-                if not __import__('re').fullmatch(r'discovery-pages/[a-f0-9]{64}\\.json', relative):
+                if not re.fullmatch(r'discovery-pages/[a-f0-9]{64}\.json', relative):
                     raise ValueError('Unsafe discovery page path')
                 file = 'docs/lab/' + relative
                 if file in pages:
