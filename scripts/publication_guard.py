@@ -120,7 +120,7 @@ def seal(pipeline, manifest):
     if pipeline == 'ft':
         from h1lab.lab_discovery_git_bundle import (
             PREFIX, seal as seal_segmented)
-        present = [name for name in git('ls-files', '-z', '--', PREFIX).decode().split('\\0') if name]
+        present = [name for name in git('ls-files', '-z', '--', PREFIX).decode().split('\0') if name]
         if present:
             if PREFIX + 'CURRENT.json' not in present:
                 raise ValueError('Segmented files staged without CURRENT pointer')
