@@ -80,13 +80,18 @@ class GuardTests(unittest.TestCase):
             self.assertLess(tail.index('publication_guard outcomes'), tail.index('git add'))
             self.assertLess(tail.index('publication_guard seal'), tail.index('git commit'))
             if pipeline == "ft":
-                self.assertIn("DISCOVERY_SEGMENTED_NO_REBASE", tail)
+                self.assertIn("DISCOVERY_SEGMENTED_NO_STALE_REBASE", tail)
                 self.assertIn("FT_BASE_HEAD", source)
-                self.assertNotIn("git rebase", tail)
+                self.assertIn("lab_ft_safe_publish --base", tail)
                 self.assertIn("lab_ft_immutable_gate verify", tail)
                 self.assertIn("lab_discovery_authoritative_release stage", tail)
                 self.assertLess(tail.index("publication_guard verify"),
                                 tail.index("git fetch origin main"))
+                self.assertLess(tail.index("lab_ft_safe_publish --base"),
+                                tail.index("git rebase origin/main"))
+                self.assertLess(tail.index("git rebase origin/main"),
+                                tail.index("publication_guard verify",
+                                           tail.index("git rebase origin/main")))
             else:
                 self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
             self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
