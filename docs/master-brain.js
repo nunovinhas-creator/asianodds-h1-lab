@@ -154,9 +154,57 @@
      return await res.json();
    }finally{clearTimeout(timer)}
  }
+ async function fetchDiscovery(path){
+   const root=await fetchData(path);
+   if(!Object.hasOwn(root,"pattern_pages"))return root; // legacy publication
+   const pages=root.pattern_pages;
+   if(root.schema_version!==1||!Array.isArray(pages)||
+      !Number.isSafeInteger(root.pattern_count)||root.pattern_count<0||
+      root.patterns===null||typeof root.patterns!=="object"||
+      Array.isArray(root.patterns)||Object.keys(root.patterns).length)
+     throw Error("Invalid discovery pagination manifest");
+   if(!globalThis.crypto?.subtle)throw Error("SHA-256 unavailable for discovery integrity");
+   const patterns=Object.create(null),paths=new Set();
+   const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
+   // Limit simultaneous fetches; never render partial content on a missing page.
+   for(let i=0;i<pages.length;i+=4){
+     const batch=await Promise.all(pages.slice(i,i+4).map(async page=>{
+       if(!page||typeof page.path!=="string"||typeof page.sha256!=="string"||
+          !/^discovery-pages\/[a-f0-9]{64}\.json$/.test(page.path)||
+          page.path!=="discovery-pages/"+page.sha256+".json"||
+          paths.has(page.path)||!Number.isSafeInteger(page.bytes)||page.bytes<1||
+          page.bytes>256000||!Number.isSafeInteger(page.patterns)||page.patterns<1)
+         throw Error("Invalid discovery page descriptor");
+       paths.add(page.path);
+       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+       try{
+         const response=await fetch(ROOT+"lab/"+page.path,{cache:"no-store",signal:controller.signal});
+         if(!response.ok)throw Error("Discovery page HTTP "+response.status);
+         const bytes=await response.arrayBuffer();
+         if(bytes.byteLength!==page.bytes||
+            hex(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))!==page.sha256)
+           throw Error("Discovery page integrity mismatch");
+         const data=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));
+         if(!data||typeof data!=="object"||Array.isArray(data)||
+            !data.patterns||typeof data.patterns!=="object"||Array.isArray(data.patterns)||
+            Object.keys(data.patterns).length!==page.patterns)
+           throw Error("Malformed discovery page");
+         return data.patterns;
+       }finally{clearTimeout(timer)}
+     }));
+     for(const rows of batch)for(const [key,value] of Object.entries(rows)){
+       if(Object.hasOwn(patterns,key)||!value||typeof value!=="object"||Array.isArray(value))
+         throw Error("Duplicate or invalid discovery pattern");
+       patterns[key]=value;
+     }
+   }
+   if(Object.keys(patterns).length!==root.pattern_count)
+     throw Error("Incomplete discovery page coverage");
+   return {...root,patterns};
+ }
  async function load(force=false){
    const button=$("refresh");button.disabled=true;button.textContent="↻";
-   const attempts=await Promise.allSettled(Object.entries(SOURCES).map(async ([key,path])=>({key,body:await fetchData(path)})));
+   const attempts=await Promise.allSettled(Object.entries(SOURCES).map(async ([key,path])=>({key,body:await (key==="discovery"?fetchDiscovery(path):fetchData(path))})));
    const failed=[],stale=[];let got=0;
    for(let i=0;i<attempts.length;i++){
      const item=attempts[i],key=Object.keys(SOURCES)[i];
