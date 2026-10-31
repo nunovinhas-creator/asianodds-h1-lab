@@ -20,7 +20,7 @@
       "falsification_checks": [
         {
           "code": "F01_EPISODE_INDEPENDENCE",
-          "n": 55,
+          "n": 56,
           "name": "Episódios independentes",
           "required": "10 selected freezes with captured context; strict >= 80%",
           "result": "PASS"
@@ -34,7 +34,7 @@
         },
         {
           "code": "F03_1X2_AH_CONSISTENCY",
-          "n": 15,
+          "n": 16,
           "name": "Concordância entre mercados",
           "required": "10 comparable simultaneous AH/1X2 direction events",
           "result": "PASS"
@@ -90,7 +90,7 @@
         }
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
-      "frozen_matches": 676,
+      "frozen_matches": 677,
       "ft_verified": 171,
       "games": [
         {
@@ -10522,36 +10522,39 @@
           "telegram_original_at": "2026-10-31T12:37:56+00:00"
         },
         {
-          "event_id": "3571094759:51653",
+          "event_id": "3571094759:51846",
           "forecast": {
             "competition_heuristic": "LEAGUE_OTHER",
-            "feature_sha256": "e7b29720d731b5b88074bc97e86bf7723951b09aede45350f090411075a368b3",
+            "feature_sha256": "a51ac776680a98d09a6abf98df3f8c6b6345aea6ac75af2b97aa0c7879244bb3",
             "feature_version": 2,
             "forecast_kind": "MARKET_BASELINE_ONLY",
-            "market_co_observation": "UNKNOWN_MARKET_NOT_OBSERVED",
-            "market_probability_over_2_5": 0.3702,
+            "market_co_observation": "SEPARATE_MESSAGES_ONLY",
+            "market_probability_over_2_5": null,
             "market_total_after": {
               "line": 2.0,
-              "margin": 0.00266,
-              "over_price": 1.97,
-              "under_price": 2.02
+              "margin": -0.00249,
+              "over_price": 2.01,
+              "under_price": 2.0
             },
             "market_total_before": {
-              "line": 2.25,
-              "margin": 0.08044,
-              "over_price": 1.94,
-              "under_price": 1.77
+              "line": 2.0,
+              "margin": -0.01705,
+              "over_price": 2.01,
+              "under_price": 2.06
             },
-            "memory_observation_sha256": "9239ef86a5e40f2567033693a9a397fdba70614e6cc33428658d0ac6521f3f20",
-            "memory_pattern_sha256": "61ba8a5f5bd11f465dc397d7eaf34c37ef91aa468dae52fab130000ee54faf14",
+            "memory_observation_sha256": "a66d54138f8ce539789de6b701132ebe48e57399b1004d78f59e8e2addb9b1f0",
+            "memory_pattern_sha256": "5f2505820d09c30876807f84824f562e70f2bb005d10d7051945dd444d4e9549",
             "model_delta_vs_market": 0.0,
             "original_posthoc_condition": false,
-            "quality_flags": [],
-            "quality_status": "USABLE",
-            "sha256": "422c5a922d45146d85d4eeda8e9a25e523f5a7bd422190f560b79fb442db2953",
+            "quality_flags": [
+              "negative_before_margin",
+              "negative_after_margin"
+            ],
+            "quality_status": "UNUSABLE",
+            "sha256": "491967f3d9bdb88924df0b40968c1050bf297e80fc8f27328d9677f6baa6c7a2",
             "strict_observation": false
           },
-          "frozen_known_at": "2026-10-31T05:21:27+00:00",
+          "frozen_known_at": "2026-10-31T14:01:29+00:00",
           "ft": {
             "checked_at": null,
             "event_id": "FT6:e0da6b35193cf7df9e98cc5efe2a",
@@ -10567,31 +10570,59 @@
           "kickoff_utc": "2026-10-31T18:00:00+00:00",
           "match_key": "2026-10-31,48431,10089071",
           "match_label": "CA San Miguel vs Deportivo Madryn",
-          "snapshot_history_count": 1,
+          "snapshot_history_count": 2,
           "source_v4": {
-            "known_at": "2026-10-31T05:21:06+00:00",
+            "known_at": "2026-10-31T14:01:11+00:00",
             "markets": {
+              "asian_handicap": {
+                "after": {
+                  "away_price": 1.98,
+                  "home_price": 1.81,
+                  "line": 1.0
+                },
+                "before": {
+                  "away_price": 2.03,
+                  "home_price": 1.81,
+                  "line": 1.0
+                },
+                "cross_line_prices_comparable": true,
+                "line_changed": false
+              },
+              "one_x_two": {
+                "1": {
+                  "after": 6.77,
+                  "before": 6.15
+                },
+                "2": {
+                  "after": 1.54,
+                  "before": 1.6
+                },
+                "X": {
+                  "after": 3.75,
+                  "before": 3.75
+                }
+              },
               "total": {
                 "after": {
                   "line": 2.0,
-                  "over_price": 1.97,
-                  "under_price": 2.02
+                  "over_price": 2.01,
+                  "under_price": 2.0
                 },
                 "before": {
-                  "line": 2.25,
-                  "over_price": 1.94,
-                  "under_price": 1.77
+                  "line": 2.0,
+                  "over_price": 2.01,
+                  "under_price": 2.06
                 },
-                "cross_line_prices_comparable": false,
-                "line_changed": true
+                "cross_line_prices_comparable": true,
+                "line_changed": false
               }
             },
-            "revision_id": "V4R:98dadb28e276ae099eee47dfc650",
-            "sha256": "391f26ed85f060ae589a3874567777f44d1b65ba36fc29fc7b2dd1f95a119ec9",
+            "revision_id": "V4R:5e94fb2e34c3142fc680440dc6e3",
+            "sha256": "744bfaf763bf92d0602bb4202bea73acec9c857822345f7c1cb08f63ae252130",
             "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
             "telegram_edit_at": null
           },
-          "telegram_original_at": "2026-10-31T05:18:56+00:00"
+          "telegram_original_at": "2026-10-31T13:57:23+00:00"
         },
         {
           "event_id": "3571094759:51565",
@@ -13591,6 +13622,106 @@
             "telegram_edit_at": null
           },
           "telegram_original_at": "2026-10-31T11:06:37+00:00"
+        },
+        {
+          "event_id": "3571094759:51847",
+          "forecast": {
+            "competition_heuristic": "LEAGUE_OTHER",
+            "feature_sha256": "e8b7d65fc703b2562f09e07de3939b7dfc96b9487e01dba45b93effb3961f228",
+            "feature_version": 2,
+            "forecast_kind": "MARKET_BASELINE_ONLY",
+            "market_co_observation": "SAME_MESSAGE",
+            "market_probability_over_2_5": 0.5502,
+            "market_total_after": {
+              "line": 2.75,
+              "margin": 0.02319,
+              "over_price": 1.98,
+              "under_price": 1.93
+            },
+            "market_total_before": {
+              "line": 2.75,
+              "margin": 0.01266,
+              "over_price": 1.98,
+              "under_price": 1.97
+            },
+            "memory_observation_sha256": "3d6f1c68481ef09d38b19328629607b8e68b061a647565b1ff4bca8b936ff5c0",
+            "memory_pattern_sha256": "15e793585518b106aa52fd5ca134bdcb17e27858638467d39ec987a807a3079f",
+            "model_delta_vs_market": 0.0,
+            "original_posthoc_condition": false,
+            "quality_flags": [],
+            "quality_status": "USABLE",
+            "sha256": "2802e9af91e92ed944f99452d75f02a9709737cbeb64fd500f295281db64e2e3",
+            "strict_observation": false
+          },
+          "frozen_known_at": "2026-10-31T14:01:29+00:00",
+          "ft": {
+            "checked_at": null,
+            "event_id": null,
+            "evidence_level": null,
+            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
+            "scientific_event_sha256": null,
+            "score": null,
+            "sha256": null,
+            "source_url": null,
+            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+          },
+          "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+          "kickoff_utc": "2026-10-31T15:00:00+00:00",
+          "match_key": "2026-10-31,94,93",
+          "match_label": "West Ham United vs West Bromwich Albion",
+          "snapshot_history_count": 1,
+          "source_v4": {
+            "known_at": "2026-10-31T14:01:11+00:00",
+            "markets": {
+              "asian_handicap": {
+                "after": {
+                  "away_price": 1.93,
+                  "home_price": 2.09,
+                  "line": -0.75
+                },
+                "before": {
+                  "away_price": 1.95,
+                  "home_price": 1.97,
+                  "line": -0.75
+                },
+                "cross_line_prices_comparable": true,
+                "line_changed": false
+              },
+              "one_x_two": {
+                "1": {
+                  "after": 1.84,
+                  "before": 1.75
+                },
+                "2": {
+                  "after": 4.46,
+                  "before": 4.79
+                },
+                "X": {
+                  "after": 3.85,
+                  "before": 4.02
+                }
+              },
+              "total": {
+                "after": {
+                  "line": 2.75,
+                  "over_price": 1.98,
+                  "under_price": 1.93
+                },
+                "before": {
+                  "line": 2.75,
+                  "over_price": 1.98,
+                  "under_price": 1.97
+                },
+                "cross_line_prices_comparable": true,
+                "line_changed": false
+              }
+            },
+            "revision_id": "V4R:fb3cd02b41851b345b3c25cf57f2",
+            "sha256": "c451b2926dd7f28f7e079445dbe269a9435d73ddb2052edc95d9b896c14b4a88",
+            "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
+            "telegram_edit_at": null
+          },
+          "telegram_original_at": "2026-10-31T13:59:11+00:00"
         },
         {
           "event_id": "3571094759:50874",
@@ -53101,26 +53232,27 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "8a1818abe3355e0044ee5005c3c1b7356289ab85d270a10c1f1c73317c611bd3",
-    "observations": "c25128f9a0b164e5fb767de864002effc4c992dca036822afc92c88b41c952ef",
-    "patterns": "b4718d4e19a3b01af7587dd0e67d761da370e13d57b45e0917a6ad58a04bc5cd",
+    "forecasts": "491967f3d9bdb88924df0b40968c1050bf297e80fc8f27328d9677f6baa6c7a2",
+    "observations": "a66d54138f8ce539789de6b701132ebe48e57399b1004d78f59e8e2addb9b1f0",
+    "patterns": "5f2505820d09c30876807f84824f562e70f2bb005d10d7051945dd444d4e9549",
     "science_evidence": "e96d35cfb54c3f371ab4dd36f08c692ce4fe73d59879700562c85e5f770f5d70",
     "universal_ft": "5497c35859a54ba3dce47a97d4baa4554ad72dfb1723aeca4d1f1969c3bd1376",
-    "v4_revisions": "66a60c797461831fc1e6b4f677a6f31436397ac0cf4a672a70415d2661854275"
+    "v4_revisions": "c451b2926dd7f28f7e079445dbe269a9435d73ddb2052edc95d9b896c14b4a88"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
   "totals": {
     "evidence_quality": {
       "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 171,
+      "NOT_REGISTERED_IN_FT_JOURNAL": 1,
       "PENDING": 504,
       "SCORE_CONFLICT": 1,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 124,
-      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 552
+      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 553
     },
-    "frozen_snapshots": 896,
+    "frozen_snapshots": 898,
     "ft_universal_events": 1230,
-    "unique_matches": 676,
-    "v4_revision_events": 1187
+    "unique_matches": 677,
+    "v4_revision_events": 1189
   }
 }
