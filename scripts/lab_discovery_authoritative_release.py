@@ -70,6 +70,19 @@ def stage(root):
         if not member.is_file() or member.is_symlink():
             raise ValueError("Missing/nonregular generation member: " + name)
     git(root, "add", "-f", "--", *names)
+    # Keep precisely CURRENT + PREVIOUS reachable in each committed tree.
+    # Old immutable generations remain recoverable from Git history, not from
+    # endlessly growing HEAD. Reject unexpected tracked artifacts.
+    tracked = set(filter(None, git(root, "ls-files", "-z", "--", PREFIX)
+                         .decode("utf-8").split("\0")))
+    old = sorted(tracked - set(names))
+    safe_old = re.compile(
+        r"data/lab/discovery-segmented/[a-f0-9]{64}/"
+        r"(?:manifest\.json|legacy\.json\.gz|state-[0-9]{4}\.json)\Z")
+    if any(not safe_old.fullmatch(p) for p in old):
+        raise ValueError("Unexpected tracked segmented file: fail closed")
+    if old:
+        git(root, "rm", "-f", "--", *old)
     proof = seal(root, ref="INDEX", require_mirror=False)
     if set(proof["sha256"]) != set(names):
         raise ValueError("Index does not exactly seal reachable authoritative members")
