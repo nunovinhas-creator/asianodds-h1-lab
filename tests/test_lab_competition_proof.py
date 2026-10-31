@@ -31,6 +31,13 @@ def decision(p):
 
 
 class CompetitionProofTests(unittest.TestCase):
+    def test_real_identity_query_parameters_are_preserved_but_tokens_and_duplicates_reject(self):
+        p=proposal();p['captures'][0]['url']='https://v3.football.api-sports.io/leagues?id=100&season=2026'
+        self.assertEqual(prepare(p)['state'],'PROPOSED')
+        for query in ('id=100&id=200','id=100&api_key=private','id=100&token=private'):
+            p['captures'][0]['url']='https://v3.football.api-sports.io/leagues?'+query
+            with self.assertRaises(ValueError):prepare(p)
+
     def test_prepare_never_auto_approves_and_explicit_review_still_never_activates(self):
         p=prepare(proposal());self.assertEqual(p['state'],'PROPOSED')
         old=empty();r=review(old,p,decision(p),expected_revision=0)

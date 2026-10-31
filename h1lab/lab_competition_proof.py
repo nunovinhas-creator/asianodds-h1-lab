@@ -6,8 +6,9 @@ review decision are mandatory; no production binding is inferred or enabled.
 import copy
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qsl
 
 HOSTS = {'api_football': 'v3.football.api-sports.io', 'goal': 'api.goal-api.com',
          'bsd': 'sports.bzzoiro.com', 'openfoot': 'openfootapi.com',
@@ -21,6 +22,19 @@ def encode(x):
 
 
 def digest(x): return hashlib.sha256(encode(x)).hexdigest()
+
+
+def official_url(url, provider=None):
+    u=urlsplit(url)
+    if (u.scheme!='https' or u.hostname not in ({HOSTS[provider]} if provider else set(HOSTS.values()))
+            or u.username or u.password or u.fragment or u.port not in (None,443)):
+        return False
+    # Preserve real public identity queries; credentials and arbitrary query
+    # parameters are forbidden. Credentials belong only in request headers.
+    fields=parse_qsl(u.query,keep_blank_values=True,strict_parsing=True)
+    allowed={'id','league','season','date','league_id','season_id','event_date','competitionId'}
+    return (len({k for k,v in fields})==len(fields)
+            and all(k in allowed and re.fullmatch(r'[A-Za-z0-9_:.-]{1,100}',v) for k,v in fields))
 
 
 def empty(): return {'schema_version': 1, 'revision': 0, 'bindings': {}}
@@ -47,10 +61,8 @@ def _capture(capture, endpoint):
     This checks the review package, not the truth of an unseen web page.
     A reviewer must verify provenance and claims against official documents.
     """
-    u = urlsplit(capture.get('url', ''))
-    if (u.scheme != 'https' or u.hostname != HOSTS[endpoint['provider']]
-            or u.username or u.password or u.query or u.fragment or u.port not in (None, 443)):
-        raise ValueError('Official public evidence URL required without credentials/query')
+    if not official_url(capture.get('url', ''),endpoint['provider']):
+        raise ValueError('Official public evidence URL required without credentials')
     document = capture.get('document')
     if not isinstance(document, dict) or capture.get('document_sha256') != digest(document):
         raise ValueError('Unpinned or corrupt evidence document')
@@ -99,10 +111,7 @@ def prepare(proposal):
                 or proof.get('sha256') != digest(proof['document'])
                 or proof['document'].get('left_team_ids') != [a[0]['home_team_id'], a[0]['away_team_id']]
                 or proof['document'].get('right_team_ids') != [b[0]['home_team_id'], b[0]['away_team_id']]
-                or urlsplit(proof.get('source_url', '')).scheme != 'https'
-                or urlsplit(proof.get('source_url', '')).hostname not in HOSTS.values()
-                or urlsplit(proof.get('source_url', '')).query
-                or urlsplit(proof.get('source_url', '')).username):
+                or not official_url(proof.get('source_url', ''))):
             raise ValueError('No pinned independent team ID evidence')
         if w['left_fixture_id'] in used_left or w['right_fixture_id'] in used_right:
             raise ValueError('Repeated fixture witness is not independent evidence')
