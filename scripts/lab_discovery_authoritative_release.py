@@ -114,6 +114,25 @@ def main(argv=None):
         result=stage(args.root)
     else:
         proof=seal(args.root,ref="HEAD",require_mirror=False)
+        # Until the first successful authoritative write, PREVIOUS is absent.
+        # Verify that the one-time snapshot still equals CURRENT main's legacy
+        # source and that FT has not advanced since that source was frozen.
+        # This blocks a stale snapshot even if the PR looked mergeable.
+        root=Path(args.root)
+        if not (root/dual.SEGMENT/"PREVIOUS.json").exists():
+            _, mirror=dual.legacy_source(root)
+            if store.digest(mirror)!=proof["current_generation"]:
+                raise ValueError("CUTOVER_STALE_DISCOVERY_SOURCE: regenerate bootstrap")
+            pinfile=root/"reports/DISCOVERY_AUTHORITATIVE_PINNED.md"
+            if not pinfile.is_file():
+                raise ValueError("Missing initial authoritative FT pin report")
+            match=re.search(r"FT ledger congelado em blob Git: `([a-f0-9]{40})`",
+                            pinfile.read_text(encoding="utf-8"))
+            if match is None:
+                raise ValueError("Invalid FT cutover pin")
+            now_ft=git(root,"hash-object","data/lab/ft-ledger.json").decode().strip()
+            if now_ft!=match.group(1):
+                raise ValueError("CUTOVER_STALE_FT_SOURCE: regenerate bootstrap")
         result={"status":"VERIFIED_AUTHORITATIVE_HEAD","proof":proof}
     print("DISCOVERY_AUTHORITATIVE",json.dumps(result,sort_keys=True))
     return result
