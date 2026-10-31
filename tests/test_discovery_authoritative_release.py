@@ -6,7 +6,7 @@ from pathlib import Path
 from h1lab import lab_discovery_store as store
 from h1lab import lab_discovery_dual_state as dual
 from h1lab.lab_discovery_git_bundle import seal, verify_against_seal
-from scripts.lab_discovery_authoritative_release import stage
+from scripts.lab_discovery_authoritative_release import stage, main as release_main
 
 def git(root,*args):
     subprocess.run(["git","-C",str(root),*args],check=True,
@@ -31,6 +31,12 @@ class AuthoritativeGitTests(unittest.TestCase):
             self.assertNotIn("data/lab/discovery-state.json",proof["sha256"])
             git(root,"commit","-qm","initial generation + stale mirror")
             self.assertEqual(seal(root,ref="HEAD",require_mirror=False),proof)
+            # A new FT may be confirmed without discovery state changing.
+            # Bootstrap/source verification must never pin FT forever.
+            ft=root/"data/lab/ft-ledger.json"
+            ft.parent.mkdir(parents=True,exist_ok=True)
+            ft.write_text('{"schema_version":1,"matches":{"new":{"status":"FINAL"}}}\\n')
+            release_main(["verify","--root",str(root),"--check-bootstrap-pin"])
             new={"schema_version":1,"patterns":{"a":{"points":[1,2]}}}
             dual.write_segmented(root,new,expected_generation=initial["generation"])
             proof2=stage(root)["proof"]
