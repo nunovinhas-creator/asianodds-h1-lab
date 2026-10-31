@@ -1,7 +1,7 @@
 """FT rule: one validated provider, hard 24h expiry, immutable FINAL, no old retries."""
 import unittest
 from datetime import datetime, timedelta, timezone
-from h1lab.lab_results import reconcile
+from h1lab.lab_results import reconcile, LIVE_HORIZON
 from h1lab.lab_ft_backlog import audit
 
 NOW = datetime(2026, 10, 31, 20, tzinfo=timezone.utc)
@@ -20,7 +20,7 @@ def reconcile_one(s, *, now=NOW, previous=None, bsd=None, tsdb=None):
                      previous or {"schema_version": 1, "matches": {}},
                      now=now, bsd_lookup=bsd or (lambda _: (None, "no_match")),
                      tsdb_lookup=tsdb or (lambda _: (None, "no_match")),
-                     max_checks=30)
+                     max_checks=30,horizon=LIVE_HORIZON)
 
 class TwentyFourHourFTPolicyTests(unittest.TestCase):
     def test_single_verified_provider_is_accepted(self):
