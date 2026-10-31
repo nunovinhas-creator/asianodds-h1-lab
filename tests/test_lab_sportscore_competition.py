@@ -1,133 +1,97 @@
-import copy
 import unittest
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 from h1lab.lab_sportscore import SportScoreResults
-from h1lab.lab_sportscore_competition import anchors,same_competition
+from h1lab.lab_sportscore_competition import anchors
 
-NOW=datetime(2026,10,31,10,tzinfo=timezone.utc)
-S={'match_key':'2026-10-30,1,2','home':'AS Roma','away':'AC Milan','kickoff_utc':'2026-10-30T19:00:00+00:00'}
-C={'provider':'sportscore','provider_home':'Roma','provider_away':'Milan',
-   'provider_kickoff_utc':S['kickoff_utc'],'provider_competition':'Italy Coppa Italia',
-   'reference_url':'https://sportscore.com/football/match/roma-vs-milan/test123/',
-   'observed_competition_at_capture':'Italy Coppa Italia',
-   'last_seen_at':'2026-10-30T20:00:00+00:00','match_strength':'STRONG','orientation':'SAME_ORDER'}
-E={'home':'Roma','away':'Milan','time':S['kickoff_utc'],'competition':'Italy Coppa Italia',
-   'url':C['reference_url'],'status':'finished','status_text':'FT','home_score':1,'away_score':0}
-COMP={S['match_key']:'Italy Coppa Italia'}
-
-def review():
-    return {'games':[{**S,'ft_status':'PENDING','observed_competition':COMP[S['match_key']],
-                     'possible_duplicates':[],'candidates':[copy.deepcopy(C)]}]}
-
-def adapter(r=None,rows=None):
-    return SportScoreResults(COMP,review=review() if r is None else r,now=NOW,
-        getter=lambda e,p:{'matches':[copy.deepcopy(E)] if rows is None else rows},max_requests=1)
+NOW = datetime(2026, 10, 31, 10, tzinfo=timezone.utc)
+S = {'match_key': '2026-10-30,1,2', 'home': 'AS Roma', 'away': 'AC Milan',
+     'kickoff_utc': '2026-10-30T19:00:00+00:00'}
+C = {'provider': 'sportscore', 'provider_home': 'Roma', 'provider_away': 'Milan',
+     'provider_kickoff_utc': S['kickoff_utc'], 'provider_competition': 'Italy Coppa Italia',
+     'reference_url': 'https://sportscore.com/football/match/roma-vs-milan/test123/',
+     'observed_competition_at_capture': 'Italy Coppa Italia',
+     'last_seen_at': '2026-10-30T20:00:00+00:00', 'match_strength': 'STRONG',
+     'orientation': 'SAME_ORDER'}
+E = {'home': 'Roma', 'away': 'Milan', 'time': S['kickoff_utc'],
+     'competition': 'Italy Coppa Italia', 'url': C['reference_url'],
+     'status': 'finished', 'status_text': 'FT', 'home_score': 1, 'away_score': 0}
 
 
 class CompetitionCoreTests(unittest.TestCase):
-    def test_initial_wrong_country_competition_cannot_certify_current_ft(self):
-        r=review();r['games'][0]['candidates'][0]['provider_competition']='Kenya Cup'
-        event=dict(E,competition='Kenya Cup')
-        self.assertEqual(anchors(r,COMP,NOW),{})
-        self.assertIsNone(adapter(r,rows=[event]).lookup(S)[0])
+    def provider(self, observed='Italy Coppa Italia', source='Italy Coppa Italia',
+                 signal=None, candidate=None, event=None):
+        signal = dict(S) if signal is None else signal
+        c = dict(C, provider_competition=source, observed_competition_at_capture=observed)
+        c.update(candidate or {})
+        r = {'games': [{**signal, 'ft_status': 'PENDING', 'observed_competition': observed,
+                       'possible_duplicates': [], 'candidates': [c]}]}
+        comp = {signal['match_key']: observed}
+        self.assertEqual(anchors(r, comp, NOW), {})
+        row = dict(E, competition=source)
+        row.update(event or {})
+        return SportScoreResults(comp, review=r, now=NOW, max_requests=1,
+            getter=lambda endpoint, params: {'matches': [row]})
 
-    def test_initial_similar_or_unverified_alias_is_not_a_competition_binding(self):
-        for label in ('Italy Coppa Italia Women','Italy Coppa Italia U21',
-                      'Italy Super Cup','Italy Cup','Coppa Italia'):
-            r=review();r['games'][0]['candidates'][0]['provider_competition']=label
-            self.assertEqual(anchors(r,COMP,NOW),{})
-            self.assertIsNone(adapter(r,rows=[dict(E,competition=label)]).lookup(S)[0])
+    def test_reproduced_initial_wrong_country_is_blocked(self):
+        self.assertIsNone(self.provider(source='Kenya Cup').lookup(S)[0])
 
-    def test_competition_normalization_only_removes_presentation_differences(self):
-        self.assertTrue(same_competition('Portugal Taça da Liga','PORTUGAL TACA DA LIGA'))
-        self.assertFalse(same_competition('Portugal Taça da Liga','Portugal Liga'))
-        self.assertFalse(same_competition('Portugal Liga 2','Portugal Liga 3'))
-        self.assertFalse(same_competition('UEFA Europa Cup Women','UEFA EL W'))
-        self.assertFalse(same_competition('',None))
+    def test_equal_generic_names_do_not_prove_country_or_tier(self):
+        for label in ('Premier League', 'Division 1', 'Cup', 'National League'):
+            with self.subTest(label=label):
+                self.assertIsNone(self.provider(label, label).lookup(S)[0])
 
-    def test_b_reserves_u21_and_women_categories_cannot_cross(self):
-        cases=[('Benfica B','Benfica II',True),
-               ('Benfica Reserves','Benfica II',True),
-               ('Benfica B','Benfica',False),
-               ('Benfica U21','Benfica II',False),
-               ('Benfica Women','Benfica Ladies',True),
-               ('Benfica Women','Benfica',False),
-               ('Benfica U21 Women','Benfica Women',False),
-               ('Benfica B','Benfica Women',False)]
-        for observed,source,expected in cases:
-            with self.subTest(observed=observed,source=source):
-                signal=dict(S,home=observed)
-                candidate=dict(C,provider_home=source,
-                    reference_url='https://sportscore.com/football/match/'+source.lower().replace(' ','-')+'-vs-milan/scoped/')
-                row=dict(E,home=source,url=candidate['reference_url'])
-                r=review();r['games'][0].update(signal,candidates=[candidate])
-                p=SportScoreResults(COMP,review=r,now=NOW,
-                    getter=lambda e,q:{'matches':[row]},max_requests=1)
-                self.assertEqual(p.lookup(signal)[0] is not None,expected)
-                self.assertLessEqual(p.requests,1)
+    def test_equal_country_qualified_names_are_not_independent_identity(self):
+        self.assertIsNone(self.provider().lookup(S)[0])
 
-    def test_similarly_named_competitions_do_not_share_captured_identity(self):
-        for comp in ('Italy Coppa Italia Women','Italy Coppa Italia U21','Italy Coppa Italia Serie C'):
-            changed={S['match_key']:comp}
-            self.assertEqual(anchors(review(),changed,NOW),{})
-        for comp in ('Italy Cup Women','Italy Super Cup','Italy Cup U21'):
-            event=dict(E,competition=comp)
-            self.assertIsNone(adapter(rows=[event]).lookup(S)[0])
+    def test_unproven_competition_aliases_cannot_certify(self):
+        for label in ('Italy Cup', 'Coppa Italia', 'Italian Cup', 'ITALY COPPA ITALIA'):
+            with self.subTest(label=label):
+                self.assertIsNone(self.provider(source=label).lookup(S)[0])
 
-    def test_weak_stale_or_uncaptured_locator_never_enables_current_ft(self):
-        for field,value in [('match_strength','WEAK_REVIEW_ONLY'),
-                            ('last_seen_at','2026-09-01T20:00:00Z'),
-                            ('observed_competition_at_capture',None),
-                            ('orientation','REVERSED_TO_REVIEW')]:
-            r=review();r['games'][0]['candidates'][0][field]=value
-            self.assertEqual(anchors(r,COMP,NOW),{})
-            self.assertIsNone(adapter(r).lookup(S)[0])
+    def test_country_tier_gender_age_and_reserve_mismatches_are_blocked(self):
+        for label in ('Kenya Cup', 'Italy Coppa Italia Serie C', 'Italy Coppa Italia Women',
+                      'Italy Coppa Italia U21', 'Italy Coppa Italia Reserves'):
+            with self.subTest(label=label):
+                self.assertIsNone(self.provider(source=label).lookup(S)[0])
 
-    def test_reproduces_old_identity_gap_and_uses_locked_core_without_more_requests(self):
-        self.assertEqual(SportScoreResults._plausible(S,[E]),[])
-        p=adapter();result,why=p.lookup(S)
-        self.assertEqual(why,'verified_sportscore_ft_competition_core')
-        self.assertEqual(result['identity_match'],'CORE_NAME')
-        self.assertEqual((result['home_goals'],result['away_goals']),(1,0))
-        self.assertIsNotNone(p.lookup(S)[0]);self.assertEqual(p.requests,1)
+    def test_unverified_context_flags_and_ids_are_not_evidence(self):
+        for context in ({'provider_country': 'Italy', 'observed_country': 'Kenya'},
+                        {'competition_verified': True, 'provider_competition_id': 123},
+                        {'provider_country': 'Italy', 'observed_country': 'Italy'}):
+            with self.subTest(context=context):
+                self.assertIsNone(self.provider(candidate=context).lookup(S)[0])
 
-    def test_missing_or_changed_observed_competition_never_builds_an_anchor(self):
-        for value in (None,'Other Cup'):
-            r=review();r['games'][0]['observed_competition']=value
-            self.assertEqual(anchors(r,COMP,NOW),{})
-            self.assertIsNone(adapter(r).lookup(S)[0])
-        r=review();r['games'][0]['candidates'][0]['observed_competition_at_capture']='Other Cup'
-        self.assertEqual(anchors(r,COMP,NOW),{})
+    def test_core_team_categories_do_not_bypass_quarantine(self):
+        for observed, source in (('Benfica B', 'Benfica II'),
+                                 ('Benfica Reserves', 'Benfica II'),
+                                 ('Benfica Women', 'Benfica Ladies'),
+                                 ('Benfica U21', 'Benfica'),
+                                 ('Benfica B', 'Benfica Women')):
+            signal = dict(S, home=observed)
+            p = self.provider(signal=signal, candidate={'provider_home': source}, event={'home': source})
+            self.assertIsNone(p.lookup(signal)[0])
 
-    def test_safe_relative_source_url_is_canonicalized_without_changing_source_lock(self):
-        event=copy.deepcopy(E);event['url']=event['url'].replace('https://sportscore.com','')
-        self.assertIsNotNone(adapter(rows=[event]).lookup(S)[0])
+    def test_legacy_exact_fixture_still_certifies_and_reuses_cache(self):
+        signal = dict(S, home='Roma', away='Milan')
+        p = self.provider(signal=signal)
+        result, reason = p.lookup(signal)
+        self.assertEqual(reason, 'verified_sportscore_ft')
+        self.assertEqual((result['home_goals'], result['away_goals']), (1, 0))
+        self.assertIsNotNone(p.lookup(signal)[0])
+        self.assertEqual(p.requests, 1)
+        self.assertEqual(p.summary()['competition_core_targets'], 0)
+        self.assertEqual(p.summary()['competition_core_verified'], 0)
 
-    def test_provider_competition_url_names_time_changes_cannot_reuse_anchor(self):
-        for field,value in [('competition','Other Cup'),('url','https://sportscore.com/football/match/other/id/'),
-                            ('time','2026-10-30T19:01:00Z'),('away','Milan Women')]:
-            event=copy.deepcopy(E);event[field]=value
-            self.assertIsNone(adapter(rows=[event]).lookup(S)[0])
+    def test_legacy_exact_requires_current_valid_regulation_ft(self):
+        signal = dict(S, home='Roma', away='Milan')
+        for event in ({'status': 'inprogress'}, {'status_text': 'After Extra Time'},
+                      {'home_score': -1}, {'status_text': 'finished'}):
+            with self.subTest(event=event):
+                self.assertIsNone(self.provider(signal=signal, event=event).lookup(signal)[0])
 
-    def test_ambiguity_and_side_collision_reject_even_with_locked_source(self):
-        other=copy.deepcopy(E);other['url']='https://sportscore.com/football/match/other/id/'
-        self.assertIsNone(adapter(rows=[copy.deepcopy(E),other]).lookup(S)[0])
-        other['away']='Other Club'
-        self.assertIsNone(adapter(rows=[copy.deepcopy(E),other]).lookup(S)[0])
-
-    def test_ft_status_score_and_source_order_gates_remain_unchanged(self):
-        for field,value in [('status_text','After Extra Time'),('status_text','finished'),
-                            ('status','inprogress'),('home_score',-1)]:
-            event=copy.deepcopy(E);event[field]=value
-            self.assertIsNone(adapter(rows=[event]).lookup(S)[0])
-        r=review();r['games'][0]['candidates'][0]['reference_url']='https://sportscore.com/football/match/milan-vs-roma/id/'
-        self.assertEqual(anchors(r,COMP,NOW),{})
-
-    def test_weak_duplicate_quarantined_changed_identity_and_missing_current_response_reject(self):
-        for field,value in [('possible_duplicates',[{}]),('ft_status','SCORE_CONFLICT')]:
-            r=review();r['games'][0][field]=value
-            self.assertEqual(anchors(r,COMP,NOW),{})
-        r=review();r['games'][0]['candidates'].append(copy.deepcopy(C))
-        self.assertEqual(anchors(r,COMP,NOW),{})
-        p=adapter();self.assertIsNone(p.lookup(dict(S,home='Roma Women'))[0])
-        self.assertIsNone(adapter(rows=[]).lookup(S)[0])
+    def test_legacy_exact_ambiguity_is_still_rejected(self):
+        signal = dict(S, home='Roma', away='Milan')
+        other = dict(E, url='https://sportscore.com/football/match/other/id/')
+        p = SportScoreResults({S['match_key']: 'Italy Coppa Italia'}, max_requests=1,
+                             getter=lambda endpoint, params: {'matches': [dict(E), other]})
+        self.assertIsNone(p.lookup(signal)[0])
