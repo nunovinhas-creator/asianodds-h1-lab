@@ -26,7 +26,15 @@ class SegmentationActivationPreflightTests(unittest.TestCase):
         self.assertGreater(result["public_pages"], 0)
         self.assertGreater(result["stress_bytes"], MAX_STATE_BYTES+100000)
         self.assertEqual(source.read_bytes(), before)
-        self.assertFalse((ROOT / "data/lab/discovery-segmented").exists())
+        segmented = ROOT / "data/lab/discovery-segmented"
+        if segmented.exists():
+            from h1lab import lab_discovery_dual_state as dual
+            from h1lab import lab_discovery_store as store
+            self.assertTrue((segmented / "CURRENT.json").is_file())
+            self.assertEqual(store.read(segmented)[0],
+                             dual.load(ROOT, format="segmented"))
+        else:
+            self.assertFalse(segmented.exists())
 
     def test_inventory_lists_real_consumers_but_cannot_claim_completeness(self):
         entries = consumers(ROOT)

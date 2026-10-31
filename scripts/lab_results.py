@@ -9,7 +9,7 @@ from urllib.error import HTTPError, URLError
 from datetime import datetime, timezone
 from pathlib import Path
 
-from h1lab.lab_results import reconcile
+from h1lab.lab_results import reconcile, LIVE_HORIZON
 from h1lab.lab_ft_backlog import audit as audit_ft_backlog
 from h1lab.v6_ft_events import priority_hints as v6_priority_hints
 from h1lab.lab_espn import ESPNResults
@@ -296,7 +296,8 @@ def main():
                                10 if api_football_poll else None),
         max_checks=0, force_recheck=recovery_once,
         priority_hints=research_hints, evidence_retry=True,
-        approved_rechecks=approved_due, recovery_keys=old_id_turn)
+        approved_rechecks=approved_due, recovery_keys=old_id_turn,
+        horizon=LIVE_HORIZON)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
     # Data-only, zero-HTTP planning. The scheduled FT workflow itself
     # requests at most three COMPLETE BSD day catalogues (max 3 pages
@@ -458,7 +459,8 @@ def main():
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
         priority_hints=research_hints, evidence_retry=True,
-        approved_rechecks=approved_due, recovery_keys=old_id_turn)
+        approved_rechecks=approved_due, recovery_keys=old_id_turn,
+        horizon=LIVE_HORIZON)
 
 
     # The first pass fetched COMPLETE provider dates. Fresh STRONG candidates
