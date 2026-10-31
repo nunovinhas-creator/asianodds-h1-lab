@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-31T09:11:40+00:00",
+ "generated_at": "2026-10-31T09:16:34+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 263
+  "timelines_published": 264
  },
  "schema_version": 1,
- "source_commit": "77d636c36dfa88ce205e174a15b78bd02f16d6c1",
+ "source_commit": "33c696df96b9ec9c8782bce49317bebc783347d2",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 752,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 5,
-  "messages": 1118,
+  "messages": 1119,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 629,
+  "messages_on_repeated_matches": 631,
   "messages_v4_only": 0,
-  "messages_with_v4": 1044,
-  "movement_episodes_upper_bound": 1074,
+  "messages_with_v4": 1045,
+  "movement_episodes_upper_bound": 1075,
   "possibly_redundant_snapshots": 32,
   "post_kickoff_messages": 35,
   "related_message_pairs": 44,
@@ -50,14 +50,14 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 12
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 263,
+  "repeated_matches": 264,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1698
+   "V4_EXPLICIT": 1699
   },
   "total_line_reversals_on_repeated": 136,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 36,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 37,
    "CONTINUOUS": 198,
    "SAME_MOVEMENT_REPEAT": 44,
    "UNOBSERVED_CHANGE": 88
@@ -65,10 +65,147 @@
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 331,
    "one_x_two:AGREE": 323,
-   "total:AGREE": 1044
+   "total:AGREE": 1045
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51522",
+    "3571094759:51704"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51522",
+     "message_id": 51522,
+     "minutes_to_kickoff": 1285.5,
+     "observed_at": "2026-10-30T15:34:33+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 2.09,
+        "under_price": 1.96
+       },
+       "before": {
+        "line": 2.0,
+        "over_price": 1.81,
+        "under_price": 1.96
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51704",
+     "message_id": 51704,
+     "minutes_to_kickoff": 224.6,
+     "observed_at": "2026-10-31T09:15:23+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 1.84,
+        "under_price": 1.93
+       },
+       "before": {
+        "line": 2.0,
+        "over_price": 1.81,
+        "under_price": 2.22
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-30T15:34:33+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T13:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-31T09:15:23+00:00",
+   "match_key": "2026-10-31,56214,22802",
+   "match_label": "Nestos Chrisoupolis FC vs Panthrakikos FC",
+   "movement_episodes": [
+    [
+     "3571094759:51522"
+    ],
+    [
+     "3571094759:51704"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    63650.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.0,
+     "last_observed_line": 2.25,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.25,
+       "before": 2.0,
+       "event_id": "3571094759:51522",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.25,
+       "before": 2.0,
+       "event_id": "3571094759:51704",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51522",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 2.0,
+       "previous_after_line": 2.25,
+       "to": "3571094759:51704"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
