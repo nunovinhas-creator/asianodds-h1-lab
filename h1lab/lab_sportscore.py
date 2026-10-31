@@ -13,6 +13,8 @@ from urllib.parse import urlencode,urlparse
 from urllib.request import Request,urlopen
 from .results import norm_team
 from .lab_reviewed_aliases import reviewed_provider_pair
+from .lab_identity import select_event, CORE, IDENTITY_VERSION
+from .lab_sportscore_competition import anchors
 
 ROOT="https://sportscore.com"
 API=ROOT+"/api/v1/"
@@ -143,7 +145,7 @@ def fetch(endpoint,params):
 
 
 class SportScoreResults:
-    def __init__(self,competitions,*,getter=fetch,max_requests=45,max_team_searches=20):
+    def __init__(self,competitions,*,getter=fetch,max_requests=45,max_team_searches=20,review=None,now=None):
         if not (0<=max_requests<=MAX_REQUESTS and
                 0<=max_team_searches<=MAX_TEAM_SEARCHES):
             raise ValueError("Unsafe SportScore budget")
@@ -157,6 +159,24 @@ class SportScoreResults:
         self.team_cache={}
         self.search_cache={}
         self.reasons=Counter()
+        self.core_targets=anchors(review or {},competitions,now or datetime.now(timezone.utc))
+
+    def _find(self,signal,rows):
+        exact=self._plausible(signal,rows)
+        if exact:
+            return exact
+        target=self.core_targets.get(signal.get('match_key'))
+        if (target is None or self.competitions.get(signal.get('match_key'))!=target['observed_competition']
+                or any(signal.get(f)!=target[f] for f in ('home','away','kickoff_utc'))):
+            return []
+        event,level,_=select_event(signal,rows,lambda e:(e.get('home'),e.get('away')),
+                                   lambda e:_dt(e.get('time')))
+        if (event is None or level!=CORE or _source_url(event.get('url'))!=target['source']
+                or event.get('competition')!=target['provider_competition']
+                or (event.get('home'),event.get('away'))!=(target['provider_home'],target['provider_away'])
+                or _dt(event.get('time'))!=_dt(target['provider_kickoff_utc'])):
+            return []
+        return [event]
 
     def _get(self,endpoint,params):
         if self.requests>=self.max_requests:
@@ -207,18 +227,26 @@ class SportScoreResults:
             self.reasons["date_unavailable"]+=1
         # Even a transient day-index failure must not block a strictly
         # validated, separately budgeted team-scoped query.
-        plausible=self._plausible(signal,rows or [])
+        plausible=self._find(signal,rows or [])
         if not plausible and self.targeted<self.max_team_searches:
-            slug=self._team_slug(signal["home"])
+            # Substitute the locked source name, never add a second search.
+            target=self.core_targets.get(signal.get('match_key'))
+            slug=self._team_slug(target['provider_home'] if target else signal["home"])
             if slug:
                 targeted_rows=self._fixtures(day,team=slug)
                 if targeted_rows is not None:
-                    plausible=self._plausible(signal,targeted_rows)
+                    plausible=self._find(signal,targeted_rows)
         if len(plausible)!=1:
             reason=("sportscore_unavailable" if rows is None else "sportscore_no_exact_match") if not plausible else "sportscore_ambiguous"
             self.reasons[reason]+=1
             return None,reason
-        result,reason=verified(signal,plausible[0],self.competitions.get(signal["match_key"],""))
+        event=plausible[0]
+        scoped=not teams_match(signal,event)
+        probe=dict(signal,home=event['home'],away=event['away']) if scoped else signal
+        result,reason=verified(probe,event,self.competitions.get(signal["match_key"],""))
+        if result is not None and scoped:
+            result['identity_match']=CORE;result['identity_version']=IDENTITY_VERSION
+            reason='verified_sportscore_ft_competition_core'
         self.reasons[reason]+=1
         return result,reason
 
@@ -238,7 +266,10 @@ class SportScoreResults:
     def summary(self):
         return {"requests":self.requests,"targeted_searches":self.targeted,
                 "cached_date_team_queries":len(self.day_cache),
+                "competition_core_targets":len(self.core_targets),
+                "competition_core_verified":self.reasons['verified_sportscore_ft_competition_core'],
                 "confirmed_in_run":(self.reasons["verified_sportscore_ft"]+
+                                    self.reasons['verified_sportscore_ft_competition_core']+
                                     self.reasons["verified_sportscore_ft_reviewed_alias"]),
                 "reviewed_alias_ft_in_run":self.reasons["verified_sportscore_ft_reviewed_alias"],
                 "reason_counts":dict(sorted(self.reasons.items()))}
