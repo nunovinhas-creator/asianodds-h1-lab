@@ -44,7 +44,7 @@
   "coverage_diagnostics": {
     "blocked_review": 1,
     "ft_confirmed": 278,
-    "future": 274,
+    "future": 275,
     "grace": 24,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
@@ -132,7 +132,7 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 514,
+      "PENDING": 515,
       "SCORE_CONFLICT": 1
     }
   },
@@ -148,7 +148,7 @@
     "affected_matches_count": 0,
     "dual_postcheck_errors": 0,
     "invalid_provider_results": 0,
-    "measured_at": "2026-10-31T10:15:12+00:00",
+    "measured_at": "2026-10-31T10:19:05+00:00",
     "provider_errors": 0,
     "provider_failure_breakdown": {},
     "scope": "adapter execution only; not coverage or publication health",
@@ -2207,6 +2207,19 @@
       "status": "PENDING"
     },
     {
+      "away": "Stade Rennais FC Reserves",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Lannion",
+      "kickoff_utc": "2026-10-31T17:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,31910,25515",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "Servette FC",
       "evidence": null,
       "evidence_attempts": 0,
@@ -2332,7 +2345,7 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-31,26866,26868",
-      "observed_alerts": 1,
+      "observed_alerts": 2,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -7146,22 +7159,6 @@
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
-    },
-    {
-      "away": "Al Jazeera (JOR)",
-      "away_goals": 1,
-      "evidence": "dual_provider_only",
-      "evidence_attempts": 0,
-      "home": "AL Salt",
-      "home_goals": 1,
-      "kickoff_utc": "2026-10-29T15:00:00+00:00",
-      "last_checked_at": "2026-10-30T01:31:24+00:00",
-      "legacy_last_checked_at": "2026-10-30T01:31:24+00:00",
-      "match_key": "2026-10-29,39463,36925",
-      "observed_alerts": 3,
-      "reason": "ft_recorded_from_two_cached_providers",
-      "source": "https://v3.football.api-sports.io/fixtures?id=1643371",
-      "status": "FINAL"
     }
   ],
   "goal_search": {
@@ -7177,10 +7174,10 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "h1_alerts_count": 1176,
+  "h1_alerts_count": 1178,
   "h1_signals_count_in_state": 253,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-31T10:15:12+00:00",
+  "last_updated_at": "2026-10-31T10:19:05+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -7188,8 +7185,8 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 793,
-  "matches_omitted_from_display": 293,
+  "matches": 794,
+  "matches_omitted_from_display": 294,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": null,
     "archive_status": "not_loaded",
@@ -7226,6 +7223,8 @@
   },
   "sportscore_search": {
     "cached_date_team_queries": 0,
+    "competition_core_targets": 0,
+    "competition_core_verified": 0,
     "confirmed_in_run": 0,
     "reason_counts": {},
     "requests": 0,
@@ -7235,7 +7234,7 @@
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
     "FINAL": 278,
-    "PENDING": 514,
+    "PENDING": 515,
     "SCORE_CONFLICT": 1
   },
   "thesportsdb_search": {},
@@ -7245,11 +7244,11 @@
     "ELIGIBLE_NEVER_QUERIED": 87,
     "ELIGIBLE_RETRY_DUE": 72,
     "FINAL_RECORDED": 278,
-    "FUTURE": 274,
+    "FUTURE": 275,
     "IN_3H_GRACE": 24
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 515,
+  "unverified": 516,
   "v6_ft_priority": {
     "budget": 0,
     "hinted_eligible": 21,
