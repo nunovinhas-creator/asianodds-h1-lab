@@ -1,4 +1,4 @@
-"""Regression tests for the *only* production Telegram notifier: E4 two categories."""
+"""Regression tests for the retired E4 notifier (kept as historical logic)."""
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -129,11 +129,12 @@ class E4OnlyTests(unittest.TestCase):
     def test_workflow_only_runs_e4_not_five_or_pattern(self):
         text = (Path(__file__).resolve().parents[1] /
                 ".github/workflows/collect.yml").read_text(encoding="utf-8")
-        self.assertIn("run: python -m h1lab.e4_notify", text)
+        self.assertNotIn("run: python -m h1lab.e4_notify", text)
+        self.assertIn("run: python -m h1lab.three_moves_notify", text)
         self.assertNotIn("run: python -m h1lab.strategy_notify", text)
         self.assertNotIn("run: python -m h1lab.pattern_notify", text)
         self.assertNotIn("run: python -m h1lab.notify", text)
-        self.assertIn("git add data/e4-notifications.json", text)
+        self.assertNotIn("git add data/e4-notifications.json", text)
 
 
 if __name__ == "__main__":
