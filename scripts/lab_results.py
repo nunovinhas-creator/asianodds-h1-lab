@@ -710,6 +710,21 @@ def main():
                         else "h1_ft_watchdog" if watchdog_dispatch
                         else "manual" if event == "workflow_dispatch" else "schedule"),
             "checked_games": queried,
+            "http_requests": {
+                "api_football": api_football.requests + api_football.id_requests,
+                "goal": goal.requests + goal.id_requests, "openfoot": openfoot.requests,
+                "bsd": report["ft_queue"]["bsd_identity_registry"].get("http_total"),
+                "thesportsdb": tsdb.counts.get("requested",0),
+                "espn": espn.requests, "sportscore": sportscore.requests,
+                "fotmob": fotmob.requests,
+            },
+            "cohort_keys": {"selected": report["ft_queue"]["selected_keys"],
+                "newly_certified_existing_pending": sorted(k for k,r in next_ledger["matches"].items()
+                    if r.get("status")=="FINAL" and k in existing["matches"]
+                    and existing["matches"][k].get("status")!="FINAL"),
+                "without_effective_check": sorted(g["match_key"] for g in backlog["overdue_games"]
+                    if g.get("last_checked_at") is None)},
+
             "authenticated_providers_ran": any((api_football.requests,
                                                 goal.requests + goal.id_requests,
                                                 openfoot.requests)),
