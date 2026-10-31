@@ -85,8 +85,11 @@ class GuardTests(unittest.TestCase):
                 self.assertNotIn("git rebase", tail)
                 self.assertIn("lab_ft_immutable_gate verify", tail)
                 self.assertIn("lab_discovery_authoritative_release stage", tail)
-                self.assertLess(tail.index("publication_guard verify"),
-                                tail.index("git fetch origin main"))
+                self.assertIn("python -m scripts.lab_ft_publish_safe", tail)
+                self.assertIn('--manifest "$RUNNER_TEMP/publication-seal.json"', tail)
+                self.assertIn('--baseline "$RUNNER_TEMP/ft-certified-baseline.json"', tail)
+                self.assertLess(tail.index("publication_guard seal"),
+                                tail.index("lab_ft_publish_safe"))
             else:
                 self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
             self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
