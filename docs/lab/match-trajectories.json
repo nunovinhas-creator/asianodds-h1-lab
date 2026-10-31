@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-31T15:36:37+00:00",
+ "generated_at": "2026-10-31T15:41:36+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 316
+  "timelines_published": 317
  },
  "schema_version": 1,
- "source_commit": "04a0fa184b8c840f6c48d149f823271f0c0a0c05",
+ "source_commit": "247cb0dc305571b602eabea09221f7042956d582",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 885,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 6,
-  "messages": 1322,
+  "messages": 1323,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 753,
+  "messages_on_repeated_matches": 755,
   "messages_v4_only": 0,
-  "messages_with_v4": 1248,
-  "movement_episodes_upper_bound": 1272,
+  "messages_with_v4": 1249,
+  "movement_episodes_upper_bound": 1273,
   "possibly_redundant_snapshots": 37,
   "post_kickoff_messages": 50,
   "related_message_pairs": 50,
@@ -50,14 +50,14 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 13
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 316,
+  "repeated_matches": 317,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 2052
+   "V4_EXPLICIT": 2053
   },
   "total_line_reversals_on_repeated": 161,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 45,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 46,
    "CONTINUOUS": 239,
    "SAME_MOVEMENT_REPEAT": 50,
    "UNOBSERVED_CHANGE": 103
@@ -65,10 +65,147 @@
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 408,
    "one_x_two:AGREE": 396,
-   "total:AGREE": 1248
+   "total:AGREE": 1249
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51161",
+    "3571094759:51908"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51161",
+     "message_id": 51161,
+     "minutes_to_kickoff": 3405.2,
+     "observed_at": "2026-10-29T07:14:50+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.93,
+        "under_price": 1.79
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 1.85,
+        "under_price": 1.87
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51908",
+     "message_id": 51908,
+     "minutes_to_kickoff": 21.3,
+     "observed_at": "2026-10-31T15:38:44+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.88,
+        "under_price": 1.88
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 2.0,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-29T07:14:50+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T16:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-31T15:38:44+00:00",
+   "match_key": "2026-10-31,61202,1140",
+   "match_label": "FK Macva Sabac vs Red Star Belgrade",
+   "movement_episodes": [
+    [
+     "3571094759:51161"
+    ],
+    [
+     "3571094759:51908"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    203034.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.5,
+     "last_observed_line": 3.25,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.25,
+       "before": 3.5,
+       "event_id": "3571094759:51161",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.5,
+       "event_id": "3571094759:51908",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:51161",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.5,
+       "previous_after_line": 3.25,
+       "to": "3571094759:51908"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
