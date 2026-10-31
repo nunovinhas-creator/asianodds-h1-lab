@@ -34,8 +34,8 @@ V4_REPORT = re.compile(
     r"v6-p0-null-simulation|v6-p0-gates)\.json\Z"
 )
 V4_ARCHIVE = re.compile(
-    r"data/lab/(?:v6-forecasts-\d{4}-\d{2}|v6-memory-\d{4}-\d{2}|"
-    r"v6-hypotheses|v6-weekly-snapshots|v4-runchecks-\d{4}-\d{2})\.jsonl\Z"
+    r"data/lab/(?:v6-forecasts-\d{4}-\d{2}|v6-memory-(?:observations|patterns)-\d{4}-\d{2}|v6-memory-\d{4}-\d{2}|"
+    r"v6-hypotheses|v6-weekly-snapshots|v4-runchecks(?:-\d{4}-\d{2})?)\.jsonl\Z"
 )
 LLM_SHADOW = re.compile(
     r"docs/lab/(?:llm-discovery-plan|llm-investigator-index|"
