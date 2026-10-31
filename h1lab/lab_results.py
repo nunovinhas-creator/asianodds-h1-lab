@@ -133,7 +133,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None, dual_lookup=None, dual_postcheck_keys=None):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None, dual_lookup=None, dual_postcheck_keys=None, recovery_keys=()):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -149,6 +149,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         raise ValueError("max_checks outside safe range 0..30")
     if type(force_recheck) is not bool or type(evidence_retry) is not bool:
         raise ValueError("force_recheck and evidence_retry must be boolean")
+    if (not isinstance(recovery_keys, (set, frozenset, tuple, list)) or len(recovery_keys) > 1
+            or any(not isinstance(k, str) for k in recovery_keys)):
+        raise ValueError('At most one bounded recovery queue slot')
     if approved_rechecks is None:
         approved_rechecks = set()
     if not isinstance(approved_rechecks, (set, frozenset)) or any(
@@ -316,6 +319,16 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         candidates.sort(key=lambda candidate: (
             candidate[0], -priority_hints.get(candidate[3], 0),
             candidate[1], candidate[2], candidate[3]))
+    # One old, independently eligible ID locator can replace one general slot.
+    # Eligibility/grace/retry/visit gates above are never bypassed. Preserve
+    # explicit approvals and source/public quarantine work ahead of the turn.
+    reserved = [c for c in candidates if c[3] in recovery_keys]
+    if evidence_retry and reserved:
+        target = reserved[0]
+        candidates.remove(target)
+        index = max((i + 1 for i, c in enumerate(candidates)
+                     if c[0] in (-5, -3, -2, -1)), default=0)
+        candidates.insert(index, target)
     selected_keys = [item[3] for item in candidates[:max_checks]]
     deferred_keys = [item[3] for item in candidates[max_checks:]]
     queue_plan = {
@@ -328,6 +341,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "never_checked_eligible": sum(utc(entries[item[3]].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for item in candidates),
         "never_checked_deferred": sum(utc(entries[key].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for key in deferred_keys),
         "selected_keys": selected_keys,
+        "old_id_recovery_turn": [c[3] for c in reserved] if evidence_retry else [],
         "deferred_keys": deferred_keys[:100],
         "retry_policy": ("V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h" if evidence_retry else "4h after 1-5 attempts; 12h after 6-9; 24h after 10+"),
     }
