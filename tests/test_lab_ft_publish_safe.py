@@ -57,6 +57,8 @@ class GitFTPublicationTests(unittest.TestCase):
         write(self.root,"data/lab/ft-ledger.json",ft(1))
         write(self.root,"docs/lab/ft-results.json",'{"final":1}\n')
         write(self.root,"data/lab/markets-2026-10.jsonl",'{"id":"market1"}\n')
+        self.retired="data/lab/discovery-segmented/"+("a"*64)+"/state-0000.json"
+        write(self.root,self.retired,'[]\n')
         git(self.root,"add",".")
         git(self.root,"commit","-qm","baseline")
         self.base=git(self.root,"rev-parse","HEAD")
@@ -70,6 +72,7 @@ class GitFTPublicationTests(unittest.TestCase):
         self.baseline.write_text(json.dumps(final_snapshot(raw)))
         write(self.root,"data/lab/ft-ledger.json",ft(2))
         write(self.root,"docs/lab/ft-results.json",'{"final":2}\n')
+        git(self.root,"rm","-q",self.retired)
         git(self.root,"add",".")
         git(self.root,"commit","-qm","new FT from one provider")
         self.source=git(self.root,"rev-parse","HEAD")
@@ -111,6 +114,7 @@ class GitFTPublicationTests(unittest.TestCase):
         self.assertEqual(git(self.root,"show","HEAD:docs/data.json"),'{"version":2}')
         self.assertEqual(git(self.root,"show","HEAD:docs/lab/v4-audit.json"),'{"updated":1}')
         self.assertEqual(git(self.root,"show","HEAD:data/lab/ft-ledger.json"),ft(2).strip())
+        self.assertNotIn(self.retired, git(self.root,"ls-tree","-r","--name-only","HEAD"))
         self.assertEqual(git(self.root,"rev-parse","HEAD"),git(self.root,"rev-parse","origin/main"))
 
     def test_remote_ft_change_blocks_and_never_overwrites(self):
@@ -120,6 +124,13 @@ class GitFTPublicationTests(unittest.TestCase):
             self.publish()
         git(self.root,"fetch","-q","origin","main")
         self.assertEqual(git(self.root,"rev-parse","origin/main"),remote_before)
+
+    def test_deleting_other_output_is_not_whitelisted(self):
+        git(self.root,"rm","-q","docs/data.json")
+        git(self.root,"commit","-qm","unexpected deletion after FT commit")
+        # A second commit violates the pinned-single-FT-commit invariant.
+        with self.assertRaisesRegex(p.UnsafeFTPublication,"pinned checkout"):
+            self.publish()
 
     def test_h1_existing_fixture_identity_mutation_blocks(self):
         self.collector_commit({"data/state.json":state(home="Changed")})
