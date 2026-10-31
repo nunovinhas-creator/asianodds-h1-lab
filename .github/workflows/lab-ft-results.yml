@@ -53,6 +53,7 @@ on:
       - 'tests/test_lab_identity_review.py'
       - 'tests/test_lab_ft_diagnostics.py'
       - 'scripts/lab_results.py'
+      - 'scripts/lab_ft_safe_publish.py'
       - 'tests/test_lab_results.py'
       - 'tests/test_lab_ft_fair_queue.py'
       - 'h1lab/lab_ft_backlog.py'
@@ -406,16 +407,28 @@ jobs:
             exit 0
           fi
           git commit -m 'data(lab): reconcile observed match FT [skip ci]'
-          # DISCOVERY_SEGMENTED_NO_REBASE: avoid replaying stale FT.
+          # DISCOVERY_SEGMENTED_NO_STALE_REBASE:
+          # retry ONLY if intervening commits alter the exact audited,
+          # non-input V4 report allowlist. No change to H1/FT inputs is allowed.
           python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
           python -m scripts.lab_discovery_authoritative_release verify
-          git fetch origin main
-          if [ "$(git rev-parse origin/main)" != "$FT_BASE_HEAD" ]; then
-            echo FT_REMOTE_CONFLICT_RERUN_WHOLE_RECONCILIATION
-            exit 1
-          fi
-          git push origin HEAD:refs/heads/main
-          echo LAB_FT_PUBLISHED
+          for attempt in 1 2 3; do
+            git fetch origin main
+            remote_head="$(git rev-parse origin/main)"
+            if [ "$remote_head" != "$FT_BASE_HEAD" ]; then
+              python -m scripts.lab_ft_safe_publish --base "$FT_BASE_HEAD" --head "$remote_head"
+              git rebase origin/main
+              python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
+              python -m scripts.lab_discovery_authoritative_release verify
+              FT_BASE_HEAD="$remote_head"
+            fi
+            if git push origin HEAD:refs/heads/main; then
+              echo LAB_FT_PUBLISHED
+              exit 0
+            fi
+          done
+          echo FT_REMOTE_CONFLICT_REQUIRES_FRESH_RECONCILIATION
+          exit 1
 
   # Direct job dependency also covers watchdog dispatches whose workflow_run
   # completion event may not start a separate monitor. No provider calls.
