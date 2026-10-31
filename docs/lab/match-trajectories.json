@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-31T23:36:34+00:00",
+ "generated_at": "2026-10-31T23:41:37+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 336
+  "timelines_published": 337
  },
  "schema_version": 1,
- "source_commit": "2d6341e67d43a244a331e5ee8930f80941601622",
+ "source_commit": "36c8a9027f4a4a66fd64adb25b3a88559d4ed837",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 942,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 6,
-  "messages": 1411,
+  "messages": 1412,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 805,
+  "messages_on_repeated_matches": 807,
   "messages_v4_only": 0,
-  "messages_with_v4": 1337,
-  "movement_episodes_upper_bound": 1356,
+  "messages_with_v4": 1338,
+  "movement_episodes_upper_bound": 1357,
   "possibly_redundant_snapshots": 42,
   "post_kickoff_messages": 58,
   "related_message_pairs": 55,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 13
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 336,
+  "repeated_matches": 337,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 2207
+   "V4_EXPLICIT": 2208
   },
-  "total_line_reversals_on_repeated": 177,
+  "total_line_reversals_on_repeated": 178,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 48,
    "CONTINUOUS": 256,
    "SAME_MOVEMENT_REPEAT": 55,
-   "UNOBSERVED_CHANGE": 110
+   "UNOBSERVED_CHANGE": 111
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 441,
    "one_x_two:AGREE": 429,
-   "total:AGREE": 1337
+   "total:AGREE": 1338
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51523",
+    "3571094759:51997"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51523",
+     "message_id": 51523,
+     "minutes_to_kickoff": 3325.4,
+     "observed_at": "2026-10-30T15:34:34+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 2.17,
+        "under_price": 1.66
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.9,
+        "under_price": 1.93
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51997",
+     "message_id": 51997,
+     "minutes_to_kickoff": 1401.6,
+     "observed_at": "2026-10-31T23:38:25+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.86,
+        "under_price": 1.85
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.0,
+        "under_price": 1.85
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-30T15:34:34+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-01T23:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-31T23:38:25+00:00",
+   "match_key": "2026-11-01,10012125,59309",
+   "match_label": "New Mexico United vs Phoenix Rising FC",
+   "movement_episodes": [
+    [
+     "3571094759:51523"
+    ],
+    [
+     "3571094759:51997"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    115431.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.0,
+     "last_observed_line": 2.75,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:51523",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.75,
+       "before": 3.0,
+       "event_id": "3571094759:51997",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51523",
+       "at_event": "3571094759:51997",
+       "evidence": "gap",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51523",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.25,
+       "to": "3571094759:51997",
+       "unobserved_direction": "DOWN"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
