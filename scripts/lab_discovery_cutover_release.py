@@ -19,7 +19,7 @@ from h1lab.lab_discovery_git_bundle import (
     PREFIX, MIRROR, seal as segment_seal, verify_against_seal,
 )
 
-SHA = re.compile(r"[a-f0-9]{40}\Z")
+DIGEST = re.compile(r"[a-f0-9]{64}\\Z")\nSHA = re.compile(r"[a-f0-9]{40}\Z")
 
 
 class CutoverBlocked(ValueError):
@@ -69,7 +69,7 @@ def stage_reachable(root):
     for ref in refs:
         pointer = store.decode((directory / ref).read_bytes())
         generation = pointer["generation"]
-        if not SHA.fullmatch(generation):
+        if not DIGEST.fullmatch(generation):
             raise CutoverBlocked("Invalid segment generation")
         folder = directory / generation
         if folder.is_symlink():
@@ -92,6 +92,9 @@ def stage_reachable(root):
         if path.is_symlink() or not path.is_file():
             raise CutoverBlocked("Missing or symlinked release member: " + name)
     git(root, "add", "--", *names)
+    staged = set(git(root, "diff", "--cached", "--name-only").splitlines())
+    if any(path != MIRROR and not path.startswith(PREFIX) for path in staged):
+        raise CutoverBlocked("Unrelated staged change in initial release")
     proof = segment_seal(root, ref="INDEX")
     if set(proof["sha256"]) != set(names):
         raise CutoverBlocked("Staged release members differ from exact reachable set")
@@ -133,6 +136,9 @@ def publish_pinned_commit(root, *, expected_parent, remote="origin"):
         raise CutoverBlocked("Release commit parent changed; rebuild")
     if remote_sha(root, remote=remote) != expected_parent:
         raise CutoverBlocked("Remote main advanced; DO NOT rebase stale discovery output")
+    changed = git(root, "diff", "--name-only", expected_parent, "HEAD").splitlines()
+    if not changed or any(path != MIRROR and not path.startswith(PREFIX) for path in changed):
+        raise CutoverBlocked("Release commit contains unrelated or no changes")
     proof = segment_seal(root, ref="HEAD")
     verify_against_seal(root, proof, ref="HEAD")
     # A normal Git push performs an atomic remote ref update; a concurrent
