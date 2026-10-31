@@ -25,6 +25,7 @@ from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
 from h1lab.lab_ft_index_probe import plan_index_ids, IndexProbe
 from h1lab.lab_api_football_id_access import id_batch_policy
+from h1lab.lab_http_cooldown import active as http_cooldown_active, record_429, validate as validate_http_cooldowns
 from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
@@ -78,16 +79,21 @@ def lookup_bsd(signal):
 
 class PacedTSDB:
     """Protect free-tier throughput (<30 requests/minute) and record 429s."""
-    def __init__(self, interval=2.3):
+    def __init__(self, interval=2.3, *, cooldowns=None, clock=None):
         self.interval = interval
         self.last = None
         self.rate_limited = False
         self.counts = Counter()
+        self.cooldowns = validate_http_cooldowns({} if cooldowns is None else cooldowns)
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
 
     def lookup(self, signal):
         if self.rate_limited:
             self.counts["suppressed_after_429"] += 1
             return None, "tsdb_limited_this_run"
+        if http_cooldown_active(self.cooldowns, 'thesportsdb', self.clock()):
+            self.counts['cooldown_deferred'] += 1
+            return None, 'tsdb_http_429_cooldown_deferred'
         if self.last is not None:
             gap = time.monotonic() - self.last
             if gap < self.interval:
@@ -99,6 +105,8 @@ class PacedTSDB:
             found, reason = choose_result(signal, api_events(signal))
         except HTTPError as exc:
             if exc.code == 429:
+                self.cooldowns = record_429(self.cooldowns, 'thesportsdb', self.clock(),
+                    exc.headers.get('Retry-After') if exc.headers else None)
                 self.rate_limited = True
                 self.counts["http_429"] += 1
                 return None, "tsdb_http_429"
@@ -231,6 +239,7 @@ def main():
     historical_days = (json.loads(DAY_ROTATION.read_text(encoding="utf-8"))
                        if DAY_ROTATION.exists()
                        else {"schema_version": 1, "providers": {}})
+    tsdb.cooldowns = validate_http_cooldowns(historical_days.get('http_429_cooldowns', {}))
     history_access = historical_days.get("api_football_history_access",
                                           {"schema_version": 1, "confirmed_restrictions": {}})
     # Reuse explicit historical denials before spending another free-tier call.
@@ -625,6 +634,8 @@ def main():
     next_history_access = evolve_access(history_access,
                                        api_football.date_error_details, now)
     next_rotation["api_football_history_access"] = next_history_access
+    next_rotation['http_429_cooldowns'] = tsdb.cooldowns
+    report['ft_queue']['http_429_cooldowns'] = tsdb.cooldowns
     report["ft_queue"]["api_football_history_access"] = next_history_access
     report["ft_queue"]["date_rotation"] = {
         provider: {"selected_days": rotation[provider],
