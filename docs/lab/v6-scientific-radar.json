@@ -20,7 +20,7 @@
       "falsification_checks": [
         {
           "code": "F01_EPISODE_INDEPENDENCE",
-          "n": 67,
+          "n": 68,
           "name": "Episódios independentes",
           "required": "10 selected freezes with captured context; strict >= 80%",
           "result": "PASS"
@@ -90,7 +90,7 @@
         }
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
-      "frozen_matches": 727,
+      "frozen_matches": 728,
       "ft_verified": 203,
       "games": [
         {
@@ -3427,6 +3427,78 @@
             "telegram_edit_at": null
           },
           "telegram_original_at": "2026-10-29T18:36:39+00:00"
+        },
+        {
+          "event_id": "3571094759:51936",
+          "forecast": {
+            "competition_heuristic": "LEAGUE_OTHER",
+            "feature_sha256": "4b0f8cc4662e6e91afb97c2438c9b7c6968564a55449235a7c8dc08e89ead8d3",
+            "feature_version": 2,
+            "forecast_kind": "MARKET_BASELINE_ONLY",
+            "market_co_observation": "UNKNOWN_MARKET_NOT_OBSERVED",
+            "market_probability_over_2_5": 0.6657,
+            "market_total_after": {
+              "line": 3.25,
+              "margin": 0.05823,
+              "over_price": 1.88,
+              "under_price": 1.9
+            },
+            "market_total_before": {
+              "line": 3.5,
+              "margin": 0.06964,
+              "over_price": 1.89,
+              "under_price": 1.85
+            },
+            "memory_observation_sha256": "5fedb8132d22b36923a43e419737d1553bf77bc8f06b071d4312fd1fbe88aa66",
+            "memory_pattern_sha256": "161e50ba3d8ce805c59aaed40b5d9892b55c506725993108008382f47e39b36c",
+            "model_delta_vs_market": 0.0,
+            "original_posthoc_condition": false,
+            "quality_flags": [],
+            "quality_status": "USABLE",
+            "sha256": "4b574e115717e7c06a6562cbcdb3398085d004ec2218610d18a2f244cd77d28d",
+            "strict_observation": false
+          },
+          "frozen_known_at": "2026-10-31T17:31:25+00:00",
+          "ft": {
+            "checked_at": null,
+            "event_id": null,
+            "evidence_level": null,
+            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
+            "scientific_event_sha256": null,
+            "score": null,
+            "sha256": null,
+            "source_url": null,
+            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+          },
+          "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+          "kickoff_utc": "2026-11-02T17:00:00+00:00",
+          "match_key": "2026-11-02,37524,60096",
+          "match_label": "Vålerenga Women vs Lyn Fotball Women",
+          "snapshot_history_count": 1,
+          "source_v4": {
+            "known_at": "2026-10-31T17:31:05+00:00",
+            "markets": {
+              "total": {
+                "after": {
+                  "line": 3.25,
+                  "over_price": 1.88,
+                  "under_price": 1.9
+                },
+                "before": {
+                  "line": 3.5,
+                  "over_price": 1.89,
+                  "under_price": 1.85
+                },
+                "cross_line_prices_comparable": false,
+                "line_changed": true
+              }
+            },
+            "revision_id": "V4R:2ef62ed928a4e40558dc8f039afc",
+            "sha256": "dee15d9a2442efe040d6e6bd2fcfa2a6e7a9d8ccf0484ecdd1c00ddf511fd298",
+            "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
+            "telegram_edit_at": null
+          },
+          "telegram_original_at": "2026-10-31T17:26:55+00:00"
         },
         {
           "event_id": "3571094759:51340",
@@ -57622,26 +57694,27 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "9de634ea5936cd283eed2b3d16427e2f3088366cfb251a4a22e634276d8caa04",
-    "observations": "b220c1d7fff584aa15bb4b0c7cacbaf1e666ddc8f79e62dc05175ebbe6f9dcde",
-    "patterns": "903752f38a08b72cf899a28c0b7ca3251b17d10ba49ef54009702c5afd496cb9",
+    "forecasts": "4b574e115717e7c06a6562cbcdb3398085d004ec2218610d18a2f244cd77d28d",
+    "observations": "5fedb8132d22b36923a43e419737d1553bf77bc8f06b071d4312fd1fbe88aa66",
+    "patterns": "161e50ba3d8ce805c59aaed40b5d9892b55c506725993108008382f47e39b36c",
     "science_evidence": "e166e80f169b7b17370600afa97633e735e4cf69e113a2829ae6f8af5f827c0f",
     "universal_ft": "35a1adc96b1209a930ea8964d2083efa7aa0d2eb25bec75d5d3e261e3b046ccb",
-    "v4_revisions": "0d0020d880350329c0a9bf7c5c5fe39b8705c26df9f5f13c2e5c3ec27ac57003"
+    "v4_revisions": "dee15d9a2442efe040d6e6bd2fcfa2a6e7a9d8ccf0484ecdd1c00ddf511fd298"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
   "totals": {
     "evidence_quality": {
       "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 203,
+      "NOT_REGISTERED_IN_FT_JOURNAL": 1,
       "PENDING": 523,
       "SCORE_CONFLICT": 1,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 120,
-      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 607
+      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 608
     },
-    "frozen_snapshots": 970,
+    "frozen_snapshots": 971,
     "ft_universal_events": 1342,
-    "unique_matches": 727,
-    "v4_revision_events": 1277
+    "unique_matches": 728,
+    "v4_revision_events": 1278
   }
 }
