@@ -1,7 +1,7 @@
 """Provider-history gate: no HTTP and no inferred access restrictions."""
 import unittest
 from datetime import datetime, timezone, timedelta
-from h1lab.lab_api_football_access import evolve_access, restriction_for_day, restriction_for_fixture_id
+from h1lab.lab_api_football_access import evolve_access, restriction_for_day, restriction_for_fixture_id, restore_access_from_audit
 from h1lab.lab_ft_rotation import choose_days
 
 NOW = datetime(2026, 10, 29, 12, tzinfo=timezone.utc)
@@ -14,6 +14,41 @@ def error(text, *, category="PROVIDER_ERRORS", status=200):
 
 
 class ProviderHistoryAccessTests(unittest.TestCase):
+    def test_real_free_plan_denial_blocks_only_the_rejected_date(self):
+        msg = "plan: Free plans do not have access to this date, try from 2026-10-29 to 2026-10-31."
+        state = evolve_access({"schema_version": 1}, {"2026-10-28": error(msg)},
+                              NOW + timedelta(days=1))
+        self.assertEqual(restriction_for_day(state, "2026-10-28", NOW),
+                         "PROVIDER_CONFIRMED_DAY_HISTORY_RESTRICTION")
+        self.assertIsNone(restriction_for_day(state, "2026-10-29", NOW))
+        self.assertIsNone(restriction_for_fixture_id(state, "2026-10-28", NOW))
+
+    def test_restore_reuses_real_denial_without_retimestamp_or_id_restriction(self):
+        stamp = NOW.isoformat()
+        audit = {"schema_version":1, "runs":[{"utc":stamp,"providers":{
+            "api_football":{"date_errors":{OLD:error(
+                "Free plans do not have access to this date")}}}}]}
+        later = NOW + timedelta(hours=1)
+        restored = restore_access_from_audit({"schema_version":1}, audit, later)
+        note = restored["confirmed_restrictions"][OLD]
+        self.assertEqual(note["checked_at_utc"], NOW.isoformat(timespec="seconds"))
+        self.assertEqual(restore_access_from_audit(restored, audit, later),restored)
+        self.assertIsNone(restriction_for_fixture_id(restored, OLD, later))
+        matches = {"old":{"kickoff_utc":OLD+"T12:00:00Z"},
+                   "new":{"kickoff_utc":OK+"T12:00:00Z"}}
+        planned = choose_days(list(matches),matches,{
+            "schema_version":1,"api_football_history_access":restored},later,{"api_football"})
+        self.assertEqual(planned["api_football"],[OK])
+
+    def test_quota_denial_and_future_or_naive_audit_do_not_suspend_history(self):
+        for stamp in (NOW.isoformat(), (NOW+timedelta(days=1)).isoformat(),
+                      NOW.replace(tzinfo=None).isoformat()):
+            audit={"schema_version":1,"runs":[{"utc":stamp,"providers":{
+                "api_football":{"date_errors":{OLD:error(
+                    "Free plan dates do not have access: daily quota exhausted")}}}}]}
+            out=restore_access_from_audit({"schema_version":1},audit,NOW)
+            self.assertEqual(out["confirmed_restrictions"],{})
+
     def test_timeouts_and_generic_http_errors_never_block(self):
         initial = {"schema_version": 1, "confirmed_restrictions": {}}
         for e in (

@@ -34,7 +34,7 @@ from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empt
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
-from h1lab.lab_api_football_access import evolve_access, restriction_for_fixture_id
+from h1lab.lab_api_football_access import evolve_access, restriction_for_fixture_id, restore_access_from_audit
 from h1lab.lab_goal import GoalResults
 from h1lab.lab_openfoot import OpenFootResults
 
@@ -231,6 +231,11 @@ def main():
                        else {"schema_version": 1, "providers": {}})
     history_access = historical_days.get("api_football_history_access",
                                           {"schema_version": 1, "confirmed_restrictions": {}})
+    # Reuse explicit historical denials before spending another free-tier call.
+    prior_api_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
+                       if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
+    history_access = restore_access_from_audit(history_access, prior_api_audit, now)
+    historical_days["api_football_history_access"] = history_access
     catalog_v4 = read_v4()
     # An approved fixture receives one immediate priority slot only when
     # every persisted human-approval and full source-day identity gate has
