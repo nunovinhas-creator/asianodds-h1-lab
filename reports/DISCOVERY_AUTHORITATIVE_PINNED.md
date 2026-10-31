@@ -1,11 +1,12 @@
-# Snapshot autoritativo FT e descoberta (somente PR)
+# Snapshot FT/discovery autoritativo — revisto em 31/10/2026
 
-- Histórico congelado em blob Git: `4f5888c0938fb5d1123f5ed277cbd3139914f987`
-- FT ledger congelado em blob Git: `9ece1de88a782a89271bc8724fa0b6b177470f05` (FINAL existentes: 363)
-- Geração: `d27b3f295bfb58135dbd2d5fa55af4b1b9ab6b3aa9776ba0fbded09352096d3e`
-- SHA manifesto: `22e52b4247d3316aa9ec7d304663d556f88669472c9d4f211a9f1b5dfa35ef65`
-- Segmentos: 7 (até 256000 bytes cada)
-- Arquivo gzip: blob `e7f6e500aa785f7cdc1d7e7be583032140768f0b` (DEFLATE sem compressão de conteúdo, recuperação exata)
-- Backend pretendido após cutover: `segmented` sem mirror corrente; o antigo `data/lab/discovery-state.json` fica apenas como snapshot histórico.
+- Commit `main` da origem: `d0a4b8f8e2be383f8b63a88b3a9b2aca5fd1fe9f`
+- Histórico congelado em blob Git: `601a10795b7581e1c548b62d6f8935a468608d06` (1680737 bytes)
+- FT ledger congelado em blob Git: `58fa24f1fd1a764d851d35e0843e86be59830377` (363 FINAL)
+- Geração: `77b4603fc867e08afd0da0d09b78b301050faa39c560d02929678e1b2466c97d`
+- SHA manifesto: `5f8da702dbbbca6b60224b0271debdbcb5a6c8d1e6fd50a12e3f17a10d257cbd`
+- Segmentos: 7, máximo 256000 bytes por shard
+- Arquivo gzip de recuperação: blob `c473799c28e8a175a61e949546d81d1d384b53f1`; DEFLATE armazenado, integridade byte a byte
+- Registos FT FINAL da geração anterior: 363; eliminados 0; modificados 0.
 
-**Não ativado.** Só integrar após validar que os blobs fonte atuais ainda coincidem e CI, rollback, Pages, H1, Telegram e FT FINAL continuam íntegros. Mudança no workflow e primeiro snapshot têm de estar no mesmo commit.
+**Atenção:** a PR continua em Draft e a produção não foi alterada por este snapshot. A migração só é válida se os blobs de origem da main ainda forem idênticos no momento da integração. O primeiro preflight compara o mirror e o ledger FT com estas referências e recusa alterações. Após a ativação bem-sucedida, a fonte de descoberta é `segmented`, não o mirror de 2 MB.
