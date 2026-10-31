@@ -32,7 +32,7 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
                 "prospective_settled": {}, "latest_events": []}))
         workflow = self.repo / WORKFLOW
         workflow.parent.mkdir(parents=True)
-        workflow.write_text("run: python -m scripts.lab_discoveries\\n")
+        workflow.write_text("run: python -m scripts.lab_discoveries\n")
         self.git("add", "--", "data/lab/discovery-state.json", WORKFLOW)
         self.git("commit", "-qm", "initial real legacy snapshot")
         self.git("remote", "add", "origin", str(self.bare))
@@ -56,7 +56,7 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
         if safe:
             lines.extend(["      - run: " + STAGE_COMMAND,
                           "      # " + NO_REBASE_GATE])
-        path.write_text("\\n".join(lines) + "\\n")
+        path.write_text("\n".join(lines) + "\n")
         self.git("add", "--", WORKFLOW)
 
     def test_bootstrap_without_atomic_workflow_switch_refuses_publication(self):
