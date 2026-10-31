@@ -25,6 +25,44 @@ def adapter(r=None,rows=None):
 
 
 class CompetitionCoreTests(unittest.TestCase):
+    def test_b_reserves_u21_and_women_categories_cannot_cross(self):
+        cases=[('Benfica B','Benfica II',True),
+               ('Benfica Reserves','Benfica II',True),
+               ('Benfica B','Benfica',False),
+               ('Benfica U21','Benfica II',False),
+               ('Benfica Women','Benfica Ladies',True),
+               ('Benfica Women','Benfica',False),
+               ('Benfica U21 Women','Benfica Women',False),
+               ('Benfica B','Benfica Women',False)]
+        for observed,source,expected in cases:
+            with self.subTest(observed=observed,source=source):
+                signal=dict(S,home=observed)
+                candidate=dict(C,provider_home=source,
+                    reference_url='https://sportscore.com/football/match/'+source.lower().replace(' ','-')+'-vs-milan/scoped/')
+                row=dict(E,home=source,url=candidate['reference_url'])
+                r=review();r['games'][0].update(signal,candidates=[candidate])
+                p=SportScoreResults(COMP,review=r,now=NOW,
+                    getter=lambda e,q:{'matches':[row]},max_requests=1)
+                self.assertEqual(p.lookup(signal)[0] is not None,expected)
+                self.assertLessEqual(p.requests,1)
+
+    def test_similarly_named_competitions_do_not_share_captured_identity(self):
+        for comp in ('Italy Coppa Italia Women','Italy Coppa Italia U21','Italy Coppa Italia Serie C'):
+            changed={S['match_key']:comp}
+            self.assertEqual(anchors(review(),changed,NOW),{})
+        for comp in ('Italy Cup Women','Italy Super Cup','Italy Cup U21'):
+            event=dict(E,competition=comp)
+            self.assertIsNone(adapter(rows=[event]).lookup(S)[0])
+
+    def test_weak_stale_or_uncaptured_locator_never_enables_current_ft(self):
+        for field,value in [('match_strength','WEAK_REVIEW_ONLY'),
+                            ('last_seen_at','2026-09-01T20:00:00Z'),
+                            ('observed_competition_at_capture',None),
+                            ('orientation','REVERSED_TO_REVIEW')]:
+            r=review();r['games'][0]['candidates'][0][field]=value
+            self.assertEqual(anchors(r,COMP,NOW),{})
+            self.assertIsNone(adapter(r).lookup(S)[0])
+
     def test_reproduces_old_identity_gap_and_uses_locked_core_without_more_requests(self):
         self.assertEqual(SportScoreResults._plausible(S,[E]),[])
         p=adapter();result,why=p.lookup(S)
