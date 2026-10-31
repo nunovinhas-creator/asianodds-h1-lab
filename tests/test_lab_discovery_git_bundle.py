@@ -77,7 +77,9 @@ class SegmentedGitBundleTests(unittest.TestCase):
 
     def test_missing_staged_shard_blocks_pointer_publication(self):
         path = next((self.store_dir / self.current).glob("state-*.json"))
-        self.git("reset", "-q", "--", str(path.relative_to(self.root)))
+        self.git("commit", "-qm", "baseline complete snapshot")
+        path.unlink()
+        self.git("add", "--", str(path.relative_to(self.root)))
         with self.assertRaisesRegex(ValueError, "Missing staged"):
             seal(self.root)
 
@@ -123,7 +125,8 @@ class SegmentedGitBundleTests(unittest.TestCase):
     def test_missing_stage_or_bad_ref_fails_closed(self):
         with self.assertRaises(ValueError):
             seal(self.root, ref="origin/main")
-        self.git("reset", "-q", "--", MIRROR)
+        self.git("commit", "-qm", "baseline complete snapshot")
+        self.git("rm", "--cached", "-q", "--", MIRROR)
         with self.assertRaisesRegex(ValueError, "Missing durable legacy mirror"):
             seal(self.root)
 
