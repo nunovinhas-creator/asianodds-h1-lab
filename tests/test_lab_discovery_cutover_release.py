@@ -9,7 +9,7 @@ from h1lab import lab_discovery_store as store
 from h1lab.lab_discovery_git_bundle import PREFIX, seal as proof
 from scripts.lab_discovery_cutover_release import (
     CutoverBlocked, commit_sha, prepare_bootstrap, publish_pinned_commit,
-    remote_sha, stage_reachable,
+    remote_sha, stage_reachable, WORKFLOW, DUAL_PRODUCER, STAGE_COMMAND, NO_REBASE_GATE,
 )
 
 
@@ -30,7 +30,10 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
         path.write_bytes(store.encode({"schema_version": 1,
                 "patterns": {"test": {"points": [{"value": 1}]}},
                 "prospective_settled": {}, "latest_events": []}))
-        self.git("add", "--", "data/lab/discovery-state.json")
+        workflow = self.repo / WORKFLOW
+        workflow.parent.mkdir(parents=True)
+        workflow.write_text("run: python -m scripts.lab_discoveries\\n")
+        self.git("add", "--", "data/lab/discovery-state.json", WORKFLOW)
         self.git("commit", "-qm", "initial real legacy snapshot")
         self.git("remote", "add", "origin", str(self.bare))
         self.git("push", "-q", "-u", "origin", "main")
@@ -43,6 +46,34 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
     def git(self, *args):
         return self.cmd(self.repo, "git", *args)
 
+    def stage_dual_workflow(self, *, safe=True):
+        path = self.repo / WORKFLOW
+        lines = ["name: controlled-release-test",
+                 "jobs:",
+                 "  ft:",
+                 "    steps:",
+                 "      - run: " + DUAL_PRODUCER]
+        if safe:
+            lines.extend(["      - run: " + STAGE_COMMAND,
+                          "      # " + NO_REBASE_GATE])
+        path.write_text("\\n".join(lines) + "\\n")
+        self.git("add", "--", WORKFLOW)
+
+    def test_bootstrap_without_atomic_workflow_switch_refuses_publication(self):
+        prepare_bootstrap(self.repo, expected_head=self.base_sha)
+        self.git("commit", "-qm", "pointer alone is unsafe")
+        with self.assertRaisesRegex(CutoverBlocked, "atomic workflow cutover"):
+            publish_pinned_commit(self.repo, expected_parent=self.base_sha)
+        self.assertEqual(remote_sha(self.repo), self.base_sha)
+
+    def test_workflow_missing_safe_staging_or_no_rebase_marker_refuses_publish(self):
+        prepare_bootstrap(self.repo, expected_head=self.base_sha)
+        self.stage_dual_workflow(safe=False)
+        self.git("commit", "-qm", "bad workflow activation")
+        with self.assertRaisesRegex(CutoverBlocked, "not safely switched"):
+            publish_pinned_commit(self.repo, expected_parent=self.base_sha)
+        self.assertEqual(remote_sha(self.repo), self.base_sha)
+
     def test_bootstrap_stage_commit_nonforce_push_and_readback(self):
         prepared = prepare_bootstrap(self.repo, expected_head=self.base_sha)
         self.assertEqual(prepared["status"], "STAGED_NOT_COMMITTED_NOT_PUBLISHED")
@@ -50,6 +81,7 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
         self.assertEqual(prepared["expected_remote_head"], self.base_sha)
         self.assertEqual(prepared["proof"], proof(self.repo, ref="INDEX"))
         self.assertEqual(remote_sha(self.repo), self.base_sha)
+        self.stage_dual_workflow()
         self.git("commit", "-qm", "authorized cutover")
         released = publish_pinned_commit(self.repo, expected_parent=self.base_sha)
         self.assertEqual(released["status"], "PUBLISHED_COMPLETE_BUNDLE")
@@ -74,6 +106,7 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
 
     def test_remote_conflict_after_prepare_aborts_no_force(self):
         prepare_bootstrap(self.repo, expected_head=self.base_sha)
+        self.stage_dual_workflow()
         self.git("commit", "-qm", "staged cutover")
         concurrently = self._concurrent_commit()
         with self.assertRaisesRegex(CutoverBlocked, "Remote main advanced"):
@@ -99,7 +132,7 @@ class ControlledCutoverReleaseTests(unittest.TestCase):
         path = PREFIX + generation + "/state-0000.json"
         self.git("reset", "-q", "HEAD", "--", path)
         with self.assertRaises(ValueError):
-            stage_reachable(self.repo) if (self.repo / path).exists() is False else proof(self.repo)
+            proof(self.repo)
         self.git("commit", "-qm", "partial invalid generation")
         with self.assertRaises(ValueError):
             publish_pinned_commit(self.repo, expected_parent=self.base_sha)
