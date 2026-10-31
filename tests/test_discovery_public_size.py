@@ -37,6 +37,20 @@ class DiscoveryPublicSizeTests(unittest.TestCase):
     def test_growing_real_snapshot_fits_without_mutating_history_or_latest(self):
         root = Path(__file__).resolve().parents[1]
         public = json.loads((root / PUBLIC).read_text())
+        # #163 publishes a paged public manifest. Reconstruct the same full
+        # projection before exercising the old compacting serializer; never
+        # mistake an empty paginated root for a tiny real-world catalogue.
+        if "pattern_pages" in public:
+            from h1lab.discovery_public_pages import verify
+            page_files = {meta["path"]: (root / "docs/lab" / meta["path"]).read_bytes()
+                          for meta in public["pattern_pages"]}
+            verify(public, page_files)
+            reconstructed = {}
+            for meta in public.pop("pattern_pages"):
+                reconstructed.update(json.loads(page_files[meta["path"]])["patterns"])
+            self.assertEqual(len(reconstructed), public.pop("pattern_count"))
+            public.pop("public_cache", None)
+            public["patterns"] = reconstructed
         # Simulate continued growth of the point cache, preserving the real
         # metadata/FT payload. The pre-fix serializer rejects this payload.
         for row in public['patterns'].values():
