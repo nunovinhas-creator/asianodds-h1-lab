@@ -54,6 +54,20 @@ class DiscoveryPublicPagesTests(unittest.TestCase):
         self.assertEqual(reconstruct(root, pages)["timeline"], source["timeline"])
         self.assertEqual(reconstruct(root, pages)["prospective"], source["prospective"])
 
+    def test_actual_committed_public_snapshot_roundtrips_losslessly(self):
+        original = json.loads((Path(__file__).resolve().parents[1] /
+                               "docs/lab/discoveries.json").read_text(encoding="utf-8"))
+        # When this test is later rebased on a paged snapshot, the synthetic
+        # growth regression remains the source of truth for full reconstruction.
+        if "pattern_pages" in original:
+            self.skipTest("Committed root is already paginated")
+        root, pages = paginate(original)
+        self.assertEqual(verify(root, pages), len(original["patterns"]))
+        rebuilt = reconstruct(root, pages)
+        for field in ("schema_version", "status", "timeline", "prospective",
+                      "baseline_at", "patterns"):
+            self.assertEqual(rebuilt[field], original[field])
+
     def test_deterministic_and_reusable_content_addressed_pages(self):
         source = sample(40)
         a, pages_a = paginate(source)
