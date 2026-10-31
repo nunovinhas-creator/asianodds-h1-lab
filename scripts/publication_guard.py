@@ -91,7 +91,7 @@ def seal(pipeline, manifest):
     changed = git('diff', '--cached', '--name-only', '-z').decode().split('\0')
     streams = inventory(pipeline)
     names = sorted(set(REQUIRED[pipeline]) | set(streams) | {name for name in changed if name})
-    if pipeline == 'ft':
+    if pipeline == 'ft' and 'docs/lab/discoveries.json' in REQUIRED[pipeline]:
         # Seal every reachable content-addressed page with the public root in
         # the same Git commit. Old unreferenced pages may remain immutable.
         from h1lab.discovery_public_pages import verify as verify_public_pages
