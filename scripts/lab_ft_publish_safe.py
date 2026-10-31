@@ -228,7 +228,7 @@ def publish(root, *, base, manifest, baseline, max_attempts=6):
     # are unreachable; deleted files are *not* live members in its hashes.
     retired = re.compile(
         r"data/lab/discovery-segmented/[a-f0-9]{64}/"
-        r"(?:manifest\\.json|legacy\\.json\\.gz|state-[0-9]{4}\\.json)\\Z"
+        r"(?:manifest\.json|legacy\.json\.gz|state-[0-9]{4}\.json)\Z"
     )
     if (not live_produced or not live_produced <= sealed
             or any(not retired.fullmatch(name) for name in deleted)):
