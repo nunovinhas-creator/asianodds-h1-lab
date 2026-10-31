@@ -27,11 +27,14 @@ def coverage_diagnostics(ledger, report):
         "future": timing.get("FUTURE", 0),
         "grace": timing.get("IN_3H_GRACE", 0),
         "blocked_review": timing.get("BLOCKED_REVIEW", 0),
+        # 24-hour closure is final for lookup, but remains an observed game
+        # for coverage. Never count it as eligible overdue or a lost bet.
+        "closed_unverified": timing.get("EXPIRED", 0),
+        "unknown_kickoff": timing.get("IDENTITY_UNKNOWN", 0),
         "past_unverified_eligible": sum(timing.get(k, 0) for k in (
             "ELIGIBLE_NEVER_QUERIED", "ELIGIBLE_RETRY_DUE",
             "ELIGIBLE_COOLDOWN", "ELIGIBLE_SOURCE_UPGRADE",
-            "ELIGIBLE_REVIEWED_BSD_ID", "ELIGIBLE_REVIEWED_ALIAS",
-            "EXPIRED")),
+            "ELIGIBLE_REVIEWED_BSD_ID", "ELIGIBLE_REVIEWED_ALIAS")),
         "provider_obstacles": [
             {"provider": provider, "reason": reason, "matches": count}
             for (provider, reason), count in sorted(

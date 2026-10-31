@@ -201,6 +201,8 @@ jobs:
           assert b['classification'].get('verified_ft',0)==d['final_recorded']
           assert sum(b['classification'].values())-b['classification'].get('past_due_never_checked',0)-b['classification'].get('past_due_expired',0)==d['matches']
           assert b['classification'].get('past_due_unverified',0)==d['coverage_diagnostics']['past_unverified_eligible']
+          assert b['classification'].get('closed_unverified',0)==d['coverage_diagnostics']['closed_unverified']
+          assert b['classification'].get('unknown_kickoff',0)==d['coverage_diagnostics']['unknown_kickoff']
           assert b['overdue_omitted']==0
           assert d['ft_queue']['never_checked_deferred'] >= 0
           assert d['ft_queue']['provider_id_collisions'] >= 0
@@ -227,7 +229,7 @@ jobs:
                 b['classification'].get('past_due_never_checked',0))
 
           c=d['coverage_diagnostics']
-          assert c['ft_confirmed']+c['future']+c['grace']+c['blocked_review']+c['past_unverified_eligible']==d['matches']
+          assert sum(c[k] for k in ('ft_confirmed','future','grace','blocked_review','past_unverified_eligible','closed_unverified','unknown_kickoff'))==d['matches']
           assert sum(d["timing_counts"].values())==d["matches"]
           assert d["espn_scoreboards"]["requests"] <= 12
           assert d['monte_carlos_bsd']['bsd_direct_event_requests'] <= 12
