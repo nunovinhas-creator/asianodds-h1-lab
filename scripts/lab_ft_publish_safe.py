@@ -213,7 +213,7 @@ def publish(root, *, base, manifest, baseline, max_attempts=6):
     source = sha(root, "HEAD")
     if sha(root, "HEAD^") != base:
         raise UnsafeFTPublication("FT source commit is not based on the pinned checkout")
-    if git(root, "status", "--porcelain").strip():
+    if git(root, "status", "--porcelain", "--untracked-files=no").strip():
         raise UnsafeFTPublication("FT checkout is not clean")
     proof = json.loads(manifest.read_text(encoding="utf-8"))
     if proof.get("pipeline") != "ft" or not proof.get("segmented"):
