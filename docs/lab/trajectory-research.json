@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T17:31:38+00:00",
+  "generated_at": "2026-10-31T17:36:39+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,9 +32,9 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 198,
+      "matches": 199,
       "of_repeated_matches_analysed": 323,
-      "percentage_descriptive": 61.3
+      "percentage_descriptive": 61.6
     },
     "both_total_and_1x2": {
       "matches": 209,
@@ -42,9 +42,9 @@
       "percentage_descriptive": 64.7
     },
     "opposing_intra_alert_directions": {
-      "matches": 83,
+      "matches": 84,
       "of_repeated_matches_analysed": 323,
-      "percentage_descriptive": 25.7
+      "percentage_descriptive": 26.0
     },
     "with_ambiguous_repeats": {
       "matches": 45,
@@ -173,6 +173,21 @@
     {
       "directions": [
         "UP",
+        "FLAT",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50861",
+        "3571094759:51924",
+        "3571094759:51939"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-31,26901,35746",
+      "match_label": "Al Hilal (KSA) vs Al Fateh"
+    },
+    {
+      "directions": [
+        "UP",
         "DOWN"
       ],
       "event_ids": [
@@ -244,43 +259,28 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-31,234,1296",
       "match_label": "Bologna vs AC Monza Brianza"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "FLAT",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:51425",
-        "3571094759:51426",
-        "3571094759:51430"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-30,1466,10061980",
-      "match_label": "Brisbane Roar FC vs Auckland FC"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 903,
+    "all_distinct_matches": 904,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 771,
-    "messages_in_source": 1351,
+    "events_analysed": 773,
+    "messages_in_source": 1354,
     "repeated_matches_analysed": 323,
     "repeated_matches_in_source": 323,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "e8b8174bad4267735cfd8e6e309b8e66f06ef979",
-  "source_generated_at": "2026-10-31T17:31:38+00:00",
+  "source_commit": "d255ddb706a427d8ad32ffbf88b330f96567c7c7",
+  "source_generated_at": "2026-10-31T17:36:39+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 28,
-      "T_0_TO_60": 159,
+      "T_0_TO_60": 161,
       "T_360_TO_1440": 121,
       "T_60_TO_360": 127,
       "T_OVER_1440": 98,
@@ -288,7 +288,7 @@
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 34,
-      "T_0_TO_60": 224,
+      "T_0_TO_60": 226,
       "T_360_TO_1440": 189,
       "T_60_TO_360": 176,
       "T_OVER_1440": 148,
@@ -299,27 +299,27 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 729
+      "V4_EXPLICIT": 731
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 36.2,
-      "FLAT": 28.5,
-      "UP": 35.3
+      "FLAT": 28.6,
+      "UP": 35.2
     },
-    "down": 279,
-    "flat": 220,
-    "messages_with_total": 771,
+    "down": 280,
+    "flat": 221,
+    "messages_with_total": 773,
     "up": 272,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 48,
-    "continuous": 244,
+    "continuous": 245,
     "identical_total_pairs": 38,
     "related_pairs": 51,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 13,
     "same_movement_repeat": 51,
-    "unobserved_change": 105
+    "unobserved_change": 106
   }
 }
