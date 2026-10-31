@@ -309,7 +309,7 @@ def due_unmapped_keys(matches, registry, now):
                 or key in registry.get("conflicts",{})):
             continue
         ko=utc(row.get("kickoff_utc"))
-        if ko is not None and timedelta(hours=3)<=now-ko<=timedelta(hours=24):
+        if ko is not None and timedelta(hours=3)<=now-ko<=timedelta(days=30):
             keys.append(key)
     return sorted(keys)
 
@@ -333,7 +333,7 @@ def plan_days(selected_keys, matches, registry, now, max_days=3):
                 or key in registry.get("conflicts",{})):
             continue
         ko=utc(row.get("kickoff_utc"))
-        if ko is None or not ko+timedelta(hours=3)<=now<=ko+timedelta(hours=24):
+        if ko is None or not ko+timedelta(hours=3)<=now<=ko+RETENTION:
             continue
         day=ko.date().isoformat()
         if date_in_cooldown(registry.get("probes", {}), day, now):
