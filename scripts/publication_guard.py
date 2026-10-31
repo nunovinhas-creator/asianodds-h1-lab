@@ -70,6 +70,11 @@ def finite_float(value):
 
 
 def validate(name, content):
+    # Binary compressed recovery data is validated by the strict segmented
+    # bundle verifier (SHA-256, decompression and byte-exact legacy equality),
+    # never by a UTF-8-only JSON validator.
+    if name.startswith('data/lab/discovery-segmented/') and name.endswith('/legacy.json.gz'):
+        return
     text = content.decode('utf-8')
     if name.endswith('.json'):
         value = json.loads(text, parse_constant=reject_constant, parse_float=finite_float)
