@@ -90,6 +90,28 @@ def seal(pipeline, manifest):
     changed = git('diff', '--cached', '--name-only', '-z').decode().split('\0')
     streams = inventory(pipeline)
     names = sorted(set(REQUIRED[pipeline]) | set(streams) | {name for name in changed if name})
+    if pipeline == 'ft':
+        # Seal every reachable content-addressed page with the public root in
+        # the same Git commit. Old unreferenced pages may remain immutable.
+        from h1lab.discovery_public_pages import verify as verify_public_pages
+        root = json.loads(git('show', ':docs/lab/discoveries.json'))
+        if 'pattern_pages' in root:
+            descriptors = root['pattern_pages']
+            if not isinstance(descriptors, list):
+                raise ValueError('Invalid discovery page manifest')
+            pages = {}
+            for item in descriptors:
+                if not isinstance(item, dict) or not isinstance(item.get('path'), str):
+                    raise ValueError('Invalid discovery page path')
+                relative = item['path']
+                if not __import__('re').fullmatch(r'discovery-pages/[a-f0-9]{64}\\.json', relative):
+                    raise ValueError('Unsafe discovery page path')
+                file = 'docs/lab/' + relative
+                if file in pages:
+                    raise ValueError('Duplicate discovery page path')
+                pages[file] = git('show', ':' + file)
+            verify_public_pages(root, {name[len('docs/lab/'):]: raw for name, raw in pages.items()})
+            names = sorted(set(names) | set(pages))
     hashes = {}
     for name in names:
         if not name.startswith(('data/lab/', 'docs/lab/')):
