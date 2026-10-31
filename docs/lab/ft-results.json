@@ -14,6 +14,12 @@
     "reviewed_targets": 0,
     "rotation_days": [],
     "scheduled_poll_enabled": false,
+    "strict_index_probe": {
+      "fallback_outcomes": {},
+      "outcomes": {},
+      "planned": 0,
+      "scope": "strict cached identities; shared ID batch, not extra requests"
+    },
     "verified_in_run": 0
   },
   "bsd_date_search": {
@@ -29,8 +35,8 @@
   "coverage_diagnostics": {
     "blocked_review": 1,
     "ft_confirmed": 273,
-    "future": 251,
-    "grace": 18,
+    "future": 249,
+    "grace": 21,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
@@ -117,7 +123,7 @@
     "schema_version": 1,
     "unit": "distinct observed match_key",
     "unresolved_statuses": {
-      "PENDING": 475,
+      "PENDING": 476,
       "SCORE_CONFLICT": 1
     }
   },
@@ -133,7 +139,7 @@
     "affected_matches_count": 0,
     "dual_postcheck_errors": 0,
     "invalid_provider_results": 0,
-    "measured_at": "2026-10-31T08:26:27+00:00",
+    "measured_at": "2026-10-31T08:33:35+00:00",
     "provider_errors": 0,
     "provider_failure_breakdown": {},
     "scope": "adapter execution only; not coverage or publication health",
@@ -1768,6 +1774,19 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-31,1655,654",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "CD Universidad San Martín de Porres",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "CSD Alianza Universidad Huánuco",
+      "kickoff_utc": "2026-10-31T20:15:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-10-31,54349,22195",
       "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
@@ -3588,7 +3607,7 @@
       "last_checked_at": null,
       "legacy_last_checked_at": null,
       "match_key": "2026-10-31,48236,66854",
-      "observed_alerts": 1,
+      "observed_alerts": 3,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -7156,22 +7175,6 @@
       "reason": "ft_recorded_with_source",
       "source": "https://sports.bzzoiro.com/api/v2/events/5381/",
       "status": "FINAL"
-    },
-    {
-      "away": "CF Montreal",
-      "away_goals": 0,
-      "evidence": "bsd_and_thesportsdb_and_espn",
-      "evidence_attempts": 1,
-      "home": "Charlotte FC",
-      "home_goals": 4,
-      "kickoff_utc": "2026-10-28T23:30:00+00:00",
-      "last_checked_at": "2026-10-29T02:33:45+00:00",
-      "legacy_last_checked_at": "2026-10-29T02:33:45+00:00",
-      "match_key": "2026-10-28,10048051,26818",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://sports.bzzoiro.com/api/v2/events/5382/",
-      "status": "FINAL"
     }
   ],
   "goal_search": {
@@ -7187,10 +7190,10 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "h1_alerts_count": 1109,
-  "h1_signals_count_in_state": 230,
+  "h1_alerts_count": 1112,
+  "h1_signals_count_in_state": 231,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-10-31T08:26:27+00:00",
+  "last_updated_at": "2026-10-31T08:33:35+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -7198,8 +7201,8 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 749,
-  "matches_omitted_from_display": 249,
+  "matches": 750,
+  "matches_omitted_from_display": 250,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": null,
     "archive_status": "not_loaded",
@@ -7245,7 +7248,7 @@
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
     "FINAL": 273,
-    "PENDING": 475,
+    "PENDING": 476,
     "SCORE_CONFLICT": 1
   },
   "thesportsdb_search": {},
@@ -7255,11 +7258,11 @@
     "ELIGIBLE_NEVER_QUERIED": 77,
     "ELIGIBLE_RETRY_DUE": 72,
     "FINAL_RECORDED": 273,
-    "FUTURE": 251,
-    "IN_3H_GRACE": 18
+    "FUTURE": 249,
+    "IN_3H_GRACE": 21
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 476,
+  "unverified": 477,
   "v6_ft_priority": {
     "budget": 0,
     "hinted_eligible": 12,
