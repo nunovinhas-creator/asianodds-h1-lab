@@ -422,7 +422,8 @@ def main():
     )[:500]
     mapped_competitions = competitions_by_key(state.get("alerts", []))
     espn = ESPNResults(mapped_competitions, max_scoreboards=12)
-    sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20)
+    sportscore = SportScoreResults(mapped_competitions, max_requests=45,max_team_searches=20,
+                                  review=previous_review, now=now)
     next_ledger, report, queried = reconcile(
         state, catalog_v4, existing, now=now,
         bsd_lookup=bsd_with_monte, tsdb_lookup=tsdb.lookup,
@@ -812,6 +813,11 @@ def main():
             "bsd": bsd_finder.days,
             "sportscore": sportscore.day_cache,
         }, previous=prior_review)
+        for game in review['games']:
+            game['observed_competition'] = mapped_competitions.get(game['match_key'])
+            for candidate in game['candidates']:
+                if candidate.get('observed_this_run'):
+                    candidate['observed_competition_at_capture'] = game['observed_competition']
         write_if_changed(IDENTITY_REVIEW, review)
         print("LAB_FT_IDENTITY_REVIEW", "eligible", review["total_eligible"],
               "with_candidates", review["counts_by_review_flag"].get(
