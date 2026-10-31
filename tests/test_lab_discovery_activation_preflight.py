@@ -26,7 +26,18 @@ class SegmentationActivationPreflightTests(unittest.TestCase):
         self.assertGreater(result["public_pages"], 0)
         self.assertGreater(result["stress_bytes"], MAX_STATE_BYTES+100000)
         self.assertEqual(source.read_bytes(), before)
-        self.assertFalse((ROOT / "data/lab/discovery-segmented").exists())
+        # A true cutover review branch may contain the initial snapshot.
+        # This preflight must neither create nor modify its productive pointer.
+        segmented = ROOT / "data/lab/discovery-segmented"
+        if segmented.exists():
+            from h1lab import lab_discovery_store as store
+            pointer = segmented / "CURRENT.json"
+            self.assertTrue(pointer.is_file())
+            initial_pointer = pointer.read_bytes()
+            self.assertEqual(store.read(segmented)[1], before)
+            self.assertEqual(pointer.read_bytes(), initial_pointer)
+        else:
+            self.assertFalse(segmented.exists())
 
     def test_inventory_lists_real_consumers_but_cannot_claim_completeness(self):
         entries = consumers(ROOT)
