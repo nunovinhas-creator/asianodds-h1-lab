@@ -1,0 +1,11 @@
+# P0: quarantine unproven SportScore CORE competition identities
+
+The #157 path locked observed and provider labels separately without proving their initial association. Offline reproduction on merged main accepted observed Italy Coppa Italia / provider Kenya Cup with otherwise matching Roma/Milan names, kickoff, source URL and current FT score. This was a synthetic counterexample, not a discovered incorrect productive result.
+
+Label equality also fails to establish identity. Generic names such as Premier League, Division 1, National League and Cup can denote different countries or tiers. Even a country-qualified name is not an independently verified cross-provider competition binding. The persisted SportScore review contains labels and fixture URLs, but no independently established competition identity. Guessed aliases, IDs, country fields or a verification boolean would invent evidence.
+
+This P0 correction fails closed: anchors() returns no CORE locators. All new SportScore CORE_NAME certification is quarantined until a separately reviewed implementation supplies independently evidenced competition bindings. This deliberately reduces coverage. Legacy exact and explicitly reviewed fixture matching, current regulation FT gates, request budgets, quotas and cooldowns remain unchanged. No productive state or historical result is rewritten. Reactivation needs a separate PR and authorization.
+
+Regressions reproduce wrong-country acceptance, equal generic labels, equal country-qualified labels, unproven aliases, tier/gender/age/reserve mismatches and caller-invented context. Positive exact matching, cache reuse, ambiguity rejection and current FT validation remain tested; the full pre-existing reviewed-alias suite also runs.
+
+Historical audit before integration: both FT publications since #157 (f36a96adbd26eaa9f632f7c2ccb8dd3b448a818b and 69df747df2fff682afca995ee2661a644cffb1fc) report zero SportScore CORE targets and zero CORE certifications. All 278 baseline FINAL records retain their status and result. Two additions before this correction came from BSD (Gwangju/Gimcheon 1-1) and API-Football (Monterrey Women/Pumas Women 6-0), not the new SportScore path. API-Football's own CORE_NAME marker must not be misattributed to SportScore.

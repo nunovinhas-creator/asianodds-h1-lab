@@ -141,10 +141,14 @@ class StrictIndexProbeTests(unittest.TestCase):
         ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
         calls=[]
         def fail(ids,key):calls.append(ids);raise OSError('network')
-        a=APIFootballResults('test',id_fetch=fail);a.requests=3
+        date_calls=[]
+        def date(day,key):date_calls.append(day);return []
+        a=APIFootballResults('test',id_fetch=fail,fetch=date);a.requests=3
         p=IndexProbe(a,targets);self.assertIsNone(p.lookup(S)[0]);self.assertEqual(calls,[])
         a.requests=0
         self.assertIsNone(p.lookup(S)[0]);self.assertIsNone(p.lookup(S)[0]);self.assertEqual(len(calls),1)
+        self.assertEqual(date_calls,[S['kickoff_utc'][:10]])
+        self.assertEqual(a.requests+a.id_requests,2)
 
     def test_real_index_produces_only_score_free_locators_and_preserves_all_finals(self):
         import json
