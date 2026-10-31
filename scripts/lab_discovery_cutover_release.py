@@ -19,8 +19,8 @@ from h1lab.lab_discovery_git_bundle import (
     PREFIX, MIRROR, seal as segment_seal, verify_against_seal,
 )
 
-DIGEST = re.compile(r"[a-f0-9]{64}\\Z")\nSHA = re.compile(r"[a-f0-9]{40}\Z")
-
+DIGEST = re.compile(r"[a-f0-9]{64}\Z")
+SHA = re.compile(r"[a-f0-9]{40}\Z")
 
 class CutoverBlocked(ValueError):
     """Safety gate refused the release; do not force/retry the same payload."""
