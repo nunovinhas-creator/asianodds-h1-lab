@@ -1,0 +1,9 @@
+# P2: isolated segmented-state migration and recovery drill (no merge)
+
+The production discovery-state.json remains the only productive loader input; its two-million-byte cap is unchanged. This proposal adds only an offline tool, building on the existing partition trial. Each immutable generation has <=256,000-byte shards and manifest, SHA-256 links, and a compressed exact-byte legacy recovery image. A fsynced CURRENT pointer is replaced only after all bytes, hashes, counts and semantic/legacy reconstruction have verified. PREVIOUS supports explicit verified rollback; no automatic fallback may silently discard newer history.
+
+The CLI rejects trial/recovery outputs inside productive data/docs/h1lab/.github paths. Legacy recovery uses exclusive creation and cannot overwrite an existing file. Normal producers, workflows and loader formats are untouched; no migration is activated by merging this trial. Tests cover a real-state roundtrip, exact legacy bytes, successive generations, crash before pointer replacement, idempotent resume, explicit rollback, missing/corrupted shards, manifest tampering, duplicate JSON keys and symlinks. Old generations are retained; no garbage collection or production switch is implemented.
+
+Example outside production: `python -m scripts.lab_discovery_migration_trial migrate --trial-dir /tmp/discovery-shadow`; then verify, recover to a NEW file, and compare its exact bytes to discovery-state.json. After another snapshot, rollback may be tested explicitly. No provider requests occur.
+
+Remaining before any productive migration: separate authorization and loader integration, reader/writer compatibility in both modes, a retention/capacity policy, concurrent-writer coordination, and recovery drills on actual workflow artifacts. A single pattern or manifest exceeding the trial chunk cap fails closed; deeper subpartitioning is not claimed solved. This is preparation, not a declaration of a deployed segmented history format.
