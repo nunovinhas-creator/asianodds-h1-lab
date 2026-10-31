@@ -79,8 +79,19 @@ class GuardTests(unittest.TestCase):
             tail = source[source.index('      - name: Commit only'):]
             self.assertLess(tail.index('publication_guard outcomes'), tail.index('git add'))
             self.assertLess(tail.index('publication_guard seal'), tail.index('git commit'))
-            self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
-            self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
+            if pipeline == 'ft' and '--state-backend dual' in source:
+                self.assertNotIn('git rebase origin/main', tail)
+                self.assertLess(tail.index('lab_discovery_ft_activation ft-check'),
+                                tail.index('lab_discovery_cutover_release stage'))
+                self.assertLess(tail.index('lab_discovery_cutover_release stage'),
+                                tail.index('git add data/lab/ft-ledger.json'))
+                self.assertLess(tail.index('git commit'),
+                                tail.index('lab_discovery_ft_activation ft-publish'))
+                self.assertIn('DISCOVERY_SEGMENTED_NO_REBASE', tail)
+                self.assertIn('lab_discovery_ft_activation preflight', source)
+            else:
+                self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
+                self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
             for name in g.PRODUCERS[pipeline]:
                 self.assertIn('id: ' + name + '\n', source)
 

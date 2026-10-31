@@ -89,6 +89,11 @@ on:
       - 'tests/test_pattern_engine.py'
       - 'h1lab/discovery_timeline.py'
       - 'scripts/lab_discoveries.py'
+      - 'scripts/lab_discovery_ft_activation.py'
+      - 'scripts/lab_discovery_cutover_release.py'
+      - 'h1lab/lab_discovery_dual_state.py'
+      - 'h1lab/lab_ft_final_guard.py'
+      - 'h1lab/lab_discovery_git_bundle.py'
       - 'h1lab/discovery_public_pages.py'
       - 'tests/test_discovery_public_pages.py'
       - 'tests/test_discovery_timeline.py'
@@ -121,6 +126,11 @@ jobs:
           python-version: '3.11'
       - name: Read most recent LAB/H1 input snapshots
         run: git pull --rebase origin main
+      - name: Preflight verified dual snapshot and freeze certified FT baseline
+        run: |
+          # Fail closed when CURRENT is absent. No first bootstrapping in an FT job.
+          echo "FT_BASE_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          python -m scripts.lab_discovery_ft_activation preflight --root . --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
@@ -337,7 +347,7 @@ jobs:
         continue-on-error: true
         run: |
           python -m unittest discover -s tests -p 'test_discovery_timeline.py' -v
-          python -m scripts.lab_discoveries
+          python -m scripts.lab_discoveries --state-backend dual
           python - <<'PY'
           import json
           from pathlib import Path
@@ -363,6 +373,10 @@ jobs:
           PUBLICATION_STEPS: ${{ toJSON(steps) }}
         run: |
           python -m scripts.publication_guard outcomes --pipeline ft
+          python -m scripts.lab_discovery_ft_activation ft-check --root . --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
+          # Stage the exact reachable CURRENT/PREVIOUS shards BEFORE ordinary
+          # FT artifacts. publication_guard seals the combined index.
+          python -m scripts.lab_discovery_cutover_release stage
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
@@ -396,18 +410,12 @@ jobs:
             exit 0
           fi
           git commit -m 'data(lab): reconcile observed match FT [skip ci]'
-          for attempt in 1 2 3 4 5; do
-            git fetch origin main
-            git rebase origin/main
-            python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
-            if git push origin HEAD:main; then
-              echo LAB_FT_PUBLISHED
-              exit 0
-            fi
-            sleep 2
-          done
-          echo LAB_FT_PUBLISH_FAILED
-          exit 1
+          # DISCOVERY_SEGMENTED_NO_REBASE: Never replay old FT results onto a
+          # newer ledger. Abort on remote conflict; next normal cycle starts
+          # from fresh main with new provider and discovery evidence.
+          python -m scripts.lab_discovery_ft_activation ft-publish --root . \
+            --expected-parent "$FT_BASE_HEAD" --manifest "$RUNNER_TEMP/publication-seal.json"
+          echo LAB_FT_PUBLISHED
 
   # Direct job dependency also covers watchdog dispatches whose workflow_run
   # completion event may not start a separate monitor. No provider calls.
