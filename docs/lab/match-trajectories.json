@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-10-31T13:06:37+00:00",
+ "generated_at": "2026-10-31T13:11:41+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 294
+  "timelines_published": 295
  },
  "schema_version": 1,
- "source_commit": "13d4267f51586946f4b694c42f856c9f36da5b7a",
+ "source_commit": "f696bd63d5906729509c82f9ff6df053a95fd3d8",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 835,
+  "matches": 837,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 6,
-  "messages": 1243,
+  "messages": 1246,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 702,
+  "messages_on_repeated_matches": 704,
   "messages_v4_only": 0,
-  "messages_with_v4": 1169,
-  "movement_episodes_upper_bound": 1196,
+  "messages_with_v4": 1172,
+  "movement_episodes_upper_bound": 1199,
   "possibly_redundant_snapshots": 35,
   "post_kickoff_messages": 44,
   "related_message_pairs": 47,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 12
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 294,
+  "repeated_matches": 295,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 1904
+   "V4_EXPLICIT": 1909
   },
-  "total_line_reversals_on_repeated": 155,
+  "total_line_reversals_on_repeated": 156,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 41,
-   "CONTINUOUS": 222,
+   "CONTINUOUS": 223,
    "SAME_MOVEMENT_REPEAT": 47,
    "UNOBSERVED_CHANGE": 98
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 373,
-   "one_x_two:AGREE": 362,
-   "total:AGREE": 1169
+   "asian_handicap:AGREE": 374,
+   "one_x_two:AGREE": 363,
+   "total:AGREE": 1172
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51747",
+    "3571094759:51830"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51747",
+     "message_id": 51747,
+     "minutes_to_kickoff": 263.8,
+     "observed_at": "2026-10-31T09:36:14+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 2.08,
+        "under_price": 1.85
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.87,
+        "under_price": 2.07
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:51830",
+     "message_id": 51830,
+     "minutes_to_kickoff": 50.8,
+     "observed_at": "2026-10-31T13:09:10+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.86,
+        "under_price": 1.87
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 2.08,
+        "under_price": 1.87
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-31T09:36:14+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-10-31T14:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-10-31T13:09:10+00:00",
+   "match_key": "2026-10-31,234,1296",
+   "match_label": "Bologna vs AC Monza Brianza",
+   "movement_episodes": [
+    [
+     "3571094759:51747"
+    ],
+    [
+     "3571094759:51830"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    12776.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.5,
+     "last_observed_line": 2.5,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.75,
+       "before": 2.5,
+       "event_id": "3571094759:51747",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.5,
+       "before": 2.75,
+       "event_id": "3571094759:51830",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51747",
+       "at_event": "3571094759:51830",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51747",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.75,
+       "previous_after_line": 2.75,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:51830"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [

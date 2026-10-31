@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T13:06:37+00:00",
+  "generated_at": "2026-10-31T13:11:42+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 180,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 61.2
+      "matches": 181,
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 61.4
     },
     "both_total_and_1x2": {
       "matches": 192,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 65.3
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 65.1
     },
     "opposing_intra_alert_directions": {
-      "matches": 75,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 25.5
+      "matches": 76,
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 25.8
     },
     "with_ambiguous_repeats": {
       "matches": 39,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 13.3
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 13.2
     },
     "with_identical_total_snapshots": {
       "matches": 35,
-      "of_repeated_matches_analysed": 294,
+      "of_repeated_matches_analysed": 295,
       "percentage_descriptive": 11.9
     },
     "with_mixed_origin_total": {
       "matches": 20,
-      "of_repeated_matches_analysed": 294,
+      "of_repeated_matches_analysed": 295,
       "percentage_descriptive": 6.8
     },
     "with_only_legacy_total": {
       "matches": 9,
-      "of_repeated_matches_analysed": 294,
+      "of_repeated_matches_analysed": 295,
       "percentage_descriptive": 3.1
     },
     "with_only_v4_total": {
-      "matches": 265,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 90.1
+      "matches": 266,
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 90.2
     },
     "with_post_kickoff_alerts": {
       "matches": 25,
-      "of_repeated_matches_analysed": 294,
+      "of_repeated_matches_analysed": 295,
       "percentage_descriptive": 8.5
     },
     "with_related_alerts": {
       "matches": 47,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 16.0
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 15.9
     },
     "with_unobserved_line_gaps": {
       "matches": 89,
-      "of_repeated_matches_analysed": 294,
-      "percentage_descriptive": 30.3
+      "of_repeated_matches_analysed": 295,
+      "percentage_descriptive": 30.2
     }
   },
   "opposing_direction_examples": [
@@ -219,6 +219,19 @@
     },
     {
       "directions": [
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:51747",
+        "3571094759:51830"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-31,234,1296",
+      "match_label": "Bologna vs AC Monza Brianza"
+    },
+    {
+      "directions": [
         "DOWN",
         "FLAT",
         "UP"
@@ -248,51 +261,38 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-30,1444,1651",
       "match_label": "CD Atlético Nacional vs Club Independiente Santa Fe"
-    },
-    {
-      "directions": [
-        "UP",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50884",
-        "3571094759:50968"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-11-01,23165,37488",
-      "match_label": "CD Eldense vs Granada"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 835,
+    "all_distinct_matches": 837,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 702,
-    "messages_in_source": 1243,
-    "repeated_matches_analysed": 294,
-    "repeated_matches_in_source": 294,
+    "events_analysed": 704,
+    "messages_in_source": 1246,
+    "repeated_matches_analysed": 295,
+    "repeated_matches_in_source": 295,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "13d4267f51586946f4b694c42f856c9f36da5b7a",
-  "source_generated_at": "2026-10-31T13:06:37+00:00",
+  "source_commit": "f696bd63d5906729509c82f9ff6df053a95fd3d8",
+  "source_generated_at": "2026-10-31T13:11:41+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 25,
-      "T_0_TO_60": 131,
+      "T_0_TO_60": 132,
       "T_360_TO_1440": 112,
-      "T_60_TO_360": 121,
+      "T_60_TO_360": 122,
       "T_OVER_1440": 85,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 30,
-      "T_0_TO_60": 190,
+      "T_0_TO_60": 191,
       "T_360_TO_1440": 179,
-      "T_60_TO_360": 170,
+      "T_60_TO_360": 171,
       "T_OVER_1440": 133,
       "UNKNOWN": 0
     },
@@ -301,22 +301,22 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 660
+      "V4_EXPLICIT": 662
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 36.6,
-      "FLAT": 28.5,
+      "FLAT": 28.4,
       "UP": 34.9
     },
-    "down": 257,
+    "down": 258,
     "flat": 200,
-    "messages_with_total": 702,
-    "up": 245,
+    "messages_with_total": 704,
+    "up": 246,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 41,
-    "continuous": 222,
+    "continuous": 223,
     "identical_total_pairs": 35,
     "related_pairs": 47,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
