@@ -20,6 +20,12 @@ from h1lab.lab_discovery_git_bundle import (
 )
 
 DIGEST = re.compile(r"[a-f0-9]{64}\Z")
+WORKFLOW = ".github/workflows/lab-ft-results.yml"
+# The first live commit MUST switch producer and stage a full complete bundle;
+# publishing the pointer alone would break the next legacy-only FT cycle.
+DUAL_PRODUCER = "python -m scripts.lab_discoveries --state-backend dual"
+STAGE_COMMAND = "python -m scripts.lab_discovery_cutover_release stage"
+NO_REBASE_GATE = "DISCOVERY_SEGMENTED_NO_REBASE"
 SHA = re.compile(r"[a-f0-9]{40}\Z")
 
 class CutoverBlocked(ValueError):
@@ -93,7 +99,7 @@ def stage_reachable(root):
             raise CutoverBlocked("Missing or symlinked release member: " + name)
     git(root, "add", "--", *names)
     staged = set(git(root, "diff", "--cached", "--name-only").splitlines())
-    if any(path != MIRROR and not path.startswith(PREFIX) for path in staged):
+    if any(path not in (MIRROR, WORKFLOW) and not path.startswith(PREFIX) for path in staged):
         raise CutoverBlocked("Unrelated staged change in initial release")
     proof = segment_seal(root, ref="INDEX")
     if set(proof["sha256"]) != set(names):
@@ -137,8 +143,14 @@ def publish_pinned_commit(root, *, expected_parent, remote="origin"):
     if remote_sha(root, remote=remote) != expected_parent:
         raise CutoverBlocked("Remote main advanced; DO NOT rebase stale discovery output")
     changed = git(root, "diff", "--name-only", expected_parent, "HEAD").splitlines()
-    if not changed or any(path != MIRROR and not path.startswith(PREFIX) for path in changed):
-        raise CutoverBlocked("Release commit contains unrelated or no changes")
+    if (WORKFLOW not in changed or
+            any(path not in (MIRROR, WORKFLOW) and not path.startswith(PREFIX)
+                for path in changed)):
+        raise CutoverBlocked("Initial pointer requires atomic workflow cutover; no unrelated changes")
+    workflow = git(root, "show", "HEAD:" + WORKFLOW)
+    if not all(marker in workflow for marker in
+               (DUAL_PRODUCER, STAGE_COMMAND, NO_REBASE_GATE)):
+        raise CutoverBlocked("FT workflow not safely switched to dual producer and no-rebase staging")
     proof = segment_seal(root, ref="HEAD")
     verify_against_seal(root, proof, ref="HEAD")
     # A normal Git push performs an atomic remote ref update; a concurrent
@@ -156,7 +168,7 @@ def publish_pinned_commit(root, *, expected_parent, remote="origin"):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("prepare", "verify", "publish"))
+    parser.add_argument("mode", choices=("prepare", "stage", "verify", "publish"))
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--expected-head")
     parser.add_argument("--expected-parent")
@@ -167,6 +179,9 @@ def main(argv=None):
             parser.error("--expected-head is required for prepare")
         result = prepare_bootstrap(args.root, expected_head=args.expected_head,
                                    remote=args.remote)
+    elif args.mode == "stage":
+        proof = stage_reachable(args.root)
+        result = {"status": "STAGED_VERIFIED_NOT_PUBLISHED", "proof": proof}
     elif args.mode == "verify":
         result = {"status": "VERIFIED_LOCAL_HEAD_NOT_PUBLISHED",
                   "proof": segment_seal(args.root, ref="HEAD")}
