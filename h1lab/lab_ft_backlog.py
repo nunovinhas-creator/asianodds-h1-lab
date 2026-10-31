@@ -48,6 +48,9 @@ def audit(ledger, now, *, provider_summary=None, queue_plan=None, evidence_retry
                                    "IDENTITY_CONFLICT","INSUFFICIENT_IDENTITY"):
             groups["quarantined_or_identity_review"]+=1
             continue
+        if item.get("status") == "EXPIRED_UNVERIFIED":
+            groups["closed_unverified"]+=1
+            continue
         groups["past_due_unverified"]+=1
         day=ko.date().isoformat()
         checked=utc(item.get("evidence_checked_at" if evidence_retry else "checked_at"))
