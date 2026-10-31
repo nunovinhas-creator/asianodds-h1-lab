@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T08:26:39+00:00",
+  "generated_at": "2026-10-31T08:31:37+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,59 +32,59 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 158,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 61.0
+      "matches": 159,
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 61.2
     },
     "both_total_and_1x2": {
-      "matches": 175,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 67.6
+      "matches": 176,
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 67.7
     },
     "opposing_intra_alert_directions": {
-      "matches": 61,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 23.6
+      "matches": 62,
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 23.8
     },
     "with_ambiguous_repeats": {
       "matches": 34,
-      "of_repeated_matches_analysed": 259,
+      "of_repeated_matches_analysed": 260,
       "percentage_descriptive": 13.1
     },
     "with_identical_total_snapshots": {
-      "matches": 31,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 12.0
+      "matches": 32,
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 12.3
     },
     "with_mixed_origin_total": {
       "matches": 20,
-      "of_repeated_matches_analysed": 259,
+      "of_repeated_matches_analysed": 260,
       "percentage_descriptive": 7.7
     },
     "with_only_legacy_total": {
       "matches": 9,
-      "of_repeated_matches_analysed": 259,
+      "of_repeated_matches_analysed": 260,
       "percentage_descriptive": 3.5
     },
     "with_only_v4_total": {
-      "matches": 230,
-      "of_repeated_matches_analysed": 259,
+      "matches": 231,
+      "of_repeated_matches_analysed": 260,
       "percentage_descriptive": 88.8
     },
     "with_post_kickoff_alerts": {
-      "matches": 20,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 7.7
+      "matches": 21,
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 8.1
     },
     "with_related_alerts": {
-      "matches": 43,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 16.6
+      "matches": 44,
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 16.9
     },
     "with_unobserved_line_gaps": {
       "matches": 78,
-      "of_repeated_matches_analysed": 259,
-      "percentage_descriptive": 30.1
+      "of_repeated_matches_analysed": 260,
+      "percentage_descriptive": 30.0
     }
   },
   "opposing_direction_examples": [
@@ -154,6 +154,21 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-29,10104951,64612",
       "match_label": "Al Dhaid U21 vs Al Jazira (UAE) U21"
+    },
+    {
+      "directions": [
+        "UP",
+        "DOWN",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50867",
+        "3571094759:51696",
+        "3571094759:51697"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-31,48236,66854",
+      "match_label": "Arema (ISL) vs Bali United Pusam"
     },
     {
       "directions": [
@@ -246,52 +261,39 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-30,29994,61345",
       "match_label": "CD Marquense vs Deportivo Guastatoya"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:50786",
-        "3571094759:50888"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-11-01,543,10016552",
-      "match_label": "CD Tenerife vs FC Andorra"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 749,
+    "all_distinct_matches": 750,
     "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 619,
-    "messages_in_source": 1109,
-    "repeated_matches_analysed": 259,
-    "repeated_matches_in_source": 259,
+    "events_analysed": 622,
+    "messages_in_source": 1112,
+    "repeated_matches_analysed": 260,
+    "repeated_matches_in_source": 260,
     "repeated_matches_omitted": 0,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "7b9e98599927a501316eca5acbb8678d07b68748",
-  "source_generated_at": "2026-10-31T08:26:39+00:00",
+  "source_commit": "e5eccdd970d99bd81c327a601fb8d131ad04c8ea",
+  "source_generated_at": "2026-10-31T08:31:37+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
-      "AFTER_KICKOFF": 20,
+      "AFTER_KICKOFF": 21,
       "T_0_TO_60": 114,
       "T_360_TO_1440": 99,
       "T_60_TO_360": 103,
-      "T_OVER_1440": 75,
+      "T_OVER_1440": 76,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
-      "AFTER_KICKOFF": 24,
+      "AFTER_KICKOFF": 26,
       "T_0_TO_60": 166,
       "T_360_TO_1440": 158,
       "T_60_TO_360": 149,
-      "T_OVER_1440": 122,
+      "T_OVER_1440": 123,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
@@ -299,27 +301,27 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 577
+      "V4_EXPLICIT": 580
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 37.6,
-      "FLAT": 29.2,
+      "DOWN": 37.8,
+      "FLAT": 29.1,
       "UP": 33.1
     },
-    "down": 233,
+    "down": 235,
     "flat": 181,
-    "messages_with_total": 619,
-    "up": 205,
+    "messages_with_total": 622,
+    "up": 206,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 36,
-    "continuous": 195,
-    "identical_total_pairs": 31,
-    "related_pairs": 43,
+    "continuous": 196,
+    "identical_total_pairs": 32,
+    "related_pairs": 44,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 12,
-    "same_movement_repeat": 43,
+    "same_movement_repeat": 44,
     "unobserved_change": 86
   }
 }
