@@ -1,0 +1,101 @@
+import copy
+import hashlib
+import json
+import unittest
+
+from h1lab.discovery_public_pages import paginate, verify, encode, PAGE_LIMIT
+
+
+def sample(n=20, points=12, size=400):
+    return {
+        "schema_version": 1, "status": "DISCOVERY_OBSERVATION_NOT_BETTING",
+        "baseline_at": "2026-10-30T21:00:00Z",
+        "timeline": [{"kind": "NEW_EVIDENCE", "id": "one", "target": "OVER_2_5"}],
+        "prospective": {"settled_total": 0},
+        "patterns": {f"pattern-{i:05d}|OVER_2_5": {
+            "latest": {"label": f"pattern-{i:05d}", "known": i},
+            "points": [{"at_utc": f"2026-10-30T{j%24:02d}:00:00Z",
+                        "payload": str(i) + "x" * size} for j in range(points)]
+        } for i in range(n)}
+    }
+
+
+def reconstruct(root, pages):
+    patterns = {}
+    for meta in root["pattern_pages"]:
+        rows = json.loads(pages[meta["path"]])["patterns"]
+        if patterns.keys() & rows.keys():
+            raise AssertionError("duplicate pattern")
+        patterns.update(rows)
+    result = dict(root)
+    result.pop("pattern_count")
+    result.pop("pattern_pages")
+    result.pop("public_cache")
+    result["patterns"] = patterns
+    return result
+
+
+class DiscoveryPublicPagesTests(unittest.TestCase):
+    def test_repeated_growth_beyond_original_limit_preserves_every_pattern_and_point(self):
+        source = sample(1120, points=24, size=250)
+        before = copy.deepcopy(source)
+        self.assertGreater(len(encode(source)), 1_400_000)
+        root, pages = paginate(source)
+        self.assertEqual(before, source)
+        self.assertLessEqual(len(encode(root)), 1_400_000)
+        self.assertTrue(pages)
+        self.assertTrue(all(len(raw) <= PAGE_LIMIT for raw in pages.values()))
+        self.assertEqual(verify(root, pages), 1120)
+        self.assertEqual(reconstruct(root, pages)["patterns"], source["patterns"])
+        self.assertEqual(reconstruct(root, pages)["timeline"], source["timeline"])
+        self.assertEqual(reconstruct(root, pages)["prospective"], source["prospective"])
+
+    def test_deterministic_and_reusable_content_addressed_pages(self):
+        source = sample(40)
+        a, pages_a = paginate(source)
+        b, pages_b = paginate(copy.deepcopy(source))
+        self.assertEqual(a, b)
+        self.assertEqual(pages_a, pages_b)
+        for descriptor in a["pattern_pages"]:
+            self.assertEqual(descriptor["sha256"],
+                             hashlib.sha256(pages_a[descriptor["path"]]).hexdigest())
+
+    def test_missing_corrupt_or_duplicate_pages_fail_closed(self):
+        root, pages = paginate(sample(60))
+        first = root["pattern_pages"][0]["path"]
+        for candidate in ({}, {**pages, first: b'{"patterns":{}}'}):
+            with self.assertRaises(ValueError):
+                verify(root, candidate)
+        corrupt = copy.deepcopy(root)
+        corrupt["pattern_pages"].append(copy.deepcopy(corrupt["pattern_pages"][0]))
+        with self.assertRaises(ValueError):
+            verify(corrupt, pages)
+        traversal = copy.deepcopy(root)
+        traversal["pattern_pages"][0]["path"] = "../secrets.json"
+        with self.assertRaises(ValueError):
+            verify(traversal, pages)
+
+    def test_single_oversized_pattern_fails_closed(self):
+        with self.assertRaises(ValueError):
+            paginate(sample(1, points=1, size=300000))
+    
+    def test_unshrinkable_root_metadata_fails_closed(self):
+        source = sample(1)
+        source["mandatory_description"] = "x" * 1_500_000
+        with self.assertRaises(ValueError):
+            paginate(source)
+
+    def test_nonfinite_and_malformed_pattern_fail_closed(self):
+        source = sample(1)
+        key = next(iter(source["patterns"]))
+        source["patterns"][key]["latest"]["known"] = float("nan")
+        with self.assertRaises(ValueError):
+            paginate(source)
+        source = sample(1)
+        source["patterns"][key] = []
+        with self.assertRaises(ValueError):
+            paginate(source)
+
+
+if __name__ == "__main__":
+    unittest.main()
