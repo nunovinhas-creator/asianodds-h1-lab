@@ -21,10 +21,8 @@ jobs:
           python-version: "3.11"
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
-      - name: E4 solo/combined — read-only current-fixture dry-run (never sends Telegram)
-        run: python -m h1lab.e4_notify --dry-run
-      - name: T05 experimental Over 2.5 — actual fixtures, zero Telegram/IA/API
-        run: python -m h1lab.t05_notify --dry-run
+      - name: Three distinct V4 Total moves — read-only real-fixture dry-run
+        run: python -m h1lab.three_moves_notify --dry-run
       - name: V6 P0 10,000 null trajectories, power and FT chronological gates (shadow)
         run: |
           python -m scripts.lab_v6_p0 --recompute-nulls
