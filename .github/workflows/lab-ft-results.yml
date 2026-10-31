@@ -89,6 +89,8 @@ on:
       - 'tests/test_pattern_engine.py'
       - 'h1lab/discovery_timeline.py'
       - 'scripts/lab_discoveries.py'
+      - 'h1lab/discovery_public_pages.py'
+      - 'tests/test_discovery_public_pages.py'
       - 'tests/test_discovery_timeline.py'
       - 'h1lab/pattern_watch.py'
       - 'scripts/lab_pattern_watch.py'
@@ -342,7 +344,13 @@ jobs:
           d=json.loads(Path('docs/lab/discoveries.json').read_text(encoding='utf-8'))
           s=json.loads(Path('data/lab/discovery-state.json').read_text(encoding='utf-8'))
           assert d['status']=='DISCOVERY_OBSERVATION_NOT_BETTING'
-          assert len(d['patterns'])==len(s['patterns'])
+          if 'pattern_pages' in d:
+            from h1lab.discovery_public_pages import verify
+            pages = {p['path']: Path('docs/lab', p['path']).read_bytes()
+                     for p in d['pattern_pages']}
+            assert verify(d, pages)==d['pattern_count']==len(s['patterns'])
+          else:
+            assert len(d['patterns'])==len(s['patterns'])
           assert d['prospective']['settled_total']==len(s['prospective_settled'])
           assert len(d['timeline']) <= 90
           assert all(x['at_utc'] >= d['baseline_at'] for x in d['timeline'])
@@ -380,6 +388,7 @@ jobs:
           if [ -f data/lab/pattern-watch-first-seen.json ]; then git add data/lab/pattern-watch-first-seen.json; fi
           if [ -f data/lab/discovery-state.json ]; then git add data/lab/discovery-state.json; fi
           if [ -f docs/lab/discoveries.json ]; then git add docs/lab/discoveries.json; fi
+          if [ -d docs/lab/discovery-pages ]; then git add docs/lab/discovery-pages/*.json; fi
           git add -f data/lab/discovery-events-*.jsonl 2>/dev/null || true
           python -m scripts.publication_guard seal --pipeline ft --manifest "$RUNNER_TEMP/publication-seal.json"
           if git diff --cached --quiet; then
