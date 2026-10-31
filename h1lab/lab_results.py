@@ -45,7 +45,8 @@ def retry_wait(entry):
         return timedelta(hours=12)
     return RETRY
 
-HORIZON = timedelta(hours=24)
+HORIZON = timedelta(days=30)  # Legacy synthetic test horizon only.
+LIVE_HORIZON = timedelta(hours=24)  # Mandatory for operational FT jobs.
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
 # Retain meaningful last-seen GOAL evidence independently from last-attempt
@@ -133,7 +134,7 @@ def _validate_result(result, key):
     return out
 
 
-def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None, dual_lookup=None, dual_postcheck_keys=None, recovery_keys=()):
+def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_checks=20, espn_lookup=None, sportscore_lookup=None, fotmob_lookup=None, api_football_lookup=None, goal_lookup=None, openfoot_lookup=None, lookup_source_version=None, force_recheck=False, priority_hints=None, evidence_retry=False, approved_rechecks=None, dual_lookup=None, dual_postcheck_keys=None, recovery_keys=(), horizon=HORIZON):
     """Return (new ledger, aggregate/public report, count of API-search attempts).
 
     Lookup callables accept {match_key,home,away,kickoff_utc} and return
@@ -141,6 +142,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     """
     if now.tzinfo is None:
         raise ValueError("now requires timezone")
+    if not isinstance(horizon, timedelta) or not timedelta(0) < horizon <= HORIZON:
+        raise ValueError("Invalid FT horizon")
     now = now.astimezone(timezone.utc)
     source_version = LOOKUP_SOURCE_VERSION if lookup_source_version is None else lookup_source_version
     if type(source_version) is not int or not LOOKUP_SOURCE_VERSION <= source_version <= OPEN_RESULT_SOURCES_VERSION:
@@ -234,7 +237,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     for key, game in games.items():
         row = entries[key]
         kickoff = utc(row.get("kickoff_utc"))
-        if (kickoff is not None and now > kickoff + HORIZON
+        if (kickoff is not None and now > kickoff + horizon
                 and row.get("status") != "FINAL"):
             entries[key] = {
                 "status": "EXPIRED_UNVERIFIED",
@@ -269,7 +272,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         if kickoff is None:
             entry["status"] = "INSUFFICIENT_IDENTITY"
             continue
-        if now > kickoff + HORIZON:
+        if now > kickoff + horizon:
             if entry["status"] != "SOURCE_ORDER_CONFLICT":
                 entry["status"] = "EXPIRED_UNVERIFIED"
                 entry["reason"] = "beyond_30_day_lookup_window"
@@ -586,7 +589,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                     "PENDING", "PROVIDER_ERROR"):
                 continue
             ko = utc(row.get("kickoff_utc"))
-            if ko is None or not ko + DELAY <= now <= ko + HORIZON:
+            if ko is None or not ko + DELAY <= now <= ko + horizon:
                 continue
             signal = {"match_key": key, **{
                 field: row[field] for field in ("home","away","kickoff_utc")}}
