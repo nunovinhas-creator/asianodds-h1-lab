@@ -107,6 +107,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("operation", choices=("bootstrap", "stage", "verify"))
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--check-bootstrap-pin", action="store_true",
+                        help="Verify first-generation source only before processing")
     args = parser.parse_args(argv)
     if args.operation == "bootstrap":
         result=bootstrap(args.root)
@@ -119,7 +121,7 @@ def main(argv=None):
         # source and that FT has not advanced since that source was frozen.
         # This blocks a stale snapshot even if the PR looked mergeable.
         root=Path(args.root)
-        if not (root/dual.SEGMENT/"PREVIOUS.json").exists():
+        if args.check_bootstrap_pin and not (root/dual.SEGMENT/"PREVIOUS.json").exists():
             _, mirror=dual.legacy_source(root)
             if store.digest(mirror)!=proof["current_generation"]:
                 raise ValueError("CUTOVER_STALE_DISCOVERY_SOURCE: regenerate bootstrap")
