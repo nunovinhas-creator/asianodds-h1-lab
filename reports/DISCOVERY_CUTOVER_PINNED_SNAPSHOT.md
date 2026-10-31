@@ -1,11 +1,12 @@
-# Snapshot segmentado inicial — revisão, NÃO ativado
+# Snapshot segmentado atualizado — revisão, NÃO ativado
 
-- Commit `main` congelado: `9f21e4dd6b8ba0cc84099ec50819d293274674d1`
-- Legado Git blob: `a6b892fcd77a1dd39ff891e2b1115952873879bf` (1652917 bytes)
-- FT ledger Git blob: `dcb3c2a1ce90cf07e38512e7679903a7ee4c639a` (1429836 bytes)
-- Geração SHA-256: `2ef08d3449cae45ab21f8d8901fbde5020b9407289bf1ff25dd7d7e449225836`
-- Manifesto SHA-256: `22d5f37693271a9214795f9a60e5da7ace8b08b043d3566c66d4ef708840e3c5`
-- Segmentos: 7 até 256000 bytes
-- FT FINAL congelados individualmente: 331 em `reports/FT_CUTOVER_FROZEN_FINALS.json`.
+- Main de origem: `28315deb716c6df1d3af45221743777ec3c7c55d`; fontes protegidas pelos blobs (independentes de atualizações não relacionadas em main).
+- Legado Git blob: `776cbb82681414e483ba2db7d6f2aa27b51cf155` (1670410 bytes)
+- FT ledger Git blob: `a6f18cd198ef65800500435c02e593994033b97e` (1488064 bytes)
+- Geração SHA-256: `ecf8e6596caf14bd1af2d844b1e4ce2fd65888f7ff5cb1c1897d4d6d980e441c`
+- Manifesto SHA-256: `99bc1048b60a699fb31ac924697d2cf97ec429d1dd41d1651f1f9fa094dc1099`
+- Segmentos: 7 até 256000 bytes.
+- FT FINAL congelados individualmente: 349; todos os 331 FINAL da baseline anterior preservados.
+- Arquivo gzip: validado por formato DEFLATE armazenado (sem compressão efetiva, tamanho 1670558 bytes); otimizar a compressão antes de qualquer promoção definitiva.
 
-**Não constitui autorização de merge.** A main pode continuar a evoluir. Antes de ativar, regenerar o snapshot se o ledger/histórico tiver mudado, auditar consumidores e comprovar o primeiro ciclo FT/Pages e rollback.
+**NÃO MERGE.** Revalidar blobs atuais no instante de integração, CI, leitores dinâmicos, rollback, Pages, FT e watchdog. Qualquer alteração posterior de `discovery-state.json` ou `ft-ledger.json` exige nova geração e baseline.
