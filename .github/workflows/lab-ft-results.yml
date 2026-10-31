@@ -124,7 +124,7 @@ jobs:
       - name: Verify authoritative discovery and freeze FT FINAL
         run: |
           echo "FT_BASE_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-          python -m scripts.lab_discovery_authoritative_release verify
+          python -m scripts.lab_discovery_authoritative_release verify --check-bootstrap-pin
           python -m scripts.lab_ft_immutable_gate freeze --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
       - name: Check independent result reconciliation
         run: |
