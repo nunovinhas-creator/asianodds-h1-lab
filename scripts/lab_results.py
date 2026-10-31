@@ -9,7 +9,7 @@ from urllib.error import HTTPError, URLError
 from datetime import datetime, timezone
 from pathlib import Path
 
-from h1lab.lab_results import reconcile
+from h1lab.lab_results import reconcile, LIVE_HORIZON, utc
 from h1lab.lab_ft_backlog import audit as audit_ft_backlog
 from h1lab.v6_ft_events import priority_hints as v6_priority_hints
 from h1lab.lab_espn import ESPNResults
@@ -277,10 +277,18 @@ def main():
         if isinstance(row, dict)
     }
     approved_due -= {key for key, why in blocked_approved.items() if why}
+    # Never spend a reviewed-ID or exceptional recovery slot on a match
+    # already past its hard 24-hour deadline.
+    def inside_ft_window(row):
+        ko = utc(row.get("kickoff_utc")) if isinstance(row, dict) else None
+        return ko is not None and 0 <= (now - ko).total_seconds() <= LIVE_HORIZON.total_seconds()
+    approved_due = {key for key in approved_due if
+                    inside_ft_window(existing["matches"].get(key))}
     # Plan locators without HTTP before the general queue cap. Otherwise an
     # old usable ID outside the first 30 never competes for an existing slot.
     api_today = historical_days.get('usage', {}).get('api_football', {}).get(now.date().isoformat(), 0)
-    old_keys = sorted(k for k, r in existing['matches'].items() if old_id_due(r, now))
+    old_keys = sorted(k for k, row in existing['matches'].items()
+                      if inside_ft_window(row) and old_id_due(row, now))
     # Existing API-Football strict day-index identity checks are unchanged.
     # GOAL historical IDs remain audit-only until the original competition
     # identity has independent, reviewed evidence (not merely a provider label).
@@ -296,7 +304,8 @@ def main():
                                10 if api_football_poll else None),
         max_checks=0, force_recheck=recovery_once,
         priority_hints=research_hints, evidence_retry=True,
-        approved_rechecks=approved_due, recovery_keys=old_id_turn)
+        approved_rechecks=approved_due, recovery_keys=old_id_turn,
+        horizon=LIVE_HORIZON)
     preview_keys = preview["ft_queue"]["deferred_keys"][:checks]
     # Data-only, zero-HTTP planning. The scheduled FT workflow itself
     # requests at most three COMPLETE BSD day catalogues (max 3 pages
@@ -458,7 +467,8 @@ def main():
                                10 if api_football_poll else None),
         max_checks=checks, force_recheck=recovery_once,
         priority_hints=research_hints, evidence_retry=True,
-        approved_rechecks=approved_due, recovery_keys=old_id_turn)
+        approved_rechecks=approved_due, recovery_keys=old_id_turn,
+        horizon=LIVE_HORIZON)
 
 
     # The first pass fetched COMPLETE provider dates. Fresh STRONG candidates

@@ -77,7 +77,7 @@ def put(path, value, limit):
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT)
-    parser.add_argument("--state-backend", choices=("legacy", "dual"), default="legacy",
+    parser.add_argument("--state-backend", choices=("legacy", "dual", "segmented"), default="legacy",
                         help="Dual requires preexisting verified segment store; no auto-bootstrap")
     args = parser.parse_args(argv)
     root = args.root
@@ -89,17 +89,21 @@ def main(argv=None):
     # Existing production and historical replay use legacy by default.
     # Dual is an explicit, unconfigured CLI mode for isolated validation.
     prior = (read(root / STATE) if args.state_backend == "legacy" else
-             dual_state.load(root, format="dual"))
+             dual_state.load(root, format=args.state_backend))
     expected_generation = (dual_state.current_generation(root)
-                           if args.state_backend == "dual" else None)
+                           if args.state_backend != "legacy" else None)
     state, full_public, events = build(report, first, ledger, prior)
     # All public pattern points are preserved in immutable content-addressed
     # pages. Only the small manifest remains in discoveries.json.
     public, pages = paginate(full_public, root_limit=MAX_PUBLIC_BYTES)
     # Preflight the complete root/page set before ANY journal/state writes.
-    serialize(state, MAX_STATE_BYTES, STATE)
+    if args.state_backend == "segmented":
+        if len(segmented_store.encode(state)) > segmented_store.STATE_LIMIT:
+            raise ValueError("Segmented discovery safety limit reached")
+    else:
+        serialize(state, MAX_STATE_BYTES, STATE)
     serialize(public, MAX_PUBLIC_BYTES, PUBLIC)
-    if args.state_backend == "dual":
+    if args.state_backend != "legacy":
         # Preflight shard/member constraints BEFORE touching event journals.
         segmented_store.partition(state)
 
@@ -140,6 +144,9 @@ def main(argv=None):
         put(root / "docs/lab" / relative, json.loads(raw), PAGE_LIMIT)
     if args.state_backend == "dual":
         result = dual_state.write_dual(root, state, expected_generation=expected_generation)
+        a = result["changed"]
+    elif args.state_backend == "segmented":
+        result = dual_state.write_segmented(root, state, expected_generation=expected_generation)
         a = result["changed"]
     else:
         a = put(root / STATE, state, MAX_STATE_BYTES)

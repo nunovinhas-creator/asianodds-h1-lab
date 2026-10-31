@@ -90,10 +90,12 @@ def _pointer(raw):
     return value
 
 
-def _members(repo, ref):
+def _members(repo, ref, *, require_mirror=True):
     available = _tree(repo, ref)
-    if MIRROR not in available or PREFIX + "CURRENT.json" not in available:
-        raise ValueError("Missing durable legacy mirror or CURRENT pointer")
+    if PREFIX + "CURRENT.json" not in available:
+        raise ValueError("Missing discovery CURRENT pointer")
+    if require_mirror and MIRROR not in available:
+        raise ValueError("Missing durable legacy mirror")
 
     members = {}
     def take(name):
@@ -101,10 +103,10 @@ def _members(repo, ref):
             members[name] = _read(repo, ref, name, available)
         return members[name]
 
-    mirror = take(MIRROR)
-    if len(mirror) > 2_000_000:
+    mirror = take(MIRROR) if require_mirror else None
+    if require_mirror and len(mirror) > 2_000_000:
         raise ValueError("Verified legacy mirror exceeds existing 2 MB gate")
-    legacy_object = store.decode(mirror)
+    legacy_object = store.decode(mirror) if require_mirror else None
     current = _pointer(take(PREFIX + "CURRENT.json"))
     previous = None
     if PREFIX + "PREVIOUS.json" in available:
@@ -144,7 +146,7 @@ def _members(repo, ref):
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(raw)
         decoded, legacy = store.read(isolated)
-        if legacy != mirror or decoded != legacy_object:
+        if require_mirror and (legacy != mirror or decoded != legacy_object):
             raise ValueError("Staged segmented state differs from legacy source")
         if previous is not None:
             store._verify(isolated, members[PREFIX + "PREVIOUS.json"])
@@ -154,17 +156,22 @@ def _members(repo, ref):
     # remain in HEAD but must not change with the active publication.
     if ref == "INDEX":
         changes = _git(repo, "diff", "--cached", "--name-only", "-z").decode("utf-8").split("\0")
-        extras = [p for p in changes if p.startswith(PREFIX) and p not in members]
+        # Deletion of an unreachable old generation is permitted; leaving
+        # unreferenced new objects staged is not. Deleted paths are absent
+        # from the prospective index but remain recoverable from Git history.
+        extras = [p for p in changes if p.startswith(PREFIX)
+                  and p not in members and p in available]
         if extras:
             raise ValueError("Unreachable or temporary segmented members staged")
     return members, current, previous
 
 
-def seal(repo, *, ref="INDEX"):
+def seal(repo, *, ref="INDEX", require_mirror=True):
     """Return a deterministic proof of every reachable staged object."""
-    members, current, previous = _members(repo, ref)
+    members, current, previous = _members(repo, ref, require_mirror=require_mirror)
     return {
         "schema_version": 1,
+        "backend": "dual" if require_mirror else "segmented",
         "current_generation": current["generation"],
         "previous_generation": previous["generation"] if previous else None,
         "sha256": {name: hashlib.sha256(raw).hexdigest()
@@ -177,7 +184,10 @@ def verify_against_seal(repo, expected, *, ref="HEAD"):
     if (not isinstance(expected, dict) or expected.get("schema_version") != 1
             or not isinstance(expected.get("sha256"), dict)):
         raise ValueError("Missing or malformed segmented publication seal")
-    actual = seal(repo, ref=ref)
+    mode = expected.get("backend", "dual")
+    if mode not in ("dual", "segmented"):
+        raise ValueError("Unknown discovery Git seal backend")
+    actual = seal(repo, ref=ref, require_mirror=(mode == "dual"))
     if actual != expected:
         raise ValueError("Discovery bundle changed after commit or rebase")
     return actual

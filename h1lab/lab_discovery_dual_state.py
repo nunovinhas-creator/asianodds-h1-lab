@@ -16,7 +16,7 @@ from . import lab_discovery_store as store
 STATE = Path("data/lab/discovery-state.json")
 SEGMENT = Path("data/lab/discovery-segmented")
 LEGACY_LIMIT = 2_000_000
-FORMATS = ("legacy", "dual")
+FORMATS = ("legacy", "dual", "segmented")
 
 
 def legacy_source(root):
@@ -36,6 +36,11 @@ def load(root, *, format="legacy"):
     """Fail closed in dual mode; never silently replace missing/corrupt shards."""
     if format not in FORMATS:
         raise ValueError("Unknown discovery state format")
+    if format == "segmented":
+        state, _ = store.read(Path(root) / SEGMENT)
+        if not isinstance(state, dict) or state.get("schema_version") != 1:
+            raise ValueError("Invalid authoritative segmented discovery")
+        return state
     legacy, raw = legacy_source(root)
     if format == "legacy":
         return legacy
@@ -110,3 +115,25 @@ def write_dual(root, state, *, expected_generation):
     _mirror_replace(root / STATE, raw)
     load(root, format="dual")
     return result
+
+
+def write_segmented(root, state, *, expected_generation):
+    """Authoritative, content-addressed history: no 2 MB legacy mirror.
+
+    Caller MUST use a guarded Git transaction with all reachable shards and
+    the current pointer; publication of only one object is forbidden.
+    """
+    root = Path(root)
+    if not isinstance(state, dict) or state.get("schema_version") != 1:
+        raise ValueError("Invalid segmented discovery state")
+    if not isinstance(expected_generation, str) or len(expected_generation) != 64:
+        raise ValueError("Expected generation required")
+    _, raw = store.read(root / SEGMENT)
+    if store.digest(raw) != expected_generation:
+        raise ValueError("Stale authoritative segmented writer")
+    encoded = store.encode(state)
+    if len(encoded) > store.STATE_LIMIT:
+        raise ValueError("Segmented state exceeds safety limit")
+    store.partition(state)
+    return store.publish(encoded, root / SEGMENT,
+                         expected_generation=expected_generation)

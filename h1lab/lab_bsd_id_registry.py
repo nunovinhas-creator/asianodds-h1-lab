@@ -177,7 +177,7 @@ def discover(previous, caches, all_matches, now):
                           "status":"COMPLETE","total_events":len(catalogue)}
         stats["complete_days"]+=1
         for key,g in all_matches.items():
-            if (not isinstance(g,dict) or g.get("status")=="FINAL"
+            if (not isinstance(g,dict) or g.get("status") not in ("PENDING", "PROVIDER_ERROR")
                     or g.get("kickoff_utc","")[:10]!=day or key in out["conflicts"]):
                 continue
             candidates=[e for e in catalogue if _valid_match(key,g,e)]

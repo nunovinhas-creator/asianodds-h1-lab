@@ -129,7 +129,17 @@ def seal(pipeline, manifest):
         if present:
             if PREFIX + 'CURRENT.json' not in present:
                 raise ValueError('Segmented files staged without CURRENT pointer')
-            segmented = seal_segmented(Path.cwd(), ref='INDEX')
+            # The workflow selects the authoritative mode explicitly. Unlike
+            # dual mode, it never requires a 2 MB legacy mirror.
+            # Offline unit fixtures may not include an Actions workflow.
+            # In that case preserve the strict old mirror proof by default.
+            try:
+                workflow = git('show', ':.github/workflows/lab-ft-results.yml').decode('utf-8')
+            except subprocess.CalledProcessError:
+                workflow = ''
+            authoritative = 'python -m scripts.lab_discoveries --state-backend segmented' in workflow
+            segmented = seal_segmented(Path.cwd(), ref='INDEX',
+                                       require_mirror=not authoritative)
             names = sorted(set(names) | set(segmented['sha256']))
     hashes = {}
     for name in names:

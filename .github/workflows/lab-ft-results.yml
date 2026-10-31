@@ -121,6 +121,11 @@ jobs:
           python-version: '3.11'
       - name: Read most recent LAB/H1 input snapshots
         run: git pull --rebase origin main
+      - name: Verify authoritative discovery and freeze FT FINAL
+        run: |
+          echo "FT_BASE_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          python -m scripts.lab_discovery_authoritative_release verify --check-bootstrap-pin
+          python -m scripts.lab_ft_immutable_gate freeze --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
       - name: Check independent result reconciliation
         run: |
           python -m unittest discover -s tests -p 'test_lab_results.py' -v
@@ -337,12 +342,13 @@ jobs:
         continue-on-error: true
         run: |
           python -m unittest discover -s tests -p 'test_discovery_timeline.py' -v
-          python -m scripts.lab_discoveries
+          python -m scripts.lab_discoveries --state-backend segmented
           python - <<'PY'
           import json
           from pathlib import Path
           d=json.loads(Path('docs/lab/discoveries.json').read_text(encoding='utf-8'))
-          s=json.loads(Path('data/lab/discovery-state.json').read_text(encoding='utf-8'))
+          from h1lab import lab_discovery_dual_state as discovery_state
+          s=discovery_state.load('.',format='segmented')
           assert d['status']=='DISCOVERY_OBSERVATION_NOT_BETTING'
           if 'pattern_pages' in d:
             from h1lab.discovery_public_pages import verify
@@ -363,6 +369,8 @@ jobs:
           PUBLICATION_STEPS: ${{ toJSON(steps) }}
         run: |
           python -m scripts.publication_guard outcomes --pipeline ft
+          python -m scripts.lab_ft_immutable_gate verify --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
+          python -m scripts.lab_discovery_authoritative_release stage
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/lab/ft-ledger.json docs/lab/ft-results.json docs/lab/ft-backlog.json
@@ -396,18 +404,16 @@ jobs:
             exit 0
           fi
           git commit -m 'data(lab): reconcile observed match FT [skip ci]'
-          for attempt in 1 2 3 4 5; do
-            git fetch origin main
-            git rebase origin/main
-            python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
-            if git push origin HEAD:main; then
-              echo LAB_FT_PUBLISHED
-              exit 0
-            fi
-            sleep 2
-          done
-          echo LAB_FT_PUBLISH_FAILED
-          exit 1
+          # DISCOVERY_SEGMENTED_NO_REBASE: avoid replaying stale FT.
+          python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
+          python -m scripts.lab_discovery_authoritative_release verify
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$FT_BASE_HEAD" ]; then
+            echo FT_REMOTE_CONFLICT_RERUN_WHOLE_RECONCILIATION
+            exit 1
+          fi
+          git push origin HEAD:refs/heads/main
+          echo LAB_FT_PUBLISHED
 
   # Direct job dependency also covers watchdog dispatches whose workflow_run
   # completion event may not start a separate monitor. No provider calls.

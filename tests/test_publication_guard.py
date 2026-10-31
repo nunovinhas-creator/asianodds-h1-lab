@@ -79,7 +79,16 @@ class GuardTests(unittest.TestCase):
             tail = source[source.index('      - name: Commit only'):]
             self.assertLess(tail.index('publication_guard outcomes'), tail.index('git add'))
             self.assertLess(tail.index('publication_guard seal'), tail.index('git commit'))
-            self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
+            if pipeline == "ft":
+                self.assertIn("DISCOVERY_SEGMENTED_NO_REBASE", tail)
+                self.assertIn("FT_BASE_HEAD", source)
+                self.assertNotIn("git rebase", tail)
+                self.assertIn("lab_ft_immutable_gate verify", tail)
+                self.assertIn("lab_discovery_authoritative_release stage", tail)
+                self.assertLess(tail.index("publication_guard verify"),
+                                tail.index("git fetch origin main"))
+            else:
+                self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
             self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
             for name in g.PRODUCERS[pipeline]:
                 self.assertIn('id: ' + name + '\n', source)
