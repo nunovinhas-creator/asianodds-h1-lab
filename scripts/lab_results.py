@@ -24,6 +24,7 @@ from h1lab.lab_ft_diagnostics import coverage_diagnostics
 from h1lab.lab_identity_review import build_queue
 from h1lab.lab_ft_rotation import choose_days, advance
 from h1lab.lab_ft_index_probe import plan_index_ids, IndexProbe
+from h1lab.lab_api_football_id_access import id_batch_policy
 from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
@@ -236,6 +237,7 @@ def main():
     prior_api_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
                        if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
     history_access = restore_access_from_audit(history_access, prior_api_audit, now)
+    id_batch_limit, id_parameter_policy = id_batch_policy(prior_api_audit, now)
     historical_days["api_football_history_access"] = history_access
     catalog_v4 = read_v4()
     # An approved fixture receives one immediate priority slot only when
@@ -370,6 +372,10 @@ def main():
                   else "NO_ELIGIBLE_APPROVED_ID_AT_THIS_RUN")
         reviewed_id_decisions = {key: {"status": "DEFERRED", "reason": reason}
                                  for key in approved["pairs"]}
+    for key in list(approved_targets)[id_batch_limit:]:
+        approved_targets.pop(key)
+        reviewed_id_decisions[key] = {
+            "status": "DEFERRED", "reason": "IDS_PARAMETER_DENIED_SINGLE_ID_TURN"}
     if approved_targets:
         api_football.reviewed_targets = approved_targets
         rotation["api_football"] = rotation["api_football"][:min(
@@ -377,7 +383,7 @@ def main():
     strict_targets = (plan_index_ids(
         preview_keys, _preview_ledger["matches"], previous_day_index, now,
         reserved=[v["provider_fixture_id"] for v in approved_targets.values()],
-        max_batch=20-len(approved_targets))
+        max_batch=id_batch_limit-len(approved_targets))
         if api_football_poll and api_today < 90 else {})
     strict_probe = IndexProbe(api_football, strict_targets)
     if strict_targets:
@@ -700,6 +706,7 @@ def main():
     report["api_football_search"] = api_football.summary()
     report["api_football_search"]["strict_index_probe"] = {
         "planned": len(strict_targets), "outcomes": dict(sorted(strict_probe.outcomes.items())),
+        "id_batch_limit": id_batch_limit, "id_parameter_policy": id_parameter_policy,
         "fallback_outcomes": dict(sorted(strict_probe.fallback_outcomes.items())),
         "scope": "strict cached identities; shared ID batch, not extra requests"}
 
