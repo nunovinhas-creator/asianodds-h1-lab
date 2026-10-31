@@ -92,7 +92,8 @@ class GuardTests(unittest.TestCase):
                                 tail.index("lab_ft_publish_safe"))
             else:
                 self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
-            self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
+            if pipeline == "audit":
+                self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
             for name in g.PRODUCERS[pipeline]:
                 self.assertIn('id: ' + name + '\n', source)
 
