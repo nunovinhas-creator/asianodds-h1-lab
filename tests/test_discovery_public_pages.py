@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from scripts import publication_guard as guard
 from scripts.lab_discoveries import main as generate_discovery
+from h1lab.discovery_timeline import build as build_discovery
 
 from h1lab.discovery_public_pages import paginate, verify, encode, PAGE_LIMIT
 
@@ -89,8 +90,15 @@ class DiscoveryPublicPagesTests(unittest.TestCase):
                           for p in published["pattern_pages"]}
             self.assertEqual(verify(published, page_files), len(stored["patterns"]))
             self.assertEqual(generated, published)
+            report, first, ledger, prior = [
+                json.loads((source / item).read_text(encoding="utf-8"))
+                for item in input_files
+            ]
+            _, full, _ = build_discovery(report, first, ledger, prior)
             self.assertEqual(reconstruct(published, page_files)["patterns"],
-                             stored["patterns"])
+                             full["patterns"])
+            self.assertEqual(reconstruct(published, page_files)["timeline"],
+                             full["timeline"])
 
     def test_deterministic_and_reusable_content_addressed_pages(self):
         source = sample(40)
