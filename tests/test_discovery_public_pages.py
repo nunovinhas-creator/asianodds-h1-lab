@@ -132,6 +132,9 @@ class DiscoveryPublicPagesTests(unittest.TestCase):
         def staged_git(*args):
             if args[0] == "diff":
                 return b"docs/lab/discoveries.json\0"
+            if args[0] in ("ls-files", "ls-tree"):
+                # No segmented store is staged/committed in this public-page fixture.
+                return b""
             if args[0] == "show":
                 return documents[args[1].split(":", 1)[1]]
             raise AssertionError(args)
