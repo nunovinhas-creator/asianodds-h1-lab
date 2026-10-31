@@ -1,7 +1,11 @@
 import copy
 import hashlib
 import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
+from scripts import publication_guard as guard
 
 from h1lab.discovery_public_pages import paginate, verify, encode, PAGE_LIMIT
 
@@ -74,6 +78,33 @@ class DiscoveryPublicPagesTests(unittest.TestCase):
         traversal["pattern_pages"][0]["path"] = "../secrets.json"
         with self.assertRaises(ValueError):
             verify(traversal, pages)
+
+    def test_git_seal_includes_pages_and_rejects_rebase_mutation(self):
+        root, pages = paginate(sample(30, points=24, size=300))
+        documents = {"docs/lab/discoveries.json": encode(root)}
+        documents.update({"docs/lab/" + k: v for k, v in pages.items()})
+        def staged_git(*args):
+            if args[0] == "diff":
+                return b"docs/lab/discoveries.json\\0"
+            if args[0] == "show":
+                return documents[args[1].split(":", 1)[1]]
+            raise AssertionError(args)
+        with tempfile.TemporaryDirectory() as d:
+            manifest = Path(d) / "seal.json"
+            with (patch.dict(guard.REQUIRED, {"ft": ("docs/lab/discoveries.json",)}),
+                  patch.object(guard, "inventory", return_value=[]),
+                  patch.object(guard, "git", side_effect=staged_git)):
+                guard.seal("ft", manifest)
+                saved = json.loads(manifest.read_text())["sha256"]
+                self.assertIn("docs/lab/discoveries.json", saved)
+                self.assertEqual(set(saved), set(documents))
+                guard.verify(manifest)
+                first = next(iter(pages))
+                documents["docs/lab/" + first] += b" "
+                with self.assertRaises(ValueError):
+                    guard.verify(manifest)
+                with self.assertRaises(ValueError):
+                    guard.seal("ft", manifest)
 
     def test_single_oversized_pattern_fails_closed(self):
         with self.assertRaises(ValueError):
