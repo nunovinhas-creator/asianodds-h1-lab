@@ -27,6 +27,15 @@ def review():
 
 
 class RecoveryTurnTests(unittest.TestCase):
+    def test_changed_observed_identity_is_rejected_before_http(self):
+        targets=plan_exact_goal_ids({K:ROW},review(),NOW)
+        calls=[]
+        p=GoalResults('synthetic',allowed_days=[],target_ids={K:'858889'},exact_targets=targets,
+                      id_getter=lambda i,k:(calls.append(i) or dict(E)))
+        self.assertIsNone(p.lookup(dict(ROW,home='Different Team'))[0])
+        self.assertEqual(calls,[])
+        self.assertEqual(p.summary()['requests'],0)
+
     def test_last_daily_slot_is_substituted_not_overspent_or_wasted(self):
         from h1lab.lab_ft_rotation import advance
         for used in (78, 79):

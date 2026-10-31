@@ -212,6 +212,12 @@ class GoalResults:
             return None,"goal_invalid_kickoff"
         target = self.target_ids.get(signal.get("match_key"))
         if target is not None:
+            exact = self.exact_targets.get(signal.get('match_key'))
+            if exact is not None and any(signal.get(f) != exact.get(f)
+                                         for f in ('home', 'away', 'kickoff_utc')):
+                self.id_outcomes[signal['match_key']] = 'goal_id_locator_signal_changed'
+                self.reasons['goal_id_locator_signal_changed'] += 1
+                return None, 'goal_id_locator_signal_changed'
             if self.id_requests >= 1:
                 return None,"goal_id_budget_deferred"
             # This one ID call replaces one of two date calls, never adds a third.
@@ -229,7 +235,6 @@ class GoalResults:
                 self.reasons["goal_id_mismatch"] += 1
                 return None,"goal_id_mismatch"
             reviewed = self.reviewed_targets.get(signal.get("match_key"))
-            exact = self.exact_targets.get(signal.get('match_key'))
             if exact is not None:
                 from .lab_ft_recovery_turn import exact_goal_response_ok
                 if not exact_goal_response_ok(signal, event, exact):
