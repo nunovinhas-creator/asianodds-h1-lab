@@ -220,8 +220,22 @@ def publish(root, *, base, manifest, baseline, max_attempts=6):
         raise UnsafeFTPublication("Missing authoritative FT publication seal")
     sealed = set(proof["sha256"])
     produced = changed_paths(root, base, source)
-    if not produced or not produced <= sealed:
-        raise UnsafeFTPublication("Unsealed FT output changes: " + repr(sorted(produced - sealed)[:8]))
+    live_produced = {name for name in produced
+                     if tree_entry(root, source, name) is not None}
+    deleted = produced - live_produced
+    # Old immutable generations disappear from HEAD once no longer reachable
+    # through CURRENT/PREVIOUS. The segmented Git seal already proves those
+    # are unreachable; deleted files are *not* live members in its hashes.
+    retired = re.compile(
+        r"data/lab/discovery-segmented/[a-f0-9]{64}/"
+        r"(?:manifest\\.json|legacy\\.json\\.gz|state-[0-9]{4}\\.json)\\Z"
+    )
+    if (not live_produced or not live_produced <= sealed
+            or any(not retired.fullmatch(name) for name in deleted)):
+        raise UnsafeFTPublication(
+            "Unsealed FT output changes or unsafe deletions: "
+            + repr(sorted((live_produced - sealed)
+                          | {name for name in deleted if not retired.fullmatch(name)})[:8]))
     # The source payload is completely valid and immutable from this point on.
     publication_guard.verify(manifest)
     verify_files(baseline, root / "data/lab/ft-ledger.json")
