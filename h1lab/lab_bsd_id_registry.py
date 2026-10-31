@@ -177,7 +177,7 @@ def discover(previous, caches, all_matches, now):
                           "status":"COMPLETE","total_events":len(catalogue)}
         stats["complete_days"]+=1
         for key,g in all_matches.items():
-            if (not isinstance(g,dict) or g.get("status")=="FINAL"
+            if (not isinstance(g,dict) or g.get("status") not in ("PENDING", "PROVIDER_ERROR")
                     or g.get("kickoff_utc","")[:10]!=day or key in out["conflicts"]):
                 continue
             candidates=[e for e in catalogue if _valid_match(key,g,e)]
@@ -309,7 +309,7 @@ def due_unmapped_keys(matches, registry, now):
                 or key in registry.get("conflicts",{})):
             continue
         ko=utc(row.get("kickoff_utc"))
-        if ko is not None and timedelta(hours=3)<=now-ko<=timedelta(days=30):
+        if ko is not None and timedelta(hours=3)<=now-ko<=timedelta(hours=24):
             keys.append(key)
     return sorted(keys)
 
@@ -333,7 +333,7 @@ def plan_days(selected_keys, matches, registry, now, max_days=3):
                 or key in registry.get("conflicts",{})):
             continue
         ko=utc(row.get("kickoff_utc"))
-        if ko is None or not ko+timedelta(hours=3)<=now<=ko+RETENTION:
+        if ko is None or not ko+timedelta(hours=3)<=now<=ko+timedelta(hours=24):
             continue
         day=ko.date().isoformat()
         if date_in_cooldown(registry.get("probes", {}), day, now):
