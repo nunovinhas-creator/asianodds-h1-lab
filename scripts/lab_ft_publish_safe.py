@@ -1,0 +1,275 @@
+"""Publish an already sealed FT commit across unrelated H1/V4 Git activity.
+
+Use only AFTER the FT producers, immutable-FINAL guard, segment staging and
+publication seal have succeeded. No provider calls, blind retries, rebases,
+force pushes or rewrites of concurrent FT artifacts.
+
+The original FT commit is transplanted byte-for-byte over the current remote
+tree with an isolated Git index. The new tree is *fully* verified before an
+ordinary fast-forward Git push. Changed FT files, mutated identities, rewritten
+journals, code, or unknown remote paths always abort.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import tempfile
+from pathlib import Path
+
+from scripts import publication_guard
+from scripts.lab_discovery_authoritative_release import main as discovery_verify
+from h1lab.lab_ft_final_guard import verify_files
+
+SHA = re.compile(r"[a-f0-9]{40}\Z")
+JOURNAL = re.compile(r"data/lab/(?:markets|formats|v4-revisions|v4-runchecks)-\d{4}-\d{2}\.jsonl\Z")
+V4_REPORT = re.compile(
+    r"docs/lab/(?:v4-audit|v4-revisions|golden-candidates|golden-report|"
+    r"golden-priority|v6-shadow|v6-readiness|v6-price-quality|"
+    r"v6-feature-coverage|v6-memory|v6-falsification|"
+    r"match-trajectories|trajectory-research|outcome-readiness|"
+    r"v6-scientific-radar|v6-weekly-drift|v6-archive-health|"
+    r"v6-p0-null-simulation|v6-p0-gates)\.json\Z"
+)
+V4_ARCHIVE = re.compile(
+    r"data/lab/(?:v6-forecasts-\d{4}-\d{2}|v6-memory-\d{4}-\d{2}|"
+    r"v6-hypotheses|v6-weekly-snapshots|v4-runchecks-\d{4}-\d{2})\.jsonl\Z"
+)
+LLM_SHADOW = re.compile(
+    r"docs/lab/(?:llm-discovery-plan|llm-investigator-index|"
+    r"llm-investigator-runs/\d+)\.json\Z"
+)
+
+class UnsafeFTPublication(ValueError):
+    pass
+
+
+def run(root, *args, env=None, input_bytes=None, check=True):
+    proc = subprocess.run(["git", "-C", str(root), *args], input=input_bytes,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    if check and proc.returncode:
+        raise UnsafeFTPublication(
+            "Git operation failed: " + " ".join(args[:2])
+            + " (" + proc.stderr.decode("utf-8", "replace")[-350:] + ")")
+    return proc
+
+
+def git(root, *args, env=None):
+    return run(root, *args, env=env).stdout
+
+
+def sha(root, ref):
+    value = git(root, "rev-parse", "--verify", ref).decode().strip()
+    if not SHA.fullmatch(value):
+        raise UnsafeFTPublication("Invalid Git revision " + ref)
+    return value
+
+
+def changed_paths(root, base, target):
+    result = git(root, "diff", "--name-only", "-z", base, target)
+    names = set(p.decode("utf-8") for p in result.split(b"\0") if p)
+    if any(not name or name.startswith("/") or "\\x00" in name
+           for name in names):
+        raise UnsafeFTPublication("Malformed Git paths")
+    return names
+
+
+def blob_or_none(root, ref, path):
+    proc = run(root, "show", ref + ":" + path, check=False)
+    if proc.returncode:
+        return None
+    return proc.stdout
+
+
+def stable_fixtures(before, after):
+    """H1 odds can change, but shared match identities may never change."""
+    try:
+        a, b = json.loads(before), json.loads(after)
+        if not isinstance(a, dict) or not isinstance(b, dict):
+            return False
+        def ids(state):
+            result = {}
+            for field in ("alerts", "signals"):
+                rows = state.get(field, [])
+                if not isinstance(rows, list):
+                    raise ValueError("Invalid H1 events")
+                for row in rows:
+                    if not isinstance(row, dict):
+                        raise ValueError("Invalid H1 observation")
+                    key = row.get("match_key")
+                    if not isinstance(key, str) or not key:
+                        continue
+                    identity = (row.get("home"), row.get("away"),
+                                row.get("kickoff_utc"), row.get("competition"))
+                    if any(not isinstance(v, str) or not v for v in identity[:3]):
+                        raise ValueError("Missing fixture identity")
+                    result.setdefault(key, set()).add(identity[:3])
+            return result
+        previous, current = ids(a), ids(b)
+        return all(previous[key] == current[key]
+                   for key in previous.keys() & current.keys())
+    except (ValueError, TypeError):
+        return False
+
+
+def append_only_jsonl(previous, current):
+    if previous is None:
+        previous = b""
+    if not current.startswith(previous) or (previous and not previous.endswith(b"\n")):
+        return False
+    extra = current[len(previous):]
+    if extra and not extra.endswith(b"\n"):
+        return False
+    try:
+        return all(isinstance(json.loads(line), dict)
+                   for line in extra.splitlines() if line)
+    except (ValueError, UnicodeDecodeError):
+        return False
+
+
+def allowed_remote_changes(root, base, remote, protected, produced):
+    remote_changes = changed_paths(root, base, remote)
+    overlap = remote_changes & (protected | produced)
+    if overlap:
+        raise UnsafeFTPublication(
+            "Concurrent FT/sealed artifact changed: " + ", ".join(sorted(overlap)[:8]))
+    for path in sorted(remote_changes):
+        if (path.startswith(("h1lab/", "scripts/", ".github/", "tests/"))
+                or path.startswith(("data/lab/discovery-segmented/",
+                                    "docs/lab/discovery-pages/"))
+                or path.startswith(("data/lab/ft-", "docs/lab/ft-",
+                                    "data/lab/discovery-events-"))
+                or path.startswith(("docs/lab/pattern-", "data/lab/pattern-"))):
+            raise UnsafeFTPublication("FT dependency or program changed: " + path)
+        if path == "data/state.json":
+            previous = blob_or_none(root, base, path)
+            current = blob_or_none(root, remote, path)
+            if previous is None or current is None or not stable_fixtures(previous, current):
+                raise UnsafeFTPublication("H1 fixture identity changed: " + path)
+        elif path in ("docs/data.json", "data/results.json"):
+            if blob_or_none(root, remote, path) is None:
+                raise UnsafeFTPublication("H1 artifact deleted: " + path)
+        elif JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
+            if not append_only_jsonl(blob_or_none(root, base, path),
+                                     blob_or_none(root, remote, path) or b""):
+                raise UnsafeFTPublication("V4/H1 journal rewritten: " + path)
+        elif V4_REPORT.fullmatch(path) or LLM_SHADOW.fullmatch(path):
+            if blob_or_none(root, remote, path) is None:
+                raise UnsafeFTPublication("Concurrent report deleted: " + path)
+        elif path == "data/lab/v6-archive-index.json":
+            # Archive index changes can invalidate V4 origin provenance.
+            raise UnsafeFTPublication("V4 source archive index changed")
+        else:
+            raise UnsafeFTPublication("Unknown concurrent path: " + path)
+    return sorted(remote_changes)
+
+
+def tree_entry(root, source, path):
+    raw = git(root, "ls-tree", "-z", source, "--", path)
+    if not raw:
+        return None
+    items = [item for item in raw.split(b"\0") if item]
+    if len(items) != 1:
+        raise UnsafeFTPublication("Ambiguous FT tree entry: " + path)
+    header, filename = items[0].split(b"\t", 1)
+    mode, kind, item_sha = header.decode("ascii").split()
+    if filename.decode() != path or kind != "blob" or mode != "100644" or not SHA.fullmatch(item_sha):
+        raise UnsafeFTPublication("Unsafe FT tree entry: " + path)
+    return mode, item_sha
+
+
+def assemble(root, remote, source, produced):
+    """Use a separate Git index: never mix collector changes with FT outputs."""
+    with tempfile.TemporaryDirectory(prefix="ft-git-index-") as d:
+        idx = Path(d) / "index"
+        env = {**os.environ, "GIT_INDEX_FILE": str(idx)}
+        git(root, "read-tree", remote, env=env)
+        for path in sorted(produced):
+            row = tree_entry(root, source, path)
+            if row is None:
+                git(root, "update-index", "--force-remove", "--", path, env=env)
+            else:
+                mode, obj_sha = row
+                git(root, "update-index", "--add", "--cacheinfo",
+                    mode + "," + obj_sha + "," + path, env=env)
+        newtree = git(root, "write-tree", env=env).decode().strip()
+        if not SHA.fullmatch(newtree):
+            raise UnsafeFTPublication("Invalid candidate Git tree")
+        message = ("data(lab): publish verified FT snapshot over unrelated H1/V4 updates "
+                   "[skip ci]")
+        candidate = git(root, "commit-tree", newtree, "-p", remote,
+                        "-m", message, env=env).decode().strip()
+        if not SHA.fullmatch(candidate):
+            raise UnsafeFTPublication("Invalid candidate FT commit")
+        return candidate
+
+
+def publish(root, *, base, manifest, baseline, max_attempts=6):
+    root, manifest, baseline = Path(root), Path(manifest), Path(baseline)
+    if not SHA.fullmatch(base) or not 1 <= max_attempts <= 10:
+        raise UnsafeFTPublication("Invalid original run base or bounded retry count")
+    source = sha(root, "HEAD")
+    if sha(root, "HEAD^") != base:
+        raise UnsafeFTPublication("FT source commit is not based on the pinned checkout")
+    if git(root, "status", "--porcelain").strip():
+        raise UnsafeFTPublication("FT checkout is not clean")
+    proof = json.loads(manifest.read_text(encoding="utf-8"))
+    if proof.get("pipeline") != "ft" or not proof.get("segmented"):
+        raise UnsafeFTPublication("Missing authoritative FT publication seal")
+    sealed = set(proof["sha256"])
+    produced = changed_paths(root, base, source)
+    if not produced or not produced <= sealed:
+        raise UnsafeFTPublication("Unsealed FT output changes: " + repr(sorted(produced - sealed)[:8]))
+    # The source payload is completely valid and immutable from this point on.
+    publication_guard.verify(manifest)
+    verify_files(baseline, root / "data/lab/ft-ledger.json")
+    last_remote = None
+    for attempt in range(1, max_attempts+1):
+        git(root, "fetch", "--no-tags", "origin", "main")
+        remote = sha(root, "FETCH_HEAD")
+        if run(root, "merge-base", "--is-ancestor", base, remote, check=False).returncode:
+            raise UnsafeFTPublication("Remote main no longer descends from the FT input base")
+        allowed = allowed_remote_changes(root, base, remote, sealed, produced)
+        if remote == base:
+            candidate = source
+        else:
+            candidate = assemble(root, remote, source, produced)
+        # Worktree reset is local only. A failing proof can NEVER be pushed.
+        git(root, "reset", "--hard", candidate)
+        publication_guard.verify(manifest)
+        verify_files(baseline, root / "data/lab/ft-ledger.json")
+        discovery_verify(["verify", "--root", str(root)])
+        result = run(root, "push", "origin", "HEAD:refs/heads/main", check=False)
+        if result.returncode == 0:
+            print("FT_ATOMIC_PUBLISHED", json.dumps({
+                "attempt": attempt, "remote_base": remote,
+                "source_commit": source, "published_commit": candidate,
+                "unrelated_paths": len(allowed), "sealed_files": len(sealed),
+                "provider_requeries": 0}, sort_keys=True))
+            return candidate
+        last_remote = remote
+        # Only an ordinary non-fast-forward race is retried. Other push errors
+        # (auth, protection, hooks) are never silently hidden.
+        err = result.stderr.decode("utf-8", "replace")
+        if not any(x in err for x in ("non-fast-forward", "fetch first", "stale info")):
+            raise UnsafeFTPublication("Push failed for reason other than a Git race: " + err[-300:])
+        print("FT_REMOTE_RACE_RECHECK", attempt, "after", last_remote)
+    raise UnsafeFTPublication("Remote advanced during all bounded FT publication attempts")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--base", required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument("--max-attempts", type=int, default=6)
+    args = parser.parse_args(argv)
+    publish(args.root, base=args.base, manifest=args.manifest,
+            baseline=args.baseline, max_attempts=args.max_attempts)
+
+
+if __name__ == "__main__":
+    main()
