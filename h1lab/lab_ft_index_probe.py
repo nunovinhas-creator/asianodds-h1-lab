@@ -4,6 +4,7 @@ Never creates human approvals, guesses aliases or changes FT validators.
 The ID batch replaces one date slot; queue/visit cooldowns remain mandatory.
 """
 from datetime import timedelta
+import re
 from .lab_results import utc, retry_wait, RETRY, DELAY, HORIZON
 from .lab_identity import select_event, pair_level
 from .lab_ft_day_identity import fixture_index, check_day_identity, _read_event
@@ -67,6 +68,7 @@ class IndexProbe:
     def __init__(self, adapter, targets):
         self.adapter, self.targets = adapter, targets
         self.outcomes = {}
+        self.fallback_outcomes = {}
         self.days = adapter.days  # complete date evidence remains visible to V7
         adapter.extra_fixture_ids = [t['provider_fixture_id'] for t in targets.values()]
 
@@ -98,8 +100,24 @@ class IndexProbe:
                 a.id_cache = a.id_fetch(ids,a.key)
             except (OSError,ValueError,KeyError,TypeError) as exc:
                 a.id_cache = {}
-                a.reviewed_error_details[key] = failure_from(exc)
-                return finish(None,'api_football_index_id_unavailable')
+                a.id_batch_error = failure_from(exc)
+        if a.id_batch_error is not None:
+            # A failed shared HTTP response is unavailable for EVERY member,
+            # never an empty successful result for subsequent lookups.
+            a.reviewed_error_details[key] = dict(a.id_batch_error)
+            unavailable = finish(None,'api_football_index_id_unavailable')
+            detail = a.id_batch_error
+            quota = (detail.get('http_status') == 429 or re.search(
+                r'quota|rate.?limit|daily limit|too many requests|requests? (?:per|remaining)',
+                detail.get('provider_errors',''), re.I))
+            if quota:
+                self.fallback_outcomes[key] = 'QUOTA_OR_429_NO_ADDITIONAL_REQUEST'
+                return unavailable
+            # Only the date already authorized by the unchanged rotation may
+            # be tried. The adapter reuses cache and enforces the shared cap.
+            result, reason = a.lookup(signal)
+            self.fallback_outcomes[key] = reason
+            return (result, reason) if result is not None else unavailable
         event = a.id_cache.get(target['provider_fixture_id'])
         if event is None:
             return finish(None,'api_football_index_id_missing')

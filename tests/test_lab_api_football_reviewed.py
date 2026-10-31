@@ -129,9 +129,9 @@ class ReviewedBatchTests(unittest.TestCase):
         self.assertEqual(p.summary()["reviewed_outcomes"][key], reason)
         self.assertEqual(p.id_requests, 1)
         self.assertEqual(p.summary()["requests"], 1)
-        # A retry inside the same run does not consume a second request.
+        # A retry reuses the failed response without inventing absence.
         result, reason = p.lookup(signal(1))
-        self.assertEqual(reason, "api_football_reviewed_id_missing")
+        self.assertEqual(reason, "api_football_reviewed_id_unavailable")
         self.assertEqual(p.id_requests, 1)
         self.assertEqual(p.reviewed_outcomes[key], reason)
 

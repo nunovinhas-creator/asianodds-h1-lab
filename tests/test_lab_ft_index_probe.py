@@ -4,6 +4,7 @@ from datetime import datetime,timezone,timedelta
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_index_probe import plan_index_ids,IndexProbe
+from h1lab.lab_api_football_errors import APIRequestFailure
 from test_lab_api_football import S,game
 
 NOW=datetime(2026,10,30,12,tzinfo=timezone.utc)
@@ -17,6 +18,72 @@ def setup():
     return ev,index,matches
 
 class StrictIndexProbeTests(unittest.TestCase):
+    def test_failed_batch_is_unavailable_for_every_target_never_missing(self):
+        ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
+        second=dict(S,match_key='second')
+        targets['second']=dict(targets[S['match_key']],match_key='second')
+        calls=[]
+        def fail(ids,key):
+            calls.append(ids)
+            raise APIRequestFailure('PROVIDER_ERRORS',http_status=200,
+                errors={'plan':'Free plan does not allow this endpoint'})
+        a=APIFootballResults('test',allowed_days=[],id_fetch=fail)
+        probe=IndexProbe(a,targets)
+        for signal in (S,second):
+            self.assertEqual(probe.lookup(signal)[1],'api_football_index_id_unavailable')
+            self.assertEqual(a.reviewed_error_details[signal['match_key']]['category'],
+                             'PROVIDER_ERRORS')
+        self.assertEqual(len(calls),1)
+
+    def test_failed_id_can_use_authorized_date_within_shared_budget(self):
+        ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
+        calls=[]
+        def fail(ids,key):
+            calls.append('id');raise OSError('unavailable')
+        def date(day,key):calls.append(day);return [ev]
+        a=APIFootballResults('test',allowed_days=['2026-10-27'],id_fetch=fail,fetch=date)
+        probe=IndexProbe(a,targets)
+        self.assertIsNotNone(probe.lookup(S)[0])
+        self.assertIsNotNone(probe.lookup(S)[0])
+        self.assertEqual(calls,['id','2026-10-27'])
+        self.assertEqual(a.summary()['requests'],2)
+        self.assertEqual(probe.outcomes[S['match_key']],'api_football_index_id_unavailable')
+        self.assertEqual(probe.fallback_outcomes[S['match_key']],'verified_api_football_ft')
+
+    def test_rate_limit_or_daily_quota_never_triggers_date_fallback(self):
+        ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
+        for failure in (APIRequestFailure('HTTP_ERROR',http_status=429),
+                APIRequestFailure('PROVIDER_ERRORS',http_status=200,
+                                  errors={'requests':'Daily limit reached'})):
+            def fail(ids,key):raise failure
+            def date(day,key):raise AssertionError('quota must not trigger more HTTP')
+            a=APIFootballResults('test',allowed_days=['2026-10-27'],id_fetch=fail,fetch=date)
+            p=IndexProbe(a,targets)
+            self.assertIsNone(p.lookup(S)[0]);self.assertEqual(a.summary()['requests'],1)
+
+    def test_failed_id_fallback_cannot_exceed_remaining_request_slots(self):
+        ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
+        def fail(ids,key):raise OSError('unavailable')
+        def date(day,key):raise AssertionError('shared ceiling exhausted')
+        a=APIFootballResults('test',allowed_days=['2026-10-27'],id_fetch=fail,fetch=date)
+        a.requests=2
+        p=IndexProbe(a,targets)
+        self.assertIsNone(p.lookup(S)[0]);self.assertEqual(a.summary()['requests'],3)
+
+    def test_reviewed_first_failure_is_shared_with_index_and_later_reviewed(self):
+        ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
+        def fail(ids,key):raise APIRequestFailure('HTTP_ERROR',http_status=403,
+            errors={'plan':'Free plan denies ID access'})
+        a=APIFootballResults('test',allowed_days=[],id_fetch=fail,
+            reviewed_targets={'reviewed':{'provider_fixture_id':1002}})
+        p=IndexProbe(a,targets)
+        self.assertEqual(a.lookup({'match_key':'reviewed'})[1],
+                         'api_football_reviewed_id_unavailable')
+        self.assertEqual(p.lookup(S)[1],'api_football_index_id_unavailable')
+        self.assertEqual(a.lookup({'match_key':'reviewed'})[1],
+                         'api_football_reviewed_id_unavailable')
+        self.assertEqual(a.summary()['requests'],1)
+
     def test_known_strict_identity_uses_single_shared_id_without_date_request(self):
         ev,index,matches=setup();targets=plan_index_ids(list(matches),matches,index,NOW)
         calls=[]

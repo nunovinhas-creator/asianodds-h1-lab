@@ -573,6 +573,18 @@ def main():
                     "failure": api_football.reviewed_error_details.get(match_key),
                 }
                 row.setdefault("provider_reasons", {})["api_football"] = why
+        for match_key, why in strict_probe.outcomes.items():
+            if match_key not in strict_targets:
+                continue
+            row = next_ledger["matches"][match_key]
+            row["api_football_index_id_last_evidence"] = {
+                "checked_at_utc": now.isoformat(timespec="seconds"),
+                "provider_fixture_id": strict_targets[match_key]["provider_fixture_id"],
+                "reason": why,
+                "failure": api_football.reviewed_error_details.get(match_key),
+                "fallback_reason": strict_probe.fallback_outcomes.get(match_key),
+                "id_requests_in_run": api_football.id_requests,
+            }
     used_days = {
         "goal": sorted(goal.cache),
         "openfoot": sorted(openfoot.days),
@@ -683,6 +695,7 @@ def main():
     report["api_football_search"] = api_football.summary()
     report["api_football_search"]["strict_index_probe"] = {
         "planned": len(strict_targets), "outcomes": dict(sorted(strict_probe.outcomes.items())),
+        "fallback_outcomes": dict(sorted(strict_probe.fallback_outcomes.items())),
         "scope": "strict cached identities; shared ID batch, not extra requests"}
 
     report["goal_search"] = goal.summary()
@@ -723,7 +736,7 @@ def main():
                         else "h1_ft_watchdog" if watchdog_dispatch
                         else "manual" if event == "workflow_dispatch" else "schedule"),
             "checked_games": queried,
-            "authenticated_providers_ran": any((api_football.requests,
+            "authenticated_providers_ran": any((api_football.requests + api_football.id_requests,
                                                 goal.requests + goal.id_requests,
                                                 openfoot.requests)),
             "effective_evidence_checks": sum(
@@ -741,6 +754,7 @@ def main():
                 "api_football": {"enabled": api_football_poll, "requests": report["api_football_search"]["requests"],
                                  "verified": report["api_football_search"]["verified_in_run"],
                                  "date_errors": dict(sorted(api_football.date_error_details.items())),
+                                 "strict_index_probe": report["api_football_search"]["strict_index_probe"],
                                  "id_errors": dict(sorted(api_football.reviewed_error_details.items()))},
                 "goal": {"enabled": goal_enabled, "requests": report["goal_search"]["requests"],
                          "verified": report["goal_search"]["verified_in_run"]},
