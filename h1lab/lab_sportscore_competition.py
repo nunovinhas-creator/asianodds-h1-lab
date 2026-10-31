@@ -1,6 +1,24 @@
 """Score-free, fixture/competition-locked CORE_NAME locators, never aliases."""
 from datetime import timedelta
+import re
+import unicodedata
 from .lab_identity import CORE, pair_level, _utc as utc
+
+
+def same_competition(observed,provider):
+    """Exact label semantics only; never infer competition aliases from teams.
+
+    Case, diacritics and punctuation are presentation differences. Country,
+    tier, age, reserve and women tokens are retained in their original order.
+    Unverified abbreviations/exonyms remain pending for separate evidence.
+    """
+    def tokens(value):
+        if not isinstance(value,str):return ()
+        folded=unicodedata.normalize('NFKD',value.casefold())
+        folded=''.join(c for c in folded if not unicodedata.combining(c))
+        return tuple(re.findall(r'[^\W_]+',folded))
+    left,right=tokens(observed),tokens(provider)
+    return bool(left and left==right)
 
 
 def anchors(review,competitions,now):
@@ -20,6 +38,7 @@ def anchors(review,competitions,now):
                 or now-seen>timedelta(days=30) or abs(ko-when)>timedelta(minutes=5)
                 or c.get('match_strength')!='STRONG' or c.get('orientation')!='SAME_ORDER'
                 or c.get('observed_competition_at_capture')!=comp
+                or not same_competition(comp,c.get('provider_competition'))
                 or not c.get('provider_competition') or not _source_url(c.get('reference_url'))
                 or pair_level(g.get('home'),g.get('away'),c.get('provider_home'),c.get('provider_away'))!=CORE
                 or source_order_conflict(c['reference_url'],c['provider_home'],c['provider_away'])):

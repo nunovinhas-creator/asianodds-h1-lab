@@ -2,16 +2,16 @@ import copy
 import unittest
 from datetime import datetime,timezone
 from h1lab.lab_sportscore import SportScoreResults
-from h1lab.lab_sportscore_competition import anchors
+from h1lab.lab_sportscore_competition import anchors,same_competition
 
 NOW=datetime(2026,10,31,10,tzinfo=timezone.utc)
 S={'match_key':'2026-10-30,1,2','home':'AS Roma','away':'AC Milan','kickoff_utc':'2026-10-30T19:00:00+00:00'}
 C={'provider':'sportscore','provider_home':'Roma','provider_away':'Milan',
-   'provider_kickoff_utc':S['kickoff_utc'],'provider_competition':'Italy Cup',
+   'provider_kickoff_utc':S['kickoff_utc'],'provider_competition':'Italy Coppa Italia',
    'reference_url':'https://sportscore.com/football/match/roma-vs-milan/test123/',
    'observed_competition_at_capture':'Italy Coppa Italia',
    'last_seen_at':'2026-10-30T20:00:00+00:00','match_strength':'STRONG','orientation':'SAME_ORDER'}
-E={'home':'Roma','away':'Milan','time':S['kickoff_utc'],'competition':'Italy Cup',
+E={'home':'Roma','away':'Milan','time':S['kickoff_utc'],'competition':'Italy Coppa Italia',
    'url':C['reference_url'],'status':'finished','status_text':'FT','home_score':1,'away_score':0}
 COMP={S['match_key']:'Italy Coppa Italia'}
 
@@ -25,6 +25,26 @@ def adapter(r=None,rows=None):
 
 
 class CompetitionCoreTests(unittest.TestCase):
+    def test_initial_wrong_country_competition_cannot_certify_current_ft(self):
+        r=review();r['games'][0]['candidates'][0]['provider_competition']='Kenya Cup'
+        event=dict(E,competition='Kenya Cup')
+        self.assertEqual(anchors(r,COMP,NOW),{})
+        self.assertIsNone(adapter(r,rows=[event]).lookup(S)[0])
+
+    def test_initial_similar_or_unverified_alias_is_not_a_competition_binding(self):
+        for label in ('Italy Coppa Italia Women','Italy Coppa Italia U21',
+                      'Italy Super Cup','Italy Cup','Coppa Italia'):
+            r=review();r['games'][0]['candidates'][0]['provider_competition']=label
+            self.assertEqual(anchors(r,COMP,NOW),{})
+            self.assertIsNone(adapter(r,rows=[dict(E,competition=label)]).lookup(S)[0])
+
+    def test_competition_normalization_only_removes_presentation_differences(self):
+        self.assertTrue(same_competition('Portugal Taça da Liga','PORTUGAL TACA DA LIGA'))
+        self.assertFalse(same_competition('Portugal Taça da Liga','Portugal Liga'))
+        self.assertFalse(same_competition('Portugal Liga 2','Portugal Liga 3'))
+        self.assertFalse(same_competition('UEFA Europa Cup Women','UEFA EL W'))
+        self.assertFalse(same_competition('',None))
+
     def test_b_reserves_u21_and_women_categories_cannot_cross(self):
         cases=[('Benfica B','Benfica II',True),
                ('Benfica Reserves','Benfica II',True),
