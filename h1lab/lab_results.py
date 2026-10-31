@@ -307,7 +307,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         # indefinitely starve older dates, preventing their provider-day
         # snapshots from ever being queried.
         candidates.sort(key=lambda candidate: (
-            candidate[0], candidate[1], candidate[2],
+            candidate[0],
+            candidate[2] if candidate[0] == -4 else candidate[1],
+            candidate[1] if candidate[0] == -4 else candidate[2],
             -priority_hints.get(candidate[3], 0), candidate[3]))
     else:
         # Preserve legacy/V6 scientific hint ordering outside FT V7.

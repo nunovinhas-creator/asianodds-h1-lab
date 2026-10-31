@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 SCHEMA = 1
 _PLAN = re.compile(r"\b(free|plan|tier|subscription|package)\b", re.I)
 _DATE = re.compile(r"\b(date|dates|day|days|historical|history|archive|past|yesterday|tomorrow)\b", re.I)
-_DENY = re.compile(r"\b(only|restrict(?:ed|ion)?|not available|unavailable|not allowed|no access|older than|out of range|outside (?:the )?range|limited to|cannot access|can't access|earliest)\b", re.I)
+_DENY = re.compile(r"\b(only|restrict(?:ed|ion)?|not available|unavailable|not allowed|no access|do not have access|does not have access|older than|out of range|outside (?:the )?range|limited to|cannot access|can't access|earliest)\b", re.I)
 _QUOTA = re.compile(r"\b(quota|rate limit|requests? per|requests? remaining|too many requests|daily limit)\b", re.I)
 _ISO = re.compile(r"20\d{2}-\d{2}-\d{2}")
 _REL = re.compile(r"\byesterday\b", re.I)
@@ -68,6 +68,39 @@ def evolve_access(previous, date_errors, now):
     # 45 days is consistent with the existing provider rotation history.
     out["confirmed_restrictions"] = dict(
         sorted(out["confirmed_restrictions"].items())[-45:])
+    return out
+
+
+
+def restore_access_from_audit(previous, audit, now):
+    """Reuse provider denials already paid for, preserving observation times.
+
+    Replays only score-free DATE endpoint errors from the bounded audit.
+    It never infers a rolling window or disables fixture-ID requests.
+    """
+    if (not isinstance(audit, dict) or audit.get("schema_version") != 1
+            or not isinstance(audit.get("runs"), list)):
+        raise ValueError("Invalid FT API audit")
+    out = evolve_access(previous, {}, now)
+    observations = []
+    for run in audit["runs"]:
+        if not isinstance(run, dict):
+            raise ValueError("Invalid FT API audit run")
+        try:
+            stamp = datetime.fromisoformat(run.get("utc", "").replace("Z", "+00:00"))
+        except (ValueError, TypeError, AttributeError):
+            continue  # no trustworthy observation time
+        if stamp.tzinfo is None or not timedelta(0) <= now - stamp <= timedelta(days=45):
+            continue
+        provider = (run.get("providers") or {}).get("api_football") or {}
+        errors = provider.get("date_errors") or {}
+        if not isinstance(errors, dict):
+            raise ValueError("Invalid historical date errors")
+        observations.append((stamp, errors))
+    for stamp, errors in sorted(observations, key=lambda x: x[0], reverse=True):
+        unseen = {day: detail for day, detail in errors.items()
+                  if day not in out["confirmed_restrictions"]}
+        out = evolve_access(out, unseen, stamp)
     return out
 
 

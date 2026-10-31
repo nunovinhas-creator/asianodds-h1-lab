@@ -35,7 +35,7 @@ from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empt
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
-from h1lab.lab_api_football_access import evolve_access, restriction_for_fixture_id
+from h1lab.lab_api_football_access import evolve_access, restriction_for_fixture_id, restore_access_from_audit
 from h1lab.lab_goal import GoalResults
 from h1lab.lab_openfoot import OpenFootResults
 
@@ -232,6 +232,11 @@ def main():
                        else {"schema_version": 1, "providers": {}})
     history_access = historical_days.get("api_football_history_access",
                                           {"schema_version": 1, "confirmed_restrictions": {}})
+    # Reuse explicit historical denials before spending another free-tier call.
+    prior_api_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
+                       if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
+    history_access = restore_access_from_audit(history_access, prior_api_audit, now)
+    historical_days["api_football_history_access"] = history_access
     catalog_v4 = read_v4()
     # An approved fixture receives one immediate priority slot only when
     # every persisted human-approval and full source-day identity gate has
@@ -736,6 +741,21 @@ def main():
                         else "h1_ft_watchdog" if watchdog_dispatch
                         else "manual" if event == "workflow_dispatch" else "schedule"),
             "checked_games": queried,
+            "http_requests": {
+                "api_football": api_football.requests + api_football.id_requests,
+                "goal": goal.requests + goal.id_requests, "openfoot": openfoot.requests,
+                "bsd": report["ft_queue"]["bsd_identity_registry"].get("http_total"),
+                "thesportsdb": tsdb.counts.get("requested",0),
+                "espn": espn.requests, "sportscore": sportscore.requests,
+                "fotmob": fotmob.requests,
+            },
+            "cohort_keys": {"selected": report["ft_queue"]["selected_keys"],
+                "newly_certified_existing_pending": sorted(k for k,r in next_ledger["matches"].items()
+                    if r.get("status")=="FINAL" and k in existing["matches"]
+                    and existing["matches"][k].get("status")!="FINAL"),
+                "without_effective_check": sorted(g["match_key"] for g in backlog["overdue_games"]
+                    if g.get("last_checked_at") is None)},
+
             "authenticated_providers_ran": any((api_football.requests + api_football.id_requests,
                                                 goal.requests + goal.id_requests,
                                                 openfoot.requests)),

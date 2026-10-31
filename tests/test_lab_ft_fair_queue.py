@@ -28,6 +28,22 @@ def call(alerts, previous=None, limit=30, **kwargs):
 
 
 class FairQueueTests(unittest.TestCase):
+    def test_old_never_effective_but_visited_precedes_new_unvisited(self):
+        old=fixture('old');new=fixture('new')
+        new['kickoff_utc']='2026-10-28T13:00:00+00:00'
+        previous={'schema_version':1,'matches':{'old':{
+            **old,'status':'PENDING','lookup_source_version':11,
+            'queue_visited_at':'2026-10-28T10:00:00+00:00'}}}
+        _,report,count=call([old,new],previous,limit=1,evidence_retry=True,
+                            lookup_source_version=11)
+        self.assertEqual(count,1)
+        self.assertEqual(report['ft_queue']['selected_keys'],['old'])
+        # It must wait when its independent four-hour visit gate is active.
+        previous['matches']['old']['queue_visited_at']='2026-10-28T19:00:00+00:00'
+        _,report,count=call([old,new],previous,limit=1,evidence_retry=True,
+                            lookup_source_version=11)
+        self.assertEqual(report['ft_queue']['selected_keys'],['new'])
+
     def test_never_queried_is_not_starved_by_30_retries_or_research_hints(self):
         alerts = [fixture(f"old-{i}") for i in range(35)]
         alerts.append(fixture("first-check"))

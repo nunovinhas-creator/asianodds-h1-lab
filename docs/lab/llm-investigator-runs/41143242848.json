@@ -1,0 +1,83 @@
+{
+  "autonomy": {
+    "account_neurons_verified": false,
+    "candidate_id": "00bbd5df9d6c816abab7d78de3facce9a8965c495a96af4708e09fc94053f9a6",
+    "candidate_pool_ids": [
+      "00bbd5df9d6c816abab7d78de3facce9a8965c495a96af4708e09fc94053f9a6",
+      "00efc0205b73f8f571c3c841f586ea721d45c17bfe9ef80d8130e8b03014f096",
+      "000e3c9c375f44a16adc6ca5d8dfb633b69ec474c3a2921e4e72d3d9aca27363"
+    ],
+    "daily_scheduled_call_slots": 4,
+    "schema_version": 1,
+    "selection_policy": "HASH_ORDER_OUTCOME_BLIND_PREFER_PAIRS_ONE_TRIPLE",
+    "status": "SHADOW_EXPLORATION_NOT_VALIDATION",
+    "trigger": "schedule"
+  },
+  "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41143242848",
+  "limitations": "Manual AI draft, not a discovered edge, statistical test, ROI or recommendation.",
+  "llm_calls": 1,
+  "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+  "neurons_consumed": null,
+  "proposals": [
+    {
+      "baseline": "MARKET_MODEL_OVER25",
+      "confounders": [
+        "Antecedência",
+        "Competição"
+      ],
+      "control_group": "Jogos futuros com probabilidade inicial e antecedência comparáveis sem este cruzamento.",
+      "data_needed": [
+        "Capturas das duas variáveis feitas antes do KO",
+        "FT regulamentar confirmado com carimbo"
+      ],
+      "falsification": "Rejeitar se o Log Loss fora da amostra não melhorar contra o baseline; controlar comparabilidade, cobertura FT e seleção múltipla.",
+      "feature_codes": [
+        "G_FIRST_LEAD_6_24H",
+        "G_SINGLE_ALERT"
+      ],
+      "hypothesis": "A combinação de G_FIRST_LEAD_6_24H e G_SINGLE_ALERT pode acrescentar informação ao baseline, sem efeito presumido.",
+      "metric": "LOG_LOSS",
+      "null_hypothesis": "A combinação de G_FIRST_LEAD_6_24H e G_SINGLE_ALERT não melhora o baseline.",
+      "outcome": "OVER_2_5",
+      "source_refs": [
+        "docs/lab/pattern-research.json"
+      ],
+      "status": "DRAFT",
+      "test_design": "Congelar G_FIRST_LEAD_6_24H, G_SINGLE_ALERT antes do KO; comparar Log Loss OOS por jogo com o baseline e controlos emparelhados.",
+      "topic_id": "T05"
+    }
+  ],
+  "provider_usage": {
+    "account_quota_verified": false,
+    "measurement": "PROVIDER_TOKEN_COUNTERS",
+    "model_requested": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "neurons_consumed": null,
+    "tokens": {
+      "completion_tokens": 197,
+      "prompt_tokens": 761,
+      "total_tokens": 958
+    }
+  },
+  "recorded_at_utc": "2026-10-30T23:14:39.553978Z",
+  "run_id": 41143242848,
+  "schema_version": 1,
+  "scientific_acceptance": "INCONCLUSIVO",
+  "source_commit": "00ec31894e1b89d264f25aa5084f9a6d8729f143",
+  "source_sha256": {
+    "docs/lab/pattern-research.json": "663cec0c14e0e6d51244dd87ecf32441c6f1dbb5d1beb9843687177ca9b54d03",
+    "docs/lab/v6-falsification.json": "3816ecc6a27757ebcd824e7eecd3793f219bf1a4541d23d47dd0f5c54eb7b1ab",
+    "docs/lab/v6-p0-gates.json": "96f1f8566c1be2d3cfae28a9eff6374b98980c6bd74511b970cab4a581b7d5fa",
+    "docs/lab/v6-readiness.json": "43f8e7e3a52e390e2986257c93c08f300338bb18d31fd4c592b10f2e31865849",
+    "docs/lab/v6-weekly-drift.json": "a482b80badd00fa57ebfd49f745b94af9016ca65266d540761ba188ceb3edfa8"
+  },
+  "state": "SHADOW_DRAFT_NOT_EMPIRICALLY_VALIDATED",
+  "summary": {
+    "feature_codes": [
+      "G_FIRST_LEAD_6_24H",
+      "G_SINGLE_ALERT"
+    ],
+    "metric": "LOG_LOSS",
+    "proposal_count": 1,
+    "topic_id": "T05"
+  }
+}
