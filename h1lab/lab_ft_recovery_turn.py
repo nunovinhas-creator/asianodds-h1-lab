@@ -1,4 +1,9 @@
-"""One bounded old-fixture ID turn; locators never authorize certification."""
+"""Bounded old-fixture priority for existing API-Football ID verification.
+
+GOAL strict historical candidates remain audit-only without an independently
+verified binding to the observed competition; names/times/provider IDs alone
+cannot authorize cross-provider result certification.
+"""
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from .lab_results import utc, retry_wait, DELAY, RETRY, HORIZON
@@ -16,10 +21,10 @@ def due(row, now):
 
 
 def plan_exact_goal_ids(matches, review, now, *, reserved_keys=()):
-    """Known EXACT locators with no prior effective FT check may get one turn.
+    """Diagnostic-only GOAL locators; NEVER schedule or certify from this list.
 
-    No CORE expansion. Ambiguous/colliding/reversed evidence is not bypassed.
-    The normal current GOAL regulation FT verifier still decides the result.
+    This information is useful for the old-cohort offline audit, but no
+    independent observed competition identity has been proven.
     """
     games = review.get('games', []) if isinstance(review, dict) else []
     claims = Counter()
@@ -71,35 +76,20 @@ def plan_exact_goal_ids(matches, review, now, *, reserved_keys=()):
     return out
 
 
-def exact_goal_response_ok(signal, event, target):
-    from .lab_goal import _name, _when
-    league = event.get('league') or event.get('competition') or {}
-    comp = league.get('name') if isinstance(league, dict) else league
-    return (all(signal.get(f) == target.get(f) for f in ('home', 'away', 'kickoff_utc'))
-            and str(event.get('apiId')) == target['provider_fixture_id']
-            and _name(event, 'homeTeam') == target['provider_home']
-            and _name(event, 'awayTeam') == target['provider_away']
-            and _when(event) == utc(target['provider_kickoff_utc'])
-            and comp == target['provider_competition']
-            and pair_level(signal['home'], signal['away'], _name(event, 'homeTeam'),
-                           _name(event, 'awayTeam')) == EXACT)
-
-
 def recovery_turn(api_targets, goal_targets, matches):
-    """Least recently attempted locator, then oldest kickoff; at most one slot."""
-    choices = []
+    """At most one strict, already-valid API-Football ID locator may get priority.
+
+    Explicitly refuse a GOAL candidate rather than accidentally treating
+    its historical league name as proof of the observed competition.
+    """
+    if goal_targets:
+        raise ValueError('GOAL old-ID certification disabled: competition unproven')
     minimum = datetime.min.replace(tzinfo=timezone.utc)
-    for provider, targets in (('api_football', api_targets), ('goal', goal_targets)):
-        for key in targets:
-            row = matches[key]
-            last = (row.get('api_football_index_id_last_evidence', {}).get('checked_at_utc')
-                    if provider == 'api_football' else row.get('goal_id_last_attempt_at'))
-            choices.append((utc(last) or minimum, utc(row['kickoff_utc']), key))
+    choices = []
+    for key in api_targets:
+        row = matches[key]
+        last = row.get('api_football_index_id_last_evidence', {}).get('checked_at_utc')
+        choices.append((utc(last) or minimum, utc(row['kickoff_utc']), key))
     return {min(choices)[2]} if choices else set()
 
 
-def goal_id_rotation(days, used):
-    """Reserve one existing GOAL slot, including the last daily slot."""
-    if type(used) is not int or not 0 <= used <= 80:
-        raise ValueError('Invalid GOAL daily usage')
-    return list(days)[:min(1, 79-used)] if used < 80 else None
