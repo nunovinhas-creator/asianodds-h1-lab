@@ -125,16 +125,9 @@ def main(argv=None):
             _, mirror=dual.legacy_source(root)
             if store.digest(mirror)!=proof["current_generation"]:
                 raise ValueError("CUTOVER_STALE_DISCOVERY_SOURCE: regenerate bootstrap")
-            pinfile=root/"reports/DISCOVERY_AUTHORITATIVE_PINNED.md"
-            if not pinfile.is_file():
-                raise ValueError("Missing initial authoritative FT pin report")
-            match=re.search(r"FT ledger congelado em blob Git: `([a-f0-9]{40})`",
-                            pinfile.read_text(encoding="utf-8"))
-            if match is None:
-                raise ValueError("Invalid FT cutover pin")
-            now_ft=git(root,"hash-object","data/lab/ft-ledger.json").decode().strip()
-            if now_ft!=match.group(1):
-                raise ValueError("CUTOVER_STALE_FT_SOURCE: regenerate bootstrap")
+            # An FT ledger may legitimately advance even if discovery data
+            # has no new events (CURRENT still first generation). Every job
+            # freezes and verifies its own complete FT FINAL baseline instead.
         result={"status":"VERIFIED_AUTHORITATIVE_HEAD","proof":proof}
     print("DISCOVERY_AUTHORITATIVE",json.dumps(result,sort_keys=True))
     return result
