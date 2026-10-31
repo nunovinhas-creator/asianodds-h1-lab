@@ -26,6 +26,7 @@ APPROVED = {
     "scripts/lab_discovery_activation_preflight.py": "read-only-migration-rehearsal",
     "scripts/lab_discovery_migration_trial.py": "offline-only-old-migration-prototype",
     "h1lab/lab_discovery_store.py": "standalone-segmented-storage-library",
+    "h1lab/discovery_public_pages.py": "public-manifest-metadata-only-no-legacy-io",
     "h1lab/lab_discovery_snapshot_trial.py": "offline-snapshot-trial",
     "h1lab/lab_discovery_partition_trial.py": "offline-partition-trial",
     "docs/lab.html": "public-ui-only",
