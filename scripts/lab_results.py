@@ -30,7 +30,7 @@ from h1lab.lab_ft_evidence import day_fingerprint
 from h1lab.lab_ft_day_identity import build_index
 from h1lab.lab_ft_crosswalk import build_registry
 from h1lab.lab_goal_id_probe import plan_goal_id
-from h1lab.lab_ft_recovery_turn import due as old_id_due, plan_exact_goal_ids, recovery_turn, goal_id_rotation
+from h1lab.lab_ft_recovery_turn import due as old_id_due, recovery_turn
 from h1lab.lab_goal_reviewed import plan_reviewed_goal_id
 from h1lab.lab_ft_dual_consensus import TwoProviderConsensus
 from h1lab.lab_ft_same_run import settle_new_cached_pairs
@@ -280,17 +280,14 @@ def main():
     # Plan locators without HTTP before the general queue cap. Otherwise an
     # old usable ID outside the first 30 never competes for an existing slot.
     api_today = historical_days.get('usage', {}).get('api_football', {}).get(now.date().isoformat(), 0)
-    goal_today = historical_days.get('usage', {}).get('goal', {}).get(now.date().isoformat(), 0)
-    goal_approved = (json.loads(REVIEWED_GOAL_IDS.read_text(encoding='utf-8'))
-                     if REVIEWED_GOAL_IDS.exists() else {'schema_version': 1, 'pairs': {}})
     old_keys = sorted(k for k, r in existing['matches'].items() if old_id_due(r, now))
+    # Existing API-Football strict day-index identity checks are unchanged.
+    # GOAL historical IDs remain audit-only until the original competition
+    # identity has independent, reviewed evidence (not merely a provider label).
     proposed_api = (plan_index_ids(old_keys, existing['matches'], previous_day_index, now,
                                   max_batch=1)
                     if api_football_poll and api_today < 90 and id_batch_limit and not approved_due else {})
-    proposed_goal = (plan_exact_goal_ids(existing['matches'], previous_review, now,
-                        reserved_keys=set(goal_approved.get('pairs', {})) | set(approved.get('pairs', {})))
-                     if goal_enabled and goal_today < 80 else {})
-    old_id_turn = recovery_turn(proposed_api, proposed_goal, existing['matches'])
+    old_id_turn = recovery_turn(proposed_api, {}, existing['matches'])
     _preview_ledger, preview, _ = reconcile(
         state, catalog_v4, existing, now=now,
         bsd_lookup=lambda unused: (None, "preview_only"),
@@ -342,19 +339,12 @@ def main():
     # date request, but does NOT need a date request to be eligible.
     # This prevents a successful COMPLETE day list's adaptive cooldown from
     # indefinitely starving a reviewed ID once the game itself is due.
-    # A remaining single daily slot can be substituted by an ID, even if
-    # rotation proposed a date. Never require two slots for one request.
-    id_dates = goal_id_rotation(rotation['goal'], goal_today) if goal_enabled else None
-    goal_id_slot = id_dates is not None
+    # Existing GOAL approvals and daily rotation are preserved unchanged.
+    goal_id_slot = goal_enabled and (
+        goal_today <= (78 if rotation["goal"] else 79))
     goal_targets = (plan_goal_id(preview_keys, _preview_ledger["matches"],
                                  previous_review, now)
                     if goal_id_slot else {})
-    if goal_id_slot and not goal_targets:
-        exact_keys = [k for k in preview_keys if k in proposed_goal]
-        if exact_keys:
-            key = exact_keys[0]
-            goal_targets = {key: proposed_goal[key]['provider_fixture_id']}
-            goal.exact_targets = {key: proposed_goal[key]}
     goal_review_decisions = {}
     reviewed_goal_targets = (plan_reviewed_goal_id(
         preview_keys, _preview_ledger["matches"], previous_review,
@@ -366,11 +356,10 @@ def main():
         goal_targets = {key: row["provider_fixture_id"]
                         for key, row in reviewed_goal_targets.items()}
         goal.reviewed_targets = reviewed_goal_targets
-        goal.exact_targets = {}
     if goal_targets:
         goal.target_ids = goal_targets
         goal.max_days = 1
-        rotation["goal"] = id_dates
+        rotation["goal"] = rotation["goal"][:1]
     # No IDs are invented or promoted from fuzzy suggestions. Only explicit
     # human-approved pairs, checked against the persisted review candidate,
     # can use a batched fixture ID request. Reserve one of the existing 3
