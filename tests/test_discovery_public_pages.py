@@ -99,7 +99,7 @@ class DiscoveryPublicPagesTests(unittest.TestCase):
         documents.update({"docs/lab/" + k: v for k, v in pages.items()})
         def staged_git(*args):
             if args[0] == "diff":
-                return b"docs/lab/discoveries.json\\0"
+                return b"docs/lab/discoveries.json\0"
             if args[0] == "show":
                 return documents[args[1].split(":", 1)[1]]
             raise AssertionError(args)
