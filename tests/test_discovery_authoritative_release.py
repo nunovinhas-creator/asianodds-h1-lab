@@ -39,6 +39,18 @@ class AuthoritativeGitTests(unittest.TestCase):
             verify_against_seal(root,proof2,ref="HEAD")
             self.assertEqual(mirror.read_bytes(),store.encode(old))
             self.assertEqual(dual.load(root,format="segmented"),new)
+            newer={"schema_version":1,"patterns":{"a":{"points":[1,2,3]}}}
+            current=proof2["current_generation"]
+            dual.write_segmented(root,newer,expected_generation=current)
+            proof3=stage(root)["proof"]
+            # The first generation is no longer reachable after a second
+            # publication and cannot grow the authoritative HEAD forever.
+            git(root,"commit","-qm","third generation prunes old shards")
+            verify_against_seal(root,proof3,ref="HEAD")
+            manifest_names=set(proof3["sha256"])
+            self.assertFalse(any(initial["generation"] in name
+                                 for name in manifest_names))
+            self.assertEqual(dual.load(root,format="segmented"),newer)
             with self.assertRaises(ValueError):
                 seal(root,ref="HEAD",require_mirror=True)
 
