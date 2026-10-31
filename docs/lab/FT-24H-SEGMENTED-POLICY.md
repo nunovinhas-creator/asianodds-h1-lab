@@ -1,27 +1,28 @@
-# FT 24h, fonte única e descoberta com segmentos autoritativos
+# MASTER BRAIN — FT verificável em 24 horas e armazenamento segmentado
 
-## Política FT (nova)
+## Política vigente
+- Confirmação FT **até 24h após kickoff UTC**. Passado esse limite, um jogo não verificado fica `EXPIRED_UNVERIFIED`, sem novas chamadas às APIs. Conserva-se apenas o identificador mínimo para não o recuperar indevidamente e para medir cobertura.
+- **Uma única fonte credível** é suficiente se os nomes/identidade/competição e o resultado de 90 minutos forem corretamente validados. Resultados incompatíveis não são selecionados arbitrariamente.
+- Cada `FINAL` certificado mantém a pontuação e identidade imutáveis: o job regista um baseline antes de reconciliar e verifica-o antes de publicar.
+- `segmented` substitui a escrita no mirror legado de 2 MB. `CURRENT`/`PREVIOUS`, shards de até 256 kB, SHA-256 e gzip recuperável são selados numa transação. Mantém-se um limite defensivo de **20 MB por estado**, não armazenamento ilimitado.
 
-- Janela operacional: desde o final do período de segurança após o início até **24 horas contadas desde o kickoff UTC**, inclusive.
-- Mais de 24h sem FT inequívoco: `EXPIRED_UNVERIFIED`. Os detalhes de tentativas/probes são descartados e o jogo deixa de ser elegível para APIs, recuperação antiga ou pesquisa por ID.
-- A lápide mínima `match_key` + identidade + kickoff permanece para deduplicação e para não enviesar a cobertura; não é uma aposta perdida nem um FT.
-- `FINAL` já certificado nunca é apagado nem rebaixado por idade.
-- **Uma única fonte com identidade exata/justificada e resultado dos 90 minutos é suficiente**. Se houver conflito entre fontes, é obrigatório recusar até à expiração; não selecionar arbitrariamente a mais conveniente.
-- A validação estatística permanece separada da existência de um FT: amostra observada, confirmação efetiva e dados em falta são indicadores diferentes.
+## O que já foi ativado e o problema confirmado
+A PR #172 foi integrada em 31/10/2026 e o workflow produtivo já chama `--state-backend segmented`. No entanto, os ciclos FT de 21h56 e 22h31 **não publicaram** porque commits H1/V4 chegaram durante a reconciliação. Os logs das 22h31 confirmam 363 `FINAL` originais, dois novos FT candidatos, zero revisões, integridade dos shards preservada e bloqueio de commit remoto com `FT_REMOTE_CONFLICT_RERUN_WHOLE_RECONCILIATION`.
 
-## Limite de 2 MB
+## Correção de publicação proposta — PR #174
+O comando `python -m scripts.lab_ft_publish_safe --base "$FT_BASE_HEAD" --manifest "$RUNNER_TEMP/publication-seal.json" --baseline "$RUNNER_TEMP/ft-certified-baseline.json"` substitui o bloqueio por ref absoluto.
 
-O backend `segmented` funciona sem um espelho `discovery-state.json` corrente. O estado é dividido em shards imutáveis, com manifesto SHA-256, ponteiro `CURRENT`, `PREVIOUS` para recuperação explícita e arquivo gzip byte-exato. O teste cobre estados acima de 2 MB. Há um limite **de segurança independente de 20 MB** no código atual, que terá de ser revisto muito antes de atingido; isto não representa capacidade ilimitada.
+1. Congela o **commit FT original já certificado** e verifica o selo integral, as pontuações FINAL e o conjunto exato de alterações.
+2. Faz `fetch` do `main` atual. Recusa alterações concorrentes a qualquer artefacto FT ou selado, ficheiro de código/workflow, segmentação, identidade existente de jogos H1 ou journal histórico reescrito. Reconhece apenas mudanças H1/V4 comprovadamente independentes, incluindo arquivos V4 estritamente append-only.
+3. Num índice Git temporário, constrói uma árvore do `main` mais recente, aplicando **apenas** os ficheiros originais FT, byte a byte. Preserva integralmente os novos dados H1/V4; não invoca fornecedores nem recalcula FT.
+4. Cria um commit novo com pai `main` atualizado via `git commit-tree`, sem `git rebase`. Repete a prova de publicação, o baseline FT e a selagem da segmentação antes de permitir o push normal, sem `--force`.
+5. Uma corrida `non-fast-forward` durante o push desencadeia no máximo mais cinco novas verificações e reconstruções sobre o remoto atual. Qualquer alteração relevante ou erro não relacionado com concorrência aborta imediatamente.
 
-**Não está ativado na produção.** O workflow atual usa `legacy`; a PR de preparação é Draft. Nunca fazer apenas o merge de um workflow que exija `segmented` sem a geração inicial no mesmo commit.
+As estatísticas publicadas refletem o instante de recolha original; novos jogos observados durante a reconciliação entram no ciclo seguinte, e não são apresentados como FT resolvidos.
 
-## Corte produtivo obrigatório (não executado)
+O sistema pode remover gerações segmentadas antigas já inacessíveis a partir dos ponteiros `CURRENT/PREVIOUS`. Os objetos antigos continuam recuperáveis na história Git; a prova de publicação só exige os membros atualmente alcançáveis.
 
-1. Congelar as versões atuais de `main`, do estado de descobertas e do ledger FT.
-2. Num checkout seguro, executar `python -m scripts.lab_discovery_authoritative_release bootstrap`; o processo gera `CURRENT`, manifesto, shards e gzip, e verifica os objetos do índice Git.
-3. No **mesmo commit de ativação**, modificar o workflow FT para `python -m scripts.lab_discoveries --state-backend segmented`, substituir a leitura do histórico no teste por `dual.load(...,format="segmented")`, chamar `python -m scripts.lab_discovery_authoritative_release stage` antes de selar resultados e trocar o rebase após reconciliação por push único não forçado e protegido por SHA do pai.
-4. Alterar o corte para preservar histórico e FT FINAL. Fazer teste do selo `INDEX` e do `HEAD`, do rollback e da concorrência Git sem APIs. Confirmar que o legacy fica arquivado mas nunca mais é atualizado.
-5. Reexecutar CI completa, tests de consumidores de estado, páginas, watchdog, H1 e Telegram; recusar em caso de qualquer divergência.
-6. Só com autorização de merge e sem `main` alterada nos dois blobs, permitir ativação. Fazer observação operacional de 24h/48h/7d sem mexer nos FT certificados.
+## Critérios de conclusão em produção
+CI verde e ausência de conflitos; depois, a primeira publicação real deve registar `FT_ATOMIC_PUBLISHED` e aumento de `FINAL` só por resultados comprovados, com zero FT anteriores alterados. Conferir `docs/lab/ft-results.json`, `CURRENT/PREVIOUS`, páginas públicas, watchdog, H1 e Telegram. Validar comportamento em 24h/48h/7d.
 
-**Este documento não autoriza merge, cutover nem execução de fornecedores.**
+**A implementação da PR #174 não é por si só evidência de recuperação produtiva. Não publicar nem integrar uma PR com testes falhados.**
