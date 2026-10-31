@@ -6,6 +6,17 @@ from h1lab import lab_discovery_dual_state as dual
 from h1lab import lab_discovery_store as store
 
 class AuthoritativeSegmentTests(unittest.TestCase):
+    def test_real_repository_legacy_bytes_are_recovered_without_2mb_gate(self):
+        real=Path(__file__).resolve().parents[1]/dual.STATE
+        before=real.read_bytes()
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            initial=store.publish(before,root/dual.SEGMENT,expected_generation=None)
+            self.assertEqual(store.read(root/dual.SEGMENT)[1],before)
+            self.assertEqual(dual.load(root,format="segmented"),store.decode(before))
+            self.assertEqual(store.digest(before),initial["generation"])
+        self.assertEqual(real.read_bytes(),before)
+
     def test_no_legacy_mirror_and_large_state(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
