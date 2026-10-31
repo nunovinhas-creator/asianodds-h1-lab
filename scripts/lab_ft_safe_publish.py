@@ -23,7 +23,7 @@ SAFE_REMOTE_REPORTS = frozenset({
     "docs/lab/v6-p0-gates.json",
     "docs/lab/v6-readiness.json",
 })
-SHA = re.compile(r"[a-f0-9]{40}\\Z")
+SHA = re.compile(r"[a-f0-9]{40}\Z")
 
 def checked_paths(paths):
     if not isinstance(paths, (list, tuple)) or not paths:
@@ -50,7 +50,7 @@ def validate(base, head):
         return {"status":"UNCHANGED", "changed":[], "base":base, "head":head}
     git("merge-base", "--is-ancestor", base, head)
     raw = git("diff", "--name-only", "-z", base, head)
-    names = raw.decode("utf-8").split("\\0")
+    names = raw.decode("utf-8").split("\0")
     checked = checked_paths([p for p in names if p])
     return {"status":"SAFE_REPORT_ONLY_REMOTE_ADVANCE", "changed":checked,
             "base":base,"head":head}
