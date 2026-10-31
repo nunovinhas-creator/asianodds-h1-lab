@@ -173,7 +173,7 @@ def verify(signal,ev,level):
 
 
 class GoalResults:
-    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None,target_ids=None,id_getter=fetch_fixture_by_id,reviewed_targets=None,exact_targets=None):
+    def __init__(self,key="",*,getter=fetch_date,max_days=MAX_DAYS,allowed_days=None,target_ids=None,id_getter=fetch_fixture_by_id,reviewed_targets=None):
         if type(max_days) is not int or not 0<=max_days<=MAX_DAYS:
             raise ValueError("GOAL day budget exceeded")
         self.key=(key or "").strip()
@@ -202,7 +202,6 @@ class GoalResults:
         if any(not isinstance(value, dict) for value in self.reviewed_targets.values()):
             raise ValueError("Invalid reviewed GOAL targets")
         self.reviewed_observations={}
-        self.exact_targets = dict(exact_targets or {})
         self.reasons=Counter()
     def lookup(self,signal):
         if not self.key:
@@ -212,12 +211,6 @@ class GoalResults:
             return None,"goal_invalid_kickoff"
         target = self.target_ids.get(signal.get("match_key"))
         if target is not None:
-            exact = self.exact_targets.get(signal.get('match_key'))
-            if exact is not None and any(signal.get(f) != exact.get(f)
-                                         for f in ('home', 'away', 'kickoff_utc')):
-                self.id_outcomes[signal['match_key']] = 'goal_id_locator_signal_changed'
-                self.reasons['goal_id_locator_signal_changed'] += 1
-                return None, 'goal_id_locator_signal_changed'
             if self.id_requests >= 1:
                 return None,"goal_id_budget_deferred"
             # This one ID call replaces one of two date calls, never adds a third.
@@ -235,12 +228,6 @@ class GoalResults:
                 self.reasons["goal_id_mismatch"] += 1
                 return None,"goal_id_mismatch"
             reviewed = self.reviewed_targets.get(signal.get("match_key"))
-            if exact is not None:
-                from .lab_ft_recovery_turn import exact_goal_response_ok
-                if not exact_goal_response_ok(signal, event, exact):
-                    self.id_outcomes[signal['match_key']] = 'goal_id_locator_identity_changed'
-                    self.reasons['goal_id_locator_identity_changed'] += 1
-                    return None, 'goal_id_locator_identity_changed'
             if reviewed is not None:
                 from .lab_goal_reviewed import verify_reviewed_goal
                 result, why, observation = verify_reviewed_goal(signal, event, reviewed)
@@ -293,6 +280,4 @@ class GoalResults:
                 "verified_in_run":sum(n for k,n in self.reasons.items()
                                       if k.startswith("verified_goal_ft")),
                 "reason_counts":dict(sorted(self.reasons.items())),
-                "id_outcomes":dict(sorted(self.id_outcomes.items())),
-                "exact_locator_targets": len(self.exact_targets),
-                "exact_locator_scope": "LOCATOR_ONLY_CURRENT_FT_REQUIRED"}
+                "id_outcomes":dict(sorted(self.id_outcomes.items()))}
