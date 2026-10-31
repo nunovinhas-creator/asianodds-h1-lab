@@ -122,9 +122,10 @@ class T05Tests(unittest.TestCase):
 
     def test_workflow_preserves_existing_e4_and_persists_t05(self):
         wf=(Path(__file__).resolve().parents[1]/".github/workflows/collect.yml").read_text()
-        self.assertIn("run: python -m h1lab.e4_notify",wf)
-        self.assertIn("run: python -m h1lab.t05_notify",wf)
-        self.assertIn("git add data/t05-notifications.json",wf)
+        self.assertNotIn("run: python -m h1lab.e4_notify",wf)
+        self.assertNotIn("run: python -m h1lab.t05_notify",wf)
+        self.assertIn("run: python -m h1lab.three_moves_notify",wf)
+        self.assertNotIn("git add data/t05-notifications.json",wf)
         self.assertNotIn("run: python -m h1lab.strategy_notify",wf)
 
 
