@@ -22,6 +22,7 @@ APPROVED = {
     "scripts/publication_guard.py": "git-index-seal-and-head-verifier",
     "scripts/lab_discovery_cutover_release.py": "pinned-bootstrap-and-segment-staging",
     "scripts/lab_discovery_ft_activation.py": "live-preflight-pinned-push-and-rollback",
+    "scripts/lab_discovery_consumer_audit.py": "static-every-file-reader-inventory",
     "scripts/lab_discovery_activation_preflight.py": "read-only-migration-rehearsal",
     "scripts/lab_discovery_migration_trial.py": "offline-only-old-migration-prototype",
     "h1lab/lab_discovery_store.py": "standalone-segmented-storage-library",
