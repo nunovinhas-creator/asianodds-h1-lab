@@ -156,7 +156,11 @@ def _members(repo, ref, *, require_mirror=True):
     # remain in HEAD but must not change with the active publication.
     if ref == "INDEX":
         changes = _git(repo, "diff", "--cached", "--name-only", "-z").decode("utf-8").split("\0")
-        extras = [p for p in changes if p.startswith(PREFIX) and p not in members]
+        # Deletion of an unreachable old generation is permitted; leaving
+        # unreferenced new objects staged is not. Deleted paths are absent
+        # from the prospective index but remain recoverable from Git history.
+        extras = [p for p in changes if p.startswith(PREFIX)
+                  and p not in members and p in available]
         if extras:
             raise ValueError("Unreachable or temporary segmented members staged")
     return members, current, previous
