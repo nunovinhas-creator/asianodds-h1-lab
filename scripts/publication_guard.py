@@ -70,6 +70,11 @@ def finite_float(value):
 
 
 def validate(name, content):
+    # Binary compressed recovery data is validated by the strict segmented
+    # bundle verifier (SHA-256, decompression and byte-exact legacy equality),
+    # never by a UTF-8-only JSON validator.
+    if name.startswith('data/lab/discovery-segmented/') and name.endswith('/legacy.json.gz'):
+        return
     text = content.decode('utf-8')
     if name.endswith('.json'):
         value = json.loads(text, parse_constant=reject_constant, parse_float=finite_float)
@@ -113,6 +118,19 @@ def seal(pipeline, manifest):
                 pages[file] = git('show', ':' + file)
             verify_public_pages(root, {name[len('docs/lab/'):]: raw for name, raw in pages.items()})
             names = sorted(set(names) | set(pages))
+    # Only when the Git index contains a segmented store, require all
+    # reachable CURRENT/PREVIOUS members and the byte-exact legacy mirror.
+    # No activation flag: legacy-only production remains unchanged.
+    segmented = None
+    if pipeline == 'ft':
+        from h1lab.lab_discovery_git_bundle import (
+            PREFIX, seal as seal_segmented)
+        present = [name for name in git('ls-files', '-z', '--', PREFIX).decode().split('\0') if name]
+        if present:
+            if PREFIX + 'CURRENT.json' not in present:
+                raise ValueError('Segmented files staged without CURRENT pointer')
+            segmented = seal_segmented(Path.cwd(), ref='INDEX')
+            names = sorted(set(names) | set(segmented['sha256']))
     hashes = {}
     for name in names:
         if not name.startswith(('data/lab/', 'docs/lab/')):
@@ -121,7 +139,7 @@ def seal(pipeline, manifest):
         content = git('show', ':' + name)
         validate(name, content)
         hashes[name] = hashlib.sha256(content).hexdigest()
-    Path(manifest).write_text(json.dumps({'pipeline': pipeline, 'streams': streams, 'sha256': hashes}, sort_keys=True) + '\n')
+    Path(manifest).write_text(json.dumps({'pipeline': pipeline, 'streams': streams, 'sha256': hashes, 'segmented': segmented}, sort_keys=True) + '\n')
     print('PUBLICATION_BUNDLE_SEALED', pipeline, len(hashes))
 
 
@@ -132,6 +150,20 @@ def verify(manifest):
     hashes = document['sha256']
     if not isinstance(hashes, dict) or not hashes:
         raise ValueError('Missing publication seal')
+    if document['pipeline'] == 'ft':
+        from h1lab.lab_discovery_git_bundle import (
+            PREFIX, verify_against_seal)
+        current = PREFIX + 'CURRENT.json'
+        committed = set(name for name in git('ls-tree', '-r', '--name-only',
+                                             'HEAD', '--', PREFIX).decode().splitlines()
+                        if name)
+        if document.get('segmented') is None:
+            if committed:
+                raise ValueError('Unsealed segmented generation introduced during rebase')
+        else:
+            if current not in committed:
+                raise ValueError('Segmented CURRENT missing after rebase')
+            verify_against_seal(Path.cwd(), document['segmented'], ref='HEAD')
     for name, expected in hashes.items():
         actual = hashlib.sha256(git('show', 'HEAD:' + name)).hexdigest()
         if actual != expected:
