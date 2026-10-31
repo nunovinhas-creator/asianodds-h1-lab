@@ -45,7 +45,7 @@ def retry_wait(entry):
         return timedelta(hours=12)
     return RETRY
 
-HORIZON = timedelta(days=30)
+HORIZON = timedelta(hours=24)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
 # Retain meaningful last-seen GOAL evidence independently from last-attempt
@@ -227,6 +227,23 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 row["status"] = "SOURCE_ORDER_CONFLICT"
                 row["reason"] = "sportscore_source_url_reverses_home_away"
                 row.pop("result", None)  # not a valid 90m score assignment
+
+    # Close after 24h from kickoff. Retain only a compact tombstone so
+    # old H1/V4 archives cannot resurrect a fixture for endless FT searches.
+    # FINAL scores remain immutable, even when their age exceeds 24 hours.
+    for key, game in games.items():
+        row = entries[key]
+        kickoff = utc(row.get("kickoff_utc"))
+        if (kickoff is not None and now > kickoff + HORIZON
+                and row.get("status") != "FINAL"):
+            entries[key] = {
+                "status": "EXPIRED_UNVERIFIED",
+                "home": row.get("home"), "away": row.get("away"),
+                "kickoff_utc": row.get("kickoff_utc"),
+                "sources": sorted(game["sources"]),
+                "observed_alerts": game["alerts"],
+                "reason": "ft_24h_window_elapsed",
+            }
 
     # Previously confirmed provider IDs belong to one observed match_key.
     # Never reuse an event ID from a different fixture for new auto settlement.
@@ -654,7 +671,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     counts = Counter(row.get("status", "UNKNOWN") for key, row in entries.items() if key in games)
     # Do not publish private original channel content; all matches are public fixtures.
     rows = []
-    for key, game in sorted(games.items(), key=lambda kv: (kv[1].get("kickoff_utc") or "", kv[0]), reverse=True)[:500]:
+    for key, game in sorted((item for item in games.items() if entries[item[0]]["status"] != "EXPIRED_UNVERIFIED"), key=lambda kv: (kv[1].get("kickoff_utc") or "", kv[0]), reverse=True)[:500]:
         row = entries[key]
         record = {"match_key": key, "home": row.get("home"), "away": row.get("away"),
                   "kickoff_utc": row.get("kickoff_utc"), "status": row["status"],
