@@ -62,9 +62,9 @@ def norm_team(value):
     # (Córdoba CF vs Córdoba; SC Farense vs Farense). Never strip youth,
     # reserves, geographical tokens, or internal team-name components.
     designators = {"fc", "fk", "sv", "afc", "cf", "sc"}
-    while words and words[0] in designators:
+    while len(words) > 1 and words[0] in designators:
         words.pop(0)
-    while words and words[-1] in designators:
+    while len(words) > 1 and words[-1] in designators:
         words.pop()
     return " ".join(words)
 
