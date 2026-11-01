@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-01T14:31:36+00:00",
+ "generated_at": "2026-11-01T14:36:36+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 378
  },
  "schema_version": 1,
- "source_commit": "d96803e2e8f8687db4405bfb9bcd69d0bd3778b8",
+ "source_commit": "0aba80efdee62b67489ff46d9bd926d4909514b8",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 1088,
+  "matches": 1089,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 6,
-  "messages": 1622,
+  "messages": 1624,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 912,
+  "messages_on_repeated_matches": 913,
   "messages_v4_only": 0,
-  "messages_with_v4": 1548,
-  "movement_episodes_upper_bound": 1557,
+  "messages_with_v4": 1550,
+  "movement_episodes_upper_bound": 1559,
   "possibly_redundant_snapshots": 48,
   "post_kickoff_messages": 65,
   "related_message_pairs": 65,
@@ -53,22 +53,303 @@
   "repeated_matches": 378,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 2564
+   "V4_EXPLICIT": 2568
   },
   "total_line_reversals_on_repeated": 205,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 53,
-   "CONTINUOUS": 295,
+   "CONTINUOUS": 296,
    "SAME_MOVEMENT_REPEAT": 65,
    "UNOBSERVED_CHANGE": 121
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 517,
-   "one_x_two:AGREE": 499,
-   "total:AGREE": 1548
+   "asian_handicap:AGREE": 518,
+   "one_x_two:AGREE": 500,
+   "total:AGREE": 1550
   }
  },
  "timelines": [
+  {
+   "event_count": 3,
+   "event_ids": [
+    "3571094759:51322",
+    "3571094759:52204",
+    "3571094759:52209"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51322",
+     "message_id": 51322,
+     "minutes_to_kickoff": 4143.7,
+     "observed_at": "2026-10-29T17:56:17+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 2.01,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.77,
+        "under_price": 2.0
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52204",
+     "message_id": 52204,
+     "minutes_to_kickoff": 36.7,
+     "observed_at": "2026-11-01T14:23:20+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.88,
+        "under_price": 1.99
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 2.02,
+        "under_price": 1.86
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52209",
+     "message_id": 52209,
+     "minutes_to_kickoff": 27.3,
+     "observed_at": "2026-11-01T14:32:42+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 2.02,
+        "home_price": 1.94,
+        "line": -0.25
+       },
+       "before": {
+        "away_price": 1.93,
+        "home_price": 2.13,
+        "line": -0.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 2.28,
+        "before": 2.15
+       },
+       "2": {
+        "after": 3.47,
+        "before": 3.65
+       },
+       "X": {
+        "after": 3.4,
+        "before": 3.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.95,
+        "under_price": 1.92
+       },
+       "before": {
+        "line": 2.5,
+        "over_price": 1.96,
+        "under_price": 1.94
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": 11.3,
+     "trigger_market": "1x2",
+     "trigger_selection": "1",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-29T17:56:17+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-01T15:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-01T14:32:42+00:00",
+   "match_key": "2026-11-01,126,127",
+   "match_label": "Hearts vs Hibernian",
+   "movement_episodes": [
+    [
+     "3571094759:51322"
+    ],
+    [
+     "3571094759:52204"
+    ],
+    [
+     "3571094759:52209"
+    ]
+   ],
+   "movement_episodes_upper_bound": 3,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    246423.0,
+    562.0
+   ],
+   "trajectory": {
+    "asian_handicap": {
+     "first_observed_line": -0.5,
+     "last_observed_line": -0.25,
+     "net_observed_change": 0.25,
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "after": -0.25,
+       "before": -0.5,
+       "event_id": "3571094759:52209",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": []
+    },
+    "one_x_two": {
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "1": [
+        2.15,
+        2.28
+       ],
+       "2": [
+        3.65,
+        3.47
+       ],
+       "X": [
+        3.5,
+        3.4
+       ],
+       "event_id": "3571094759:52209",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "transitions": []
+    },
+    "total": {
+     "first_observed_line": 2.5,
+     "last_observed_line": 2.5,
+     "net_observed_change": 0.0,
+     "observations": 3,
+     "origins": {
+      "V4_EXPLICIT": 3
+     },
+     "points": [
+      {
+       "after": 2.75,
+       "before": 2.5,
+       "event_id": "3571094759:51322",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.5,
+       "before": 2.75,
+       "event_id": "3571094759:52204",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.5,
+       "before": 2.5,
+       "event_id": "3571094759:52209",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51322",
+       "at_event": "3571094759:52204",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51322",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.75,
+       "previous_after_line": 2.75,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52204"
+      },
+      {
+       "from": "3571094759:52204",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.5,
+       "previous_after_line": 2.5,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52209"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -655,152 +936,6 @@
        "previous_after_line": 3.0,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:52205"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:51322",
-    "3571094759:52204"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:51322",
-     "message_id": 51322,
-     "minutes_to_kickoff": 4143.7,
-     "observed_at": "2026-10-29T17:56:17+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 2.75,
-        "over_price": 2.01,
-        "under_price": 1.81
-       },
-       "before": {
-        "line": 2.5,
-        "over_price": 1.77,
-        "under_price": 2.0
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:52204",
-     "message_id": 52204,
-     "minutes_to_kickoff": 36.7,
-     "observed_at": "2026-11-01T14:23:20+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 2.5,
-        "over_price": 1.88,
-        "under_price": 1.99
-       },
-       "before": {
-        "line": 2.75,
-        "over_price": 2.02,
-        "under_price": 1.86
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-29T17:56:17+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-11-01T15:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-11-01T14:23:20+00:00",
-   "match_key": "2026-11-01,126,127",
-   "match_label": "Hearts vs Hibernian",
-   "movement_episodes": [
-    [
-     "3571094759:51322"
-    ],
-    [
-     "3571094759:52204"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    246423.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 2.5,
-     "last_observed_line": 2.5,
-     "net_observed_change": 0.0,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 2.75,
-       "before": 2.5,
-       "event_id": "3571094759:51322",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 2.5,
-       "before": 2.75,
-       "event_id": "3571094759:52204",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [
-      {
-       "after_event": "3571094759:51322",
-       "at_event": "3571094759:52204",
-       "evidence": "intra",
-       "from": "UP",
-       "to": "DOWN"
-      }
-     ],
-     "transitions": [
-      {
-       "from": "3571094759:51322",
-       "line": "CONTINUOUS",
-       "next_before_line": 2.75,
-       "previous_after_line": 2.75,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:52204"
       }
      ]
     }
