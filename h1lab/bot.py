@@ -1,12 +1,64 @@
 """Private Telegram Bot API delivery. Tokens are never logged or persisted."""
 import json
 import os
+import sys
 from urllib.error import HTTPError, URLError
+from datetime import datetime, timedelta, timezone
 from urllib.request import Request, urlopen
+
+from .telegram_block import BlockStore
 
 
 class BotDeliveryError(RuntimeError):
-    """An error safe for public CI logs."""
+    """An error safe for public CI logs.
+
+    The base class means DELIVERY_UNCERTAIN: nobody can prove the message was or
+    was not accepted, so callers must never resend automatically.
+    """
+    outcome = "DELIVERY_UNCERTAIN"
+
+
+class BotBlockedError(BotDeliveryError):
+    """Not sent: a shared 429/401/403 block is active. No HTTP request was made."""
+    outcome = "NOT_SENT_BLOCKED"
+
+
+class BotRejectedError(BotDeliveryError):
+    """Telegram answered with an explicit 4xx: the request was NOT accepted."""
+    outcome = "DEFINITELY_REJECTED"
+
+    def __init__(self, message, http_status, retry_after=None):
+        super().__init__(message)
+        self.http_status = http_status
+        self.retry_after = retry_after
+
+
+def _record_block(store, status, retry_after):
+    """Shared pause for every notifier: retry_after (429) or a 24h probe interval (401/403)."""
+    if status not in (429, 401, 403):
+        return
+    now = datetime.now(timezone.utc)
+    if status == 429:
+        wait = timedelta(seconds=retry_after if retry_after is not None else 300)
+        diagnosis = "FLOOD_WAIT_RETRY_AFTER" if retry_after is not None else "FLOOD_WAIT_CONSERVATIVE_5MIN"
+    else:
+        wait = timedelta(hours=24)
+        diagnosis = "AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"
+    try:
+        store.record(now + wait, status, now, diagnosis)
+    except OSError as exc:
+        # Never silent: the rejection is still raised, but the shared pause could not be stored.
+        print("TELEGRAM_BLOCK_NOT_RECORDED", type(exc).__name__, file=sys.stderr)
+
+
+def _retry_after(exc):
+    """Seconds from Telegram's JSON error body (parameters.retry_after), else None."""
+    try:
+        body = json.loads(exc.read(65536))
+        value = body["parameters"]["retry_after"]
+        return int(value) if type(value) is int and 0 <= value <= 86400 else None
+    except Exception:  # unreadable body: stay conservative, caller applies a default
+        return None
 
 
 def configured():
@@ -16,6 +68,16 @@ def configured():
 
 
 def send_message(message):
+    store = BlockStore()
+    try:
+        blocked = store.active(datetime.now(timezone.utc))
+    except ValueError:
+        # Unreadable/corrupt pause record: fail closed, explicitly, BEFORE any HTTP request.
+        print("TELEGRAM_BLOCK_UNREADABLE", file=sys.stderr)
+        raise BotBlockedError("TELEGRAM_SEND_BLOCKED: pause record unreadable (no request made)") from None
+    if blocked is not None:
+        raise BotBlockedError("TELEGRAM_SEND_BLOCKED: HTTP %s until %s (no request made)"
+                              % (blocked["http_status"], blocked["until"]))
     token = os.environ.get("TG_BOT_TOKEN", "").strip()
     chat_id = os.environ.get("TG_CHAT_ID", "").strip()
     if not token or not chat_id:
@@ -38,10 +100,16 @@ def send_message(message):
             result = json.loads(response.read(65536))
     except HTTPError as exc:
         # The exception repr and URL contain the bot secret. Never expose either.
+        if 400 <= exc.code < 500:
+            retry_after = _retry_after(exc) if exc.code == 429 else None
+            _record_block(store, exc.code, retry_after)
+            raise BotRejectedError(
+                "TELEGRAM_DELIVERY_REJECTED: HTTP " + str(exc.code) +
+                ". Check bot token, chat ID, and that the recipient started the bot.",
+                exc.code, retry_after) from None
         raise BotDeliveryError(
-            "TELEGRAM_DELIVERY_FAILED: HTTP " + str(exc.code) +
-            ". Check bot token, chat ID, and that the recipient started the bot."
-        ) from None
+            "TELEGRAM_DELIVERY_UNCERTAIN: HTTP " + str(exc.code) +
+            ". A server error does not prove the message was not accepted.") from None
     except (URLError, TimeoutError, ValueError):
         raise BotDeliveryError(
             "TELEGRAM_DELIVERY_UNCERTAIN: network or malformed reply. "

@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from .bot import BotDeliveryError, configured, send_message
+from .bot import BotBlockedError, BotDeliveryError, configured, send_message
 from .pattern_features import FEATURE_VERSION, match_features
 from .timeline import collect_timelines, read_sources, utc
 
@@ -389,6 +389,10 @@ def process(rows, ledger, now, sender, enabled, pace=None, *, research=None, clo
             counts["games_sent"] += 1
             counts["strategy_receipts"] += len(fresh)
             counts["withdrawals_sent"] += len(withdrawn)
+        except BotBlockedError:
+            # Shared pause: no HTTP request was made -> not sent, not uncertain; retry next run.
+            counts["blocked_before_http"] = counts.get("blocked_before_http", 0) + 1
+            break
         except BotDeliveryError:
             for rule in fresh:
                 receipt_key = key + "|" + str(rule["number"])

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from .bot import BotDeliveryError, configured, send_message
+from .bot import BotBlockedError, BotDeliveryError, configured, send_message
 from .strategy_notify import (
     MAX_ALERT_LOOKAHEAD, ROOT, RESEARCH, STRATEGIES, _exit_reason,
     _short_history, _write, candidate_matches,
@@ -135,6 +135,10 @@ def process(rows, ledger, now, sender, enabled, pace=None, clock=None):
             mid = sender(msg)
             if isinstance(mid, bool) or not isinstance(mid, int):
                 raise BotDeliveryError("TELEGRAM_DELIVERY_UNCERTAIN: missing message ID")
+        except BotBlockedError:
+            # Shared 429/401/403 pause: NO HTTP request was made, so nothing is uncertain.
+            stats["blocked_before_http"] = stats.get("blocked_before_http", 0) + 1
+            break
         except BotDeliveryError:
             # Prevent unbounded duplicate retries if Telegram may have accepted it.
             item = receipt.copy() if isinstance(receipt, dict) else {}
