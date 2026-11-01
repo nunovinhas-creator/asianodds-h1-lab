@@ -16,7 +16,7 @@ from .timeline import (DEFAULT_MAX_TIMELINES, collect_timelines,
                        read_sources, utc)
 
 SCHEMA = 1
-MAX_REPORT_BYTES = 250_000
+MAX_REPORT_BYTES = 512_000
 AMBIGUOUS = {"SAME_MOVEMENT_REPEAT", "AMBIGUOUS_REPEAT_OR_REVERSAL"}
 
 
