@@ -81,12 +81,22 @@ def verify_ft_backlog(ledger, ft, backlog):
             or classifications.get('verified_ft',0)!=ft.get('final_recorded')):
         raise ValueError('FT backlog vs ledger/report mismatch')
     exclusive=('verified_ft','future','in_3h_grace','past_due_unverified',
-               'quarantined_or_identity_review','unknown_kickoff')
+               'closed_unverified','quarantined_or_identity_review','unknown_kickoff')
     if any(k not in (*exclusive,'past_due_never_checked','past_due_expired')
            for k in classifications):
         raise ValueError('FT backlog unexpected classification')
     if sum(classifications.get(k,0) for k in exclusive)!=n:
         raise ValueError('FT backlog nonexclusive partition')
+    # EXPIRED_UNVERIFIED is a terminal, never-retried unproven outcome.
+    # It is neither an overdue retry nor a verified final.
+    closed=classifications.get('closed_unverified',0)
+    if closed!=sum(item.get('status')=='EXPIRED_UNVERIFIED'
+                   for item in matches.values()):
+        raise ValueError('FT closed-unverified ledger partition mismatch')
+    diag=ft.get('coverage_diagnostics')
+    if (not isinstance(diag,dict)
+            or diag.get('closed_unverified',0)!=closed):
+        raise ValueError('FT closed-unverified coverage mismatch')
     overdue=classifications.get('past_due_unverified',0)
     if (classifications.get('past_due_never_checked',0)>overdue
             or classifications.get('past_due_expired',0)>overdue):
@@ -103,8 +113,8 @@ def verify_ft_backlog(ledger, ft, backlog):
         key=row.get('match_key')
         if not isinstance(key,str) or key not in matches or key in seen:
             raise ValueError('FT backlog duplicate/unknown fixture identity')
-        if matches[key].get('status')=='FINAL':
-            raise ValueError('FT backlog verified match reported overdue')
+        if matches[key].get('status') in ('FINAL','EXPIRED_UNVERIFIED'):
+            raise ValueError('FT backlog terminal match reported overdue')
         seen.add(key)
     diag=ft.get('coverage_diagnostics')
     if (not isinstance(diag,dict)
