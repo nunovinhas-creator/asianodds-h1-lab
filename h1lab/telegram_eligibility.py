@@ -213,7 +213,7 @@ def publish(root, now=None, source_commit="unknown"):
     )
     encoded = (json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
     if len(encoded.encode("utf-8")) > MAX_REPORT_BYTES:
-        raise ValueError("Telegram eligibility report exceeds 250 KB; refuse truncation")
+        raise ValueError("Telegram eligibility report exceeds 512 KB; refuse truncation")
     output = root / "docs/lab/telegram-eligibility.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.with_suffix(".tmp").write_text(encoded, encoding="utf-8")
