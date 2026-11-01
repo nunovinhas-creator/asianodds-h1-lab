@@ -1,8 +1,13 @@
 import unittest
+from io import BytesIO
+from urllib.error import HTTPError
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from h1lab.results import choose_result, norm_team, verified_score, sync, plan_due_signals
+from h1lab.results import (
+    TheSportsDBProviderError, api_events, choose_result, norm_team,
+    parse_provider_events, verified_score, sync, plan_due_signals,
+)
 
 UTC = timezone.utc
 KO = datetime(2026, 10, 27, 19, 45, tzinfo=UTC)
@@ -167,6 +172,83 @@ class ResultMatching(unittest.TestCase):
                  search=lambda _: self.fail("future fixture should not be queried"))
             write_rows.assert_not_called()
             dump_audit.assert_not_called()
+
+
+    def test_200_with_provider_errors_is_not_an_empty_search(self):
+        for payload in (
+            {"event": None, "errors": {"access": "forbidden"}},
+            {"event": [], "error": "limit"},
+            {"event": None, "message": "API blocked"},
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(TheSportsDBProviderError) as raised:
+                    parse_provider_events(payload)
+                self.assertTrue(raised.exception.stop_cycle)
+        self.assertEqual(parse_provider_events({"event": None}), [])
+        self.assertEqual(parse_provider_events({"event": []}), [])
+
+    def test_thesportsdb_http_429_is_classified_without_body(self):
+        with patch("h1lab.results.urlopen", side_effect=HTTPError(
+            "https://example.invalid", 429, "rate limit", None, None
+        )):
+            with self.assertRaises(TheSportsDBProviderError) as raised:
+                api_events(SIGNAL)
+        self.assertEqual(raised.exception.reason, "thesportsdb_http_429")
+        self.assertTrue(raised.exception.stop_cycle)
+
+    def test_tsdb_semantic_error_from_http_200_is_not_no_event(self):
+        response = BytesIO(b'{"event":null,"errors":{"rate":"blocked"}}')
+        response.status = 200
+        with patch("h1lab.results.urlopen", return_value=response):
+            with self.assertRaises(TheSportsDBProviderError) as raised:
+                api_events(SIGNAL)
+        self.assertEqual(raised.exception.reason, "thesportsdb_semantic_rejection")
+
+    def test_blocked_tsdb_cycle_does_not_repeat_blocked_provider_calls(self):
+        signals = [{**SIGNAL, "match_key": f"blocked-{i}",
+                    "kickoff_utc": (KO + timedelta(minutes=i)).isoformat()}
+                   for i in range(4)]
+        attempts = []
+        def blocked_search(signal):
+            attempts.append(signal["match_key"])
+            raise TheSportsDBProviderError("thesportsdb_http_403", stop_cycle=True)
+
+        with patch.dict("os.environ", {"BSD_API_KEY": "fixture-token"}), \
+             patch("h1lab.bsd.find_result", return_value=(None, "bsd_no_exact_match")) as bsd, \
+             patch("h1lab.results.read_state", return_value={"signals": signals}), \
+             patch("h1lab.results.read_rows", return_value=[]), \
+             patch("h1lab.results.load_results", return_value={}), \
+             patch("h1lab.results.read_audit", return_value={}), \
+             patch("h1lab.results.save"), \
+             patch("h1lab.core.dump_json") as dump:
+            sync(now=KO + timedelta(days=1), search=blocked_search)
+        self.assertEqual(attempts, ["blocked-0"])
+        self.assertEqual(bsd.call_count, 4)
+        audit = dump.call_args.args[1]
+        self.assertIn("thesportsdb:thesportsdb_http_403", audit["blocked-0"]["reason"])
+        self.assertIn("thesportsdb:thesportsdb_circuit_open", audit["blocked-1"]["reason"])
+        self.assertEqual(len(audit), 4)
+        self.assertTrue(all(item["status"] == "pending" for item in audit.values()))
+
+    def test_skip_without_any_supplier_does_not_create_false_cooldown(self):
+        signals = [{**SIGNAL, "match_key": f"unattempted-{i}",
+                    "kickoff_utc": (KO + timedelta(minutes=i)).isoformat()}
+                   for i in range(3)]
+        attempts = []
+        def blocked_search(signal):
+            attempts.append(signal["match_key"])
+            raise TheSportsDBProviderError("thesportsdb_http_429", stop_cycle=True)
+
+        with patch.dict("os.environ", {"BSD_API_KEY": ""}), \
+             patch("h1lab.results.read_state", return_value={"signals": signals}), \
+             patch("h1lab.results.read_rows", return_value=[]), \
+             patch("h1lab.results.load_results", return_value={}), \
+             patch("h1lab.results.read_audit", return_value={}), \
+             patch("h1lab.results.save"), \
+             patch("h1lab.core.dump_json") as dump:
+            sync(now=KO + timedelta(days=1), search=blocked_search)
+        self.assertEqual(attempts, ["unattempted-0"])
+        self.assertEqual(set(dump.call_args.args[1]), {"unattempted-0"})
 
 
 if __name__ == "__main__":
