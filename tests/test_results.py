@@ -40,6 +40,14 @@ class ResultMatching(unittest.TestCase):
         self.assertEqual(norm_team("SV Werder Bremen"), norm_team("Werder Bremen"))
         self.assertNotEqual(norm_team("Bristol City U21"), norm_team("Bristol City"))
 
+    def test_club_designator_normalization_does_not_merge_youth_or_reserves(self):
+        self.assertEqual(norm_team("FC Córdoba CF"), norm_team("Córdoba"))
+        self.assertEqual(norm_team("SC Farense"), norm_team("Farense"))
+        self.assertNotEqual(norm_team("SC Farense U19"), norm_team("SC Farense"))
+        self.assertNotEqual(norm_team("Real Madrid CF"), norm_team("Real Madrid B"))
+        self.assertNotEqual(norm_team("Milan"), norm_team("Inter Milan"))
+        self.assertEqual(norm_team("CF"), "cf")
+
     def test_verified_regulation_final(self):
         found, reason = verified_score(SIGNAL, dict(EVENT))
         self.assertEqual(reason, "verified_ft")
