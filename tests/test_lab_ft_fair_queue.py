@@ -28,7 +28,7 @@ def call(alerts, previous=None, limit=30, **kwargs):
 
 
 class FairQueueTests(unittest.TestCase):
-    def test_old_never_effective_but_visited_precedes_new_unvisited(self):
+    def test_first_real_visit_precedes_old_visited_without_provider_evidence(self):
         old=fixture('old');new=fixture('new')
         new['kickoff_utc']='2026-10-28T13:00:00+00:00'
         previous={'schema_version':1,'matches':{'old':{
@@ -37,12 +37,27 @@ class FairQueueTests(unittest.TestCase):
         _,report,count=call([old,new],previous,limit=1,evidence_retry=True,
                             lookup_source_version=11)
         self.assertEqual(count,1)
-        self.assertEqual(report['ft_queue']['selected_keys'],['old'])
+        self.assertEqual(report['ft_queue']['selected_keys'],['new'])
+        # An old visit without a complete authenticated source is still
+        # unverified, but its repeat must NOT starve a younger first visit.
+        self.assertEqual(report['ft_queue']['never_checked_eligible'],2)
+        self.assertEqual(report['ft_queue']['never_checked_deferred'],1)
         # It must wait when its independent four-hour visit gate is active.
         previous['matches']['old']['queue_visited_at']='2026-10-28T19:00:00+00:00'
         _,report,count=call([old,new],previous,limit=1,evidence_retry=True,
                             lookup_source_version=11)
         self.assertEqual(report['ft_queue']['selected_keys'],['new'])
+
+        # On the following cycle, the first visit is now covered as a real
+        # queue visit, so the older revisit is no longer starved.
+        first,_,_=call([old,new],previous,limit=1,evidence_retry=True,
+                       lookup_source_version=11)
+        second,report,count=call([old,new],first,limit=1,evidence_retry=True,
+                                 lookup_source_version=11,now=NOW+timedelta(minutes=1))
+        self.assertEqual(count,1)
+        self.assertEqual(report['ft_queue']['selected_keys'],['old'])
+        self.assertIn('queue_visited_at',second['matches']['old'])
+        self.assertNotIn('evidence_checked_at',second['matches']['old'])
 
     def test_never_queried_is_not_starved_by_30_retries_or_research_hints(self):
         alerts = [fixture(f"old-{i}") for i in range(35)]
