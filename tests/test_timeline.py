@@ -231,7 +231,10 @@ class RealDataTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.report = generate(ROOT)
+        # Pinned real examples are looked up in the whole repeated-match
+        # population: the published sample keeps only the N most recent
+        # timelines, so ranks drift as normal publications add newer matches.
+        cls.report = generate(ROOT, max_timelines=10 ** 6)
         cls.alerts = json.loads((ROOT / "data" / "state.json").read_text(encoding="utf-8"))["alerts"]
         cls.by_key = {t["match_key"]: t for t in cls.report["timelines"]}
         cls.ids = {a["event_id"] for a in cls.alerts}
@@ -243,6 +246,12 @@ class RealDataTests(unittest.TestCase):
 
     def timeline_of(self, number):
         return next(t for t in self.report["timelines"] if CH + number in t["event_ids"])
+
+    def test_pinned_lookups_do_not_depend_on_the_published_sample_cap(self):
+        # Regression (#107): with the default cap, examples at ranks 276-386
+        # raised StopIteration (blocking the LAB bundle) once ~15 newer matches arrived.
+        self.assertEqual(self.report["sampling"]["timelines_omitted"], 0)
+        self.assertGreater(len(self.report["timelines"]), 0)
 
     def test_no_alert_lost(self):
         s = self.report["summary"]
