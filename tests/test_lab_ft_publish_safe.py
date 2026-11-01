@@ -337,7 +337,7 @@ class GitFTPublicationTests(unittest.TestCase):
     def test_exact_main_ref_cas_race_retries_and_preserves_collector(self):
         # Reproduce GitHub's 2026-11-01 production rejection, which does not
         # contain 'non-fast-forward', 'fetch first' or 'stale info'.
-        self.collector_commit({"docs/data.json": '{"version":2}\\n'})
+        self.collector_commit({"docs/data.json": '{"version":2}\n'})
         old_run = p.run
         raced = [False]
 
@@ -346,14 +346,14 @@ class GitFTPublicationTests(unittest.TestCase):
                 raced[0] = True
                 expected = git(self.root, "rev-parse", "FETCH_HEAD")
                 git(self.other, "pull", "-q", "--ff-only", "origin", "main")
-                write(self.other, "docs/data.json", '{"version":3}\\n')
+                write(self.other, "docs/data.json", '{"version":3}\n')
                 git(self.other, "add", ".")
                 git(self.other, "commit", "-qm", "collector race on FT push")
                 git(self.other, "push", "-q", "origin", "main")
                 actual = git(self.other, "rev-parse", "HEAD")
                 error = (f" ! [remote rejected] HEAD -> main "
                          f"(cannot lock ref 'refs/heads/main': is at "
-                         f"{actual} but expected {expected})\\n")
+                         f"{actual} but expected {expected})\n")
                 return subprocess.CompletedProcess(args, 1, b"", error.encode())
             return old_run(root, *args, **kwargs)
 
@@ -364,8 +364,8 @@ class GitFTPublicationTests(unittest.TestCase):
                 content = p.git(self.root, "show", "HEAD:" + name)
                 self.assertEqual(hashlib.sha256(content).hexdigest(), digest)
 
-        with patch.object(p, "run", side_effect=cas_race), \\
-             patch.object(p.publication_guard, "verify", side_effect=sealed), \\
+        with patch.object(p, "run", side_effect=cas_race), \
+             patch.object(p.publication_guard, "verify", side_effect=sealed), \
              patch.object(p, "discovery_verify", return_value=None):
             published = p.publish(
                 self.root, base=self.base, manifest=self.manifest,
