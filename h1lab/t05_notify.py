@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from .bot import BotDeliveryError, configured, send_message
+from .bot import BotBlockedError, BotDeliveryError, configured, send_message
 from .pattern_features import FEATURE_VERSION, message_metrics
 from .strategy_notify import MAX_ALERT_LOOKAHEAD, ROOT, _write
 from .timeline import collect_timelines, read_sources, utc
@@ -120,6 +120,7 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
     if clock is None:
         clock = lambda: now
     entries = ledger["entries"]
+    blocked_before_http = False
 
     # Distinct, once-only retrospective proof requested by the user. Never
     # masquerades as a prospective prediction or contributes to hit rate.
@@ -135,12 +136,17 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
                     "status":"sent", "telegram_message_id":mid,
                     "at":now.isoformat(timespec="seconds"),"kind":"HISTORICAL_ONLY"}
                 stats["historical_sent"] = 1
+            except BotBlockedError:
+                stats["blocked_before_http"] = stats.get("blocked_before_http", 0) + 1
+                blocked_before_http = True
             except BotDeliveryError:
                 entries["historical:2026-10-28-29"] = {
                     "status":"delivery_uncertain_manual_review",
                     "at":now.isoformat(timespec="seconds"),"kind":"HISTORICAL_ONLY"}
                 stats["uncertain"] += 1
     for row in sorted(rows, key=lambda x:(x["kickoff_utc"],x["match_key"])):
+        if blocked_before_http:
+            break
         ko = utc(row.get("kickoff_utc"))
         if ko is None or not now < ko <= now + MAX_ALERT_LOOKAHEAD:
             continue
@@ -171,6 +177,9 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
                 "observed_through":row["observed_through"],
                 "candidate_id":CANDIDATE_ID, "rule_version":RULE_VERSION}
             stats["future_sent"] += 1
+        except BotBlockedError:
+            stats["blocked_before_http"] = stats.get("blocked_before_http", 0) + 1
+            break
         except BotDeliveryError:
             # The provider may have delivered despite timeout. NEVER retry
             # automatically; this is an operational/manual delivery review.

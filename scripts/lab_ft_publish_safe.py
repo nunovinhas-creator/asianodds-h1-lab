@@ -280,7 +280,8 @@ def _valid_eligibility_report(raw):
             for entry in receipts.values():
                 if (not isinstance(entry, dict)
                         or entry.get("status") not in (
-                            "sent", "delivery_uncertain_manual_review")
+                            "sent", "delivery_uncertain_manual_review",
+                            "delivery_rejected_final", "expired_not_sent")
                         or (entry.get("telegram_message_id") is not None and
                             (type(entry["telegram_message_id"]) is not int or
                              entry["telegram_message_id"] < 0))):
