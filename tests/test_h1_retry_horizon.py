@@ -167,5 +167,70 @@ class RealDataInvariants(unittest.TestCase):
                              audit.get(key, {}).get("checked_at"))
 
 
+class RollbackTests(unittest.TestCase):
+    """Persisted expired_unverified states survive a horizon change; reopening is explicit only."""
+
+    def expired_world(self):
+        signals = [sig("a"), sig("b", KO + timedelta(hours=1)), sig("fresh", KO + timedelta(hours=40))]
+        audit = {"a": pending_audit(KO + timedelta(hours=5)), "b": pending_audit(KO + timedelta(hours=6))}
+        now = KO + timedelta(hours=60)
+        expire_stale_pending(signals, set(), audit, now)
+        return signals, audit, now
+
+    def test_lengthening_the_horizon_does_not_reopen_or_requery_expired_games(self):
+        signals, audit, now = self.expired_world()
+        with patch.object(R, "H1_RETRY_HORIZON", timedelta(days=30)):
+            chosen, diag = plan_due_signals(signals, set(), audit, now, limit=20)
+            self.assertEqual([s["match_key"] for s in chosen], ["fresh"])      # no duplicate queries
+            self.assertEqual(expire_stale_pending(signals, set(), audit, now), [])
+        self.assertEqual(audit["a"]["status"], EXPIRED_STATUS)
+
+    def test_reopen_is_explicit_audited_and_restores_the_previous_state(self):
+        signals, audit, now = self.expired_world()
+        before = copy.deepcopy(audit["a"])
+        out = R.reopen_expired(signals, set(), audit, ["a"], now, reason="manual review #107")
+        self.assertEqual(out, ["a"])
+        got = audit["a"]
+        self.assertEqual(got["status"], "pending")
+        self.assertEqual(got["checked_at"], before["checked_at"])
+        self.assertEqual(got["reopen_reason"], "manual review #107")
+        self.assertEqual(got["expired_history"][0]["expired_at"], before["expired_at"])
+        self.assertEqual(audit["b"]["status"], EXPIRED_STATUS)                 # untouched siblings
+        self.assertNotIn("home_goals", got)
+
+    def test_reopen_refuses_certified_unknown_non_expired_and_missing_reason(self):
+        signals, audit, now = self.expired_world()
+        audit["fresh"] = {"status": "pending"}
+        for keys, resolved in ((["fresh"], set()), (["nope"], set()), (["a"], {"a"})):
+            with self.subTest(keys=keys), self.assertRaises(ValueError):
+                R.reopen_expired(signals, resolved, audit, keys, now, reason="x")
+        with self.assertRaises(ValueError):
+            R.reopen_expired(signals, set(), audit, ["a"], now, reason="")
+        self.assertEqual(audit["a"]["status"], EXPIRED_STATUS)
+
+    def test_reopened_games_are_expired_again_under_24h_policy(self):
+        signals, audit, now = self.expired_world()
+        R.reopen_expired(signals, set(), audit, ["a"], now, reason="x")
+        self.assertEqual(expire_stale_pending(signals, set(), audit, now), ["a"])
+        self.assertEqual(len(audit["a"]["expired_history"]), 1)
+
+    def test_cli_is_dry_run_by_default_and_touches_only_the_audit(self):
+        import json, tempfile
+        from scripts.h1_reopen_expired import main
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "data").mkdir()
+            signals, audit, now = self.expired_world()
+            (root / "data/state.json").write_text(json.dumps({"signals": signals}))
+            (root / "data/result_audit.json").write_text(json.dumps(audit))
+            (root / "data/results.csv").write_text("match_key,status,home_goals,away_goals,source\n")
+            before = (root / "data/result_audit.json").read_text()
+            main(["--root", tmp, "--key", "a", "--reason", "test"])
+            self.assertEqual((root / "data/result_audit.json").read_text(), before)      # dry run
+            main(["--root", tmp, "--key", "a", "--reason", "test", "--apply"])
+            self.assertEqual(json.loads((root / "data/result_audit.json").read_text())["a"]["status"], "pending")
+            self.assertEqual((root / "data/results.csv").read_text(), "match_key,status,home_goals,away_goals,source\n")
+
+
 if __name__ == "__main__":
     unittest.main()

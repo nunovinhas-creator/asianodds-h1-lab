@@ -276,6 +276,37 @@ H1_RETRY_POLICY_VERSION = 2
 EXPIRED_STATUS = "expired_unverified"
 
 
+def reopen_expired(signals, resolved, audit, keys, now, *, reason):
+    """Explicit, audited reopening of expired fixtures (rollback / manual review only).
+
+    Never automatic: the caller names the keys. Resolved (certified) fixtures and anything not
+    in `expired_unverified` are refused. The entry returns to its previous status and keeps the
+    expiry record in `expired_history`. Under a 24h horizon the next sync would simply expire it
+    again, so lengthen H1_RETRY_HORIZON first. Returns the reopened keys.
+    """
+    if not reason or not isinstance(reason, str):
+        raise ValueError("A reopening reason is mandatory")
+    known = {s["match_key"] for s in signals}
+    reopened = []
+    for key in keys:
+        entry = audit.get(key)
+        if key in resolved or key not in known or not isinstance(entry, dict) or entry.get("status") != EXPIRED_STATUS:
+            raise ValueError("Refusing to reopen %r: not an expired, unresolved, known fixture" % (key,))
+        history = list(entry.get("expired_history") or [])
+        history.append({k: entry[k] for k in ("expired_at", "expiry_reason", "retry_policy_version",
+                                              "status_before_expiry") if k in entry})
+        restored = {k: v for k, v in entry.items()
+                    if k not in ("expired_at", "expiry_reason", "retry_policy_version",
+                                 "status_before_expiry", "checked_before_expiry")}
+        restored["status"] = entry.get("status_before_expiry") if entry.get("status_before_expiry") != "no_audit_entry" else "pending"
+        restored["expired_history"] = history
+        restored["reopened_at"] = now.isoformat(timespec="seconds")
+        restored["reopen_reason"] = reason[:200]
+        audit[key] = restored
+        reopened.append(key)
+    return reopened
+
+
 def expire_stale_pending(signals, resolved, audit, now):
     """Terminal, non-certified state for unresolved fixtures past the retry horizon.
 
@@ -327,6 +358,10 @@ def plan_due_signals(signals, resolved, audit, now, limit=20):
         if now < kickoff + timedelta(hours=3) or now > kickoff + H1_RETRY_HORIZON:
             continue
         previous = audit.get(key, {})
+        if isinstance(previous, dict) and previous.get("status") == EXPIRED_STATUS:
+            # Persisted terminal state: honoured whatever H1_RETRY_HORIZON currently is, so that
+            # lengthening the horizon (rollback) can never silently reopen expired fixtures.
+            continue
         checked_at = previous.get("checked_at") if isinstance(previous, dict) else None
         checked = None
         if checked_at:
