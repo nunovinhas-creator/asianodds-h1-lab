@@ -224,13 +224,13 @@ class ResultMatching(unittest.TestCase):
             if signal["match_key"]=="paced-1":
                 raise TheSportsDBProviderError("thesportsdb_http_429",stop_cycle=True)
             return []
-        with patch.dict("os.environ",{"BSD_API_KEY":"synthetic"}), \\
-             patch("h1lab.bsd.find_result",return_value=(None,"bsd_empty_finished_list")), \\
-             patch("h1lab.results.read_state",return_value={"signals":signals}), \\
-             patch("h1lab.results.read_rows",return_value=[]), \\
-             patch("h1lab.results.load_results",return_value={}), \\
-             patch("h1lab.results.read_audit",return_value={}), \\
-             patch("h1lab.results.save"), \\
+        with patch.dict("os.environ",{"BSD_API_KEY":"synthetic"}), \
+             patch("h1lab.bsd.find_result",return_value=(None,"bsd_empty_finished_list")), \
+             patch("h1lab.results.read_state",return_value={"signals":signals}), \
+             patch("h1lab.results.read_rows",return_value=[]), \
+             patch("h1lab.results.load_results",return_value={}), \
+             patch("h1lab.results.read_audit",return_value={}), \
+             patch("h1lab.results.save"), \
              patch("h1lab.core.dump_json"):
             sync(now=now,search=reject,pace=FakePacer())
         # No artificial waiting/calls after a real HTTP 429, but BSD
