@@ -12,6 +12,7 @@ import tempfile
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -24,6 +25,31 @@ AUDIT = ROOT / "data/result_audit.json"
 API = "https://www.thesportsdb.com/api/v1/json/123/searchevents.php"
 HEADERS = ("match_key", "status", "home_goals", "away_goals", "source")
 BLOCKED_CONTEXT = re.compile(r"extra.time|after.extra.time|aet|penalt|shoot.out|spot.kick", re.I)
+
+
+class TheSportsDBProviderError(OSError):
+    """Safe, classified supplier failure; never includes URLs or response bodies."""
+
+    def __init__(self, reason, *, stop_cycle=False):
+        super().__init__(reason)
+        self.reason = reason
+        self.stop_cycle = stop_cycle
+
+
+def parse_provider_events(payload):
+    """An HTTP 200 containing an API error is NOT an empty event search."""
+    if not isinstance(payload, dict):
+        raise TheSportsDBProviderError("thesportsdb_invalid_payload")
+    if payload.get("error") or payload.get("errors"):
+        raise TheSportsDBProviderError("thesportsdb_semantic_rejection", stop_cycle=True)
+    if payload.get("message") and payload.get("event") is None:
+        raise TheSportsDBProviderError("thesportsdb_message_without_events", stop_cycle=True)
+    events = payload.get("event")
+    if events is None:
+        return []
+    if not isinstance(events, list):
+        raise TheSportsDBProviderError("thesportsdb_invalid_events")
+    return events
 
 
 def norm_team(value):
@@ -99,13 +125,21 @@ def api_events(signal):
         "Accept": "application/json",
         "User-Agent": "AsianOdds-H1-Lab/1.0 (open-source results research)",
     })
-    with urlopen(request, timeout=12) as response:
-        if response.status != 200:
-            raise OSError("Provider returned HTTP " + str(response.status))
-        payload = json.loads(response.read(750000))
-    if not isinstance(payload, dict) or not isinstance(payload.get("event"), (list, type(None))):
-        raise ValueError("Unexpected provider response")
-    return payload.get("event") or []
+    try:
+        with urlopen(request, timeout=12) as response:
+            if response.status != 200:
+                raise TheSportsDBProviderError("thesportsdb_http_unexpected")
+            payload = json.loads(response.read(750000))
+    except HTTPError as exc:
+        # HTTP 401/403/429 are access/rate limits, not missing match evidence.
+        status = exc.code
+        reason = ("thesportsdb_http_" + str(status)
+                  if status in (401, 403, 429) else "thesportsdb_http_error")
+        raise TheSportsDBProviderError(
+            reason, stop_cycle=status in (401, 403, 429)) from None
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise TheSportsDBProviderError("thesportsdb_invalid_json") from None
+    return parse_provider_events(payload)
 
 
 def choose_result(signal, events):
@@ -203,14 +237,22 @@ def sync(now=None, search=api_events):
     newly_final = 0
     errors = 0
     updates = 0
+    tsdb_circuit_reason = None
+    tsdb_skipped = 0
+    bsd_enabled = bool(os.environ.get("BSD_API_KEY", "").strip())
     due_signals, plan = plan_due_signals(state["signals"], resolved, audit, now, limit=20)
     print("H1_RESULTS_PLAN", json.dumps(plan, sort_keys=True))
     for signal in due_signals:
+        # With no BSD credential and a blocked TSDB, no HTTP check can occur:
+        # leave the audit untouched so this fixture does not gain fake cooldown.
+        if tsdb_circuit_reason and not bsd_enabled:
+            tsdb_skipped += 1
+            continue
         key = signal["match_key"]
         scanned += 1
         bsd_result = None
         bsd_reason = "bsd_not_configured"
-        if os.environ.get("BSD_API_KEY", "").strip():
+        if bsd_enabled:
             from .bsd import BSDProviderError, find_result
             try:
                 bsd_result, bsd_reason = find_result(signal)
@@ -220,12 +262,21 @@ def sync(now=None, search=api_events):
 
         fallback = None
         fallback_reason = "not_checked"
-        try:
-            fallback, fallback_reason = choose_result(signal, search(signal))
-        except (OSError, ValueError, TimeoutError, json.JSONDecodeError):
-            # Never echo untrusted payloads, request URLs or secrets.
-            fallback_reason = "thesportsdb_unavailable"
-            errors += 1
+        if tsdb_circuit_reason:
+            fallback_reason = "thesportsdb_circuit_open"
+            tsdb_skipped += 1
+        else:
+            try:
+                fallback, fallback_reason = choose_result(signal, search(signal))
+            except TheSportsDBProviderError as exc:
+                fallback_reason = exc.reason
+                errors += 1
+                if exc.stop_cycle:
+                    tsdb_circuit_reason = exc.reason
+            except (OSError, ValueError, TimeoutError, json.JSONDecodeError):
+                # Never echo untrusted payloads, request URLs or secrets.
+                fallback_reason = "thesportsdb_unavailable"
+                errors += 1
 
         if bsd_result is not None and fallback is not None:
             same_score=(bsd_result["home_goals"], bsd_result["away_goals"]) == (
@@ -263,6 +314,11 @@ def sync(now=None, search=api_events):
     save(state)  # update ROI, even if no scores can yet be verified
     print("RESULTS_SYNC checked:", scanned, "new finals:", newly_final,
           "provider errors:", errors, "unresolved:", len(state["signals"])-len(resolved))
+    print("H1_PROVIDER_HEALTH", json.dumps({
+        "thesportsdb_circuit": tsdb_circuit_reason or "closed",
+        "thesportsdb_skipped_calls": tsdb_skipped,
+        "selected": len(due_signals), "processed": scanned,
+    }, sort_keys=True))
 
 
 if __name__ == "__main__":
