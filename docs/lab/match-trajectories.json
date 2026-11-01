@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-01T07:01:39+00:00",
+ "generated_at": "2026-11-01T07:06:33+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 348
+  "timelines_published": 349
  },
  "schema_version": 1,
- "source_commit": "1eaf1c6bf3b4449844c3ea35bdff136743368b68",
+ "source_commit": "63a3dde45edeaac6378865a8dfbd75a66e5948cd",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 994,
+  "matches": 996,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 6,
-  "messages": 1481,
+  "messages": 1484,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 835,
+  "messages_on_repeated_matches": 837,
   "messages_v4_only": 0,
-  "messages_with_v4": 1407,
-  "movement_episodes_upper_bound": 1421,
+  "messages_with_v4": 1410,
+  "movement_episodes_upper_bound": 1424,
   "possibly_redundant_snapshots": 45,
   "post_kickoff_messages": 58,
   "related_message_pairs": 60,
@@ -50,25 +50,162 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 15
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 348,
+  "repeated_matches": 349,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 2316
+   "V4_EXPLICIT": 2323
   },
   "total_line_reversals_on_repeated": 186,
   "total_line_transitions_on_repeated": {
-   "AMBIGUOUS_REPEAT_OR_REVERSAL": 48,
+   "AMBIGUOUS_REPEAT_OR_REVERSAL": 49,
    "CONTINUOUS": 264,
    "SAME_MOVEMENT_REPEAT": 60,
    "UNOBSERVED_CHANGE": 115
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 462,
-   "one_x_two:AGREE": 447,
-   "total:AGREE": 1407
+   "asian_handicap:AGREE": 464,
+   "one_x_two:AGREE": 449,
+   "total:AGREE": 1410
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:52050",
+    "3571094759:52068"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:52050",
+     "message_id": 52050,
+     "minutes_to_kickoff": 345.7,
+     "observed_at": "2026-11-01T05:14:18+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 1.95,
+        "under_price": 1.95
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.82,
+        "under_price": 1.89
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52068",
+     "message_id": 52068,
+     "minutes_to_kickoff": 237.3,
+     "observed_at": "2026-11-01T07:02:39+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 1.94,
+        "under_price": 1.77
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.74,
+        "under_price": 1.93
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-01T05:14:18+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-01T11:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-01T07:02:39+00:00",
+   "match_key": "2026-11-01,30494,68539",
+   "match_label": "Nordstrand IF vs IF Ready",
+   "movement_episodes": [
+    [
+     "3571094759:52050"
+    ],
+    [
+     "3571094759:52068"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    6501.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 4.0,
+     "last_observed_line": 4.25,
+     "net_observed_change": 0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:52050",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:52068",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:52050",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 4.0,
+       "previous_after_line": 4.25,
+       "to": "3571094759:52068"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 4,
    "event_ids": [
