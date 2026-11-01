@@ -38,7 +38,8 @@ from h1lab.lab_ft_attestations import merge as merge_attestations, empty as empt
 from h1lab.lab_fotmob import FotMobResults
 from h1lab.lab_api_football import APIFootballResults
 from h1lab.lab_api_football_reviewed import plan_reviewed_ids
-from h1lab.lab_api_football_access import evolve_access, restriction_for_fixture_id, restore_access_from_audit
+from h1lab.lab_api_football_access import (evolve_access, restriction_for_fixture_id,
+    restore_access_from_audit, account_suspension_cooldown)
 from h1lab.lab_goal import GoalResults
 from h1lab.lab_openfoot import OpenFootResults
 
@@ -247,6 +248,15 @@ def main():
     prior_api_audit = (json.loads(API_AUDIT.read_text(encoding="utf-8"))
                        if API_AUDIT.exists() else {"schema_version": 1, "runs": []})
     history_access = restore_access_from_audit(history_access, prior_api_audit, now)
+    account_gate = account_suspension_cooldown(prior_api_audit, now)
+    if account_gate is not None and api_football_poll:
+        # A real provider-wide suspension blocks both date and ID endpoints.
+        # Blank the runtime adapter key to make ANY accidental downstream
+        # lookup fail closed without HTTP, even through cached dual consumers.
+        # The secret in the environment is neither removed nor persisted.
+        api_football_poll = False
+        api_football.key = ""
+        api_football.max_days = 0
     id_batch_limit, id_parameter_policy = id_batch_policy(prior_api_audit, now)
     historical_days["api_football_history_access"] = history_access
     catalog_v4 = read_v4()
@@ -394,6 +404,8 @@ def main():
     if approved.get("pairs") and not reviewed_id_decisions:
         reason = ("PUSH_NO_AUTHENTICATED_PROVIDER_CALLS"
                   if os.environ.get("GITHUB_EVENT_NAME") == "push" and not recovery_once
+                  else "API_FOOTBALL_ACCOUNT_SUSPENSION_COOLDOWN"
+                  if account_gate is not None
                   else "API_FOOTBALL_NOT_CONFIGURED_OR_DISABLED"
                   if not api_football_poll
                   else "API_FOOTBALL_DAILY_CAP_REACHED"
@@ -659,6 +671,8 @@ def main():
     next_rotation['http_429_cooldowns'] = tsdb.cooldowns
     report['ft_queue']['http_429_cooldowns'] = tsdb.cooldowns
     report["ft_queue"]["api_football_history_access"] = next_history_access
+    report["ft_queue"]["api_football_account_gate"] = (
+        account_gate or {"status": "ELIGIBLE", "reason": "NO_ACTIVE_ACCOUNT_SUSPENSION"})
     report["ft_queue"]["date_rotation"] = {
         provider: {"selected_days": rotation[provider],
                    "requested_days": used_days[provider],
