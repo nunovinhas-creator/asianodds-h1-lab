@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from datetime import datetime,timezone
 from scripts.audit_health import (check, latest_result_checked_at, verify_ft_backlog,
-                                  ft_report_generation_at)
+                                  ft_report_generation_at, h1_first_check_coverage)
 
 class HealthTests(unittest.TestCase):
     def test_invalid_execution_status_blocks_operational_gate(self):
@@ -281,3 +281,54 @@ class HealthTests(unittest.TestCase):
         legacy.pop('execution_health')
         self.assertEqual(ft_report_generation_at(legacy),
                          '2026-10-30T13:19:23+00:00')
+
+    def test_h1_first_check_monitor_separates_overdue_retry_cooldown_and_expiry(self):
+        now = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
+        def fixture(key, kickoff):
+            return {"match_key":key, "kickoff_utc":kickoff}
+        signals = [
+            fixture("first_23h", "2026-10-31T10:00:00Z"),
+            fixture("first_57h", "2026-10-30T00:00:00Z"),
+            fixture("retry", "2026-10-31T20:00:00Z"),
+            fixture("cooldown", "2026-11-01T05:00:00Z"),
+            fixture("future", "2026-11-02T12:00:00Z"),
+            fixture("expired", "2026-09-30T00:00:00Z"),
+            fixture("final", "2026-10-30T00:00:00Z"),
+        ]
+        audit = {
+            "retry": {"checked_at":"2026-10-31T21:00:00Z"},
+            "cooldown": {"checked_at":"2026-11-01T11:00:00Z"},
+        }
+        metrics=h1_first_check_coverage(signals, {"final"}, audit, now)
+        self.assertEqual(metrics["first_checks_due"], 2)
+        self.assertEqual(metrics["retries_due"], 1)
+        self.assertEqual(metrics["in_cooldown"], 1)
+        self.assertEqual(metrics["first_overdue_12h"], 2)
+        self.assertEqual(metrics["first_overdue_24h"], 1)
+        self.assertEqual(metrics["expired_without_first_check"], 1)
+        self.assertEqual(metrics["future_or_grace"], 1)
+        self.assertEqual(metrics["oldest_first_wait_hours"], 57.0)
+        self.assertEqual(metrics["first_check_cycles_at_20"], 1)
+        self.assertEqual(metrics["deferred_if_one_cycle"], 0)
+
+    def test_h1_first_check_capacity_and_duplicate_identity(self):
+        now=datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
+        signals=[{"match_key":f"fixture_{i}",
+                  "kickoff_utc":"2026-10-31T20:00:00Z"} for i in range(45)]
+        result=h1_first_check_coverage(signals, {}, {}, now)
+        self.assertEqual(result["first_checks_due"],45)
+        self.assertEqual(result["first_check_cycles_at_20"],3)
+        self.assertEqual(result["deferred_if_one_cycle"],25)
+        with self.assertRaisesRegex(ValueError, "Duplicate"):
+            h1_first_check_coverage(signals+[signals[0]], {}, {}, now)
+
+    def test_h1_first_check_monitor_missing_audit_timestamp_is_not_evidence(self):
+        now=datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
+        signals=[{"match_key":"x","kickoff_utc":"2026-10-31T18:00:00Z"}]
+        for item in (None, "invalid", "2026-11-01T18:00:00Z",
+                     "2026-10-31T20:00:00"):
+            with self.subTest(item=item):
+                result=h1_first_check_coverage(
+                    signals, {}, {"x":{"checked_at":item}}, now)
+                self.assertEqual(result["first_checks_due"],1)
+                self.assertEqual(result["retries_due"],0)
