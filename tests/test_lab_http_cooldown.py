@@ -6,6 +6,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from h1lab.lab_http_cooldown import active,record_429,validate
 from scripts.lab_results import PacedTSDB
+from h1lab.results import TheSportsDBProviderError
 
 NOW=datetime(2026,10,31,8,41,tzinfo=timezone.utc)
 S={'home':'A','away':'B','kickoff_utc':'2026-10-30T12:00:00+00:00','match_key':'x'}
@@ -21,6 +22,38 @@ class DurableHTTP429Tests(unittest.TestCase):
                 self.assertEqual(next_run.lookup(S)[1],'tsdb_http_429_cooldown_deferred')
                 self.assertEqual(next_run.cooldowns,before);self.assertEqual(next_run.counts['requested'],0)
             self.assertEqual(http.call_count,1)
+
+    def test_real_api_events_wrapped_429_stops_lab_requests_and_persists_cooldown(self):
+        # The production HTTP adapter wraps HTTPError as a classified
+        # OSError. Previously PacedTSDB caught it as plain unavailable.
+        refusal=TheSportsDBProviderError('thesportsdb_http_429',stop_cycle=True)
+        with patch('h1lab.results.api_events',side_effect=refusal) as api:
+            lab=PacedTSDB(interval=0,clock=lambda:NOW)
+            self.assertEqual(lab.lookup(S)[1],'tsdb_http_429')
+            self.assertEqual(lab.lookup(S)[1],'tsdb_limited_this_run')
+            self.assertEqual(api.call_count,1)
+            self.assertEqual(lab.counts['http_429'],1)
+            self.assertNotIn('unavailable',lab.counts)
+            persisted=json.loads(json.dumps(lab.cooldowns))
+            self.assertTrue(active(persisted,'thesportsdb',NOW+timedelta(hours=3)))
+            resumed=PacedTSDB(interval=0,cooldowns=persisted,
+                              clock=lambda:NOW+timedelta(hours=3))
+            self.assertEqual(resumed.lookup(S)[1],'tsdb_http_429_cooldown_deferred')
+            self.assertEqual(resumed.counts['requested'],0)
+            self.assertEqual(resumed.cooldowns,persisted)
+
+    def test_wrapped_forbidden_and_semantic_errors_stop_cycle_without_fake_429(self):
+        for reason in ('thesportsdb_http_401','thesportsdb_http_403',
+                       'thesportsdb_semantic_rejection'):
+            with self.subTest(reason=reason):
+                with patch('h1lab.results.api_events',side_effect=
+                           TheSportsDBProviderError(reason,stop_cycle=True)) as api:
+                    lab=PacedTSDB(interval=0,clock=lambda:NOW)
+                    self.assertIsNone(lab.lookup(S)[0])
+                    self.assertEqual(lab.lookup(S)[1],'tsdb_limited_this_run')
+                    self.assertEqual(api.call_count,1)
+                    self.assertEqual(lab.cooldowns,{})
+                    self.assertEqual(lab.counts['requested'],1)
 
     def test_deadline_boundary_allows_actual_request_and_only_new_429_extends(self):
         journal=record_429({},'thesportsdb',NOW)
