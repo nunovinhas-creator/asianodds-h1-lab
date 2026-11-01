@@ -174,5 +174,45 @@ class H1LabPromotionTests(unittest.TestCase):
         self.assertEqual(view["triples"]["settled"],1)
         self.assertAlmostEqual(view["triples"]["profit_units"],2.5344,places=4)
 
+
+    def test_promoted_lab_finals_free_all_twenty_first_check_slots(self):
+        from h1lab.results import plan_due_signals
+        signals = [signal(key=f"2026-10-27,preflight-{i},away-{i}")
+                   for i in range(25)]
+        # The first five signals are already rigorously certified by LAB.
+        # Previously they could be selected for a needless API request before
+        # the bridge imported them. No source access occurs in this test.
+        ledger = {"matches": {s["match_key"]: lab(s) for s in signals[:5]}}
+        prior, _ = plan_due_signals(signals, set(), {}, NOW)
+        self.assertEqual([s["match_key"] for s in prior[:5]],
+                         [s["match_key"] for s in signals[:5]])
+        promoted, rejected = propose({"signals":signals},ledger,[],NOW)
+        self.assertEqual(rejected["missing_lab_row"],20)
+        self.assertEqual(len(promoted),5)
+        resolved = {row["match_key"] for row,_ in promoted}
+        selected, diag = plan_due_signals(signals, resolved, {}, NOW)
+        self.assertEqual([s["match_key"] for s in selected],
+                         [s["match_key"] for s in signals[5:]])
+        self.assertEqual(diag,{"eligible":20,"first_checks_due":20,
+                               "retries_due":0,"deferred_by_limit":0})
+
+    def test_productive_h1_workflow_places_certified_lab_transfer_before_http(self):
+        from pathlib import Path
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/results.yml").read_text(encoding="utf-8")
+        due = workflow.index("run: python -m scripts.h1_results_watchdog due")
+        promote = workflow.index("run: python -m h1lab.lab_promotion")
+        supplier = workflow.index("run: python -m h1lab.results")
+        render = workflow.index("run: python -m h1lab.cli render")
+        self.assertTrue(due < promote < supplier < render)
+        # The successful and skipped cycle paths retain their same gate.
+        for step in ("Import confirmed LAB FT into H1",
+                     "Check BSD and TheSportsDB results",
+                     "Rebuild ROI for singles and triples"):
+            pos = workflow.index("- name: "+step)
+            self.assertIn("if: steps.due.outputs.run == 'true'",
+                          workflow[pos:pos+260])
+
+
 if __name__=="__main__":
     unittest.main()

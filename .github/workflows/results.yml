@@ -42,17 +42,19 @@ jobs:
         env:
           H1_TRIGGER_SOURCE: ${{ inputs.trigger_source }}
         run: python -m scripts.h1_results_watchdog due
+      # Import already-certified LAB FT BEFORE spending the H1 supplier budget.
+      # These source-validated finals are visible to the H1 planner as resolved.
+      # No new result is accepted without the strict existing promotion gate.
+      - name: Import confirmed LAB FT into H1 without changing signal rules
+        if: steps.due.outputs.run == 'true'
+        run: python -m h1lab.lab_promotion
       # BSD_API_KEY is read only within this step; never written to repository.
+      # The 20-call cap is unchanged; the budget now excludes promoted FT.
       - name: Check BSD and TheSportsDB results with strict FT validation
         if: steps.due.outputs.run == 'true'
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: python -m h1lab.results
-      # Read-only LAB evidence transfer: exact H1 fixture identity and source,
-      # only verified FINAL. Existing H1 result rows can never be overwritten.
-      - name: Import confirmed LAB FT into H1 without changing signal rules
-        if: steps.due.outputs.run == 'true'
-        run: python -m h1lab.lab_promotion
       - name: Rebuild ROI for singles and triples
         if: steps.due.outputs.run == 'true'
         run: python -m h1lab.cli render
