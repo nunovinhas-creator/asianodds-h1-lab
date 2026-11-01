@@ -40,6 +40,44 @@ def state(home="A",extra=False):
                        "event_id":"alert:2","competition":"Sample"})
     return json.dumps({"alerts":alerts,"signals":[]},sort_keys=True)+"\n"
 
+
+def eligibility_report(when="2026-11-01T12:00:00+00:00", *,
+                       names=None, receipts=None):
+    """Synthetic version of the real read-only diagnostic, never FT evidence."""
+    from h1lab import three_moves_notify, two_up_notify
+    names = ["2026-11-01,a,b"] if names is None else names
+    games = {}
+    for key in names:
+        games[key] = {
+            "match_key": key, "match_label": "Casa vs Fora",
+            "kickoff_utc": "2026-11-01T16:00:00+00:00",
+            "observed_messages": 3, "v4_moves_observed": 1,
+            "valid_three_moves": 1, "v4_up_observed": 1,
+            "valid_up_moves": 1, "net_up": 0.25,
+            "v4_down_observed": False,
+            "three_eligible": False, "two_eligible": False,
+            "rejects": {"ambiguous_transition": 2},
+            "reason": "Movimentos V4 independentes insuficientes",
+            "review_possible_false_negative": False, "review_note": None,
+            "receipts": receipts or {},
+        }
+    return {
+        "schema_version": 1,
+        "status": "READ_ONLY_PARITY_VERIFIED_NOT_DELIVERY_PROOF",
+        "generated_at": when, "source_commit": "a" * 40,
+        "rules": {"three": three_moves_notify.RULE_VERSION,
+                  "two": two_up_notify.RULE_VERSION},
+        "summary": {
+            "future_three_eligible": 0, "future_two_eligible": 0,
+            "visible_games": len(games),
+            "future_visible_exclusions": len(games),
+            "review_possible_false_negative": 0, "v4_source_errors": 0,
+        },
+        "games": games,
+        "limitations": "Relatório de elegibilidade sem prova de entrega Telegram.",
+    }
+
+
 class GitFTPublicationTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory()
@@ -54,6 +92,8 @@ class GitFTPublicationTests(unittest.TestCase):
         git(self.root,"checkout","-b","main")
         write(self.root,"data/state.json",state())
         write(self.root,"docs/data.json",'{"version":1}\n')
+        write(self.root, "docs/lab/telegram-eligibility.json",
+              json.dumps(eligibility_report(), sort_keys=True) + "\n")
         write(self.root,"data/three-total-moves-notifications.json",
               json.dumps({"schema_version":1,"entries":{
                   "old":{"match_key":"2026-11-01,a,b",
@@ -142,6 +182,99 @@ class GitFTPublicationTests(unittest.TestCase):
         self.collector_commit({"data/three-total-moves-notifications.json":
                                json.dumps(wrong)+"\n"})
         with self.assertRaisesRegex(p.UnsafeFTPublication,"notification receipt invalid"):
+            self.publish()
+
+    def test_read_only_telegram_eligibility_republish_preserves_newer_remote_snapshot(self):
+        current = eligibility_report(
+            "2026-11-01T13:00:00+00:00",
+            names=["2026-11-01,a,b", "2026-11-02,c,d"],
+            receipts={"two": {"status": "sent", "telegram_message_id": 334}},
+        )
+        # Receipt state is new for the overlapping first game; no old receipt
+        # can be removed or rewritten.
+        encoded = json.dumps(current, sort_keys=True) + "\n"
+        self.collector_commit({"docs/lab/telegram-eligibility.json": encoded})
+        remote_blob = git(self.other, "rev-parse", "HEAD:docs/lab/telegram-eligibility.json")
+        self.publish()
+        self.assertEqual(
+            git(self.root, "rev-parse", "HEAD:docs/lab/telegram-eligibility.json"),
+            remote_blob,
+        )
+        self.assertEqual(
+            json.loads(git(self.root, "show", "HEAD:docs/lab/telegram-eligibility.json")),
+            current,
+        )
+        self.assertEqual(
+            json.loads(git(self.root, "show", "HEAD:docs/lab/ft-results.json"))["final"], 2
+        )
+
+    def test_rotating_visibility_does_not_invent_append_only_telegram_requirement(self):
+        # The report keeps only a bounded moving window of repeated games.
+        # A valid newer read-only snapshot may drop a previously visible row.
+        current = eligibility_report(
+            "2026-11-01T14:00:00+00:00",
+            names=["2026-11-02,c,d"],
+        )
+        self.collector_commit({
+            "docs/lab/telegram-eligibility.json": json.dumps(current) + "\n"
+        })
+        self.publish()
+        self.assertEqual(
+            json.loads(git(self.root, "show", "HEAD:docs/lab/telegram-eligibility.json")),
+            current,
+        )
+
+    def test_telegram_eligibility_rejects_identity_rewrite(self):
+        bad = eligibility_report("2026-11-01T13:00:00+00:00")
+        bad["games"]["2026-11-01,a,b"]["kickoff_utc"] = "2026-11-01T22:00:00+00:00"
+        self.collector_commit({
+            "docs/lab/telegram-eligibility.json": json.dumps(bad) + "\n"
+        })
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "eligibility report invalid"):
+            self.publish()
+
+    def test_telegram_eligibility_rejects_receipt_disappearance(self):
+        old = eligibility_report(
+            receipts={"three": {"status": "sent", "telegram_message_id": 99}}
+        )
+        newer = eligibility_report("2026-11-01T13:00:00+00:00")
+        self.assertFalse(p.valid_telegram_eligibility_update(
+            json.dumps(old).encode(), json.dumps(newer).encode()))
+
+    def test_telegram_eligibility_rejects_rollback_missing_or_tampered_reports(self):
+        old = json.dumps(eligibility_report()).encode()
+        newer = eligibility_report("2026-11-01T13:00:00+00:00")
+        self.assertFalse(p.valid_telegram_eligibility_update(
+            old, json.dumps(eligibility_report("2026-11-01T11:00:00+00:00")).encode()))
+        for corrupted in (
+            b'{"schema_version":1}',
+            b'{"schema_version":1,"schema_version":1}',
+            b'{"schema_version":1,"games":NaN}',
+            b"",
+        ):
+            with self.subTest(corrupted=corrupted):
+                self.assertFalse(p.valid_telegram_eligibility_update(old, corrupted))
+        malformed = json.loads(json.dumps(newer))
+        malformed["summary"]["visible_games"] = 12345
+        self.assertFalse(p.valid_telegram_eligibility_update(
+            old, json.dumps(malformed).encode()))
+        malformed = json.loads(json.dumps(newer))
+        malformed["rules"]["three"] = "EASIER_RULE_INSTEAD_OF_REAL_SENDER"
+        self.assertFalse(p.valid_telegram_eligibility_update(
+            old, json.dumps(malformed).encode()))
+        malformed = json.loads(json.dumps(newer))
+        malformed["games"]["2026-11-01,a,b"]["match_key"] = "fake-fixture"
+        self.assertFalse(p.valid_telegram_eligibility_update(
+            old, json.dumps(malformed).encode()))
+        self.assertFalse(p.valid_telegram_eligibility_update(
+            None, json.dumps(newer).encode()))
+
+    def test_telegram_eligibility_change_is_only_one_exact_whitelisted_path(self):
+        other = eligibility_report("2026-11-01T13:00:00+00:00")
+        self.collector_commit({
+            "docs/lab/telegram-eligibility-extra.json": json.dumps(other) + "\n"
+        })
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "Unknown concurrent path"):
             self.publish()
 
     def test_remote_ft_change_blocks_and_never_overwrites(self):
