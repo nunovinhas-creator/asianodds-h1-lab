@@ -79,6 +79,8 @@
       const receipt=receipts[key];
       if(receipt?.status==="sent")return "Enviado · mensagem Telegram #"+receipt.telegram_message_id;
       if(receipt?.status==="delivery_uncertain_manual_review")return "Entrega incerta · revisão manual";
+      if(receipt?.status==="delivery_rejected_final")return "Rejeitado pelo Telegram · não reenviado";
+      if(receipt?.status==="expired_not_sent")return "Não enviado · jogo iniciou antes de nova tentativa segura";
       if(eligible)return "Elegível · sem recibo publicado (verificar logs)";
       return "Excluído · "+count+"/"+threshold+" movimentos válidos";
     }
