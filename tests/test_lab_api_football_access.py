@@ -181,21 +181,16 @@ class ProviderHistoryAccessTests(unittest.TestCase):
     def test_real_audit_replays_account_denial_without_network(self):
         import json
         from pathlib import Path
-        audit_file = Path(__file__).resolve().parents[1]/"data/lab/ft-api-audit.json"
-        audit = json.loads(audit_file.read_text(encoding="utf-8"))
-        # The real cached denial may age out naturally; test at its original
-        # observation instant rather than depending on wall clock in CI.
-        confirmed = []
-        for run in audit["runs"]:
-            for detail in (run.get("providers", {}).get("api_football", {})
-                           .get("id_errors") or {}).values():
-                if (isinstance(detail, dict) and "account is suspended" in
-                    detail.get("provider_errors", "").lower()):
-                    confirmed.append(run["utc"])
-        self.assertTrue(confirmed, "Real persisted provider denial must exist")
-        stamp = datetime.fromisoformat(confirmed[-1].replace("Z","+00:00"))
+        # Frozen, redacted evidence from real run 41302612818. The rolling
+        # operational audit may remove old entries: tests must never become
+        # dependent on how many later FT runs were published.
+        fixture = (Path(__file__).resolve().parent / "fixtures" /
+                   "ft-api-football-account-suspended.json")
+        audit = json.loads(fixture.read_text(encoding="utf-8"))
+        stamp = datetime.fromisoformat(audit["runs"][0]["utc"])
         result = account_suspension_cooldown(audit, stamp + timedelta(minutes=1))
         self.assertEqual(result["reason"], "PROVIDER_CONFIRMED_ACCOUNT_SUSPENSION")
+        self.assertEqual(result["retry_not_before_utc"], "2026-11-01T15:36:24+00:00")
 
 if __name__ == "__main__":
     unittest.main()
