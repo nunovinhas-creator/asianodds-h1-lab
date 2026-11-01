@@ -47,6 +47,11 @@ def retry_wait(entry):
 
 HORIZON = timedelta(days=30)  # Legacy synthetic test horizon only.
 LIVE_HORIZON = timedelta(hours=24)  # Mandatory for operational FT jobs.
+# V8: a game whose 4h operational-visit gate would end AFTER kickoff+horizon gets
+# exactly one extra visit once <= LAST_CHANCE_WINDOW of the horizon remains. It
+# only waives the local visit gate; provider cooldowns, the per-run cap and the
+# horizon itself are untouched.
+LAST_CHANCE_WINDOW = timedelta(hours=2)
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
 # Retain meaningful last-seen GOAL evidence independently from last-attempt
@@ -238,15 +243,41 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row = entries[key]
         kickoff = utc(row.get("kickoff_utc"))
         if (kickoff is not None and now > kickoff + horizon
+                and row.get("status") == "EXPIRED_UNVERIFIED"):
+            # Terminal and idempotent: never re-stamp expired_at or drop the
+            # audit trail; legacy tombstones stay as they are (nothing back-filled).
+            row["sources"] = sorted(game["sources"])
+            row["observed_alerts"] = game["alerts"]
+        elif (kickoff is not None and now > kickoff + horizon
                 and row.get("status") != "FINAL"):
-            entries[key] = {
+            tombstone = {
                 "status": "EXPIRED_UNVERIFIED",
                 "home": row.get("home"), "away": row.get("away"),
                 "kickoff_utc": row.get("kickoff_utc"),
                 "sources": sorted(game["sources"]),
                 "observed_alerts": game["alerts"],
                 "reason": "ft_24h_window_elapsed",
+                "expiry_reason": "ft_24h_window_elapsed",
+                "expired_at": now.isoformat(timespec="seconds"),
             }
+            # Keep only what was really recorded; never back-fill history that
+            # older tombstones already lost (they carry no audit_trail at all).
+            trail = {}
+            for field, name in (("queue_visited_at", "last_visit_at"),
+                                ("evidence_checked_at", "last_evidence_at"),
+                                ("last_visit_outcome", "last_visit_outcome"),
+                                ("last_chance_visit_at", "last_chance_visit_at"),
+                                ("queue_visits_total", "queue_visits_total"),
+                                ("provider_lookups_invoked_total", "provider_lookups_invoked_total"),
+                                ("evidence_attempts", "evidence_snapshot_visits")):
+                if row.get(field) is not None:
+                    trail[name] = row[field]
+            reasons = (row.get("last_provider_visit") or {}).get("reasons")
+            if isinstance(reasons, dict) and reasons:
+                trail["last_visit_reasons"] = dict(reasons)
+            if trail:
+                tombstone["audit_trail"] = trail
+            entries[key] = tombstone
 
     # Previously confirmed provider IDs belong to one observed match_key.
     # Never reuse an event ID from a different fixture for new auto settlement.
@@ -264,6 +295,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
     source_order_keys = {key for key in games
                          if entries[key]["status"] == "SOURCE_ORDER_CONFLICT"}
     candidates = []
+    last_chance_keys = set()
     for key in games:
         entry = entries[key]
         if entry["status"] not in ("PENDING", "PROVIDER_ERROR", "SOURCE_ORDER_CONFLICT"):
@@ -308,8 +340,15 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         # A failed/deferred scan without a complete list must not trigger
         # 45-minute retries of BSD/TSDB/SportScore. Keep a conservative 4h
         # visit gate, independently from the authenticated stable backoff.
-        if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due or reviewed_due):
+        end = kickoff + horizon
+        last_chance = (evidence_retry and visit is not None and entry["status"] != "SOURCE_ORDER_CONFLICT"
+                       and now < visit + RETRY and visit + RETRY > end
+                       and end - now <= LAST_CHANCE_WINDOW
+                       and not entry.get("last_chance_visit_at"))
+        if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due or reviewed_due or last_chance):
             continue
+        if last_chance:
+            last_chance_keys.add(key)
         # Proven real BSD IDs take precedence for a single immediate check.
         # Within the hard 24h FT horizon, give never-visited fixtures their
         # FIRST chance before retrying previously visited provider failures.
@@ -320,7 +359,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                        (not evidence_retry or visit is None) and
                        not force_recheck)
         priority = (-5 if reviewed_due else
-                    -4 if first_visit else
+                    -4 if (first_visit or last_chance) else
                     -3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
                     -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
@@ -370,6 +409,8 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         "never_checked_eligible": sum(utc(entries[item[3]].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for item in candidates),
         "never_checked_deferred": sum(utc(entries[key].get("evidence_checked_at" if evidence_retry else "checked_at")) is None for key in deferred_keys),
         "selected_keys": selected_keys,
+        "last_chance_eligible": sorted(last_chance_keys),
+        "last_chance_selected": [k for k in selected_keys if k in last_chance_keys],
         "old_id_recovery_turn": [c[3] for c in reserved] if evidence_retry else [],
         "deferred_keys": deferred_keys[:100],
         "retry_policy": ("V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h" if evidence_retry else "4h after 1-5 attempts; 12h after 6-9; 24h after 10+"),
@@ -434,6 +475,14 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         # be visible without resetting evidence timestamps or extending cooldown.
         row["last_provider_visit"] = {"at": stamp, "reasons": dict(reasons),
                                       "errors": errors}
+        # Audit counters (V8). A visit is a queue slot; a lookup is an adapter
+        # invocation, which may itself be served from cache or skipped by a
+        # persisted cooldown - NOT proof of an HTTP request.
+        row["queue_visits_total"] = int(row.get("queue_visits_total", 0)) + 1
+        row["provider_lookups_invoked_total"] = (
+            int(row.get("provider_lookups_invoked_total", 0)) + len(providers))
+        if key in last_chance_keys:
+            row["last_chance_visit_at"] = stamp
         snapshots = {}
         stable_providers = {}
         if evidence_retry:
@@ -455,6 +504,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         public_review = any(name == "reviewed_public" for name, _ in providers)
         fresh = (not evidence_retry or bool(snapshots) or verified or public_review)
         effective = fresh or bool(stable_providers)
+        row["last_visit_outcome"] = "EVIDENCE_SNAPSHOT" if effective else "NO_SNAPSHOT"
         if evidence_retry:
             row["queue_visited_at"] = stamp
             evidence = row.setdefault("examined_against", {})
