@@ -22,8 +22,8 @@ published and seen by a fresh checkout, a pause is never shortened.
 
 ## Quantitative trade-off (observed inputs: ledgers, `git log`)
 * Observed alert volume: **13 alerts** (all `sent`) between 2026-10-31 19:12 and 2026-11-01 20:06 UTC (~1.04 days).
-* Observed `main` activity: roughly 250-290 data commits per day (collect every ~5 min plus LAB/FT/H1 publishers).
-* Durable cost: 2 small data-only commits per alert => ~26 extra commits/day at the observed rate = **~10 %** of the
+* Observed `main` activity: **150 commits on 2026-11-01 UTC up to 23:00** (62 of them `collect and notify`), i.e. ~150/day.
+* Durable cost: 2 small data-only commits per alert => ~26 extra commits/day at the observed rate = **~17 %** of the
   existing commit count (mostly 1-file ledger updates) + 1 `git fetch` per alert; no extra workflow minutes worth noting
   (a few seconds per alert), no new service.
 * Normal mode (default): a duplicate needs *Telegram accepts -> job dies -> receipt not committed*. The exposed
