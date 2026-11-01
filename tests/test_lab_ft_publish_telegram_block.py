@@ -127,6 +127,115 @@ class TelegramBlockConcurrencyTests(_base.GitFTPublicationTests):
         with self.assertRaisesRegex(p.UnsafeFTPublication, "Unsafe FT tree entry|Telegram delivery block invalid"):
             self.publish()
 
+    # --- temporal policy (NOW = 2026-11-01T23:30Z, skew 60 s, horizon 24 h + 1 s + skew) ----
+    def test_set_at_now_and_small_clock_skew_accepted(self):
+        for set_at, until in (("2026-11-01T23:30:00+00:00", "2026-11-01T23:35:00+00:00"),
+                              ("2026-11-01T23:30:45+00:00", "2026-11-01T23:36:00+00:00")):
+            with self.subTest(set_at=set_at):
+                self.setUp()
+                self.collector_commit({BLOCK: block(until=until, set_at=set_at) + "\n"})
+                self.publish()
+
+    def test_full_24h_retry_after_accepted(self):
+        self.collector_commit({BLOCK: block(until="2026-11-02T23:30:01+00:00",
+                                            set_at="2026-11-01T23:30:00+00:00") + "\n"})
+        self.publish()
+
+    def test_future_set_at_beyond_skew_refused(self):
+        for set_at, until in (("2026-11-01T23:32:00+00:00", "2026-11-01T23:40:00+00:00"),
+                              ("2026-11-02T04:00:00+00:00", "2026-11-02T05:00:00+00:00"),
+                              ("2030-01-01T00:00:00+00:00", "2030-01-01T01:00:00+00:00")):
+            with self.subTest(set_at=set_at):
+                self.setUp()
+                self.assertRefused(block(until=until, set_at=set_at) + "\n")
+
+    def test_far_until_and_out_of_range_dates_refused(self):
+        for until in ("2026-11-04T00:00:00+00:00", "2099-01-01T00:00:00+00:00",
+                      "9999-12-31T23:59:59+00:00", "9999-12-31T23:59:59Z"):
+            with self.subTest(until=until):
+                self.setUp()
+                self.assertRefused(block(until=until, set_at="2026-11-01T23:30:00+00:00") + "\n")
+        for bad in ("0000-01-01T00:00:00+00:00", "2026-13-40T00:00:00+00:00",
+                    "2026-11-01T23:30:00+01:00", "20261101T233000+00:00"):
+            with self.subTest(bad=bad):
+                self.setUp()
+                self.assertRefused(block(until=bad, set_at="2026-11-01T23:00:00+00:00") + "\n")
+
+    def test_legitimate_transition_between_blocks_accepted(self):
+        self.collector_commit({BLOCK: block() + "\n"})
+        self.base_with_block(git(self.other, "rev-parse", "HEAD"))
+        self.collector_commit({BLOCK: block(status=401, diagnosis=sorted(p._BLOCK_DIAGNOSES[401])[0],
+                                            until="2026-11-02T23:00:00+00:00",
+                                            set_at="2026-11-01T23:25:00+00:00") + "\n"})
+        self.publish()
+        self.assertIn('"http_status": 401', git(self.root, "show", "HEAD:" + BLOCK))
+
+    def test_clock_unavailable_fails_closed(self):
+        raw = block().encode()
+        with patch.object(p, "_utcnow", side_effect=OSError("no clock")):
+            self.assertFalse(p.valid_telegram_block_update(None, raw))
+        naive = datetime(2026, 11, 1, 23, 30)
+        self.assertFalse(p.valid_telegram_block_update(None, raw, now=naive))
+        self.assertTrue(p.valid_telegram_block_update(None, raw, now=NOW))
+
+    # --- blobs ------------------------------------------------------------
+    def test_truncated_and_duplicate_and_nan_refused(self):
+        self.assertRefused(block()[:40])
+        self.assertRefused(block().replace('"until"', '"until": "2026-11-02T00:00:00+00:00", "until"', 1) + "\n")
+        self.assertRefused(block().replace('"http_status": 429', '"http_status": NaN') + "\n")
+        self.assertRefused(block().replace('"http_status": 429', '"http_status": Infinity') + "\n")
+        self.assertRefused(block().replace('"http_status": 429', '"http_status": 429.0') + "\n")
+
+    def test_unknown_status_and_diagnosis_pairing_refused(self):
+        self.assertRefused(block(status=429, diagnosis=sorted(p._BLOCK_DIAGNOSES[401])[0]) + "\n")
+        self.assertRefused(block(status=401, diagnosis="FLOOD_WAIT_RETRY_AFTER") + "\n")
+        self.assertRefused(block(status=418) + "\n")
+
+    def test_executable_mode_and_gitlink_refused(self):
+        import os
+        (self.other / BLOCK).parent.mkdir(parents=True, exist_ok=True)
+        (self.other / BLOCK).write_text(block() + "\n")
+        os.chmod(self.other / BLOCK, 0o755)
+        git(self.other, "add", ".")
+        git(self.other, "commit", "-qm", "exec bit")
+        git(self.other, "push", "-q", "origin", "main")
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "Unsafe FT tree entry"):
+            self.publish()
+
+    def test_symlink_previous_blob_refused(self):
+        import os
+        os.symlink(block(), self.other / BLOCK)  # base: symlink whose target text is valid JSON
+        git(self.other, "add", ".")
+        git(self.other, "commit", "-qm", "symlink base")
+        git(self.other, "push", "-q", "origin", "main")
+        self.base_with_block(git(self.other, "rev-parse", "HEAD"))
+        git(self.other, "rm", "-q", BLOCK)
+        (self.other / BLOCK).write_text(block(until="2026-11-02T06:00:00+00:00") + "\n")
+        git(self.other, "add", ".")
+        git(self.other, "commit", "-qm", "replace symlink with file")
+        git(self.other, "push", "-q", "origin", "main")
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "Unsafe FT tree entry"):
+            self.publish()
+
+    def test_corrupt_previous_blob_never_repaired(self):
+        self.collector_commit({BLOCK: "{broken\n"})
+        self.base_with_block(git(self.other, "rev-parse", "HEAD"))
+        self.collector_commit({BLOCK: block() + "\n"})
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "Telegram delivery block invalid"):
+            self.publish()
+
+    def test_unit_rules(self):
+        enc = lambda **k: block(**k).encode()
+        v = lambda a, b: p.valid_telegram_block_update(a, b, now=NOW)
+        active = enc()
+        self.assertFalse(v(active, None))                       # active removal
+        self.assertTrue(v(enc(until="2026-11-01T23:10:00+00:00"), None))  # expired removal
+        self.assertFalse(v(active, enc(until="2026-11-01T23:45:00+00:00")))  # shorten
+        self.assertFalse(v(active, enc(set_at="2026-11-01T22:00:00+00:00")))  # rewind
+        self.assertFalse(v(active, enc(diagnosis="FLOOD_WAIT_CONSERVATIVE_5MIN")))  # equal until rewrite
+        self.assertTrue(v(active, enc(until="2026-11-02T01:00:00+00:00",
+                                      set_at="2026-11-01T23:25:00+00:00")))
+
     def base_with_block(self, base):
         """Re-pin the FT checkout so the block already exists in its input base."""
         git(self.root, "fetch", "-q", "origin", "main")
