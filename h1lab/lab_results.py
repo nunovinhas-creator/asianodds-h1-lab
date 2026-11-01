@@ -311,24 +311,33 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due or reviewed_due):
             continue
         # Proven real BSD IDs take precedence for a single immediate check.
+        # Within the hard 24h FT horizon, give never-visited fixtures their
+        # FIRST chance before retrying previously visited provider failures.
+        # 'evidence_checked_at' remains unset after a failed/deferred lookup:
+        # that is scientifically right, but it must not make those *retries*
+        # monopolise the first-check tier every four hours.
+        first_visit = (last is None and
+                       (not evidence_retry or visit is None) and
+                       not force_recheck)
         priority = (-5 if reviewed_due else
-                    -4 if last is None and not force_recheck else
+                    -4 if first_visit else
                     -3 if entry["status"] == "SOURCE_ORDER_CONFLICT" else
                     -2 if public_due or (force_recheck and last) else
                     -1 if bsd_id_due else 0 if alias_due else 1)
         candidates.append((priority, last or visit or datetime.min.replace(tzinfo=timezone.utc),
                            kickoff, key))
 
-    # Coverage invariant: never-consulted eligible games lead every retry tier.
-    # Research hints only sort within a tier and may never starve first checks.
+    # Coverage invariant: never-VISITED eligible games lead every retry tier.
+    # A failed prior visit remains scientifically unchecked, but it is a retry
+    # for capacity scheduling and must not displace a new first visit.
+    # Research hints only sort within a tier and may never starve first visits.
     # Research hints only reorder eligible candidates WITHIN the same priority
     # tier; a new retry cannot leapfrog source-order/public-evidence review.
     # A game remains subject to the existing 3h grace and 4h cooldown.
     if evidence_retry:
-        # P0 coverage: age of a never-examined fixture wins over V6 research
-        # hints. Otherwise a steady inflow of high-hint new fixtures can
-        # indefinitely starve older dates, preventing their provider-day
-        # snapshots from ever being queried.
+        # P0 coverage: oldest truly unvisited kickoff wins over V6 research
+        # hints. Previously failed/deferred visits remain eligible after their
+        # unchanged 4h gate, but go behind first visits in a bounded run.
         candidates.sort(key=lambda candidate: (
             candidate[0],
             candidate[2] if candidate[0] == -4 else candidate[1],
