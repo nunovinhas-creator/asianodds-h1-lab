@@ -52,6 +52,25 @@ LIVE_HORIZON = timedelta(hours=24)  # Mandatory for operational FT jobs.
 # only waives the local visit gate; provider cooldowns, the per-run cap and the
 # horizon itself are untouched.
 LAST_CHANCE_WINDOW = timedelta(hours=2)
+# The single chance is only CONSUMED once at least one provider actually answered
+# (see provider_answered). A visit where every adapter was blocked/unavailable
+# leaves it available, bounded by attempts and spacing so it can never loop.
+LAST_CHANCE_MAX_ATTEMPTS = 3
+LAST_CHANCE_SPACING = timedelta(minutes=25)
+_NOT_ANSWERED = re.compile(
+    r"cooldown|circuit_open|unavailable|limited|not_configured|deferred|budget|"
+    r"disabled|suspen|quarantined|http_error|http_unexpected|http_[45]\d\d|exception|"
+    r"invalid_provider_result|account_gate|not_due|unknown$")
+
+
+def provider_answered(reason):
+    """True when an adapter reported a normal outcome (match, no match, not finished...).
+
+    Blocked, rate-limited, unconfigured, deferred, errored or invalid outcomes are
+    NOT answers. This reads the adapter's reason code; it is not proof of an HTTP
+    request (a complete list may come from a same-run cache of another game).
+    """
+    return isinstance(reason, str) and not _NOT_ANSWERED.search(reason.lower())
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
 # Retain meaningful last-seen GOAL evidence independently from last-attempt
@@ -267,6 +286,9 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                                 ("evidence_checked_at", "last_evidence_at"),
                                 ("last_visit_outcome", "last_visit_outcome"),
                                 ("last_chance_visit_at", "last_chance_visit_at"),
+                                ("last_chance_attempts", "last_chance_attempts"),
+                                ("provider_answers_total", "provider_answers_total"),
+                                ("last_visit_providers_answered", "last_visit_providers_answered"),
                                 ("queue_visits_total", "queue_visits_total"),
                                 ("provider_lookups_invoked_total", "provider_lookups_invoked_total"),
                                 ("evidence_attempts", "evidence_snapshot_visits")):
@@ -277,6 +299,19 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 trail["last_visit_reasons"] = dict(reasons)
             if trail:
                 tombstone["audit_trail"] = trail
+                # Explicit diagnosis, only when the counters exist (never back-filled).
+                if "queue_visits_total" in trail:
+                    if trail.get("evidence_snapshot_visits"):
+                        detail = "evidence_snapshot_obtained_no_result"
+                    elif trail.get("provider_answers_total"):
+                        detail = "provider_answered_without_result"
+                    else:
+                        detail = "visited_without_any_provider_answer"
+                else:
+                    detail = "visits_recorded_before_counters_existed"
+                tombstone["expiry_detail"] = detail
+            else:
+                tombstone["expiry_detail"] = "never_visited_or_history_not_recorded"
             entries[key] = tombstone
 
     # Previously confirmed provider IDs belong to one observed match_key.
@@ -344,7 +379,10 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         last_chance = (evidence_retry and visit is not None and entry["status"] != "SOURCE_ORDER_CONFLICT"
                        and now < visit + RETRY and visit + RETRY > end
                        and end - now <= LAST_CHANCE_WINDOW
-                       and not entry.get("last_chance_visit_at"))
+                       and not entry.get("last_chance_visit_at")
+                       and int(entry.get("last_chance_attempts", 0)) < LAST_CHANCE_MAX_ATTEMPTS
+                       and (utc(entry.get("last_chance_last_attempt_at")) is None
+                            or now >= utc(entry["last_chance_last_attempt_at"]) + LAST_CHANCE_SPACING))
         if evidence_retry and visit and now < visit + RETRY and not (force_recheck or public_due or bsd_id_due or reviewed_due or last_chance):
             continue
         if last_chance:
@@ -481,8 +519,16 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row["queue_visits_total"] = int(row.get("queue_visits_total", 0)) + 1
         row["provider_lookups_invoked_total"] = (
             int(row.get("provider_lookups_invoked_total", 0)) + len(providers))
+        answered = sorted(name for name, why in reasons.items() if provider_answered(why))
+        row["provider_answers_total"] = int(row.get("provider_answers_total", 0)) + len(answered)
+        row["last_visit_providers_answered"] = answered
         if key in last_chance_keys:
-            row["last_chance_visit_at"] = stamp
+            # Selected + adapters invoked is NOT a consultation. The chance is consumed
+            # only when a provider answered; otherwise it stays available (bounded).
+            row["last_chance_attempts"] = int(row.get("last_chance_attempts", 0)) + 1
+            row["last_chance_last_attempt_at"] = stamp
+            if answered:
+                row["last_chance_visit_at"] = stamp
         snapshots = {}
         stable_providers = {}
         if evidence_retry:

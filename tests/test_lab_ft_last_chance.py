@@ -174,5 +174,136 @@ class ExpiryAuditTrailTests(unittest.TestCase):
         self.assertEqual(a, b)
 
 
+def blocked(reason):
+    return lambda signal: (None, reason)
+
+
+def start(remaining=timedelta(hours=1), key="z"):
+    row = game(key, remaining)
+    return row, prev(pending(row, queue_visited_at=(NOW - timedelta(minutes=30)).isoformat()))
+
+
+class ChanceConsumptionTests(unittest.TestCase):
+    """Selected != adapter invoked != provider answered != evidence != certified."""
+
+    def test_both_providers_unavailable_does_not_consume_the_chance(self):
+        row, base = start()
+        ledger, report, attempts, calls = run([row], base, bsd=blocked("bsd_date_budget_deferred"),
+                                              tsdb=blocked("thesportsdb_unavailable"))
+        got = ledger["matches"]["z"]
+        self.assertEqual(report["ft_queue"]["last_chance_selected"], ["z"])  # selected
+        self.assertEqual(len(calls), 2)                                         # adapters invoked
+        self.assertEqual(got["last_chance_attempts"], 1)
+        self.assertNotIn("last_chance_visit_at", got)                           # NOT consumed
+        self.assertEqual(got["provider_answers_total"], 0)
+        self.assertEqual(got["last_visit_providers_answered"], [])
+        self.assertEqual(got["last_visit_outcome"], "NO_SNAPSHOT")
+        self.assertNotIn("result", got)
+
+    def test_provider_returns_before_expiry_and_only_then_the_chance_is_consumed(self):
+        row, base = start()
+        ledger, *_ = run([row], base, bsd=blocked("bsd_not_configured"), tsdb=blocked("thesportsdb_circuit_open"))
+        # same minute: spacing keeps the adapters untouched
+        _, _, again, calls = run([row], ledger, now=NOW + timedelta(minutes=10))
+        self.assertEqual((again, calls), (0, []))
+        later = NOW + timedelta(minutes=30)
+        ledger, report, attempts, calls = run([row], ledger, now=later)   # providers answer again
+        got = ledger["matches"]["z"]
+        self.assertEqual((attempts, report["ft_queue"]["last_chance_selected"]), (1, ["z"]))
+        self.assertEqual(got["last_chance_visit_at"], later.isoformat(timespec="seconds"))
+        self.assertEqual(got["last_chance_attempts"], 2)
+        self.assertEqual(sorted(got["last_visit_providers_answered"]), ["bsd", "thesportsdb"])
+        # consumed: never again
+        _, _, third, _ = run([row], ledger, now=later + timedelta(minutes=30))
+        self.assertEqual(third, 0)
+
+    def test_persistent_cooldown_is_bounded_and_never_loops_or_bypasses(self):
+        row, base = start(timedelta(hours=1, minutes=55))
+        ledger, t = base, NOW
+        invoked = 0
+        for _ in range(4):
+            ledger, _, attempts, calls = run([row], ledger, now=t, bsd=blocked("tsdb_http_429_cooldown_deferred"),
+                                             tsdb=blocked("thesportsdb_circuit_open"))
+            invoked += len(calls)
+            t += timedelta(minutes=30)
+        got = ledger["matches"]["z"]
+        self.assertEqual(got["last_chance_attempts"], 3)          # LAST_CHANCE_MAX_ATTEMPTS
+        self.assertEqual(invoked, 3 * 2)                          # nothing beyond 3 visits x 2 adapters
+        self.assertNotIn("last_chance_visit_at", got)
+        # window ends: explicit, honest terminal state
+        done, _, n, calls = run([row], ledger, now=NOW + timedelta(hours=3))
+        tomb = done["matches"]["z"]
+        self.assertEqual((n, calls), (0, []))
+        self.assertEqual(tomb["status"], "EXPIRED_UNVERIFIED")
+        self.assertEqual(tomb["expiry_detail"], "visited_without_any_provider_answer")
+        self.assertEqual(tomb["audit_trail"]["last_chance_attempts"], 3)
+        self.assertNotIn("result", tomb)
+
+    def test_one_available_one_blocked_counts_as_answered(self):
+        row, base = start()
+        ledger, *_ = run([row], base, bsd=blocked("bsd_date_cooldown_deferred"), tsdb=blocked("no_event"))
+        got = ledger["matches"]["z"]
+        self.assertEqual(got["last_visit_providers_answered"], ["thesportsdb"])
+        self.assertIn("last_chance_visit_at", got)
+
+    def test_adapter_invoked_without_reason_or_snapshot_is_not_a_consultation(self):
+        row, base = start()
+        ledger, *_ = run([row], base, bsd=blocked(None), tsdb=blocked(""))
+        got = ledger["matches"]["z"]
+        self.assertEqual(got["provider_answers_total"], 0)
+        self.assertNotIn("last_chance_visit_at", got)
+
+    def test_30_cap_with_all_providers_blocked_consumes_nothing_and_never_exceeds_30(self):
+        rows = [game(f"k{i:02d}", timedelta(minutes=20 + i)) for i in range(35)]
+        base = prev(*[pending(r, queue_visited_at=(NOW - timedelta(minutes=30)).isoformat()) for r in rows])
+        ledger, report, attempts, calls = run(rows, base, bsd=blocked("bsd_not_configured"),
+                                              tsdb=blocked("thesportsdb_unavailable"))
+        self.assertEqual((attempts, len(calls)), (30, 60))
+        self.assertTrue(all("last_chance_visit_at" not in v for v in ledger["matches"].values()))
+        # next spaced cycle: the five that were deferred are now the ones without attempts
+        ledger2, report2, attempts2, _ = run(rows, ledger, now=NOW + timedelta(minutes=30))
+        self.assertLessEqual(attempts2, 30)
+        deferred_first = {f"k{i:02d}" for i in range(30, 35)}
+        self.assertTrue(deferred_first <= set(report2["ft_queue"]["selected_keys"]))
+
+    def test_window_closing_between_runs_never_resurrects_or_queries(self):
+        row, base = start(timedelta(minutes=10))
+        ledger, *_ = run([row], base, bsd=blocked("bsd_not_configured"), tsdb=blocked("thesportsdb_unavailable"))
+        late = NOW + timedelta(minutes=11)
+        out, _, n, calls = run([row], ledger, now=late,
+                               bsd=lambda s: ({"match_key": s["match_key"], "status": "final", "home_goals": 1,
+                                               "away_goals": 0, "source": "https://example.org/late"}, "ok"))
+        self.assertEqual((n, calls), (0, []))
+        self.assertEqual(out["matches"]["z"]["status"], "EXPIRED_UNVERIFIED")
+        self.assertNotIn("result", out["matches"]["z"])
+        again, _, n2, calls2 = run([row], out, now=late + timedelta(days=2),
+                                   bsd=lambda s: ({"match_key": s["match_key"], "status": "final", "home_goals": 1,
+                                                   "away_goals": 0, "source": "https://example.org/late"}, "ok"))
+        self.assertEqual((n2, calls2), (0, []))
+        self.assertEqual(again["matches"]["z"], out["matches"]["z"])
+
+    def test_expiry_detail_distinguishes_never_visited_answered_and_legacy(self):
+        fresh = game("never", -timedelta(minutes=1))
+        done, *_ = run([fresh], prev(pending(fresh)))
+        self.assertEqual(done["matches"]["never"]["expiry_detail"], "never_visited_or_history_not_recorded")
+        row = game("ans", timedelta(minutes=30))
+        base = prev(pending(row, queue_visited_at=(NOW - timedelta(hours=5)).isoformat(),
+                            queue_visits_total=1, provider_answers_total=2))
+        done, *_ = run([row], base, now=NOW + timedelta(hours=1))
+        self.assertEqual(done["matches"]["ans"]["expiry_detail"], "provider_answered_without_result")
+        old = game("old", timedelta(minutes=30))
+        base = prev(pending(old, queue_visited_at=(NOW - timedelta(hours=5)).isoformat()))
+        done, *_ = run([old], base, now=NOW + timedelta(hours=1))
+        self.assertEqual(done["matches"]["old"]["expiry_detail"], "visits_recorded_before_counters_existed")
+
+    def test_same_deadline_ties_are_ordered_deterministically_by_key(self):
+        rows = [game(k, timedelta(hours=1)) for k in ("b", "a", "c")]
+        base = prev(*[pending(r, queue_visited_at=(NOW - timedelta(minutes=30)).isoformat()) for r in rows])
+        picks = [run(rows, base, limit=2)[1]["ft_queue"]["selected_keys"] for _ in range(3)]
+        self.assertEqual(picks[0], picks[1])
+        self.assertEqual(picks[1], picks[2])
+        self.assertEqual(picks[0], ["a", "b"])
+
+
 if __name__ == "__main__":
     unittest.main()
