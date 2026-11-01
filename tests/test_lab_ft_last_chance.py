@@ -1,5 +1,6 @@
 """FT V8: last-chance visit, deadline-first ordering and auditable expiry (offline)."""
 import unittest
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 from h1lab.lab_results import LAST_CHANCE_WINDOW, reconcile
@@ -303,6 +304,115 @@ class ChanceConsumptionTests(unittest.TestCase):
         self.assertEqual(picks[0], picks[1])
         self.assertEqual(picks[1], picks[2])
         self.assertEqual(picks[0], ["a", "b"])
+
+
+class ProviderReasonTaxonomyTests(unittest.TestCase):
+    """Deny-first, conservative: an unrecognised reason is never an answer."""
+
+    def test_explicit_examples_per_class(self):
+        from h1lab.lab_results import classify_provider_reason as c
+        table = {
+            "ANSWER_VERIFIED": ["verified_bsd_ft_via_date", "confirmed_bsd_only", "ok"],
+            "ANSWER_NO_MATCH": ["bsd_no_exact_match", "no_event", "api_football_ambiguous_fixture",
+                                "goal_team_mismatch", "openfoot_identity_no_core_match",
+                                "monte_no_exact_archive_match", "fotmob_reversed_order_candidate"],
+            "ANSWER_NOT_FINISHED": ["not_finished", "bsd_not_finished", "fotmob_not_final", "postponed", "not_played"],
+            "INCOMPLETE": ["bsd_empty_finished_list", "goal_no_regulation_score", "bsd_paginated_requires_review",
+                           "goal_et_evidence_missing", "openfoot_regulation_unknown", "espn_invalid_kickoff"],
+            "BLOCKED": ["bsd_date_budget_deferred", "goal_day_rotation_deferred", "thesportsdb_circuit_open",
+                        "bsd_not_configured", "api_football_index_id_disabled",
+                        "tsdb_limited_this_run", "quarantined_source_not_reused", "monte_replaced_by_limit"],
+            "HTTP_REJECTED": ["thesportsdb_http_429", "tsdb_http_429_cooldown_deferred", "thesportsdb_http_401", "thesportsdb_http_403",
+                              "monte_bsd_rate_limited"],
+            "TECHNICAL_ERROR": ["provider_unavailable", "thesportsdb_unavailable", "tsdb_http_error",
+                                "thesportsdb_http_unexpected", "api_football_unavailable", "invalid_provider_result"],
+            "UNKNOWN": ["", None, 0, "shiny_new_provider_status", "xyz", "provider_v2_response", "a" * 500],
+        }
+        for expected, codes in table.items():
+            for code in codes:
+                with self.subTest(code=code):
+                    self.assertEqual(c(code), expected)
+
+    def test_only_three_classes_count_as_answers_and_unknown_never_does(self):
+        from h1lab.lab_results import ANSWERED_CLASSES, provider_answered
+        self.assertEqual(set(ANSWERED_CLASSES), {"ANSWER_VERIFIED", "ANSWER_NOT_FINISHED", "ANSWER_NO_MATCH"})
+        for code in ("brand_new_code", "", None, "totally_fine_maybe", "bsd_empty_finished_list", "goal_unavailable"):
+            self.assertFalse(provider_answered(code), code)
+
+    def test_future_versions_of_blocking_codes_stay_blocked(self):
+        from h1lab.lab_results import classify_provider_reason as c
+        self.assertEqual(c("tsdb_http_429_v2"), "HTTP_REJECTED")
+        self.assertEqual(c("BSD_DATE_BUDGET_DEFERRED_V3"), "BLOCKED")
+        self.assertEqual(c("goal_unavailable_retry_later"), "TECHNICAL_ERROR")
+        self.assertEqual(c("goal_day_rotation_deferred2"), "BLOCKED")
+
+    def test_no_reason_literal_in_the_code_base_with_a_blocking_word_is_ever_an_answer(self):
+        import glob, re
+        from h1lab.lab_results import provider_answered
+        deny = re.compile(r"cooldown|circuit|budget|deferred|not_configured|disabled|suspen|limited|"
+                          r"unavailable|http_error|429|401|403|rate_limit|exception|failed|unverified|"
+                          r"requires_review|missing|invalid|unknown")
+        seen = 0
+        for path in glob.glob("h1lab/*.py"):
+            for code in re.findall(r"return\s+[A-Za-z_\[\]\(\)\.\"' ,]*?,\s*[\"']([a-z0-9_]+)[\"']",
+                                   open(path, encoding="utf-8").read()):
+                if deny.search(code):
+                    seen += 1
+                    self.assertFalse(provider_answered(code), code)
+        self.assertGreater(seen, 20)
+
+    def test_found_result_and_valid_snapshot_count_as_answers_even_with_an_unknown_reason(self):
+        row, base = start()
+        good = lambda s: ({"match_key": s["match_key"], "status": "final", "home_goals": 1, "away_goals": 0,
+                           "source": "https://example.org/x"}, "some_brand_new_reason")
+        ledger, *_ = run([row], base, bsd=good, tsdb=blocked("thesportsdb_unavailable"))
+        got = ledger["matches"]["z"]
+        self.assertEqual(got["last_visit_providers_answered"], ["bsd"])
+        self.assertEqual(got["last_visit_reason_classes"]["bsd"], "UNKNOWN")
+        self.assertEqual(got["last_visit_reason_classes"]["thesportsdb"], "TECHNICAL_ERROR")
+
+    def test_unknown_reason_from_every_adapter_does_not_consume_the_chance(self):
+        row, base = start()
+        ledger, *_ = run([row], base, bsd=blocked("brand_new_status"), tsdb=blocked("another_new_status"))
+        got = ledger["matches"]["z"]
+        self.assertNotIn("last_chance_visit_at", got)
+        self.assertEqual(got["provider_answers_total"], 0)
+        self.assertEqual(set(got["last_visit_reason_classes"].values()), {"UNKNOWN"})
+
+
+class RealDataReplayInvariants(unittest.TestCase):
+    """Replay of the published ledger with every provider blocked: invariants only (no live counts)."""
+
+    @unittest.skipUnless((Path(__file__).resolve().parents[1] / "data/lab/ft-ledger.json").exists(), "repository data not present")
+    def test_replay_never_changes_final_or_expired_never_exceeds_cap_and_never_invents_answers(self):
+        import json
+        from scripts.lab_results import read_v4
+        root = Path(__file__).resolve().parents[1]
+        state = json.loads((root / "data/state.json").read_text(encoding="utf-8"))
+        previous = json.loads((root / "data/lab/ft-ledger.json").read_text(encoding="utf-8"))
+        now = datetime.now(timezone.utc)
+        calls = []
+        def dead(name):
+            return lambda s: calls.append(s["match_key"]) or (None, name)
+        ledger, report, attempts = reconcile(
+            state, read_v4(), json.loads(json.dumps(previous)), now=now, max_checks=30, horizon=H24,
+            evidence_retry=True, lookup_source_version=11,
+            bsd_lookup=dead("bsd_not_configured"), tsdb_lookup=dead("thesportsdb_circuit_open"))
+        before, after = previous["matches"], ledger["matches"]
+        self.assertLessEqual(attempts, 30)
+        self.assertLessEqual(len(set(calls)), 30)
+        for key, row in before.items():
+            if row.get("status") == "FINAL":
+                self.assertEqual(after[key]["status"], "FINAL", key)
+                self.assertEqual(after[key]["result"], row["result"], key)
+            if row.get("status") == "EXPIRED_UNVERIFIED":
+                self.assertEqual(after[key]["status"], "EXPIRED_UNVERIFIED", key)   # terminal, never promoted
+        for key, row in after.items():
+            if row.get("provider_answers_total") is not None and row.get("last_visit_outcome") == "NO_SNAPSHOT":
+                # everything was blocked: no provider may be recorded as having answered
+                self.assertEqual(row.get("last_visit_providers_answered"), [], key)
+        self.assertEqual({k for k, v in after.items() if v.get("status") == "FINAL"},
+                         {k for k, v in before.items() if v.get("status") == "FINAL"})
 
 
 if __name__ == "__main__":

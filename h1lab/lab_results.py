@@ -57,20 +57,59 @@ LAST_CHANCE_WINDOW = timedelta(hours=2)
 # leaves it available, bounded by attempts and spacing so it can never loop.
 LAST_CHANCE_MAX_ATTEMPTS = 3
 LAST_CHANCE_SPACING = timedelta(minutes=25)
-_NOT_ANSWERED = re.compile(
-    r"cooldown|circuit_open|unavailable|limited|not_configured|deferred|budget|"
-    r"disabled|suspen|quarantined|http_error|http_unexpected|http_[45]\d\d|exception|"
-    r"invalid_provider_result|account_gate|not_due|unknown$")
+# Provider outcome taxonomy (conservative, deny-first, allow-list for "answered").
+# Classes that count as the provider having ANSWERED about this game:
+ANSWERED_CLASSES = ("ANSWER_VERIFIED", "ANSWER_NOT_FINISHED", "ANSWER_NO_MATCH")
+_HTTP_REJECTED = re.compile(r"http_(?:429|401|403)|(?:^|_)429(?:_|$)|rate_?limit")
+_BLOCKED = re.compile(
+    r"cooldown|circuit|budget|deferred|not_configured|disabled|suspen|limited|quarantine|"
+    r"replaced_by|hold|unsupported|account|no_key|not_due|skipped")
+_TECHNICAL = re.compile(r"unavailable|http_error|http_unexpected|http_[345]\d\d|exception|"
+                        r"provider_error|invalid_provider_result|timeout|failed|error")
+_INCOMPLETE = re.compile(r"unverified|requires_review|evidence_(?:missing|invalid)|missing|invalid|"
+                         r"not_loaded|loaded$|no_regulation_score|no_regulation|unknown|not_confirmed|"
+                         r"incomplete|truncated|paginated|empty_finished_list")
+_VERIFIED = re.compile(r"^(?:verified_|confirmed_)|^ok$")
+_NOT_FINISHED = re.compile(r"not_finished|not_final|not_played|postponed|not_started|in_play|live")
+_NO_MATCH = re.compile(r"no_exact_match|no_event$|no_core_match|no_fixture|"
+                       r"no_exact_archive_match|ambiguous|mismatch|reversed|collision|conflict")
+
+
+def classify_provider_reason(reason):
+    """Classify an adapter reason code. Deny-first: only an explicit allow-list is "answered".
+
+    Returns one of ANSWER_VERIFIED, ANSWER_NOT_FINISHED, ANSWER_NO_MATCH (the provider answered
+    about this game), INCOMPLETE, BLOCKED, HTTP_REJECTED, TECHNICAL_ERROR or UNKNOWN. Anything
+    new, empty, malformed or from a future provider version that matches no rule is UNKNOWN and
+    NEVER counts as an answer. Reads the adapter's reason; it is not proof of an HTTP request.
+    """
+    if not isinstance(reason, str):
+        return "UNKNOWN"
+    text = reason.strip().lower()
+    if not text or len(text) > 200:
+        return "UNKNOWN"
+    if _HTTP_REJECTED.search(text):
+        return "HTTP_REJECTED"
+    if _BLOCKED.search(text):
+        return "BLOCKED"
+    if _TECHNICAL.search(text):
+        return "TECHNICAL_ERROR"
+    if _INCOMPLETE.search(text):
+        return "INCOMPLETE"
+    if _VERIFIED.search(text):
+        return "ANSWER_VERIFIED"
+    if _NOT_FINISHED.search(text):
+        return "ANSWER_NOT_FINISHED"
+    if _NO_MATCH.search(text):
+        return "ANSWER_NO_MATCH"
+    return "UNKNOWN"
 
 
 def provider_answered(reason):
-    """True when an adapter reported a normal outcome (match, no match, not finished...).
+    """True only for an explicitly recognised normal answer (see classify_provider_reason)."""
+    return classify_provider_reason(reason) in ANSWERED_CLASSES
 
-    Blocked, rate-limited, unconfigured, deferred, errored or invalid outcomes are
-    NOT answers. This reads the adapter's reason code; it is not proof of an HTTP
-    request (a complete list may come from a same-run cache of another game).
-    """
-    return isinstance(reason, str) and not _NOT_ANSWERED.search(reason.lower())
+
 STATUS = "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED"
 LOOKUP_SOURCE_VERSION = 9  # default sources; do not consume V10 retry without an API key
 # Retain meaningful last-seen GOAL evidence independently from last-attempt
@@ -289,6 +328,7 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                                 ("last_chance_attempts", "last_chance_attempts"),
                                 ("provider_answers_total", "provider_answers_total"),
                                 ("last_visit_providers_answered", "last_visit_providers_answered"),
+                                ("last_visit_reason_classes", "last_visit_reason_classes"),
                                 ("queue_visits_total", "queue_visits_total"),
                                 ("provider_lookups_invoked_total", "provider_lookups_invoked_total"),
                                 ("evidence_attempts", "evidence_snapshot_visits")):
@@ -519,16 +559,6 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         row["queue_visits_total"] = int(row.get("queue_visits_total", 0)) + 1
         row["provider_lookups_invoked_total"] = (
             int(row.get("provider_lookups_invoked_total", 0)) + len(providers))
-        answered = sorted(name for name, why in reasons.items() if provider_answered(why))
-        row["provider_answers_total"] = int(row.get("provider_answers_total", 0)) + len(answered)
-        row["last_visit_providers_answered"] = answered
-        if key in last_chance_keys:
-            # Selected + adapters invoked is NOT a consultation. The chance is consumed
-            # only when a provider answered; otherwise it stays available (bounded).
-            row["last_chance_attempts"] = int(row.get("last_chance_attempts", 0)) + 1
-            row["last_chance_last_attempt_at"] = stamp
-            if answered:
-                row["last_chance_visit_at"] = stamp
         snapshots = {}
         stable_providers = {}
         if evidence_retry:
@@ -551,6 +581,22 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
         fresh = (not evidence_retry or bool(snapshots) or verified or public_review)
         effective = fresh or bool(stable_providers)
         row["last_visit_outcome"] = "EVIDENCE_SNAPSHOT" if effective else "NO_SNAPSHOT"
+        # A provider ANSWERED when it returned a result, a complete examined list (snapshot) or an
+        # explicitly recognised normal outcome. Unknown/blocked/errored outcomes never count.
+        classes = {name: classify_provider_reason(why) for name, why in reasons.items()}
+        answered = sorted({name for name, value in found.items() if value is not None}
+                          | set(snapshots) | set(stable_providers)
+                          | {name for name, kind in classes.items() if kind in ANSWERED_CLASSES})
+        row["provider_answers_total"] = int(row.get("provider_answers_total", 0)) + len(answered)
+        row["last_visit_providers_answered"] = answered
+        row["last_visit_reason_classes"] = classes
+        if key in last_chance_keys:
+            # Selected + adapters invoked is NOT a consultation. The chance is consumed
+            # only when a provider answered; otherwise it stays available (bounded).
+            row["last_chance_attempts"] = int(row.get("last_chance_attempts", 0)) + 1
+            row["last_chance_last_attempt_at"] = stamp
+            if answered:
+                row["last_chance_visit_at"] = stamp
         if evidence_retry:
             row["queue_visited_at"] = stamp
             evidence = row.setdefault("examined_against", {})
