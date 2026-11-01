@@ -334,6 +334,61 @@ class GitFTPublicationTests(unittest.TestCase):
         self.assertEqual(result,git(self.root,"rev-parse","HEAD"))
         self.assertEqual(git(self.root,"show","HEAD:docs/data.json"),'{"version":3}')
 
+    def test_exact_main_ref_cas_race_retries_and_preserves_collector(self):
+        # Reproduce GitHub's 2026-11-01 production rejection, which does not
+        # contain 'non-fast-forward', 'fetch first' or 'stale info'.
+        self.collector_commit({"docs/data.json": '{"version":2}\n'})
+        old_run = p.run
+        raced = [False]
+
+        def cas_race(root, *args, **kwargs):
+            if args and args[0] == "push" and not raced[0]:
+                raced[0] = True
+                expected = git(self.root, "rev-parse", "FETCH_HEAD")
+                git(self.other, "pull", "-q", "--ff-only", "origin", "main")
+                write(self.other, "docs/data.json", '{"version":3}\n')
+                git(self.other, "add", ".")
+                git(self.other, "commit", "-qm", "collector race on FT push")
+                git(self.other, "push", "-q", "origin", "main")
+                actual = git(self.other, "rev-parse", "HEAD")
+                error = (f" ! [remote rejected] HEAD -> main "
+                         f"(cannot lock ref 'refs/heads/main': is at "
+                         f"{actual} but expected {expected})\n")
+                return subprocess.CompletedProcess(args, 1, b"", error.encode())
+            return old_run(root, *args, **kwargs)
+
+        hashes = json.loads(self.manifest.read_text())["sha256"]
+
+        def sealed(_):
+            for name, digest in hashes.items():
+                content = p.git(self.root, "show", "HEAD:" + name)
+                self.assertEqual(hashlib.sha256(content).hexdigest(), digest)
+
+        with patch.object(p, "run", side_effect=cas_race), \
+             patch.object(p.publication_guard, "verify", side_effect=sealed), \
+             patch.object(p, "discovery_verify", return_value=None):
+            published = p.publish(
+                self.root, base=self.base, manifest=self.manifest,
+                baseline=self.baseline, max_attempts=4)
+        self.assertTrue(raced[0])
+        self.assertEqual(published, git(self.root, "rev-parse", "HEAD"))
+        self.assertEqual(git(self.root, "show", "HEAD:docs/data.json"),
+                         '{"version":3}')
+        self.assertEqual(git(self.root, "show", "HEAD:data/lab/ft-ledger.json"),
+                         ft(2).strip())
+
+    def test_main_ref_cas_signature_never_accepts_wrong_ref_or_bad_hash(self):
+        good = "a" * 40
+        prior = "b" * 40
+        self.assertTrue(p.retriable_main_push_race(
+            f"cannot lock ref 'refs/heads/main': is at {good} but expected {prior}"))
+        self.assertFalse(p.retriable_main_push_race(
+            f"cannot lock ref 'refs/heads/other': is at {good} but expected {prior}"))
+        self.assertFalse(p.retriable_main_push_race(
+            "cannot lock ref 'refs/heads/main': permission denied"))
+        self.assertFalse(p.retriable_main_push_race(
+            "cannot lock ref 'refs/heads/main': is at BAD but expected BAD"))
+
     def test_non_append_only_or_nonfinite_journal_refused(self):
         self.assertFalse(p.append_only_jsonl(b'{}\n',b'{"bad":1}'))
         self.assertFalse(p.append_only_jsonl(b'{}\n',b'{}\n{"unfinished":'))
