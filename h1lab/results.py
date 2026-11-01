@@ -151,6 +151,48 @@ def write_rows(rows):
             os.unlink(tmp)
 
 
+
+def plan_due_signals(signals, resolved, audit, now, limit=20):
+    """Prioritise unqueried eligible fixtures before retries, without extra API calls.
+
+    Preserve the historical 3-hour grace, 30-day horizon, and 4-hour retry
+    cooldown.  Oldest kickoff first within each priority group means that
+    continuous collector growth cannot starve an older first check.
+    """
+    if limit < 1 or now.tzinfo is None:
+        raise ValueError("Invalid H1 reconciliation planning bounds")
+    due = []
+    for index, signal in enumerate(signals):
+        key = signal["match_key"]
+        if key in resolved:
+            continue
+        kickoff = datetime.fromisoformat(signal["kickoff_utc"]).astimezone(UTC)
+        if now < kickoff + timedelta(hours=3) or now > kickoff + timedelta(days=30):
+            continue
+        previous = audit.get(key, {})
+        checked_at = previous.get("checked_at") if isinstance(previous, dict) else None
+        checked = None
+        if checked_at:
+            try:
+                checked = datetime.fromisoformat(checked_at)
+                if checked.tzinfo is None:
+                    checked = None
+                elif now < checked.astimezone(UTC) + timedelta(hours=4):
+                    continue
+            except (ValueError, TypeError):
+                checked = None
+        due.append((checked is not None, kickoff, index, signal))
+    due.sort(key=lambda item: (item[0], item[1], item[2]))
+    chosen = [item[3] for item in due[:limit]]
+    diagnostics = {
+        "eligible": len(due),
+        "first_checks_due": sum(not item[0] for item in due),
+        "retries_due": sum(item[0] for item in due),
+        "deferred_by_limit": max(0, len(due) - limit),
+    }
+    return chosen, diagnostics
+
+
 def sync(now=None, search=api_events):
     now = (now or datetime.now(UTC)).astimezone(UTC)
     state = read_state()
@@ -161,24 +203,10 @@ def sync(now=None, search=api_events):
     newly_final = 0
     errors = 0
     updates = 0
-    for signal in state["signals"]:
+    due_signals, plan = plan_due_signals(state["signals"], resolved, audit, now, limit=20)
+    print("H1_RESULTS_PLAN", json.dumps(plan, sort_keys=True))
+    for signal in due_signals:
         key = signal["match_key"]
-        if key in resolved:
-            continue
-        kickoff = datetime.fromisoformat(signal["kickoff_utc"]).astimezone(UTC)
-        # Strictly after the match; stop retrying ancient fixtures automatically.
-        if now < kickoff + timedelta(hours=3) or now > kickoff + timedelta(days=30):
-            continue
-        previous = audit.get(key, {})
-        if previous.get("checked_at"):
-            try:
-                checked = datetime.fromisoformat(previous["checked_at"])
-                if now < checked + timedelta(hours=4):
-                    continue
-            except (ValueError, TypeError):
-                pass
-        if scanned >= 20:  # bounded workload and free API usage
-            break
         scanned += 1
         bsd_result = None
         bsd_reason = "bsd_not_configured"
