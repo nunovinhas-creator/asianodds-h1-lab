@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts import publication_guard
@@ -322,6 +323,114 @@ def valid_telegram_eligibility_update(previous, current):
         return False
 
 
+# Shared Telegram flood-wait / auth pause (h1lab.telegram_block). It is read only
+# by the Telegram sender and never by FT producers, so a concurrent update cannot
+# change FT evidence. Only this exact path, schema and value set is accepted.
+TELEGRAM_BLOCK = "data/telegram-delivery-block.json"
+_BLOCK_FIELDS = frozenset({"schema_version", "until", "http_status", "set_at", "diagnosis"})
+_BLOCK_DIAGNOSES = {
+    429: frozenset({"FLOOD_WAIT_RETRY_AFTER", "FLOOD_WAIT_CONSERVATIVE_5MIN",
+                    "FLOOD_WAIT_CONSERVATIVE_BACKOFF"}),
+    401: frozenset({"AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"}),
+    403: frozenset({"AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"}),
+}
+_BLOCK_MAX_BYTES = 1024
+# Clock policy. Writer (collector job) and validator (FT job) are both GitHub-hosted runners
+# synchronised by the host (skew well under a second). A legitimate set_at is never in the
+# validator's future by more than that skew, so 60 s is generous without letting a block
+# "pre-date" a pause. The emitter never sets until - set_at above 24 h (+1 s retry margin):
+# retry_after > 24 h is ignored upstream and the auth probe interval is 24 h. Anything beyond
+# that (hours/years ahead, year 9999, ...) is refused rather than accepted as a permanent pause.
+_BLOCK_CLOCK_SKEW = timedelta(seconds=60)
+_BLOCK_MAX_HORIZON = timedelta(hours=24, seconds=1) + _BLOCK_CLOCK_SKEW
+_BLOCK_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\+00:00|Z)")
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _block_time(value):
+    if not isinstance(value, str) or not _BLOCK_TIME.fullmatch(value):
+        raise ValueError("Invalid block timestamp")
+    moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if moment.tzinfo is None or moment.utcoffset() != timedelta(0):
+        raise ValueError("Block timestamp must be explicit UTC")
+    return moment.astimezone(timezone.utc)
+
+
+def _parse_telegram_block(raw, now=None):
+    """Strict parse of one block record; None when anything is off.
+
+    With ``now`` the record must also be temporally coherent: set_at not in the future beyond the
+    clock skew, until not beyond now + the maximum legitimate horizon.
+    """
+    if not isinstance(raw, bytes) or not 0 < len(raw) <= _BLOCK_MAX_BYTES:
+        return None
+    try:
+        def pairs(items):
+            out = {}
+            for key, value in items:
+                if key in out:
+                    raise ValueError("Duplicate JSON key")
+                out[key] = value
+            return out
+        def reject_constant(value):
+            raise ValueError("Nonfinite JSON number")
+        data = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs,
+                          parse_constant=reject_constant)
+        if not isinstance(data, dict) or set(data) != _BLOCK_FIELDS:
+            return None
+        if type(data["schema_version"]) is not int or data["schema_version"] != 1:
+            return None
+        status = data["http_status"]
+        if type(status) is not int or status not in _BLOCK_DIAGNOSES:
+            return None
+        if data["diagnosis"] not in _BLOCK_DIAGNOSES[status]:
+            return None
+        until, set_at = _block_time(data["until"]), _block_time(data["set_at"])
+        if set_at > until or until - set_at > _BLOCK_MAX_HORIZON:
+            return None
+        if now is not None and (set_at > now + _BLOCK_CLOCK_SKEW or until > now + _BLOCK_MAX_HORIZON):
+            return None
+        return {**data, "_until": until, "_set_at": set_at}
+    except (ValueError, TypeError, UnicodeDecodeError, OverflowError):
+        return None
+
+
+def valid_telegram_block_update(previous, current, now=None):
+    """Accept only a well-formed block that never shortens, rewinds or drops an active pause.
+
+    previous/current are the exact blobs (None = file absent). Rules:
+    - creation: any strictly valid record;
+    - removal: only when the previous pause has already expired;
+    - update: until and set_at never decrease; an equal `until` must be byte-identical.
+    The accepted remote blob is kept byte-for-byte by the isolated-index transport.
+    """
+    try:
+        now = _utcnow() if now is None else now
+        if now.tzinfo is None or now.utcoffset() != timedelta(0):
+            return False
+    except (OSError, ValueError, OverflowError, AttributeError):
+        return False  # current time not obtainable safely: conservative refusal
+    old = None if previous is None else _parse_telegram_block(previous)
+    if previous is not None and old is None:
+        # A corrupt base blob is never silently "repaired" by a concurrent writer.
+        return False
+    if current is None:
+        return old is not None and old["_until"] <= now
+    new = _parse_telegram_block(current, now)
+    if new is None:
+        return False
+    if old is None:
+        return True
+    if new["_until"] < old["_until"] or new["_set_at"] < old["_set_at"]:
+        return False
+    if new["_until"] == old["_until"] and current != previous:
+        return False
+    return True
+
+
 _MAX_REPORTED_REFUSALS = 7
 
 
@@ -353,6 +462,20 @@ def _check_remote_path(root, base, remote, path):
                 blob_or_none(root, base, path),
                 blob_or_none(root, remote, path)):
             raise UnsafeFTPublication("Telegram eligibility report invalid: " + path)
+    elif path == TELEGRAM_BLOCK:
+        # Telegram-only pause state, independent of FT evidence. Exact path only.
+        # tree_entry refuses anything but a regular 100644 blob (symlink, gitlink, tree),
+        # for the previous version as well as the remote one.
+        base_entry = tree_entry(root, base, path)
+        remote_entry = tree_entry(root, remote, path)
+        previous, current = blob_or_none(root, base, path), blob_or_none(root, remote, path)
+        if (base_entry is not None and previous is None) or (
+                remote_entry is not None and current is None):
+            raise UnsafeFTPublication("Telegram delivery block unreadable: " + path)
+        if remote_entry is not None and not valid_telegram_block_update(previous, current):
+            raise UnsafeFTPublication("Telegram delivery block invalid: " + path)
+        if remote_entry is None and not valid_telegram_block_update(previous, None):
+            raise UnsafeFTPublication("active Telegram delivery block removed: " + path)
     elif path in H1_NOTIFICATION_RECEIPTS:
         if not valid_notification_update(
                 blob_or_none(root, base, path),
