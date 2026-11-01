@@ -128,6 +128,28 @@ def find_result(signal, fetch=request_json, token=None):
         return None, "bsd_paginated_requires_review"
     matches = [item for item in results if matches_identity(signal, item)]
     if not matches:
+        # One response, no extra HTTP calls. Separate genuine source absence
+        # from a team alias/date mismatch without ever promoting a guessed FT.
+        if not results:
+            return None, "bsd_empty_finished_list"
+        same_teams = [
+            item for item in results if isinstance(item, dict)
+            and norm_team(event_name(item, "home_team")) == norm_team(signal["home"])
+            and norm_team(event_name(item, "away_team")) == norm_team(signal["away"])
+        ]
+        if same_teams:
+            return None, "bsd_kickoff_missing_or_mismatch"
+        close = [
+            item for item in results if isinstance(item, dict)
+            and (moment := event_kickoff(item)) is not None
+            and abs((moment - kickoff).total_seconds()) <= 90 * 60
+        ]
+        if any(norm_team(event_name(item, "home_team")) == norm_team(signal["home"])
+               for item in close):
+            return None, "bsd_away_name_mismatch"
+        if any(norm_team(event_name(item, "away_team")) == norm_team(signal["away"])
+               for item in close):
+            return None, "bsd_home_name_mismatch"
         return None, "bsd_no_exact_match"
     if len(matches) != 1:
         return None, "bsd_ambiguous_match"
