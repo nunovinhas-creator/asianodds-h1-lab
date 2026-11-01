@@ -10,7 +10,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .bot import BotDeliveryError, configured, send_message
+from .bot import BotBlockedError, BotDeliveryError, configured, send_message
 from .pattern_watch import inspect, utc
 from .timeline import collect_timelines, read_sources
 
@@ -113,6 +113,11 @@ def process(rows, ledger, now, sender, enabled):
             detail["status"] = "sent"
             detail["telegram_message_id"] = message_id
             stats["sent"] += 1
+        except BotBlockedError:
+            # Shared pause: no HTTP request was made -> not sent, not uncertain; retry next run.
+            ledger["entries"].pop(key, None)
+            stats["blocked_before_http"] = stats.get("blocked_before_http", 0) + 1
+            break
         except BotDeliveryError:
             # Unknown delivery => manual review; no automatic duplicate sends.
             detail["status"] = "delivery_uncertain_manual_review"

@@ -390,7 +390,153 @@ class DurableIntentTests(Base):
         calls = []
         ledger, stats = run_once(self.rows, self.ledger, lambda m: calls.append(m) or 4, self.clock, self.persist_fn(publish))
         self.assertEqual((len(calls), ledger["entries"]["fixture-1"]["status"]), (1, "sent"))
-        self.assertIn("data: telegram delivery intent", git(self.remote, "log", "--format=%s", "main"))
+        self.assertIn("data: telegram delivery state", git(self.remote, "log", "--format=%s", "main"))
+
+
+class DurableGitScenarioTests(DurableIntentTests):
+    """Phase-3 scenarios against real (local) git remotes."""
+
+    def publisher(self, **kw):
+        return td.git_publisher(self.a, lambda: ["data/ledger.json"], guard=td.claim_guard(self.a, "data/ledger.json"),
+                                guard_path="data/ledger.json", **kw)
+
+    def checkout(self, name):
+        path = os.path.join(self.tmp, name)
+        git(self.tmp, "clone", "-q", self.remote, path)
+        for key, value in (("user.name", name), ("user.email", name + "@x")):
+            git(path, "config", key, value)
+        return path
+
+    def test_confirmed_receipt_is_published_right_after_the_send_so_a_later_crash_cannot_make_it_uncertain(self):
+        publish = self.publisher()
+        persist = self.persist_fn_all(publish)
+        class Crash(BaseException): pass
+        sent = []
+        def send(m): sent.append(m); return 321
+        self.ledger, _ = run_once(self.rows, self.ledger, send, self.clock, persist)
+        # the job dies here: the final "Store data" commit never happens
+        fresh = self.checkout("fresh")
+        remote = json.loads(Path(fresh, "data/ledger.json").read_text())
+        self.assertEqual((remote["entries"]["fixture-1"]["status"], remote["entries"]["fixture-1"]["telegram_message_id"]), ("sent", 321))
+        calls = []
+        self.clock.advance(minutes=10)
+        remote, _ = run_once(self.rows, remote, lambda m: calls.append(m) or 1, self.clock)
+        self.assertEqual(calls, [])
+
+    def persist_fn_all(self, publish):
+        path = Path(self.a, "data/ledger.json")
+        def persist(value):
+            path.write_text(json.dumps(value, sort_keys=True))
+            publish()
+        return persist
+
+    def test_published_intent_survives_the_later_reconcile_pull_rebase_of_the_job(self):
+        publish = self.publisher()
+        class Crash(BaseException): pass
+        def dies(_): raise Crash()
+        with self.assertRaises(Crash):
+            run_once(self.rows, self.ledger, dies, self.clock, self.persist_fn_all(publish))
+        git(self.a, "pull", "--rebase", "origin", "main")        # what the workflow's final step does
+        self.assertEqual(json.loads(git(self.a, "show", "origin/main:data/ledger.json"))["entries"]["fixture-1"]["status"], "send_in_progress")
+        self.assertEqual(json.loads(Path(self.a, "data/ledger.json").read_text())["entries"]["fixture-1"]["status"], "send_in_progress")
+
+    def test_dirty_collector_tree_and_remote_race_do_not_break_or_swallow_the_publication(self):
+        Path(self.a, "data/state.json").write_text("{}"); git(self.a, "add", "."); git(self.a, "commit", "-q", "-m", "state"); git(self.a, "push", "-q", "origin", "HEAD:main")
+        Path(self.a, "data/state.json").write_text('{"collector":"fresh"}')       # uncommitted work of the collect step
+        other = self.checkout("other")
+        Path(other, "elsewhere.txt").write_text("x"); git(other, "add", "."); git(other, "commit", "-q", "-m", "o"); git(other, "push", "-q", "origin", "HEAD:main")
+        calls = []
+        ledger, stats = run_once(self.rows, self.ledger, lambda m: calls.append(m) or 4, self.clock, self.persist_fn_all(self.publisher()))
+        self.assertEqual((len(calls), ledger["entries"]["fixture-1"]["status"]), (1, "sent"))
+        self.assertEqual(Path(self.a, "data/state.json").read_text(), '{"collector":"fresh"}')   # not committed, not lost
+        remote_files = git(self.remote, "ls-tree", "-r", "--name-only", "main")
+        self.assertIn("elsewhere.txt", remote_files)
+        self.assertEqual(git(self.remote, "show", "main:data/state.json"), "{}")
+
+    def test_two_concurrent_runs_cannot_both_send_the_same_alert(self):
+        b = self.checkout("b")                                   # stale clone: same starting ledger
+        publish_a = self.publisher()
+        calls_a, calls_b = [], []
+        run_once(self.rows, three.empty_ledger(NOW), lambda m: calls_a.append(m) or 1, self.clock, self.persist_fn_all(publish_a))
+        path_b = Path(b, "data/ledger.json")
+        def persist_b(v):
+            path_b.write_text(json.dumps(v, sort_keys=True))
+            td.git_publisher(b, ["data/ledger.json"], guard=td.claim_guard(b, "data/ledger.json"), guard_path="data/ledger.json")()
+        ledger_b, stats_b = run_once(self.rows, three.empty_ledger(NOW), lambda m: calls_b.append(m) or 2, Clock(NOW + timedelta(seconds=1)), persist_b)
+        self.assertEqual((len(calls_a), len(calls_b)), (1, 0))
+        self.assertEqual(stats_b.get("intent_not_durable"), 1)
+
+    def test_retry_of_a_retryable_rejection_is_not_blocked_by_its_own_earlier_state(self):
+        publish = self.publisher()
+        persist = self.persist_fn_all(publish)
+        self.ledger, _ = run_once(self.rows, self.ledger, rejected(429, 60), self.clock, persist)
+        self.assertEqual(self.entry()["status"], "delivery_rejected")
+        self.clock.advance(seconds=70)
+        calls = []
+        self.ledger, _ = run_once(self.rows, self.ledger, lambda m: calls.append(m) or 8, self.clock, persist)
+        self.assertEqual((len(calls), self.entry()["status"]), (1, "sent"))
+
+    def test_post_outcome_publication_failure_is_diagnosed_not_silent_and_keeps_the_outcome(self):
+        good = self.publisher()
+        state = {"fail": False}
+        def persist(value):
+            Path(self.a, "data/ledger.json").write_text(json.dumps(value, sort_keys=True))
+            if state["fail"]:
+                raise td.IntentNotDurable("simulated push failure")
+            good()
+        def send(m): state["fail"] = True; return 11          # intent published OK, outcome publication fails
+        import contextlib, io
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            ledger, stats = run_once(self.rows, self.ledger, send, self.clock, persist)
+        self.assertEqual((ledger["entries"]["fixture-1"]["status"], stats.get("publish_failed")), ("sent", 1))
+        self.assertIn("TELEGRAM_PUBLISH_FAILED", buf.getvalue())
+
+    def test_429_block_is_published_and_a_fresh_checkout_sees_it(self):
+        env = os.environ.get("TG_DELIVERY_BLOCK_FILE")
+        block_path = Path(self.a, "data/telegram-delivery-block.json")
+        os.environ["TG_DELIVERY_BLOCK_FILE"] = str(block_path)
+        try:
+            publish = td.git_publisher(self.a, lambda: ["data/ledger.json", "data/telegram-delivery-block.json"],
+                                       guard=td.claim_guard(self.a, "data/ledger.json"), guard_path="data/ledger.json")
+            self.ledger, _ = run_once(self.rows, self.ledger, rejected(429, 900), self.clock, self.persist_fn_all(publish), store=BlockStore(block_path))
+            fresh = self.checkout("fresh2")
+            data = json.loads(Path(fresh, "data/telegram-delivery-block.json").read_text())
+            self.assertEqual(data["http_status"], 429)
+            until = datetime.fromisoformat(data["until"])
+            self.assertEqual(until, NOW + timedelta(seconds=901))
+            self.assertIsNotNone(BlockStore(Path(fresh, "data/telegram-delivery-block.json")).active(NOW + timedelta(seconds=10)))
+            self.assertIsNone(BlockStore(Path(fresh, "data/telegram-delivery-block.json")).active(NOW + timedelta(seconds=902)))
+        finally:
+            if env is None: os.environ["TG_DELIVERY_BLOCK_FILE"] = os.path.join(_TMP, "block.json")
+            else: os.environ["TG_DELIVERY_BLOCK_FILE"] = env
+
+    def test_rollback_to_default_mode_changes_nothing_in_the_ledger_format(self):
+        """Durable off (default): the same ledger, no git calls at all."""
+        calls = []
+        ledger, _ = run_once(self.rows, self.ledger, lambda m: calls.append(m) or 5, self.clock, None)
+        self.assertEqual(self.entry()["status"], "sent")
+        self.assertFalse(td.durable_enabled())
+
+
+class BlockStoreSemanticsTests(Base):
+    def test_never_shortens_an_active_block_and_ignore_auth_only_lifts_401_403(self):
+        store = BlockStore()
+        store.record(NOW + timedelta(hours=2), 429, NOW, "FLOOD")
+        store.record(NOW + timedelta(minutes=5), 429, NOW, "FLOOD_SHORT")      # a shorter value must not win
+        self.assertEqual(store.read()["until"], (NOW + timedelta(hours=2)).isoformat(timespec="seconds"))
+        self.assertIsNotNone(store.active(NOW, ignore_auth=True))                # 429 is never lifted early
+        store.clear()
+        store.record(NOW + timedelta(hours=24), 401, NOW, td.AUTH_DIAGNOSIS)
+        self.assertIsNotNone(store.active(NOW))
+        self.assertIsNone(store.active(NOW, ignore_auth=True))                   # credentials fixed
+        self.assertIsNone(store.active(NOW + timedelta(hours=25)))               # expired lapses by itself
+
+    def test_a_confirmed_send_clears_only_an_expired_block_file(self):
+        store = BlockStore()
+        store.record(NOW - timedelta(minutes=1), 429, NOW - timedelta(minutes=10), "OLD")
+        self.ledger, _ = run_once(self.rows, self.ledger, lambda m: 3, self.clock)
+        self.assertIsNone(store.read())
 
 
 class PublicationContractTests(unittest.TestCase):

@@ -1,6 +1,7 @@
 """Private Telegram Bot API delivery. Tokens are never logged or persisted."""
 import json
 import os
+import sys
 from urllib.error import HTTPError, URLError
 from datetime import datetime, timedelta, timezone
 from urllib.request import Request, urlopen
@@ -45,8 +46,9 @@ def _record_block(store, status, retry_after):
         diagnosis = "AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"
     try:
         store.record(now + wait, status, now, diagnosis)
-    except OSError:
-        pass  # the rejection itself is still raised and recorded in the notifier ledger
+    except OSError as exc:
+        # Never silent: the rejection is still raised, but the shared pause could not be stored.
+        print("TELEGRAM_BLOCK_NOT_RECORDED", type(exc).__name__, file=sys.stderr)
 
 
 def _retry_after(exc):

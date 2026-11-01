@@ -27,9 +27,10 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 
-from .bot import BotDeliveryError, BotRejectedError
+from .bot import BotBlockedError, BotDeliveryError, BotRejectedError
 from .telegram_block import BlockStore
 
 SENT = "sent"
@@ -128,6 +129,18 @@ def _wait_for(exc, attempts):
     return None, None
 
 
+def _after(persist, ledger, stats):
+    """Post-outcome persistence: a publication failure is diagnosed loudly but never loses the
+    in-memory outcome (the job's final commit step still stores it)."""
+    if persist is None:
+        return
+    try:
+        persist(ledger)
+    except IntentNotDurable as exc:
+        _bump(stats, "publish_failed")
+        print("TELEGRAM_PUBLISH_FAILED", str(exc)[:160], file=sys.stderr)
+
+
 def deliver(ledger, key, sender, message, base, sent_fields, clock, persist, stats, store=None):
     """Send at most once. Returns 'sent', 'continue' or 'stop' (shared block raised / intent failed)."""
     store = store or default_store()
@@ -139,12 +152,13 @@ def deliver(ledger, key, sender, message, base, sent_fields, clock, persist, sta
     if persist is not None:
         try:
             persist(ledger)
-        except Exception:
+        except Exception as exc:
             if previous is None:
                 ledger["entries"].pop(key, None)
             else:
                 ledger["entries"][key] = previous
             _bump(stats, "intent_not_durable")
+            print("TELEGRAM_INTENT_NOT_DURABLE", type(exc).__name__, str(exc)[:160], file=sys.stderr)
             return "stop"  # fail closed: never send what could not be recorded durably
     try:
         mid = sender(message)
@@ -173,20 +187,31 @@ def deliver(ledger, key, sender, message, base, sent_fields, clock, persist, sta
             entry.update(status=REJECTED, retry_not_before=_iso(moment + wait))
         ledger["entries"][key] = entry
         _bump(stats, "rejected")
-        if persist is not None:
-            persist(ledger)
+        _after(persist, ledger, stats)
         return "stop" if stop else "continue"
+    except BotBlockedError:
+        # The shared pause was raised BEFORE any HTTP request: nothing is uncertain. Restore the state.
+        if previous is None:
+            ledger["entries"].pop(key, None)
+        else:
+            ledger["entries"][key] = previous
+        _bump(stats, "blocked_before_http")
+        _after(persist, ledger, stats)
+        return "stop"
     except BotDeliveryError:
         ledger["entries"][key] = {**base, "status": UNCERTAIN, "at": _iso(clock()), "attempts": attempts}
         _bump(stats, "uncertain")
-        if persist is not None:
-            persist(ledger)
+        _after(persist, ledger, stats)
         return "continue"
     ledger["entries"][key] = {**base, **sent_fields, "status": SENT, "telegram_message_id": mid,
                               "at": _iso(started), "attempts": attempts}
     _bump(stats, "sent")
-    if persist is not None:
-        persist(ledger)
+    try:  # a confirmed send proves recovery: drop an EXPIRED pause record (never shorten an active one)
+        if store.read() is not None and store.active(clock()) is None:
+            store.clear()
+    except ValueError:
+        pass
+    _after(persist, ledger, stats)
     return "sent"
 
 
@@ -194,36 +219,103 @@ def has_intent(ledger):
     return any(isinstance(e, dict) and e.get("status") == IN_PROGRESS for e in ledger.get("entries", {}).values())
 
 
-def git_intent_publisher(root, relpath, *, branch=None, retries=3, git=None):
-    """Return ``publish(ledger_path_written)`` that pushes the ledger before a send (opt-in).
+def claim_guard(root, ledger_relpath):
+    """Guard for git_publisher: refuse to publish an intent for a key the remote already holds.
 
-    commit -> push; on rejection: fetch + rebase + push again (bounded). Any failure raises
-    IntentNotDurable so ``deliver`` refuses to send (fail closed). Data-only tiny commits.
+    Two runs that both decide to alert the same game must not both send: whoever pushes the
+    intent first owns the claim; the other sees the key on the remote and stops (fail closed).
+    """
+    import json
+    from pathlib import Path
+
+    def guard(remote_text):
+        if not remote_text:
+            return
+        try:
+            remote = json.loads(remote_text).get("entries", {})
+            local = json.loads((Path(root) / ledger_relpath).read_text(encoding="utf-8")).get("entries", {})
+        except (ValueError, OSError, AttributeError) as exc:
+            raise IntentNotDurable("claim check unreadable: " + type(exc).__name__) from exc
+        for key, entry in local.items():
+            if not (isinstance(entry, dict) and entry.get("status") == IN_PROGRESS and key in remote):
+                continue
+            held = remote[key].get("status") if isinstance(remote[key], dict) else None
+            if held != REJECTED:     # a retryable rejection is the legitimate predecessor of a retry
+                raise IntentNotDurable("alert already claimed by another run: " + str(key)[:80])
+    return guard
+
+
+def git_publisher(root, relpaths, *, branch=None, retries=3, git=None, guard=None, guard_path=None,
+                  message="data: telegram delivery state [skip ci]"):
+    """Return ``publish()`` that commits+pushes the given paths (opt-in durable mode).
+
+    `relpaths` is a list or a callable returning the paths to publish (a deleted block file is
+    published as a deletion). Only those paths are committed (``commit -- paths``), so unrelated
+    uncommitted work of the job (e.g. data/state.json) is never swept in. With `guard`, the remote
+    copy of `guard_path` is fetched and checked before the first push and after every rejection
+    (claim check). On a rejected push: fetch + ``rebase --autostash`` + push, bounded. Any failure
+    raises IntentNotDurable.
     """
     def run(*args):
         if git is not None:
             return git(root, *args)
         return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout
 
+    def remote_text(target):
+        run("fetch", "origin", target)
+        try:
+            return run("show", "origin/%s:%s" % (target, guard_path))
+        except subprocess.CalledProcessError:
+            return ""
+
     def publish():
+        paths = [str(x) for x in (relpaths() if callable(relpaths) else relpaths)]
         try:
             target = branch or run("rev-parse", "--abbrev-ref", "HEAD").strip()
-            run("add", "--", relpath)
-            if not run("diff", "--cached", "--name-only").strip():
+            # Only paths that exist or are tracked (a deleted block file is a tracked deletion);
+            # `git add` on a never-seen missing path would otherwise fail the whole publication.
+            paths = [path for path in paths
+                     if (os.path.exists(os.path.join(str(root), path)) or run("ls-files", "--", path).strip())]
+            if not paths:
                 return
-            run("-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
-                "commit", "-m", "data: telegram delivery intent [skip ci]", "--", relpath)
+            for path in paths:
+                run("add", "-A", "--", path)
+            if not run("diff", "--cached", "--name-only", "--", *paths).strip():
+                return
+            if guard is not None:
+                guard(remote_text(target))
+            run("-c", "user.name=github-actions[bot]",
+                "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
+                "commit", "-m", message, "--", *paths)
             for _ in range(retries):
                 try:
                     run("push", "origin", "HEAD:refs/heads/" + target)
                     return
                 except subprocess.CalledProcessError:
-                    run("fetch", "origin", target)
-                    run("rebase", "origin/" + target)
+                    text = remote_text(target)
+                    if guard is not None:
+                        guard(text)
+                    run("rebase", "--autostash", "origin/" + target)
             raise IntentNotDurable("push rejected after %d attempts" % retries)
         except subprocess.CalledProcessError as exc:
-            raise IntentNotDurable("git failed") from exc
+            raise IntentNotDurable("git failed: " + " ".join(str(exc.cmd[1:3]))) from exc
     return publish
+
+
+def git_intent_publisher(root, relpath, **kwargs):
+    """Backward-compatible alias: publish a single ledger path."""
+    return git_publisher(root, [relpath], **kwargs)
+
+
+def durable_paths(root, ledger_relpath):
+    """Ledger plus the shared pause file (when it exists or was deleted and is tracked)."""
+    paths = [str(ledger_relpath)]
+    try:
+        block = BlockStore().path.resolve().relative_to(os.path.realpath(root))
+        paths.append(str(block))
+    except ValueError:
+        pass  # block file lives outside the checkout (tests): nothing to publish
+    return paths
 
 
 def durable_enabled():

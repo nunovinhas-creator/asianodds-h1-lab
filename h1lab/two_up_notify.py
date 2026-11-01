@@ -216,13 +216,15 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None, *, dry_run=F
                 print("MATCH", row["match_label"], row["kickoff_utc"],
                       "up_moves", row["up_movements"], "net", row["net_line_rise"])
         return ledger
-    publish = (delivery.git_intent_publisher(root, str(LEDGER))
+    publish = (delivery.git_publisher(root, lambda: delivery.durable_paths(root, LEDGER),
+                              guard=delivery.claim_guard(root, LEDGER), guard_path=str(LEDGER))
                if delivery.durable_enabled() else None)
 
     def persist(value):
         _write(path, value)
-        if publish is not None and delivery.has_intent(value):
-            publish()  # opt-in TG_DURABLE_INTENT=1: push the intent BEFORE the HTTP call
+        if publish is not None:
+            publish()  # opt-in TG_DURABLE_INTENT=1: intent BEFORE the HTTP call, outcome right after
+
     ledger, counts = process(rows, ledger, now, sender,
                              configured() if bot_enabled is None else bot_enabled,
                              pace=lambda: time.sleep(1.2),

@@ -44,9 +44,17 @@ class BlockStore:
             raise ValueError("invalid Telegram delivery block file; nothing sent")
         return data
 
-    def active(self, moment):
+    def active(self, moment, ignore_auth=None):
+        """The active block, or None. TG_IGNORE_AUTH_BLOCK=1 lifts ONLY a 401/403 block (credentials
+        were fixed); a flood-wait (429) is never lifted early."""
         data = self.read()
-        return data if data is not None and moment < _utc(data["until"]) else None
+        if data is None or moment >= _utc(data["until"]):
+            return None
+        if ignore_auth is None:
+            ignore_auth = os.environ.get("TG_IGNORE_AUTH_BLOCK") == "1"
+        if ignore_auth and data["http_status"] in (401, 403):
+            return None
+        return data
 
     def record(self, until, http_status, moment, diagnosis):
         """Extend, never shorten, an active block."""
