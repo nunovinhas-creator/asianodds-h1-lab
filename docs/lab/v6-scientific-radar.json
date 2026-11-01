@@ -3,8 +3,8 @@
   "hypotheses": [
     {
       "comparison": "market_model_residual",
-      "condition_original": 119,
-      "condition_strict": 102,
+      "condition_original": 120,
+      "condition_strict": 103,
       "decision_event_sha256": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
       "decision_reason": "INCONCLUSIVE_LOW_POWER",
       "definition": {
@@ -90,7 +90,7 @@
         }
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
-      "frozen_matches": 761,
+      "frozen_matches": 762,
       "ft_verified": 244,
       "games": [
         {
@@ -9937,6 +9937,78 @@
             "telegram_edit_at": null
           },
           "telegram_original_at": "2026-10-31T23:13:50+00:00"
+        },
+        {
+          "event_id": "3571094759:51999",
+          "forecast": {
+            "competition_heuristic": "LEAGUE_OTHER",
+            "feature_sha256": "d7855fd3dcb4652392a332b23fa0915db8c15085411afb027ae67896c3e1d033",
+            "feature_version": 2,
+            "forecast_kind": "MARKET_BASELINE_ONLY",
+            "market_co_observation": "UNKNOWN_MARKET_NOT_OBSERVED",
+            "market_probability_over_2_5": 0.844,
+            "market_total_after": {
+              "line": 4.5,
+              "margin": 0.06102,
+              "over_price": 1.89,
+              "under_price": 1.88
+            },
+            "market_total_before": {
+              "line": 4.25,
+              "margin": 0.07949,
+              "over_price": 1.92,
+              "under_price": 1.79
+            },
+            "memory_observation_sha256": "878870cd01a7532cf7d0d7f1c933bd08978cf323d8d4c0a4280c9d5e50164ec2",
+            "memory_pattern_sha256": "0b87754bec441e64ad0e341b8df85c7f988483b0ce42690f8436b9a6d7cc2183",
+            "model_delta_vs_market": 0.0,
+            "original_posthoc_condition": true,
+            "quality_flags": [],
+            "quality_status": "USABLE",
+            "sha256": "abb4f102586b9efe79d52f6805380e10c3db237f6a7ee3b924efea9016bedc90",
+            "strict_observation": true
+          },
+          "frozen_known_at": "2026-11-01T00:16:24+00:00",
+          "ft": {
+            "checked_at": null,
+            "event_id": null,
+            "evidence_level": null,
+            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
+            "scientific_event_sha256": null,
+            "score": null,
+            "sha256": null,
+            "source_url": null,
+            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+          },
+          "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+          "kickoff_utc": "2026-11-01T11:00:00+00:00",
+          "match_key": "2026-11-01,10059903,29421",
+          "match_label": "Ulfstind vs Tromsø IL II",
+          "snapshot_history_count": 1,
+          "source_v4": {
+            "known_at": "2026-11-01T00:16:05+00:00",
+            "markets": {
+              "total": {
+                "after": {
+                  "line": 4.5,
+                  "over_price": 1.89,
+                  "under_price": 1.88
+                },
+                "before": {
+                  "line": 4.25,
+                  "over_price": 1.92,
+                  "under_price": 1.79
+                },
+                "cross_line_prices_comparable": false,
+                "line_changed": true
+              }
+            },
+            "revision_id": "V4R:d77fc29047ca9828cd49e43279c3",
+            "sha256": "64c2ce78db26308788878ea26345c30faef08bb5ad521146d72545ebd9e56b52",
+            "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
+            "telegram_edit_at": null
+          },
+          "telegram_original_at": "2026-11-01T00:13:49+00:00"
         },
         {
           "event_id": "3571094759:51592",
@@ -60560,12 +60632,12 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "6e26819dc5d757fc64cf2ac0d84a8fe289ec1a9ba66c9ba4ee3ae2f7a36b01e3",
-    "observations": "c6b2308d203f3acdc3163421caf831f914bc8365003841076c7f496da0104666",
-    "patterns": "50aa44e92e9ba7b8942b714bda624390295655cffe4222acf31d5a2e7165772e",
+    "forecasts": "abb4f102586b9efe79d52f6805380e10c3db237f6a7ee3b924efea9016bedc90",
+    "observations": "878870cd01a7532cf7d0d7f1c933bd08978cf323d8d4c0a4280c9d5e50164ec2",
+    "patterns": "0b87754bec441e64ad0e341b8df85c7f988483b0ce42690f8436b9a6d7cc2183",
     "science_evidence": "8abc2a9df639e9a763a6cde0872bb876c333fb8bcc754495c909217085f92721",
     "universal_ft": "3f3f513b21da12553ceb5c2c9e49cd3f1f369a27a615b117e155ea103777a5d5",
-    "v4_revisions": "1673ae5cad9adb89a419d239839506a081944d1b2367d4d2fbf7b30ede865946"
+    "v4_revisions": "64c2ce78db26308788878ea26345c30faef08bb5ad521146d72545ebd9e56b52"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
@@ -60573,14 +60645,15 @@
     "evidence_quality": {
       "EXPIRED_UNVERIFIED": 131,
       "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 244,
+      "NOT_REGISTERED_IN_FT_JOURNAL": 1,
       "PENDING": 385,
       "SCORE_CONFLICT": 1,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 120,
-      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 641
+      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 642
     },
-    "frozen_snapshots": 1015,
+    "frozen_snapshots": 1016,
     "ft_universal_events": 1597,
-    "unique_matches": 761,
-    "v4_revision_events": 1339
+    "unique_matches": 762,
+    "v4_revision_events": 1341
   }
 }
