@@ -52,6 +52,9 @@ class FairQueueTests(unittest.TestCase):
         # queue visit, so the older revisit is no longer starved.
         first,_,_=call([old,new],previous,limit=1,evidence_retry=True,
                        lookup_source_version=11)
+        # Move the independent old retry outside its mandatory four-hour
+        # visit gate; otherwise it must remain deferred by design.
+        first['matches']['old']['queue_visited_at']='2026-10-28T10:00:00+00:00'
         second,report,count=call([old,new],first,limit=1,evidence_retry=True,
                                  lookup_source_version=11,now=NOW+timedelta(minutes=1))
         self.assertEqual(count,1)
