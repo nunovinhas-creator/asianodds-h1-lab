@@ -267,11 +267,84 @@ def write_rows(rows):
 
 
 
+# H1 retry policy v2: an unresolved fixture stops being queried 24h after kickoff, like the LAB
+# FT window. The 30-day horizon of v1 kept spending supplier budget on fixtures that no provider
+# resolves late. Certified results are never touched, an expired fixture is NEVER a loss (it
+# simply has no certified result), and nothing is deleted: the audit entry keeps its counters.
+H1_RETRY_HORIZON = timedelta(hours=24)
+H1_RETRY_POLICY_VERSION = 2
+EXPIRED_STATUS = "expired_unverified"
+
+
+def reopen_expired(signals, resolved, audit, keys, now, *, reason):
+    """Explicit, audited reopening of expired fixtures (rollback / manual review only).
+
+    Never automatic: the caller names the keys. Resolved (certified) fixtures and anything not
+    in `expired_unverified` are refused. The entry returns to its previous status and keeps the
+    expiry record in `expired_history`. Under a 24h horizon the next sync would simply expire it
+    again, so lengthen H1_RETRY_HORIZON first. Returns the reopened keys.
+    """
+    if not reason or not isinstance(reason, str):
+        raise ValueError("A reopening reason is mandatory")
+    known = {s["match_key"] for s in signals}
+    reopened = []
+    for key in keys:
+        entry = audit.get(key)
+        if key in resolved or key not in known or not isinstance(entry, dict) or entry.get("status") != EXPIRED_STATUS:
+            raise ValueError("Refusing to reopen %r: not an expired, unresolved, known fixture" % (key,))
+        history = list(entry.get("expired_history") or [])
+        history.append({k: entry[k] for k in ("expired_at", "expiry_reason", "retry_policy_version",
+                                              "status_before_expiry") if k in entry})
+        restored = {k: v for k, v in entry.items()
+                    if k not in ("expired_at", "expiry_reason", "retry_policy_version",
+                                 "status_before_expiry", "checked_before_expiry")}
+        restored["status"] = entry.get("status_before_expiry") if entry.get("status_before_expiry") != "no_audit_entry" else "pending"
+        restored["expired_history"] = history
+        restored["reopened_at"] = now.isoformat(timespec="seconds")
+        restored["reopen_reason"] = reason[:200]
+        audit[key] = restored
+        reopened.append(key)
+    return reopened
+
+
+def expire_stale_pending(signals, resolved, audit, now):
+    """Terminal, non-certified state for unresolved fixtures past the retry horizon.
+
+    Pure in the audit dict (mutates only the passed copy). Returns the keys expired now.
+    """
+    if now.tzinfo is None:
+        raise ValueError("Invalid H1 expiry clock")
+    expired = []
+    for signal in signals:
+        key = signal["match_key"]
+        if key in resolved:
+            continue
+        kickoff = datetime.fromisoformat(signal["kickoff_utc"]).astimezone(UTC)
+        if now <= kickoff + H1_RETRY_HORIZON:
+            continue
+        previous = audit.get(key)
+        previous = dict(previous) if isinstance(previous, dict) else {}
+        if previous.get("status") in ("settled", EXPIRED_STATUS):
+            continue  # settled is certified elsewhere; expired is already terminal
+        entry = dict(previous)  # keeps checked_at, reason, thesportsdb_reason (attempt evidence)
+        entry.update({
+            "status": EXPIRED_STATUS,
+            "expired_at": now.isoformat(timespec="seconds"),
+            "expiry_reason": "h1_24h_retry_window_elapsed",
+            "retry_policy_version": H1_RETRY_POLICY_VERSION,
+            "status_before_expiry": previous.get("status", "no_audit_entry"),
+            "checked_before_expiry": bool(previous.get("checked_at")),
+        })
+        audit[key] = entry
+        expired.append(key)
+    return expired
+
+
 def plan_due_signals(signals, resolved, audit, now, limit=20):
     """Prioritise unqueried eligible fixtures before retries, without extra API calls.
 
-    Preserve the historical 3-hour grace, 30-day horizon, and 4-hour retry
-    cooldown.  Oldest kickoff first within each priority group means that
+    Preserve the historical 3-hour grace and 4-hour retry cooldown; the retry
+    horizon is H1_RETRY_HORIZON (24h, policy v2).  Oldest kickoff first within each priority group means that
     continuous collector growth cannot starve an older first check.
     """
     if limit < 1 or now.tzinfo is None:
@@ -282,9 +355,13 @@ def plan_due_signals(signals, resolved, audit, now, limit=20):
         if key in resolved:
             continue
         kickoff = datetime.fromisoformat(signal["kickoff_utc"]).astimezone(UTC)
-        if now < kickoff + timedelta(hours=3) or now > kickoff + timedelta(days=30):
+        if now < kickoff + timedelta(hours=3) or now > kickoff + H1_RETRY_HORIZON:
             continue
         previous = audit.get(key, {})
+        if isinstance(previous, dict) and previous.get("status") == EXPIRED_STATUS:
+            # Persisted terminal state: honoured whatever H1_RETRY_HORIZON currently is, so that
+            # lengthening the horizon (rollback) can never silently reopen expired fixtures.
+            continue
         checked_at = previous.get("checked_at") if isinstance(previous, dict) else None
         checked = None
         if checked_at:
@@ -327,6 +404,12 @@ def sync(now=None, search=api_events, *, pace=None):
     tsdb_circuit_reason = prior_denial["reason"] if prior_denial else None
     tsdb_skipped = 0
     bsd_enabled = bool(os.environ.get("BSD_API_KEY", "").strip())
+    expired_now = expire_stale_pending(state["signals"], resolved, audit, now)
+    if expired_now:
+        from .core import dump_json
+        dump_json(AUDIT, audit)  # terminal bookkeeping only; results.csv is untouched
+    print("H1_RETRY_POLICY", json.dumps({"version": H1_RETRY_POLICY_VERSION,
+                                         "horizon_hours": 24, "expired_now": len(expired_now)}))
     due_signals, plan = plan_due_signals(state["signals"], resolved, audit, now, limit=20)
     print("H1_RESULTS_PLAN", json.dumps(plan, sort_keys=True))
     for signal in due_signals:
