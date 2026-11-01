@@ -4,6 +4,7 @@ import unittest
 from datetime import datetime, timezone
 
 from h1lab.lab_promotion import candidate, propose, _safe_source
+from h1lab.lab_ft_attestations import seal as seal_attestation
 from h1lab.core import public_data
 
 NOW = datetime(2026, 10, 28, 15, tzinfo=timezone.utc)
@@ -87,6 +88,59 @@ class H1LabPromotionTests(unittest.TestCase):
             "corroboration_urls":["https://www.official-example.com/match/abc",
                                   "https://news-example.net/match/abc"]}
         self.assertIsNotNone(candidate(s,row,NOW)[0])
+
+    def test_dual_provider_only_with_two_sealed_unconflicted_attestations(self):
+        import copy
+        s = signal()
+        row = lab(s, evidence="dual_provider_only",
+                  url="https://v3.football.api-sports.io/fixtures?id=42")
+        observed = "2026-10-27T20:30:00+00:00"
+        sources = {
+            "api_football": "https://v3.football.api-sports.io/fixtures?id=42",
+            "openfoot": "https://openfootapi.com/v1/matches?date=2026-10-27",
+        }
+        claims = {}
+        for provider, src in sources.items():
+            claims[provider] = seal_attestation({
+                "match_key": KEY, "provider": provider,
+                "fixture_id": "42" if provider == "api_football" else "match-42",
+                "home": s["home"], "away": s["away"], "competition": "Test League",
+                "kickoff_utc": KO, "source": src, "home_goals": 1,
+                "away_goals": 1, "observed_at_utc": observed,
+            })
+        row["verified_provider_sources"] = {
+            p: {"source": url, "identity_match": "DUAL_STRONG_CONSENSUS"}
+            for p, url in sources.items()}
+        row["dual_provider_corroboration"] = {
+            "method": "TWO_STRONG_PROVIDER_IDS_SAME_REGULATION_FT",
+            "providers": sorted(sources), "scores_agree": True,
+            "attestation_sha256": {p: v["sha256"] for p, v in claims.items()},
+            "first_observed_at_utc": {p: observed for p in claims},
+            "chronology_certified": False,
+        }
+        journal = {"schema_version": 1, "records": {KEY: claims}, "conflicts": {}}
+        self.assertEqual(candidate(s, row, NOW)[1], "unrecognized_evidence")
+        self.assertEqual(candidate(s, row, NOW, journal)[1], "verified_lab_final")
+        self.assertEqual(len(propose({"signals": [s]}, {"matches": {KEY: row}},
+                                     [], NOW, journal)[0]), 1)
+        for change in ("no_journal", "conflict", "score", "sha", "url",
+                       "timing", "missing_provider", "unsealed"):
+            item, ledger = copy.deepcopy(row), copy.deepcopy(journal)
+            if change == "no_journal": ledger = None
+            elif change == "conflict": ledger["conflicts"][KEY] = {"api_football": "REVISION"}
+            elif change == "score": item["result"]["away_goals"] = 2
+            elif change == "sha": ledger["records"][KEY]["api_football"]["sha256"] = "0" * 64
+            elif change == "url": item["result"]["source"] = "https://different.example.com/"
+            elif change == "timing":
+                ledger["records"][KEY]["openfoot"]["observed_at_utc"] = "2026-10-29T22:00:00+00:00"
+                ledger["records"][KEY]["openfoot"] = seal_attestation(ledger["records"][KEY]["openfoot"])
+                item["dual_provider_corroboration"]["attestation_sha256"]["openfoot"] = ledger["records"][KEY]["openfoot"]["sha256"]
+                item["dual_provider_corroboration"]["first_observed_at_utc"]["openfoot"] = "2026-10-29T22:00:00+00:00"
+            elif change == "missing_provider": del ledger["records"][KEY]["openfoot"]
+            elif change == "unsealed":
+                item["verified_provider_sources"]["api_football"]["identity_match"] = "UNKNOWN"
+            with self.subTest(change=change):
+                self.assertEqual(candidate(s, item, NOW, ledger)[1], "unrecognized_evidence")
 
     def test_provably_reversed_sportscore_slug_rejected(self):
         s=signal(home="Club A",away="Club B")

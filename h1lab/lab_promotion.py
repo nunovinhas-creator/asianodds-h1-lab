@@ -17,6 +17,7 @@ from .cli import ROOT, read_state
 from .core import dump_json
 from .lab_reviewed_aliases import reviewed_provider_pair
 from .lab_sportscore import source_order_conflict
+from .lab_ft_attestations import REQUIRED as ATTESTATION_FIELDS, seal as seal_attestation, _source_ok as attestation_source_ok
 from .results import AUDIT, RESULTS, read_audit, read_rows, write_rows
 
 LEDGER = ROOT / "data/lab/ft-ledger.json"
@@ -57,7 +58,69 @@ def _safe_source(value):
         return False
 
 
-def candidate(signal, row, now):
+
+def _confirmed_dual_evidence(signal, row, now, journal):
+    """Prove legacy dual-provider FT from immutable attestations, not a label."""
+    if not isinstance(journal, dict) or journal.get("schema_version") != 1:
+        return False
+    key = signal["match_key"]
+    if key in (journal.get("conflicts") or {}):
+        return False
+    proof = row.get("dual_provider_corroboration")
+    sources = row.get("verified_provider_sources")
+    claims = (journal.get("records") or {}).get(key)
+    if not all(isinstance(x, dict) for x in (proof, sources, claims)):
+        return False
+    providers = proof.get("providers")
+    if (proof.get("method") != "TWO_STRONG_PROVIDER_IDS_SAME_REGULATION_FT"
+            or proof.get("scores_agree") is not True
+            or not isinstance(providers, list)
+            or not 2 <= len(providers) <= 3
+            or len(set(providers)) != len(providers)
+            or providers != sorted(providers)
+            or not set(providers).issubset({"api_football", "goal", "openfoot"})):
+        return False
+    digests = proof.get("attestation_sha256")
+    times = proof.get("first_observed_at_utc")
+    if not isinstance(digests, dict) or not isinstance(times, dict):
+        return False
+    result = row["result"]
+    kickoff = _utc(signal["kickoff_utc"])
+    if kickoff is None:
+        return False
+    proof_sources = set()
+    for provider in providers:
+        claim = claims.get(provider)
+        attached = sources.get(provider)
+        if not isinstance(claim, dict) or not isinstance(attached, dict):
+            return False
+        if set(claim) != {*ATTESTATION_FIELDS, "sha256"}:
+            return False
+        try:
+            if seal_attestation(claim) != claim:
+                return False
+        except (TypeError, ValueError, KeyError):
+            return False
+        if (claim["match_key"] != key or claim["provider"] != provider
+                or claim["sha256"] != digests.get(provider)
+                or claim["observed_at_utc"] != times.get(provider)
+                or claim["source"] != attached.get("source")
+                or attached.get("identity_match") != "DUAL_STRONG_CONSENSUS"
+                or not attestation_source_ok(claim)
+                or (claim["home_goals"], claim["away_goals"]) !=
+                   (result["home_goals"], result["away_goals"])):
+            return False
+        observed, provider_ko = _utc(claim["observed_at_utc"]), _utc(claim["kickoff_utc"])
+        if (observed is None or provider_ko is None
+                or abs((provider_ko - kickoff).total_seconds()) > 300
+                or not kickoff + timedelta(minutes=90) <= observed <= now
+                or observed > kickoff + timedelta(hours=24)):
+            return False
+        proof_sources.add(claim["source"])
+    return result["source"] in proof_sources
+
+
+def candidate(signal, row, now, attestations=None):
     """Return (CSV row, explanation) without side effects."""
     if not isinstance(signal, dict) or not isinstance(row, dict):
         return None, "invalid_identity"
@@ -80,6 +143,11 @@ def candidate(signal, row, now):
     if not _safe_source(source):
         return None, "untrusted_result_url"
     evidence = result.get("evidence")
+    if evidence == "dual_provider_only":
+        if not _confirmed_dual_evidence(signal, row, now, attestations):
+            return None, "unrecognized_evidence"
+        return {"match_key": key, "status": "final", "home_goals": home,
+                "away_goals": away, "source": source}, "verified_lab_final"
     if (not isinstance(evidence, str) or not evidence or
             any(name not in ALLOWED_EVIDENCE for name in evidence.split("_and_")
                 if not name.endswith("_only"))):
@@ -105,7 +173,7 @@ def candidate(signal, row, now):
             "away_goals": away, "source": source}, "verified_lab_final"
 
 
-def propose(state, ledger, existing_rows, now):
+def propose(state, ledger, existing_rows, now, attestations=None):
     """Immutable planning: only H1 singles, no edits to picks or tickets."""
     if (not isinstance(state, dict) or not isinstance(state.get("signals"), list) or
             not isinstance(ledger, dict) or not isinstance(ledger.get("matches"), dict)):
@@ -127,7 +195,7 @@ def propose(state, ledger, existing_rows, now):
         if key in existing:
             old = existing[key]
             if isinstance(lab_row, dict) and lab_row.get("status") == "FINAL":
-                test, reason = candidate(s, lab_row, now)
+                test, reason = candidate(s, lab_row, now, attestations)
                 if test and (str(old.get("home_goals")), str(old.get("away_goals"))) != (
                         str(test["home_goals"]), str(test["away_goals"])):
                     rejected["existing_h1_ft_disagrees"] += 1
@@ -135,7 +203,7 @@ def propose(state, ledger, existing_rows, now):
         if lab_row is None:
             rejected["missing_lab_row"] += 1
             continue
-        item, reason = candidate(s, lab_row, now)
+        item, reason = candidate(s, lab_row, now, attestations)
         if item is None:
             rejected[reason] += 1
         else:
@@ -151,7 +219,10 @@ def sync(now=None):
         return 0
     ledger = json.loads(LEDGER.read_text(encoding="utf-8"))
     rows = read_rows()
-    planned, rejected = propose(state, ledger, rows, now)
+    attestations_path = LEDGER.with_name('ft-provider-attestations.json')
+    attestations = (json.loads(attestations_path.read_text(encoding='utf-8'))
+                    if attestations_path.is_file() else None)
+    planned, rejected = propose(state, ledger, rows, now, attestations)
     if planned:
         audit = read_audit()
         rows.extend(item for item, _ in planned)
