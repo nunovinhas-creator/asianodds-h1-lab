@@ -71,6 +71,62 @@ class BSDTests(unittest.TestCase):
         self.assertEqual(find_result(SIGNAL,fetch=fake_fetch,token="SYNTHETIC_TOKEN")[1],
                          "bsd_ambiguous_match")
 
+
+    def test_cf_sc_designators_still_require_full_identity_and_detail(self):
+        from h1lab.results import norm_team
+        self.assertEqual(norm_team("Córdoba CF"), norm_team("Córdoba"))
+        self.assertEqual(norm_team("SC Farense"), norm_team("Farense"))
+        self.assertEqual(norm_team("CF Granada"), norm_team("Granada"))
+        self.assertNotEqual(norm_team("SC Farense U21"), norm_team("Farense"))
+        self.assertNotEqual(norm_team("Real Madrid CF"), norm_team("Atlético Madrid CF"))
+        self.assertEqual(norm_team("FC"), "fc")  # Never normalize to blank.
+        fixture={**SIGNAL,"home":"Córdoba CF","away":"SC Farense"}
+        event={**EVENT,"home_team":{"name":"Córdoba"},
+               "away_team":{"name":"Farense"}}
+        calls=[]
+        def fetch(url, token):
+            calls.append(url)
+            return {"results":[event],"next":None} if "?" in url else event
+        result,reason=find_result(fixture,fetch=fetch,token="SYNTHETIC_TOKEN")
+        self.assertEqual(reason,"verified_bsd_ft")
+        self.assertEqual((result["home_goals"],result["away_goals"]),(2,1))
+        self.assertEqual(len(calls),2)  # One list + independently verified detail.
+
+    def test_bsd_reason_classification_uses_same_single_list_call(self):
+        examples = [
+            ([], "bsd_empty_finished_list"),
+            ([{**EVENT,"event_date":(KO+timedelta(hours=4)).isoformat()}],
+             "bsd_kickoff_missing_or_mismatch"),
+            ([{**EVENT,"away_team":{"name":"Different Team"}}],
+             "bsd_away_name_mismatch"),
+            ([{**EVENT,"home_team":{"name":"Different Team"}}],
+             "bsd_home_name_mismatch"),
+            ([{**EVENT,"home_team":{"name":"Different Team"},
+               "away_team":{"name":"Other Team"}}],
+             "bsd_no_exact_match"),
+        ]
+        for matches,expected in examples:
+            with self.subTest(expected=expected):
+                calls=[]
+                def fetch(url, token):
+                    calls.append(url)
+                    return {"results":matches,"next":None,"count":len(matches)}
+                outcome,reason=find_result(SIGNAL,fetch=fetch,token="SYNTHETIC_TOKEN")
+                self.assertIsNone(outcome)
+                self.assertEqual(reason,expected)
+                self.assertEqual(len(calls),1)
+
+    def test_no_guessing_when_names_ambiguous_or_not_finished(self):
+        signal={**SIGNAL,"home":"Córdoba CF","away":"SC Farense"}
+        exact={**EVENT,"home_team":{"name":"Córdoba"},
+               "away_team":{"name":"Farense"}}
+        def fetch(url,token):
+            return {"results":[exact,exact],"next":None}
+        self.assertEqual(find_result(signal,fetch=fetch,token="SYNTHETIC")[1],
+                         "bsd_ambiguous_match")
+        self.assertIsNone(regulation_result(
+            signal,{**exact,"status":"live"})[0])
+
     def test_without_token_no_remote_calls(self):
         with patch.dict(os.environ,{"BSD_API_KEY":""}):
             def forbidden(*a):
