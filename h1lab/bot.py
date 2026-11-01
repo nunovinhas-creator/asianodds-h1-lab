@@ -6,7 +6,32 @@ from urllib.request import Request, urlopen
 
 
 class BotDeliveryError(RuntimeError):
-    """An error safe for public CI logs."""
+    """An error safe for public CI logs.
+
+    The base class means DELIVERY_UNCERTAIN: nobody can prove the message was or
+    was not accepted, so callers must never resend automatically.
+    """
+    outcome = "DELIVERY_UNCERTAIN"
+
+
+class BotRejectedError(BotDeliveryError):
+    """Telegram answered with an explicit 4xx: the request was NOT accepted."""
+    outcome = "DEFINITELY_REJECTED"
+
+    def __init__(self, message, http_status, retry_after=None):
+        super().__init__(message)
+        self.http_status = http_status
+        self.retry_after = retry_after
+
+
+def _retry_after(exc):
+    """Seconds from Telegram's JSON error body (parameters.retry_after), else None."""
+    try:
+        body = json.loads(exc.read(65536))
+        value = body["parameters"]["retry_after"]
+        return int(value) if type(value) is int and 0 <= value <= 86400 else None
+    except Exception:  # unreadable body: stay conservative, caller applies a default
+        return None
 
 
 def configured():
@@ -38,10 +63,14 @@ def send_message(message):
             result = json.loads(response.read(65536))
     except HTTPError as exc:
         # The exception repr and URL contain the bot secret. Never expose either.
+        if 400 <= exc.code < 500:
+            raise BotRejectedError(
+                "TELEGRAM_DELIVERY_REJECTED: HTTP " + str(exc.code) +
+                ". Check bot token, chat ID, and that the recipient started the bot.",
+                exc.code, _retry_after(exc) if exc.code == 429 else None) from None
         raise BotDeliveryError(
-            "TELEGRAM_DELIVERY_FAILED: HTTP " + str(exc.code) +
-            ". Check bot token, chat ID, and that the recipient started the bot."
-        ) from None
+            "TELEGRAM_DELIVERY_UNCERTAIN: HTTP " + str(exc.code) +
+            ". A server error does not prove the message was not accepted.") from None
     except (URLError, TimeoutError, ValueError):
         raise BotDeliveryError(
             "TELEGRAM_DELIVERY_UNCERTAIN: network or malformed reply. "
