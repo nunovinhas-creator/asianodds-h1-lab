@@ -2,6 +2,18 @@
   "empirically_validated_strategies": 0,
   "history": [
     {
+      "archive": "lab/llm-investigator-runs/41287711655.json",
+      "feature_codes": [
+        "G_INTENSIFYING",
+        "M_IMPLIED_GOALS_FLAT"
+      ],
+      "metric": "LOG_LOSS",
+      "recorded_at_utc": "2026-11-01T08:10:37.252359Z",
+      "run_id": 41287711655,
+      "source_commit": "12d784fd78c0f2af0c6bf3cae3c47787fba0eea8",
+      "topic_id": "T05"
+    },
+    {
       "archive": "lab/llm-investigator-runs/41249924944.json",
       "feature_codes": [
         "M_OVER_PRICE_DOWN_SAME_LINE",
@@ -90,10 +102,10 @@
   "latest": {
     "autonomy": {
       "account_neurons_verified": false,
-      "candidate_id": "0118413f74a398197599324667ed23d15a6a873477dc4ef12d33a2d730a417c1",
+      "candidate_id": "0132a14a26c10203b798bb1ac5b1ea6967d84712e13f1b8d40dabb069da58dd0",
       "candidate_pool_ids": [
-        "0118413f74a398197599324667ed23d15a6a873477dc4ef12d33a2d730a417c1",
         "0132a14a26c10203b798bb1ac5b1ea6967d84712e13f1b8d40dabb069da58dd0",
+        "01389182795da00d62a99dd2d01746e8c193292632608c478cb92cbf410bf6dc",
         "000e3c9c375f44a16adc6ca5d8dfb633b69ec474c3a2921e4e72d3d9aca27363"
       ],
       "daily_scheduled_call_slots": 4,
@@ -102,7 +114,7 @@
       "status": "SHADOW_EXPLORATION_NOT_VALIDATION",
       "trigger": "schedule"
     },
-    "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41249924944",
+    "github_run_url": "https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41287711655",
     "limitations": "Manual AI draft, not a discovered edge, statistical test, ROI or recommendation.",
     "llm_calls": 1,
     "model": "@cf/meta/llama-3.1-8b-instruct-fast",
@@ -114,25 +126,25 @@
           "Antecedência",
           "Competição"
         ],
-        "control_group": "Jogos futuros com probabilidade inicial e antecedência comparáveis sem o cruzamento de M_OVER_PRICE_DOWN_SAME_LINE e M_TRIGGER_SEL_X.",
+        "control_group": "Jogos futuros com probabilidade inicial e antecedência comparáveis sem este cruzamento.",
         "data_needed": [
           "Capturas das duas variáveis feitas antes do KO",
           "FT regulamentar confirmado com carimbo"
         ],
-        "falsification": "Rejeitar se o Log Loss fora da amostra não melhorar significativamente contra o baseline; controlar comparabilidade, cobertura FT e seleção múltipla.",
+        "falsification": "Rejeitar se o Log Loss fora da amostra não melhorar contra o baseline; controlar comparabilidade, cobertura FT e seleção múltipla.",
         "feature_codes": [
-          "M_OVER_PRICE_DOWN_SAME_LINE",
-          "M_TRIGGER_SEL_X"
+          "G_INTENSIFYING",
+          "M_IMPLIED_GOALS_FLAT"
         ],
-        "hypothesis": "A combinação de M_OVER_PRICE_DOWN_SAME_LINE e M_TRIGGER_SEL_X pode melhorar o baseline em termos de Log Loss, pois essas variáveis podem fornecer informações adicionais sobre a probabilidade de vitória e empate em jogos de futebol.",
+        "hypothesis": "A combinação de G_INTENSIFYING e M_IMPLIED_GOALS_FLAT pode acrescentar informação ao baseline, sem efeito presumido.",
         "metric": "LOG_LOSS",
-        "null_hypothesis": "A combinação de M_OVER_PRICE_DOWN_SAME_LINE e M_TRIGGER_SEL_X não melhora o baseline em termos de Log Loss.",
+        "null_hypothesis": "A combinação de G_INTENSIFYING e M_IMPLIED_GOALS_FLAT não melhora o baseline.",
         "outcome": "OVER_2_5",
         "source_refs": [
           "docs/lab/pattern-research.json"
         ],
         "status": "DRAFT",
-        "test_design": "Congelar M_OVER_PRICE_DOWN_SAME_LINE, M_TRIGGER_SEL_X antes do KO; comparar Log Loss OOS por jogo com o baseline e controlos emparelhados.",
+        "test_design": "Congelar G_INTENSIFYING, M_IMPLIED_GOALS_FLAT antes do KO; comparar Log Loss OOS por jogo com o baseline e controlos emparelhados.",
         "topic_id": "T05"
       }
     ],
@@ -142,35 +154,35 @@
       "model_requested": "@cf/meta/llama-3.1-8b-instruct-fast",
       "neurons_consumed": null,
       "tokens": {
-        "completion_tokens": 243,
-        "prompt_tokens": 760,
-        "total_tokens": 1003
+        "completion_tokens": 197,
+        "prompt_tokens": 770,
+        "total_tokens": 967
       }
     },
-    "recorded_at_utc": "2026-10-31T22:50:24.197533Z",
-    "run_id": 41249924944,
+    "recorded_at_utc": "2026-11-01T08:10:37.252359Z",
+    "run_id": 41287711655,
     "schema_version": 1,
     "scientific_acceptance": "INCONCLUSIVO",
-    "source_commit": "41cbc2c330fb314d2faff152325a3f75cd3c2a24",
+    "source_commit": "12d784fd78c0f2af0c6bf3cae3c47787fba0eea8",
     "source_sha256": {
-      "docs/lab/pattern-research.json": "ff4e10b4a173c0562d748112d221e7c0f651a5533508d26c59bda57e09544d57",
-      "docs/lab/v6-falsification.json": "b40cd57079430f2d5dbc483711f7dfa40c6c739cf19a15d90fee3534f10f0297",
-      "docs/lab/v6-p0-gates.json": "85b24b82e85660aedc1ecf50ea6e45ebe9f06a3ebf9e47bf86128eb9c8168f5d",
-      "docs/lab/v6-readiness.json": "f5d2cbd42063d53ece937723f7298dc1c3714f08fb95f4ae4ba14ed86d0d7fb6",
+      "docs/lab/pattern-research.json": "40fe9c1c2d840056a4140559ee3c83bf546dbc94de9427f3c69837f82b4724fb",
+      "docs/lab/v6-falsification.json": "56eedbb414687983edbbdd5c5207330d9c14c1ab04901b2c266954dc2ab7f13f",
+      "docs/lab/v6-p0-gates.json": "400d68b468fe91e9961b30e55588526aae58c9c1d2023decc199f6b11d4f8029",
+      "docs/lab/v6-readiness.json": "aa3ad9f20256cca2596cc191573fd3f1240de09f8d8f4a212438dffb04f78287",
       "docs/lab/v6-weekly-drift.json": "a482b80badd00fa57ebfd49f745b94af9016ca65266d540761ba188ceb3edfa8"
     },
     "state": "SHADOW_DRAFT_NOT_EMPIRICALLY_VALIDATED",
     "summary": {
       "feature_codes": [
-        "M_OVER_PRICE_DOWN_SAME_LINE",
-        "M_TRIGGER_SEL_X"
+        "G_INTENSIFYING",
+        "M_IMPLIED_GOALS_FLAT"
       ],
       "metric": "LOG_LOSS",
       "proposal_count": 1,
       "topic_id": "T05"
     }
   },
-  "llm_executions_recorded": 7,
+  "llm_executions_recorded": 8,
   "notice": "Only successful published runs (manual or bounded autonomous) appear here; failures remain in GitHub Actions. Scientific validation remains human gated.",
   "schema_version": 1,
   "search_space": {
