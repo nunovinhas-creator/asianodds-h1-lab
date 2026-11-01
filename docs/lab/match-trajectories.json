@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-01T17:51:37+00:00",
+ "generated_at": "2026-11-01T17:56:39+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 395
+  "timelines_published": 396
  },
  "schema_version": 1,
- "source_commit": "8c9a759a4f98212608f8d44d712d24533f86e285",
+ "source_commit": "42244eace428b695015c8be73c56a9225691d02e",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 1125,
   "matches_with_identity_inconsistency": 2,
   "max_messages_per_match": 6,
-  "messages": 1690,
+  "messages": 1691,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 960,
+  "messages_on_repeated_matches": 962,
   "messages_v4_only": 1,
-  "messages_with_v4": 1616,
-  "movement_episodes_upper_bound": 1623,
+  "messages_with_v4": 1617,
+  "movement_episodes_upper_bound": 1624,
   "possibly_redundant_snapshots": 50,
   "post_kickoff_messages": 69,
   "related_message_pairs": 67,
@@ -50,25 +50,163 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 17
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 395,
+  "repeated_matches": 396,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 115,
-   "V4_EXPLICIT": 2678
+   "V4_EXPLICIT": 2679
   },
   "total_line_reversals_on_repeated": 217,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 53,
-   "CONTINUOUS": 315,
+   "CONTINUOUS": 316,
    "SAME_MOVEMENT_REPEAT": 67,
    "UNOBSERVED_CHANGE": 129
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 541,
    "one_x_two:AGREE": 521,
-   "total:AGREE": 1614
+   "total:AGREE": 1615
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:52071",
+    "3571094759:52278"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:52071",
+     "message_id": 52071,
+     "minutes_to_kickoff": 643.2,
+     "observed_at": "2026-11-01T07:16:45+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.0,
+        "over_price": 1.98,
+        "under_price": 1.84
+       },
+       "before": {
+        "line": 3.75,
+        "over_price": 1.92,
+        "under_price": 1.95
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52278",
+     "message_id": 52278,
+     "minutes_to_kickoff": 7.9,
+     "observed_at": "2026-11-01T17:52:08+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 4.25,
+        "over_price": 2.01,
+        "under_price": 2.02
+       },
+       "before": {
+        "line": 4.0,
+        "over_price": 1.81,
+        "under_price": 2.02
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-01T07:16:45+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-01T18:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-01T17:52:08+00:00",
+   "match_key": "2026-11-01,38336,72355",
+   "match_label": "Universidad de Guadalajara (Leones Negros) vs CD Tepatitlan de Morelos",
+   "movement_episodes": [
+    [
+     "3571094759:52071"
+    ],
+    [
+     "3571094759:52278"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    38123.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.75,
+     "last_observed_line": 4.25,
+     "net_observed_change": 0.5,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 4.0,
+       "before": 3.75,
+       "event_id": "3571094759:52071",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 4.25,
+       "before": 4.0,
+       "event_id": "3571094759:52278",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:52071",
+       "line": "CONTINUOUS",
+       "next_before_line": 4.0,
+       "previous_after_line": 4.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52278"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
