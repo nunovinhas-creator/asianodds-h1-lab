@@ -54,6 +54,11 @@ class GitFTPublicationTests(unittest.TestCase):
         git(self.root,"checkout","-b","main")
         write(self.root,"data/state.json",state())
         write(self.root,"docs/data.json",'{"version":1}\n')
+        write(self.root,"data/three-total-moves-notifications.json",
+              json.dumps({"schema_version":1,"entries":{
+                  "old":{"match_key":"2026-11-01,a,b",
+                         "kickoff_utc":"2026-11-01T16:00:00Z",
+                         "status":"sent"}}})+"\n")
         write(self.root,"data/lab/ft-ledger.json",ft(1))
         write(self.root,"docs/lab/ft-results.json",'{"final":1}\n')
         write(self.root,"data/lab/markets-2026-10.jsonl",'{"id":"market1"}\n')
@@ -116,6 +121,28 @@ class GitFTPublicationTests(unittest.TestCase):
         self.assertEqual(git(self.root,"show","HEAD:data/lab/ft-ledger.json"),ft(2).strip())
         self.assertNotIn(self.retired, git(self.root,"ls-tree","-r","--name-only","HEAD"))
         self.assertEqual(git(self.root,"rev-parse","HEAD"),git(self.root,"rev-parse","origin/main"))
+
+    def test_concurrent_h1_telegram_receipts_are_preserved(self):
+        newer={"schema_version":1,"entries":{
+            "old":{"match_key":"2026-11-01,a,b",
+                   "kickoff_utc":"2026-11-01T16:00:00Z","status":"withdrawn"},
+            "new":{"match_key":"2026-11-01,c,d",
+                   "kickoff_utc":"2026-11-01T18:00:00Z","status":"sent"},
+        }}
+        self.collector_commit({"data/three-total-moves-notifications.json":
+                               json.dumps(newer)+"\n"})
+        self.publish()
+        saved=json.loads(git(self.root,"show","HEAD:data/three-total-moves-notifications.json"))
+        self.assertEqual(saved,newer)
+        self.assertEqual(json.loads(git(self.root,"show","HEAD:docs/lab/ft-results.json"))["final"],2)
+
+    def test_concurrent_receipt_loss_or_identity_rewrite_blocks_ft_publish(self):
+        wrong={"schema_version":1,"entries":{
+            "old":{"match_key":"changed","kickoff_utc":"2026-11-01T16:00:00Z"}}}
+        self.collector_commit({"data/three-total-moves-notifications.json":
+                               json.dumps(wrong)+"\n"})
+        with self.assertRaisesRegex(p.UnsafeFTPublication,"notification receipt invalid"):
+            self.publish()
 
     def test_remote_ft_change_blocks_and_never_overwrites(self):
         self.collector_commit({"data/lab/ft-ledger.json":ft(1)+" "})
