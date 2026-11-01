@@ -18,7 +18,7 @@ A auditoria usa os mesmos primeiros 400 jogos com vários alertas incluídos na 
 
 ## Operação
 
-O workflow existente `lab-v4-audit.yml` executa `python -m unittest discover -s tests -p 'test_telegram_eligibility.py' -v` e `python -m scripts.lab_telegram_eligibility`, selando e publicando o relatório no mesmo bundle atómico. A rotina falha explicitamente por alteração de semântica das regras, ledger inválido ou relatório acima de 250 KB.
+O workflow existente `lab-v4-audit.yml` executa `python -m unittest discover -s tests -p 'test_telegram_eligibility.py' -v` e `python -m scripts.lab_telegram_eligibility`, selando e publicando o relatório no mesmo bundle atómico. A rotina falha explicitamente por alteração de semântica das regras, ledger inválido ou relatório acima de 512 KB.
 
 Validação local, sem envio Telegram:
 
