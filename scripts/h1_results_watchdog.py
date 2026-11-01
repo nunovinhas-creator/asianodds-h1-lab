@@ -41,6 +41,70 @@ def receipt_age(root, now):
         return None
 
 
+def proven_noop_jobs(payload):
+    """Completed H1 run performed no promotion, provider checks or publication.
+
+    Only the GitHub Actions *job step conclusions* are accepted as evidence.
+    Missing/unknown status fails closed and remains a normal recent attempt.
+    """
+    if not isinstance(payload, dict) or not isinstance(payload.get('jobs'), list):
+        return False
+    jobs = [j for j in payload['jobs']
+            if isinstance(j, dict) and j.get('name') == 'results']
+    if len(jobs) != 1 or jobs[0].get('status') != 'completed' or jobs[0].get('conclusion') != 'success':
+        return False
+    steps = jobs[0].get('steps')
+    if not isinstance(steps, list):
+        return False
+    by_name = {s.get('name'): s.get('conclusion') for s in steps
+               if isinstance(s, dict) and isinstance(s.get('name'), str)}
+    required = (
+        'Avoid duplicate queued result cycles',
+        'Import confirmed LAB FT into H1 without changing signal rules',
+        'Check BSD and TheSportsDB results with strict FT validation',
+        'Rebuild ROI for singles and triples',
+        'Record completed result cycle (not a coverage certificate)',
+        'Publish confirmed finals and audit',
+    )
+    return (by_name.get(required[0]) == 'success'
+            and all(by_name.get(name) == 'skipped' for name in required[1:]))
+
+
+def annotate_recent_noops(runs, now, base, headers, opener):
+    """At most four read-only GitHub job lookups for recent completed attempts.
+
+    Never mark an active, failed, unknown or partially executed job as a noop;
+    never query sports providers. If the bound is exceeded, fail closed.
+    """
+    eligible = []
+    for entry in runs:
+        if not isinstance(entry, dict):
+            raise ValueError('Invalid GitHub run')
+        if entry.get('status') != 'completed':
+            continue
+        created = _utc(entry.get('created_at'))
+        if not timedelta(0) <= now - created < MIN_AGE:
+            continue
+        eligible.append(entry)
+    if len(eligible) > 4:
+        raise ValueError('Too many recent H1 runs to certify no-ops')
+    updated = [dict(entry) if isinstance(entry, dict) else entry for entry in runs]
+    for index, entry in enumerate(runs):
+        if entry not in eligible:
+            continue
+        # Reject malformed run IDs rather than constructing arbitrary URLs.
+        run_id = entry.get('id')
+        if type(run_id) is not int or run_id <= 0:
+            raise ValueError('Missing H1 run identifier')
+        uri = base.rsplit('/actions/workflows/', 1)[0] + '/actions/runs/' + str(run_id) + '/jobs?per_page=10'
+        jobs = _json_request(opener, Request(uri, headers=headers))
+        updated[index]['verified_noop'] = (
+            entry.get('conclusion') == 'success'
+            and proven_noop_jobs(jobs)
+        )
+    return updated
+
+
 def plan(runs, now, age=None):
     if now.tzinfo is None or not isinstance(runs, list) or len(runs) > 100:
         raise ValueError('Invalid workflow history or clock')
@@ -56,7 +120,10 @@ def plan(runs, now, age=None):
         # Any queued/active attempt can still publish: do not pile up dispatches.
         if run.get('status') != 'completed':
             return {'dispatch': False, 'reason': 'ACTIVE_OR_UNKNOWN_RUN'}
-        times.append(when)
+        # A completed workflow whose due gate skipped every H1 effect is
+        # NOT a provider attempt, and must not extend the fallback cooldown.
+        if run.get('verified_noop') is not True:
+            times.append(when)
     if times and now - max(times) < MIN_AGE:
         return {'dispatch': False, 'reason': 'ATTEMPT_COOLDOWN'}
     return {'dispatch': True, 'reason': 'OVERDUE_CYCLE'}
@@ -82,7 +149,11 @@ def run(*, env=None, now=None, root='.', opener=urlopen):
                'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
     try:
         payload = _json_request(opener, Request(base + '/runs?branch=main&per_page=100', headers=headers))
-        choice = plan(payload['workflow_runs'], now, age)
+        history = payload['workflow_runs']
+        # Receipt is checked first; once genuinely stale, inspect only recent
+        # H1 job-step conclusions. Failed/unknown runs remain conservative.
+        history = annotate_recent_noops(history, now, base, headers, opener)
+        choice = plan(history, now, age)
         if not choice['dispatch']:
             return choice
         body = json.dumps({'ref': 'main', 'inputs': {'trigger_source': 'h1-results-watchdog'}}).encode()

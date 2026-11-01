@@ -39,6 +39,82 @@ class WatchdogTests(unittest.TestCase):
         self.assertFalse(w.plan([self.entry(64)], NOW)['dispatch'])
         self.assertTrue(w.plan([self.entry(65)], NOW)['dispatch'])
 
+    def test_proven_noop_does_not_reset_65_minute_receipt_timer(self):
+        noop = {**self.entry(5), 'verified_noop': True}
+        self.assertTrue(w.plan([noop], NOW, timedelta(minutes=70))['dispatch'])
+        self.assertFalse(w.plan([self.entry(5)], NOW, timedelta(minutes=70))['dispatch'])
+        self.assertFalse(w.plan([noop], NOW, timedelta(minutes=64))['dispatch'])
+        self.assertFalse(w.plan([noop, self.entry(10, 'in_progress')],
+                                NOW, timedelta(minutes=70))['dispatch'])
+        self.assertFalse(w.plan([noop, self.entry(10)], NOW,
+                                timedelta(minutes=70))['dispatch'])
+
+    def test_noop_requires_all_skipped_effects_and_successful_due_gate(self):
+        names = [
+            'Import confirmed LAB FT into H1 without changing signal rules',
+            'Check BSD and TheSportsDB results with strict FT validation',
+            'Rebuild ROI for singles and triples',
+            'Record completed result cycle (not a coverage certificate)',
+            'Publish confirmed finals and audit',
+        ]
+        def response(outcome='skipped', job_status='success'):
+            return {'jobs': [{'name': 'results', 'status': 'completed',
+                              'conclusion': job_status, 'steps': [
+                                  {'name': 'Avoid duplicate queued result cycles',
+                                   'conclusion': 'success'},
+                                  *[{'name': n, 'conclusion': outcome} for n in names],
+                              ]}]}
+        self.assertTrue(w.proven_noop_jobs(response()))
+        for payload in (
+            {}, {'jobs': []}, {'jobs': [{'name': 'results'}]},
+            response('success'), response('skipped', 'failure'),
+            {'jobs': [*response()['jobs'], *response()['jobs']]},
+            {'jobs': [{**response()['jobs'][0], 'steps': [
+                {'name': 'Avoid duplicate queued result cycles',
+                 'conclusion': 'success'}]}]},
+        ):
+            with self.subTest(payload=payload):
+                self.assertFalse(w.proven_noop_jobs(payload))
+
+    def test_noop_job_evidence_requires_real_github_metadata(self):
+        class Response:
+            status=200
+            def __init__(self, body): self.body=body
+            def __enter__(self): return self
+            def __exit__(self, *args): return None
+            def read(self, n): return self.body
+        calls=[]
+        good_steps = [
+            {'name': 'Avoid duplicate queued result cycles', 'conclusion': 'success'},
+            *[{'name': n, 'conclusion': 'skipped'} for n in (
+                'Import confirmed LAB FT into H1 without changing signal rules',
+                'Check BSD and TheSportsDB results with strict FT validation',
+                'Rebuild ROI for singles and triples',
+                'Record completed result cycle (not a coverage certificate)',
+                'Publish confirmed finals and audit')],
+        ]
+        def opener(req, timeout):
+            calls.append(req.full_url)
+            return Response(json.dumps({'jobs': [{
+                'name': 'results', 'status': 'completed', 'conclusion': 'success',
+                'steps':good_steps}]}).encode())
+        runs=[{**self.entry(5), 'id': 12345, 'conclusion': 'success'}]
+        url='https://api.github.com/repos/example/repo/actions/workflows/results.yml'
+        update=w.annotate_recent_noops(runs,NOW,url,{},opener)
+        self.assertTrue(update[0]['verified_noop'])
+        self.assertNotIn('verified_noop',runs[0])
+        self.assertEqual(calls,[
+            'https://api.github.com/repos/example/repo/actions/runs/12345/jobs?per_page=10'
+        ])
+        # Failed and unknown jobs are NOT silently classified as no-ops.
+        bad=[{**self.entry(5),'id':12345,'conclusion':'failure'}]
+        self.assertFalse(w.annotate_recent_noops(bad,NOW,url,{},opener)[0]['verified_noop'])
+        with self.assertRaises(ValueError):
+            w.annotate_recent_noops([self.entry(5)],NOW,url,{},opener)
+        with self.assertRaises(ValueError):
+            w.annotate_recent_noops([{**self.entry(5),'id':n} for n in range(1,6)],
+                                    NOW,url,{},opener)
+
     def test_bad_api_data_fails_closed(self):
         for runs in (None, [{}], [self.entry(-10)], ['bad']):
             with self.subTest(runs=runs), self.assertRaises((ValueError, TypeError)):
