@@ -77,14 +77,16 @@ def evidence(timeline, now):
             rejected["invalid_line"] += 1
             continue
         episode = episodes.get(eid, eid)
+        # The two senders deduplicate independently: a DOWN in an episode
+        # must not consume an UP candidate for the separate two-rise rule.
+        if direction == "UP" and episode not in used_two:
+            two_ups.append(point)
+            used_two.add(episode)
         if episode in used_three:
             rejected["same_episode"] += 1
             continue
         used_three.add(episode)
         three_accepted.append(point)
-        if direction == "UP" and episode not in used_two:
-            two_ups.append(point)
-            used_two.add(episode)
 
     count_three = len(three_accepted)
     count_up = len(two_ups)
