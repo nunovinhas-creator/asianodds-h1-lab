@@ -298,7 +298,7 @@ class ResultMatching(unittest.TestCase):
         previous = {"old":{"checked_at":(now-timedelta(hours=1)).isoformat(),
                            "reason":"bsd:bsd_no_exact_match;thesportsdb:thesportsdb_http_429"}}
         with patch.dict("os.environ",{"BSD_API_KEY":"synthetic"}), \
-             patch("h1lab.bsd.find_result",return_value=(None,"bsd_no_exact_match")) as bsd, \\
+             patch("h1lab.bsd.find_result",return_value=(None,"bsd_no_exact_match")) as bsd, \
              patch("h1lab.results.read_state",return_value={"signals":signals}), \
              patch("h1lab.results.read_rows",return_value=[]), \
              patch("h1lab.results.load_results",return_value={}), \
@@ -344,7 +344,7 @@ class ResultMatching(unittest.TestCase):
              patch("h1lab.results.read_rows",return_value=[]), \
              patch("h1lab.results.load_results",return_value={}), \
              patch("h1lab.results.read_audit",return_value={}), \
-             patch("h1lab.results.write_rows") as stored, \\
+             patch("h1lab.results.write_rows") as stored, \
              patch("h1lab.results.save"), \
              patch("h1lab.core.dump_json") as written:
             sync(now=now,search=blocked)
