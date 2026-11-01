@@ -16,7 +16,12 @@ from urllib.request import Request, urlopen
 from scripts.lab_ft_watchdog import OWNER_REPO, SOURCE_WORKFLOW, _json_request, _utc
 
 RECEIPT = Path('data/health/h1-results.json')
-MIN_AGE = timedelta(minutes=90)
+# Free-tier safeguard: a completed H1 cycle checks at most 20 fixtures.
+# Never dispatch a fallback more often than once per 65 minutes.
+# The normal hourly cron and its separate 45-minute due gate remain unchanged;
+# this bounds fallback frequency without promising an overall hourly quota.
+# The original 90-minute fallback left first checks unnecessarily late.
+MIN_AGE = timedelta(minutes=65)
 OUTPUTS = ('data/results.csv', 'data/result_audit.json')
 
 

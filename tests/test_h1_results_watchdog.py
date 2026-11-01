@@ -28,11 +28,16 @@ class WatchdogTests(unittest.TestCase):
     def test_dispatch_only_when_overdue_and_no_active_run(self):
         self.assertTrue(w.plan([], NOW)['dispatch'])
         self.assertTrue(w.plan([self.entry()], NOW)['dispatch'])
-        for minutes in (0, 89):
+        for minutes in (0, 44, 64):
             self.assertFalse(w.plan([self.entry(minutes)], NOW)['dispatch'])
         for status in ('queued', 'in_progress', 'waiting', None):
             self.assertFalse(w.plan([self.entry(1000, status)], NOW)['dispatch'])
-        self.assertFalse(w.plan([], NOW, timedelta(minutes=89))['dispatch'])
+        self.assertFalse(w.plan([], NOW, timedelta(minutes=64))['dispatch'])
+        # The collector fallback can recover a skipped hourly cron sooner,
+        # without increasing the verified H1 per-cycle 20-fixture quota.
+        self.assertTrue(w.plan([], NOW, timedelta(minutes=65))['dispatch'])
+        self.assertFalse(w.plan([self.entry(64)], NOW)['dispatch'])
+        self.assertTrue(w.plan([self.entry(65)], NOW)['dispatch'])
 
     def test_bad_api_data_fails_closed(self):
         for runs in (None, [{}], [self.entry(-10)], ['bad']):
