@@ -5,7 +5,7 @@ Missing evidence is UNKNOWN; invalid data is FAILED; stale publication is STALE.
 """
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -36,6 +36,74 @@ def latest_result_checked_at(audit):
     return (max(times).isoformat() if times else None), invalid
 
 
+
+def h1_first_check_coverage(signals, resolved, audit, now):
+    """Offline H1 queue health; no provider calls or change to 30-day H1 rules.
+
+    A first check is missing only if the fixture is unresolved and no valid
+    audit timestamp exists. Cooldown and retries are tracked separately.
+    """
+    if not isinstance(signals, list) or not isinstance(audit, dict) or now.tzinfo is None:
+        raise ValueError("Invalid H1 first-check inputs")
+    known = set()
+    counts = dict(first_checks_due=0, retries_due=0, in_cooldown=0,
+                  first_overdue_12h=0, first_overdue_24h=0,
+                  expired_without_first_check=0, future_or_grace=0)
+    oldest_wait = 0.0
+    for signal in signals:
+        if not isinstance(signal, dict):
+            raise ValueError("Invalid H1 fixture")
+        key = signal.get("match_key")
+        if not isinstance(key, str) or not key or key in known:
+            raise ValueError("Duplicate/invalid H1 match key")
+        known.add(key)
+        if key in resolved:
+            continue
+        raw = signal.get("kickoff_utc")
+        if not isinstance(raw, str):
+            raise ValueError("Invalid H1 kickoff")
+        try:
+            kickoff = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("Invalid H1 kickoff") from exc
+        if kickoff.tzinfo is None:
+            raise ValueError("Naive H1 kickoff")
+        eligible_at = kickoff + timedelta(hours=3)
+        if now < eligible_at:
+            counts["future_or_grace"] += 1
+            continue
+        previous = audit.get(key)
+        stamp = previous.get("checked_at") if isinstance(previous, dict) else None
+        checked = None
+        if isinstance(stamp, str):
+            try:
+                checked = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                if checked.tzinfo is None or checked > now + timedelta(minutes=2):
+                    checked = None
+            except ValueError:
+                checked = None
+        if now > kickoff + timedelta(days=30):
+            if checked is None:
+                counts["expired_without_first_check"] += 1
+            continue
+        if checked is None:
+            counts["first_checks_due"] += 1
+            wait = max(0.0, (now - eligible_at).total_seconds() / 3600)
+            oldest_wait = max(oldest_wait, wait)
+            if wait > 12:
+                counts["first_overdue_12h"] += 1
+            if wait > 24:
+                counts["first_overdue_24h"] += 1
+        elif now < checked + timedelta(hours=4):
+            counts["in_cooldown"] += 1
+        else:
+            counts["retries_due"] += 1
+    counts["deferred_if_one_cycle"] = max(
+        0, counts["first_checks_due"] + counts["retries_due"] - 20)
+    counts["oldest_first_wait_hours"] = round(oldest_wait, 2)
+    counts["first_check_cycles_at_20"] = (
+        counts["first_checks_due"] + 19) // 20
+    return counts
 
 
 def ft_report_generation_at(ft):
@@ -190,11 +258,17 @@ def check(root, now):
     try:
         state=read('data/state.json');published=read('docs/data.json')
         from h1lab.core import public_data,load_results
-        replay=public_data(state,load_results(root/'data/results.csv'),now)
+        confirmed=load_results(root/'data/results.csv')
+        replay=public_data(state,confirmed,now)
         if any(replay[k]!=published[k] for k in ('singles','triples')):raise ValueError('H1 replay differs')
         record('h1_replay','OK','singles_and_fifo_metrics_agree')
         freshness('collector',state.get('collector',{}).get('last_poll_at'),90)
         audit=read('data/result_audit.json')
+        coverage=h1_first_check_coverage(state.get('signals'),confirmed,audit,now)
+        coverage_degraded=(coverage['first_overdue_12h']>0 or
+                           coverage['expired_without_first_check']>0)
+        record('h1_first_check_coverage',
+               'DEGRADED' if coverage_degraded else 'OK',coverage)
         # Compare instants, not strings: offset/DST changes invert lexical order.
         latest, invalid = latest_result_checked_at(audit)
         # A latest attempted fixture is evidence of activity, never delivery proof.
