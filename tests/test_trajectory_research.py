@@ -87,6 +87,18 @@ class RepeatedStudyTests(unittest.TestCase):
         self.assertEqual(x["scope"]["repeated_matches_analysed"],1)
         self.assertEqual(x["scope"]["repeated_matches_omitted"],1)
 
+    def test_partial_population_totals_are_not_sample_totals(self):
+        # Two observed messages are published, and one older two-message
+        # match is intentionally omitted by the fixed-size timeline window.
+        raw = fixture(omitted=1)
+        result = evaluate(raw)
+        self.assertEqual(result["scope"]["coverage"], "PARTIAL_RECENT_REPEATED_MATCHES")
+        self.assertEqual(result["scope"]["repeated_matches_omitted"], 1)
+        self.assertEqual(result["scope"]["events_analysed"], 2)
+        self.assertEqual(raw["summary"]["messages_on_repeated_matches"], 4)
+        self.assertNotEqual(result["scope"]["events_analysed"],
+                            raw["summary"]["messages_on_repeated_matches"])
+
     def test_duplicate_event_ids_and_match_keys_fail_closed(self):
         raw=fixture()
         raw["timelines"][0]["events"][1]["event_id"]="33:1"
@@ -123,11 +135,32 @@ class RepeatedStudyTests(unittest.TestCase):
         d=evaluate(raw)
         self.assertGreater(d["scope"]["repeated_matches_analysed"],5)
         self.assertLessEqual(d["scope"]["repeated_matches_analysed"],d["scope"]["all_distinct_matches"])
-        self.assertEqual(d["scope"]["events_analysed"],raw["summary"]["messages_on_repeated_matches"])
-        self.assertEqual(d["transitions"]["identical_total_pairs"],
-                         raw["summary"]["possibly_redundant_snapshots"])
-        self.assertEqual(d["transitions"]["related_pairs"],
-                         raw["summary"]["related_message_pairs"])
+        # The timeline publishes at most 400 repeated matches. Its summary
+        # covers *all* repeated matches, including omitted older timelines.
+        # Compare sample counts against the exact published rows instead of
+        # incorrectly requiring the bounded sample to equal the population.
+        sample_events = sum(len(t["events"]) for t in raw["timelines"])
+        omitted = raw["sampling"]["timelines_omitted"]
+        population_events = raw["summary"]["messages_on_repeated_matches"]
+        self.assertEqual(d["scope"]["events_analysed"], sample_events)
+        self.assertEqual(d["scope"]["repeated_matches_omitted"], omitted)
+        if omitted:
+            self.assertGreaterEqual(population_events - sample_events, 2 * omitted)
+        else:
+            self.assertEqual(sample_events, population_events)
+        sample_related = sum(len(t["related_messages"]) for t in raw["timelines"])
+        sample_identical = sum(
+            pair["evidence"] == "IDENTICAL_TOTAL_SNAPSHOT"
+            for t in raw["timelines"] for pair in t["related_messages"]
+        )
+        self.assertEqual(d["transitions"]["identical_total_pairs"], sample_identical)
+        self.assertEqual(d["transitions"]["related_pairs"], sample_related)
+        if omitted:
+            self.assertLessEqual(sample_identical, raw["summary"]["possibly_redundant_snapshots"])
+            self.assertLessEqual(sample_related, raw["summary"]["related_message_pairs"])
+        else:
+            self.assertEqual(sample_identical, raw["summary"]["possibly_redundant_snapshots"])
+            self.assertEqual(sample_related, raw["summary"]["related_message_pairs"])
         self.assertEqual(d["total_line_within_alert"]["messages_with_total"],
                          sum(d["total_line_within_alert"]["by_origin"].values()))
         self.assertIn("NOT_TESTED", [h["status"] for h in d["hypotheses_for_future_oos_only"]])
