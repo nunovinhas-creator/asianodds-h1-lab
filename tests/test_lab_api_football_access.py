@@ -1,7 +1,8 @@
 """Provider-history gate: no HTTP and no inferred access restrictions."""
 import unittest
 from datetime import datetime, timezone, timedelta
-from h1lab.lab_api_football_access import evolve_access, restriction_for_day, restriction_for_fixture_id, restore_access_from_audit
+from h1lab.lab_api_football_access import (evolve_access, restriction_for_day,
+    restriction_for_fixture_id, restore_access_from_audit, account_suspension_cooldown)
 from h1lab.lab_ft_rotation import choose_days
 
 NOW = datetime(2026, 10, 29, 12, tzinfo=timezone.utc)
@@ -127,6 +128,69 @@ class ProviderHistoryAccessTests(unittest.TestCase):
         new = evolve_access(old, {OK:error("server timeout", category="TIMEOUT")}, NOW)
         self.assertEqual(new["confirmed_restrictions"], old["confirmed_restrictions"])
 
+
+    def test_provider_confirmed_account_suspension_blocks_all_endpoints_temporarily(self):
+        stamp = datetime(2026, 11, 1, 11, 36, 24, tzinfo=timezone.utc)
+        audit = {"schema_version": 1, "runs": [{
+            "utc": stamp.isoformat(),
+            "providers": {"api_football": {"id_errors": {
+                "2026-10-31,135,106": error(
+                    "access: Your account is suspended, check on [url]")
+            }}},
+        }]}
+        decision = account_suspension_cooldown(audit, stamp + timedelta(minutes=30))
+        self.assertEqual(decision["reason"], "PROVIDER_CONFIRMED_ACCOUNT_SUSPENSION")
+        self.assertEqual(decision["observed_at_utc"], "2026-11-01T11:36:24+00:00")
+        self.assertEqual(decision["retry_not_before_utc"], "2026-11-01T15:36:24+00:00")
+        self.assertIsNone(account_suspension_cooldown(
+            audit, stamp + timedelta(hours=4)))
+        # A new run without an actual provider response must never reset TTL.
+        audit["runs"].append({"utc": (stamp + timedelta(hours=2)).isoformat(),
+                              "providers": {"api_football": {"requests": 0}}})
+        self.assertEqual(account_suspension_cooldown(
+            audit, stamp + timedelta(hours=3)), decision)
+
+    def test_non_account_denials_do_not_block_api_football(self):
+        now = datetime(2026, 11, 1, 11, tzinfo=timezone.utc)
+        messages = [
+            error("Free plans do not have access to this date"),
+            error("Free plans do not have access to the Ids parameter"),
+            error("daily quota exceeded"),
+            error("generic forbidden", category="HTTP_ERROR", status=403),
+            error("Your account is suspended", category="TIMEOUT"),
+            error("suspended account", category="PROVIDER_ERRORS", status=200),
+        ]
+        for item in messages:
+            with self.subTest(item=item):
+                audit = {"schema_version":1, "runs":[{
+                    "utc":now.isoformat(), "providers":{
+                        "api_football":{"date_errors":{"2026-10-30":item}}}}]}
+                self.assertIsNone(account_suspension_cooldown(audit, now))
+
+    def test_suspension_requires_persisted_credible_clock(self):
+        now = datetime(2026, 11, 1, 11, tzinfo=timezone.utc)
+        denied = error("access: Your account is suspended")
+        for stamp in ("not-time", "2026-11-01T13:00:00Z",
+                      "2026-10-31T00:00:00Z", "2026-11-01T11:00:00"):
+            audit = {"schema_version":1, "runs":[{
+                "utc":stamp, "providers":{"api_football":{
+                    "id_errors":{"some-fixture":denied}}}}]}
+            with self.subTest(stamp=stamp):
+                self.assertIsNone(account_suspension_cooldown(audit, now))
+
+    def test_real_audit_replays_account_denial_without_network(self):
+        import json
+        from pathlib import Path
+        # Frozen, redacted evidence from real run 41302612818. The rolling
+        # operational audit may remove old entries: tests must never become
+        # dependent on how many later FT runs were published.
+        fixture = (Path(__file__).resolve().parent / "fixtures" /
+                   "ft-api-football-account-suspended.json")
+        audit = json.loads(fixture.read_text(encoding="utf-8"))
+        stamp = datetime.fromisoformat(audit["runs"][0]["utc"])
+        result = account_suspension_cooldown(audit, stamp + timedelta(minutes=1))
+        self.assertEqual(result["reason"], "PROVIDER_CONFIRMED_ACCOUNT_SUSPENSION")
+        self.assertEqual(result["retry_not_before_utc"], "2026-11-01T15:36:24+00:00")
 
 if __name__ == "__main__":
     unittest.main()

@@ -136,3 +136,63 @@ def restriction_for_fixture_id(access, day, now):
     scoped, independently validated ID policy exists, preserve ID eligibility.
     """
     return None
+
+
+_ACCOUNT_SUSPENDED = re.compile(
+    r"\b(?:your account is|account is|account has been) suspended\b", re.I)
+_ACCOUNT_COOLDOWN = timedelta(hours=4)
+
+
+def account_suspension_cooldown(audit, now):
+    """Return bounded no-HTTP account-denial gate backed by a REAL error.
+
+    A provider-wide suspension is different from a date-specific plan denial,
+    generic HTTP 403, timeout or quota error. Rechecking is permitted four
+    hours after the *original* provider error, with no artificial extension
+    caused by skipped calls or republished snapshots.
+    """
+    if now.tzinfo is None:
+        raise ValueError("Timezone-aware clock required")
+    if not isinstance(audit, dict) or audit.get("schema_version") != 1 or not isinstance(audit.get("runs"), list):
+        raise ValueError("Invalid API-Football audit history")
+    now = now.astimezone(timezone.utc)
+    latest = None
+    for run in audit["runs"]:
+        if not isinstance(run, dict):
+            raise ValueError("Invalid API-Football audit run")
+        raw = run.get("utc")
+        try:
+            stamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except (AttributeError, ValueError, TypeError):
+            continue
+        if stamp.tzinfo is None:
+            continue
+        stamp = stamp.astimezone(timezone.utc)
+        if not timedelta(0) <= now - stamp < _ACCOUNT_COOLDOWN:
+            continue
+        provider = (run.get("providers") or {}).get("api_football")
+        if not isinstance(provider, dict):
+            continue
+        for field in ("id_errors", "date_errors", "reviewed_errors"):
+            failures = provider.get(field) or {}
+            if not isinstance(failures, dict):
+                continue
+            for failure in failures.values():
+                if not isinstance(failure, dict):
+                    continue
+                if ((failure.get("category"), failure.get("http_status"))
+                    not in (("PROVIDER_ERRORS", 200), ("HTTP_ERROR", 401),
+                            ("HTTP_ERROR", 403))):
+                    continue
+                message = failure.get("provider_errors")
+                if isinstance(message, str) and _ACCOUNT_SUSPENDED.search(message):
+                    if latest is None or stamp > latest:
+                        latest = stamp
+    if latest is None:
+        return None
+    return {
+        "status": "DEFERRED",
+        "reason": "PROVIDER_CONFIRMED_ACCOUNT_SUSPENSION",
+        "observed_at_utc": latest.isoformat(timespec="seconds"),
+        "retry_not_before_utc": (latest + _ACCOUNT_COOLDOWN).isoformat(timespec="seconds"),
+    }
