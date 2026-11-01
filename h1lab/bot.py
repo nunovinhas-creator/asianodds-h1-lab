@@ -69,7 +69,12 @@ def configured():
 
 def send_message(message):
     store = BlockStore()
-    blocked = store.active(datetime.now(timezone.utc))
+    try:
+        blocked = store.active(datetime.now(timezone.utc))
+    except ValueError:
+        # Unreadable/corrupt pause record: fail closed, explicitly, BEFORE any HTTP request.
+        print("TELEGRAM_BLOCK_UNREADABLE", file=sys.stderr)
+        raise BotBlockedError("TELEGRAM_SEND_BLOCKED: pause record unreadable (no request made)") from None
     if blocked is not None:
         raise BotBlockedError("TELEGRAM_SEND_BLOCKED: HTTP %s until %s (no request made)"
                               % (blocked["http_status"], blocked["until"]))
