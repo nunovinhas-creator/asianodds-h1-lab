@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts import publication_guard
@@ -321,6 +322,95 @@ def valid_telegram_eligibility_update(previous, current):
         return False
 
 
+# Shared Telegram flood-wait / auth pause (h1lab.telegram_block). It is read only
+# by the Telegram sender and never by FT producers, so a concurrent update cannot
+# change FT evidence. Only this exact path, schema and value set is accepted.
+TELEGRAM_BLOCK = "data/telegram-delivery-block.json"
+_BLOCK_FIELDS = frozenset({"schema_version", "until", "http_status", "set_at", "diagnosis"})
+_BLOCK_DIAGNOSES = {
+    429: frozenset({"FLOOD_WAIT_RETRY_AFTER", "FLOOD_WAIT_CONSERVATIVE_5MIN",
+                    "FLOOD_WAIT_CONSERVATIVE_BACKOFF"}),
+    401: frozenset({"AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"}),
+    403: frozenset({"AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"}),
+}
+_BLOCK_MAX_BYTES = 1024
+_BLOCK_MAX_HORIZON = timedelta(days=2)  # 429 retry_after <= 24h, auth probe 24h
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _block_time(value):
+    if not isinstance(value, str) or not 20 <= len(value) <= 40:
+        raise ValueError("Invalid block timestamp")
+    moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if moment.tzinfo is None or moment.utcoffset() != timedelta(0):
+        raise ValueError("Block timestamp must be explicit UTC")
+    return moment.astimezone(timezone.utc)
+
+
+def _parse_telegram_block(raw):
+    """Strict parse of one block record; None when anything is off."""
+    if not isinstance(raw, bytes) or not 0 < len(raw) <= _BLOCK_MAX_BYTES:
+        return None
+    try:
+        def pairs(items):
+            out = {}
+            for key, value in items:
+                if key in out:
+                    raise ValueError("Duplicate JSON key")
+                out[key] = value
+            return out
+        def reject_constant(value):
+            raise ValueError("Nonfinite JSON number")
+        data = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs,
+                          parse_constant=reject_constant)
+        if not isinstance(data, dict) or set(data) != _BLOCK_FIELDS:
+            return None
+        if type(data["schema_version"]) is not int or data["schema_version"] != 1:
+            return None
+        status = data["http_status"]
+        if type(status) is not int or status not in _BLOCK_DIAGNOSES:
+            return None
+        if data["diagnosis"] not in _BLOCK_DIAGNOSES[status]:
+            return None
+        until, set_at = _block_time(data["until"]), _block_time(data["set_at"])
+        if set_at > until or until - set_at > _BLOCK_MAX_HORIZON:
+            return None
+        return {**data, "_until": until, "_set_at": set_at}
+    except (ValueError, TypeError, UnicodeDecodeError, OverflowError):
+        return None
+
+
+def valid_telegram_block_update(previous, current, now=None):
+    """Accept only a well-formed block that never shortens, rewinds or drops an active pause.
+
+    previous/current are the exact blobs (None = file absent). Rules:
+    - creation: any strictly valid record;
+    - removal: only when the previous pause has already expired;
+    - update: until and set_at never decrease; an equal `until` must be byte-identical.
+    The accepted remote blob is kept byte-for-byte by the isolated-index transport.
+    """
+    now = _utcnow() if now is None else now
+    old = None if previous is None else _parse_telegram_block(previous)
+    if previous is not None and old is None:
+        # A corrupt base blob is never silently "repaired" by a concurrent writer.
+        return False
+    if current is None:
+        return old is not None and old["_until"] <= now
+    new = _parse_telegram_block(current)
+    if new is None:
+        return False
+    if old is None:
+        return True
+    if new["_until"] < old["_until"] or new["_set_at"] < old["_set_at"]:
+        return False
+    if new["_until"] == old["_until"] and current != previous:
+        return False
+    return True
+
+
 def allowed_remote_changes(root, base, remote, protected, produced):
     remote_changes = changed_paths(root, base, remote)
     overlap = remote_changes & (protected | produced)
@@ -354,6 +444,15 @@ def allowed_remote_changes(root, base, remote, protected, produced):
                     blob_or_none(root, base, path),
                     blob_or_none(root, remote, path)):
                 raise UnsafeFTPublication("Telegram eligibility report invalid: " + path)
+        elif path == TELEGRAM_BLOCK:
+            # Telegram-only pause state, independent of FT evidence. Exact path only.
+            remote_entry = tree_entry(root, remote, path)
+            if remote_entry is not None and not valid_telegram_block_update(
+                    blob_or_none(root, base, path), blob_or_none(root, remote, path)):
+                raise UnsafeFTPublication("Telegram delivery block invalid: " + path)
+            if remote_entry is None and not valid_telegram_block_update(
+                    blob_or_none(root, base, path), None):
+                raise UnsafeFTPublication("active Telegram delivery block removed: " + path)
         elif path in H1_NOTIFICATION_RECEIPTS:
             if not valid_notification_update(
                     blob_or_none(root, base, path),
