@@ -414,6 +414,21 @@ def assemble(root, remote, source, produced):
         return candidate
 
 
+def retriable_main_push_race(stderr: str) -> bool:
+    """Only normal non-FF errors or Git's exact main-ref CAS race may retry.
+
+    GitHub can reject a concurrent fast-forward with "cannot lock ref ... is at
+    <sha> but expected <sha>" instead of a conventional non-fast-forward hint.
+    The next attempt must still fetch main and re-verify all protected paths.
+    """
+    if any(x in stderr for x in ("non-fast-forward", "fetch first", "stale info")):
+        return True
+    return bool(re.search(
+        r"cannot lock ref 'refs/heads/main': is at [a-f0-9]{40} "
+        r"but expected [a-f0-9]{40}(?![a-f0-9])", stderr
+    ))
+
+
 def publish(root, *, base, manifest, baseline, max_attempts=6):
     root, manifest, baseline = Path(root), Path(manifest), Path(baseline)
     if not SHA.fullmatch(base) or not 1 <= max_attempts <= 10:
@@ -475,7 +490,7 @@ def publish(root, *, base, manifest, baseline, max_attempts=6):
         # Only an ordinary non-fast-forward race is retried. Other push errors
         # (auth, protection, hooks) are never silently hidden.
         err = result.stderr.decode("utf-8", "replace")
-        if not any(x in err for x in ("non-fast-forward", "fetch first", "stale info")):
+        if not retriable_main_push_race(err):
             raise UnsafeFTPublication("Push failed for reason other than a Git race: " + err[-300:])
         print("FT_REMOTE_RACE_RECHECK", attempt, "after", last_remote)
     raise UnsafeFTPublication("Remote advanced during all bounded FT publication attempts")
