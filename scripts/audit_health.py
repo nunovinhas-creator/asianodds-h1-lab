@@ -38,11 +38,12 @@ def latest_result_checked_at(audit):
 
 
 def h1_first_check_coverage(signals, resolved, audit, now):
-    """Offline H1 queue health; no provider calls or change to 30-day H1 rules.
+    """Offline H1 queue health; no provider calls. Uses the H1 retry horizon (24h, policy v2).
 
     A first check is missing only if the fixture is unresolved and no valid
     audit timestamp exists. Cooldown and retries are tracked separately.
     """
+    from h1lab.results import H1_RETRY_HORIZON
     if not isinstance(signals, list) or not isinstance(audit, dict) or now.tzinfo is None:
         raise ValueError("Invalid H1 first-check inputs")
     known = set()
@@ -82,7 +83,7 @@ def h1_first_check_coverage(signals, resolved, audit, now):
                     checked = None
             except ValueError:
                 checked = None
-        if now > kickoff + timedelta(days=30):
+        if now > kickoff + H1_RETRY_HORIZON:
             if checked is None:
                 counts["expired_without_first_check"] += 1
             continue
