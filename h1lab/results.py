@@ -190,7 +190,7 @@ def recent_tsdb_access_denial(audit, now):
             combined = item.get("reason")
             if isinstance(combined, str) and ";thesportsdb:" in combined:
                 evidence = combined.rsplit(";thesportsdb:", 1)[1]
-        if evidence not in TSDB_ACCESS_DENIALS:
+        if not isinstance(evidence, str) or evidence not in TSDB_ACCESS_DENIALS:
             continue
         raw = item.get("checked_at")
         if not isinstance(raw, str):
