@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-01T20:01:44+00:00",
+  "generated_at": "2026-11-01T21:16:41+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,19 +32,19 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 245,
+      "matches": 247,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 61.2
+      "percentage_descriptive": 61.8
     },
     "both_total_and_1x2": {
-      "matches": 265,
+      "matches": 264,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 66.2
+      "percentage_descriptive": 66.0
     },
     "opposing_intra_alert_directions": {
-      "matches": 109,
+      "matches": 110,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 27.2
+      "percentage_descriptive": 27.5
     },
     "with_ambiguous_repeats": {
       "matches": 50,
@@ -62,14 +62,14 @@
       "percentage_descriptive": 5.0
     },
     "with_only_legacy_total": {
-      "matches": 9,
+      "matches": 7,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 2.2
+      "percentage_descriptive": 1.8
     },
     "with_only_v4_total": {
-      "matches": 371,
+      "matches": 373,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 92.8
+      "percentage_descriptive": 93.2
     },
     "with_post_kickoff_alerts": {
       "matches": 35,
@@ -82,9 +82,9 @@
       "percentage_descriptive": 16.8
     },
     "with_unobserved_line_gaps": {
-      "matches": 119,
+      "matches": 120,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 29.8
+      "percentage_descriptive": 30.0
     }
   },
   "opposing_direction_examples": [
@@ -255,53 +255,53 @@
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1138,
-    "coverage": "ALL_PUBLISHED_REPEATED_MATCHES",
-    "events_analysed": 970,
-    "messages_in_source": 1708,
+    "all_distinct_matches": 1144,
+    "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
+    "events_analysed": 971,
+    "messages_in_source": 1717,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 400,
-    "repeated_matches_omitted": 0,
+    "repeated_matches_in_source": 402,
+    "repeated_matches_omitted": 2,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "c24283bf404ad08f64589e3a85385af8412f6ba2",
-  "source_generated_at": "2026-11-01T20:01:43+00:00",
+  "source_commit": "fa8d44861e0895191b0a504425c03cef96e42d14",
+  "source_generated_at": "2026-11-01T21:16:40+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 35,
-      "T_0_TO_60": 204,
+      "T_0_TO_60": 205,
       "T_360_TO_1440": 148,
-      "T_60_TO_360": 156,
-      "T_OVER_1440": 125,
+      "T_60_TO_360": 155,
+      "T_OVER_1440": 126,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 41,
-      "T_0_TO_60": 289,
-      "T_360_TO_1440": 228,
-      "T_60_TO_360": 224,
-      "T_OVER_1440": 188,
+      "T_0_TO_60": 291,
+      "T_360_TO_1440": 227,
+      "T_60_TO_360": 222,
+      "T_OVER_1440": 190,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
   },
   "total_line_within_alert": {
     "by_origin": {
-      "H1_LEGACY_ONLY": 42,
-      "V4_EXPLICIT": 927
+      "H1_LEGACY_ONLY": 38,
+      "V4_EXPLICIT": 932
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 35.5,
-      "FLAT": 29.3,
-      "UP": 35.2
+      "FLAT": 29.2,
+      "UP": 35.4
     },
     "down": 344,
-    "flat": 284,
-    "messages_with_total": 969,
-    "up": 341,
+    "flat": 283,
+    "messages_with_total": 970,
+    "up": 343,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
@@ -312,6 +312,6 @@
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 17,
     "same_movement_repeat": 67,
-    "unobserved_change": 130
+    "unobserved_change": 131
   }
 }
