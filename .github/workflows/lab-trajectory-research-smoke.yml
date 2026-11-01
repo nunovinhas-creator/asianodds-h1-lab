@@ -47,9 +47,25 @@ jobs:
           t=json.loads(Path("docs/lab/match-trajectories.json").read_text())
           assert d["status"]=="EXPLORATORY_NO_OUTCOME_TEST"
           assert d["scope"]["repeated_matches_analysed"]+d["scope"]["repeated_matches_omitted"]==t["summary"]["repeated_matches"]
-          assert d["scope"]["events_analysed"]==t["summary"]["messages_on_repeated_matches"]
-          assert d["transitions"]["related_pairs"]==t["summary"]["related_message_pairs"]
-          assert d["transitions"]["identical_total_pairs"]==t["summary"]["possibly_redundant_snapshots"]
+          # The published chronology keeps only the N most recent repeated matches;
+          # compare with the published sample, and with the population only when
+          # nothing was omitted (population totals include omitted older matches).
+          omitted=t["sampling"]["timelines_omitted"]
+          sample_events=sum(len(x["events"]) for x in t["timelines"])
+          sample_related=sum(len(x["related_messages"]) for x in t["timelines"])
+          sample_identical=sum(r["evidence"]=="IDENTICAL_TOTAL_SNAPSHOT" for x in t["timelines"] for r in x["related_messages"])
+          assert d["scope"]["repeated_matches_omitted"]==omitted
+          assert d["scope"]["events_analysed"]==sample_events
+          assert d["transitions"]["related_pairs"]==sample_related
+          assert d["transitions"]["identical_total_pairs"]==sample_identical
+          if omitted:
+              assert t["summary"]["messages_on_repeated_matches"]-sample_events>=2*omitted
+              assert sample_related<=t["summary"]["related_message_pairs"]
+              assert sample_identical<=t["summary"]["possibly_redundant_snapshots"]
+          else:
+              assert sample_events==t["summary"]["messages_on_repeated_matches"]
+              assert sample_related==t["summary"]["related_message_pairs"]
+              assert sample_identical==t["summary"]["possibly_redundant_snapshots"]
           assert all(h["status"]!="TESTED" for h in d["hypotheses_for_future_oos_only"])
           assert not any(k in d for k in ("roi","profit","bets","prediction","betting_picks"))
           assert len(p.read_bytes()) < 200_000
