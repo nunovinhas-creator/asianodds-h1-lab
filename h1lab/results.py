@@ -57,10 +57,14 @@ def norm_team(value):
     value = "".join(c for c in value if not unicodedata.combining(c))
     value = value.casefold().replace("&", "and")
     words = re.findall(r"[a-z0-9]+", value)
-    # Only remove unambiguous club-designator tokens from either end.
-    while words and words[0] in {"fc", "fk", "sv", "afc"}:
+    # Only remove standalone club-designator tokens from either end.
+    # CF/SC have the same structural meaning as FC in many fixture feeds
+    # (Córdoba CF vs Córdoba; SC Farense vs Farense). Never strip youth,
+    # reserves, geographical tokens, or internal team-name components.
+    designators = {"fc", "fk", "sv", "afc", "cf", "sc"}
+    while words and words[0] in designators:
         words.pop(0)
-    while words and words[-1] in {"fc", "fk", "sv"}:
+    while words and words[-1] in designators:
         words.pop()
     return " ".join(words)
 
