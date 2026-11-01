@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-01T16:26:36+00:00",
+ "generated_at": "2026-11-01T16:31:36+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -23,22 +23,22 @@
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
   "timelines_omitted": 0,
-  "timelines_published": 388
+  "timelines_published": 389
  },
  "schema_version": 1,
- "source_commit": "001e8ed3b6f2b868232a6843ae4fed5f265271b1",
+ "source_commit": "4f3ae0eac14e3d4b026c2a6e1e653cdf4a877797",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 1107,
+  "matches": 1108,
   "matches_with_identity_inconsistency": 0,
   "max_messages_per_match": 6,
-  "messages": 1663,
+  "messages": 1665,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 944,
+  "messages_on_repeated_matches": 946,
   "messages_v4_only": 0,
-  "messages_with_v4": 1589,
-  "movement_episodes_upper_bound": 1597,
+  "messages_with_v4": 1591,
+  "movement_episodes_upper_bound": 1599,
   "possibly_redundant_snapshots": 49,
   "post_kickoff_messages": 68,
   "related_message_pairs": 66,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 17
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 388,
+  "repeated_matches": 389,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 114,
-   "V4_EXPLICIT": 2637
+   "V4_EXPLICIT": 2641
   },
-  "total_line_reversals_on_repeated": 214,
+  "total_line_reversals_on_repeated": 215,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 53,
    "CONTINUOUS": 311,
    "SAME_MOVEMENT_REPEAT": 66,
-   "UNOBSERVED_CHANGE": 126
+   "UNOBSERVED_CHANGE": 127
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 533,
-   "one_x_two:AGREE": 515,
-   "total:AGREE": 1589
+   "asian_handicap:AGREE": 534,
+   "one_x_two:AGREE": 516,
+   "total:AGREE": 1591
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51201",
+    "3571094759:52250"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51201",
+     "message_id": 51201,
+     "minutes_to_kickoff": 4674.1,
+     "observed_at": "2026-10-29T11:05:57+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.96,
+        "under_price": 2.28
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.06,
+        "under_price": 1.86
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52250",
+     "message_id": 52250,
+     "minutes_to_kickoff": 31.7,
+     "observed_at": "2026-11-01T16:28:16+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 2.09,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.84,
+        "under_price": 2.09
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-29T11:05:57+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-01T17:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-01T16:28:16+00:00",
+   "match_key": "2026-11-01,1374,22812",
+   "match_label": "PAOK Thessaloniki vs Asteras Tripolis",
+   "movement_episodes": [
+    [
+     "3571094759:51201"
+    ],
+    [
+     "3571094759:52250"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    278539.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.0,
+     "last_observed_line": 3.0,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.5,
+       "before": 3.0,
+       "event_id": "3571094759:51201",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:52250",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51201",
+       "at_event": "3571094759:52250",
+       "evidence": "gap",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51201",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 2.75,
+       "previous_after_line": 2.5,
+       "to": "3571094759:52250",
+       "unobserved_direction": "UP"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
