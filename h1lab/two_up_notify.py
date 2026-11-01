@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from . import telegram_delivery as delivery
 from .bot import BotDeliveryError, configured, send_message
 from .strategy_notify import ROOT, _write
 from .timeline import collect_timelines, read_sources, utc
@@ -143,7 +145,7 @@ def empty_ledger(now):
             "activated_at": now.isoformat(timespec="seconds"), "entries": {}}
 
 
-def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
+def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persist=None, store=None):
     """One message per match for this rule, separately from 3-move receipts."""
     if (not isinstance(ledger, dict) or ledger.get("schema_version") != SCHEMA_VERSION or
             ledger.get("rule_version") != RULE_VERSION or
@@ -155,6 +157,8 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
         clock = lambda: now
     counts = {"eligible_future": len(rows), "sent": 0, "already_notified": 0,
               "unconfigured": 0, "expired": 0, "uncertain": 0}
+    store = store or delivery.default_store()
+    delivery.sweep(ledger, clock(), counts)
     attempts = 0
     for row in sorted(rows, key=lambda r: (r["kickoff_utc"], r["match_key"])):
         kickoff = utc(row.get("kickoff_utc"))
@@ -162,8 +166,17 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
             counts["expired"] += 1
             continue
         key = row["match_key"]
-        if key in ledger["entries"]:
-            counts["already_notified"] += 1
+        if delivery.gate(ledger, key, kickoff, clock(), counts) == "skip":
+            continue
+        try:
+            paused = delivery.blocked(store, clock())
+        except ValueError:
+            # Unreadable pause record: nothing is sent (no HTTP), loudly, and the job goes on to store data.
+            delivery._bump(counts, "block_unreadable")
+            print("TELEGRAM_BLOCK_UNREADABLE", file=sys.stderr)
+            break
+        if paused:
+            delivery._bump(counts, "suspended")
             continue
         if not enabled:
             counts["unconfigured"] += 1
@@ -177,28 +190,13 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None):
             counts["expired"] += 1
             continue
         attempts += 1
-        stamp = now.isoformat(timespec="seconds")
-        try:
-            mid = sender(message_for_game(row))
-            if isinstance(mid, bool) or not isinstance(mid, int):
-                raise BotDeliveryError("TELEGRAM_DELIVERY_UNCERTAIN: missing message ID")
-        except BotDeliveryError:
-            ledger["entries"][key] = {
-                "status": "delivery_uncertain_manual_review", "at": stamp,
-                "kickoff_utc": row["kickoff_utc"], "rule_version": RULE_VERSION,
-                "movement_event_ids": [m["event_id"] for m in row["movements"]],
-            }
-            counts["uncertain"] += 1
-            continue
-        ledger["entries"][key] = {
-            "status": "sent", "telegram_message_id": mid, "at": stamp,
-            "kickoff_utc": row["kickoff_utc"], "rule_version": RULE_VERSION,
-            "observed_through": row["observed_through"],
-            "movement_event_ids": [m["event_id"] for m in row["movements"]],
-            "up_movements_at_send": row["up_movements"],
-            "net_line_rise_at_send": row["net_line_rise"],
-        }
-        counts["sent"] += 1
+        outcome = delivery.deliver(
+            ledger, key, sender, message_for_game(row),
+            {"kickoff_utc": row["kickoff_utc"], "rule_version": RULE_VERSION,
+             "movement_event_ids": [m["event_id"] for m in row["movements"]]}, {"observed_through": row["observed_through"], "up_movements_at_send": row["up_movements"],
+             "net_line_rise_at_send": row["net_line_rise"]}, clock, persist, counts, store)
+        if outcome == "stop":
+            break
     return ledger, counts
 
 
@@ -226,10 +224,20 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None, *, dry_run=F
                 print("MATCH", row["match_label"], row["kickoff_utc"],
                       "up_moves", row["up_movements"], "net", row["net_line_rise"])
         return ledger
+    publish = (delivery.git_publisher(root, lambda: delivery.durable_paths(root, LEDGER),
+                              guard=delivery.claim_guard(root, LEDGER), guard_path=str(LEDGER))
+               if delivery.durable_enabled() else None)
+
+    def persist(value):
+        _write(path, value)
+        if publish is not None:
+            publish()  # opt-in TG_DURABLE_INTENT=1: intent BEFORE the HTTP call, outcome right after
+
     ledger, counts = process(rows, ledger, now, sender,
                              configured() if bot_enabled is None else bot_enabled,
                              pace=lambda: time.sleep(1.2),
-                             clock=(lambda: datetime.now(timezone.utc)) if realtime else (lambda: now))
+                             clock=(lambda: datetime.now(timezone.utc)) if realtime else (lambda: now),
+                            persist=persist)
     _write(path, ledger)
     print("MASTER_BRAIN_TWO_UP_TOTAL_NOTIFY", counts,
           "timeline_issues", issues, "excluded_observations", excluded,
