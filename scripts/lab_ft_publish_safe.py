@@ -322,56 +322,88 @@ def valid_telegram_eligibility_update(previous, current):
         return False
 
 
+_MAX_REPORTED_REFUSALS = 7
+
+
+def _check_remote_path(root, base, remote, path):
+    """Raise UnsafeFTPublication unless this concurrent remote change is provably unrelated to FT."""
+    if (path.startswith(("h1lab/", "scripts/", ".github/", "tests/"))
+            or path.startswith(("data/lab/discovery-segmented/",
+                                "docs/lab/discovery-pages/"))
+            or path.startswith(("data/lab/ft-", "docs/lab/ft-",
+                                "data/lab/discovery-events-"))
+            or path.startswith(("docs/lab/pattern-", "data/lab/pattern-"))):
+        raise UnsafeFTPublication("FT dependency or program changed: " + path)
+    if path == "data/state.json":
+        previous = blob_or_none(root, base, path)
+        current = blob_or_none(root, remote, path)
+        if previous is None or current is None or not stable_fixtures(previous, current):
+            raise UnsafeFTPublication("H1 fixture identity changed: " + path)
+    elif path in ("docs/data.json", "data/results.json"):
+        if blob_or_none(root, remote, path) is None:
+            raise UnsafeFTPublication("H1 artifact deleted: " + path)
+    elif path in H1_RESULT_OUTPUTS:
+        # H1 results have a separate producer; keep their exact remote blobs.
+        if blob_or_none(root, remote, path) is None:
+            raise UnsafeFTPublication("H1 result output deleted: " + path)
+    elif path == TELEGRAM_ELIGIBILITY_REPORT:
+        # Independent report from another H1/Telegram producer. The FT
+        # isolated-index transport retains the exact REMOTE blob.
+        if not valid_telegram_eligibility_update(
+                blob_or_none(root, base, path),
+                blob_or_none(root, remote, path)):
+            raise UnsafeFTPublication("Telegram eligibility report invalid: " + path)
+    elif path in H1_NOTIFICATION_RECEIPTS:
+        if not valid_notification_update(
+                blob_or_none(root, base, path),
+                blob_or_none(root, remote, path)):
+            raise UnsafeFTPublication("H1 notification receipt invalid: " + path)
+    elif JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
+        if not append_only_jsonl(blob_or_none(root, base, path),
+                                 blob_or_none(root, remote, path) or b""):
+            raise UnsafeFTPublication("V4/H1 journal rewritten: " + path)
+    elif V4_REPORT.fullmatch(path) or LLM_SHADOW.fullmatch(path):
+        if blob_or_none(root, remote, path) is None:
+            raise UnsafeFTPublication("Concurrent report deleted: " + path)
+    elif path == "data/lab/v6-archive-index.json":
+        # Archive index changes can invalidate V4 origin provenance.
+        raise UnsafeFTPublication("V4 source archive index changed")
+    else:
+        raise UnsafeFTPublication("Unknown concurrent path: " + path)
+
+
 def allowed_remote_changes(root, base, remote, protected, produced):
     remote_changes = changed_paths(root, base, remote)
     overlap = remote_changes & (protected | produced)
     if overlap:
         raise UnsafeFTPublication(
             "Concurrent FT/sealed artifact changed: " + ", ".join(sorted(overlap)[:8]))
+    violations = []
     for path in sorted(remote_changes):
-        if (path.startswith(("h1lab/", "scripts/", ".github/", "tests/"))
-                or path.startswith(("data/lab/discovery-segmented/",
-                                    "docs/lab/discovery-pages/"))
-                or path.startswith(("data/lab/ft-", "docs/lab/ft-",
-                                    "data/lab/discovery-events-"))
-                or path.startswith(("docs/lab/pattern-", "data/lab/pattern-"))):
-            raise UnsafeFTPublication("FT dependency or program changed: " + path)
-        if path == "data/state.json":
-            previous = blob_or_none(root, base, path)
-            current = blob_or_none(root, remote, path)
-            if previous is None or current is None or not stable_fixtures(previous, current):
-                raise UnsafeFTPublication("H1 fixture identity changed: " + path)
-        elif path in ("docs/data.json", "data/results.json"):
-            if blob_or_none(root, remote, path) is None:
-                raise UnsafeFTPublication("H1 artifact deleted: " + path)
-        elif path in H1_RESULT_OUTPUTS:
-            # H1 results have a separate producer; keep their exact remote blobs.
-            if blob_or_none(root, remote, path) is None:
-                raise UnsafeFTPublication("H1 result output deleted: " + path)
-        elif path == TELEGRAM_ELIGIBILITY_REPORT:
-            # Independent report from another H1/Telegram producer. The FT
-            # isolated-index transport retains the exact REMOTE blob.
-            if not valid_telegram_eligibility_update(
-                    blob_or_none(root, base, path),
-                    blob_or_none(root, remote, path)):
-                raise UnsafeFTPublication("Telegram eligibility report invalid: " + path)
-        elif path in H1_NOTIFICATION_RECEIPTS:
-            if not valid_notification_update(
-                    blob_or_none(root, base, path),
-                    blob_or_none(root, remote, path)):
-                raise UnsafeFTPublication("H1 notification receipt invalid: " + path)
-        elif JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
-            if not append_only_jsonl(blob_or_none(root, base, path),
-                                     blob_or_none(root, remote, path) or b""):
-                raise UnsafeFTPublication("V4/H1 journal rewritten: " + path)
-        elif V4_REPORT.fullmatch(path) or LLM_SHADOW.fullmatch(path):
-            if blob_or_none(root, remote, path) is None:
-                raise UnsafeFTPublication("Concurrent report deleted: " + path)
-        elif path == "data/lab/v6-archive-index.json":
-            # Archive index changes can invalidate V4 origin provenance.
-            raise UnsafeFTPublication("V4 source archive index changed")
-        else:
-            raise UnsafeFTPublication("Unknown concurrent path: " + path)
+        try:
+            _check_remote_path(root, base, remote, path)
+        except UnsafeFTPublication as exc:
+            violations.append(str(exc))
+    if violations:
+        # Still a hard refusal (nothing is loosened). The first reason keeps the historical text;
+        # every other refused path is listed so the primary cause is never hidden behind whichever
+        # path sorts first (a code change must not be reported as "unknown docs/...").
+        extra = ""
+        if len(violations) > 1:
+            first, rest = violations[0], violations[1:]
+            # Program/identity/integrity causes first so truncation can never hide the primary cause
+            # behind alphabetically earlier documentation paths.
+            rest = sorted(rest, key=lambda v: 0 if not v.startswith("Unknown concurrent path") else 1)
+            shown = rest[:_MAX_REPORTED_REFUSALS]
+            kinds = {}
+            for v in violations:
+                kinds[v.split(":", 1)[0]] = kinds.get(v.split(":", 1)[0], 0) + 1
+            extra = " | %d refused paths in total (%s); %d more shown: %s" % (
+                len(violations), ", ".join("%s x%d" % kv for kv in sorted(kinds.items())),
+                len(shown), "; ".join(v[:110] for v in shown))
+            if len(rest) > len(shown):
+                extra += " | TRUNCATED: %d refused paths not listed" % (len(rest) - len(shown))
+        raise UnsafeFTPublication(violations[0] + extra)
     return sorted(remote_changes)
 
 
