@@ -7,6 +7,7 @@ from unittest.mock import patch
 from h1lab.results import (
     TheSportsDBProviderError, api_events, choose_result, norm_team,
     parse_provider_events, verified_score, sync, plan_due_signals,
+    recent_tsdb_access_denial,
 )
 
 UTC = timezone.utc
@@ -249,6 +250,110 @@ class ResultMatching(unittest.TestCase):
             sync(now=KO + timedelta(days=1), search=blocked_search)
         self.assertEqual(attempts, ["unattempted-0"])
         self.assertEqual(set(dump.call_args.args[1]), {"unattempted-0"})
+
+
+    def test_prior_real_429_gates_only_four_hours_without_refresh(self):
+        now = KO + timedelta(days=2)
+        denial = now - timedelta(hours=1)
+        audit = {
+            "real_429": {
+                "checked_at": denial.isoformat(),
+                "status": "pending",
+                "reason": "bsd:bsd_no_exact_match;thesportsdb:thesportsdb_http_429",
+            },
+            "skip_after": {
+                "checked_at": (now - timedelta(minutes=3)).isoformat(),
+                "status": "pending",
+                "reason": "bsd:bsd_no_exact_match;thesportsdb:thesportsdb_circuit_open",
+                "thesportsdb_reason": "thesportsdb_circuit_open",
+            },
+        }
+        gate = recent_tsdb_access_denial(audit, now)
+        self.assertEqual(gate["reason"], "thesportsdb_http_429")
+        self.assertEqual(gate["observed_at_utc"], denial.isoformat(timespec="seconds"))
+        self.assertEqual(gate["retry_not_before_utc"],
+                         (denial + timedelta(hours=4)).isoformat(timespec="seconds"))
+        self.assertIsNone(recent_tsdb_access_denial(
+            audit, denial + timedelta(hours=4)))
+
+    def test_non_provider_denials_and_bad_clock_never_renew_gate(self):
+        now = KO + timedelta(days=2)
+        for reason in ("thesportsdb_unavailable", "thesportsdb_circuit_open",
+                       "thesportsdb_http_404", "thesportsdb_no_event",
+                       {"error": "thesportsdb_http_429"}):
+            for stamp in (now.isoformat(), "not-a-time",
+                          (now+timedelta(hours=1)).isoformat(),
+                          now.replace(tzinfo=None).isoformat()):
+                audit = {"x":{"checked_at":stamp,"thesportsdb_reason":reason}}
+                self.assertIsNone(recent_tsdb_access_denial(audit, now))
+        # Genuine 401/403 access refusals, unlike a generic error, qualify.
+        for reason in ("thesportsdb_http_401", "thesportsdb_http_403"):
+            self.assertEqual(recent_tsdb_access_denial(
+                {"x":{"checked_at":now.isoformat(),"thesportsdb_reason":reason}},
+                now)["reason"], reason)
+
+    def test_persisted_429_skips_tsdb_but_bsd_still_checks_every_selected_fixture(self):
+        now = KO + timedelta(days=2)
+        signals = [{**SIGNAL,"match_key":f"next-cycle-{i}"} for i in range(3)]
+        previous = {"old":{"checked_at":(now-timedelta(hours=1)).isoformat(),
+                           "reason":"bsd:bsd_no_exact_match;thesportsdb:thesportsdb_http_429"}}
+        with patch.dict("os.environ",{"BSD_API_KEY":"synthetic"}), \
+             patch("h1lab.bsd.find_result",return_value=(None,"bsd_no_exact_match")) as bsd, \
+             patch("h1lab.results.read_state",return_value={"signals":signals}), \
+             patch("h1lab.results.read_rows",return_value=[]), \
+             patch("h1lab.results.load_results",return_value={}), \
+             patch("h1lab.results.read_audit",return_value=previous), \
+             patch("h1lab.results.save"), \
+             patch("h1lab.core.dump_json") as written:
+            sync(now=now, search=lambda x:self.fail("No TSDB HTTP during 429 cooldown"))
+        self.assertEqual(bsd.call_count,3)
+        new_audit=written.call_args.args[1]
+        for signal in signals:
+            row=new_audit[signal["match_key"]]
+            self.assertEqual(row["thesportsdb_reason"],"thesportsdb_circuit_open")
+            self.assertEqual(row["status"],"pending")
+        # A later look-up at the end of the original four hours is permitted.
+        self.assertIsNone(recent_tsdb_access_denial(
+            new_audit, now + timedelta(hours=3)))
+
+    def test_no_bsd_and_persisted_denial_does_not_mark_unqueried_as_checked(self):
+        now = KO + timedelta(days=2)
+        previous = {"old":{"checked_at":(now-timedelta(minutes=40)).isoformat(),
+                           "reason":"bsd:bsd_no_exact_match;thesportsdb:thesportsdb_http_429"}}
+        with patch.dict("os.environ",{"BSD_API_KEY":""}), \
+             patch("h1lab.results.read_state",return_value={"signals":[SIGNAL]}), \
+             patch("h1lab.results.read_rows",return_value=[]), \
+             patch("h1lab.results.load_results",return_value={}), \
+             patch("h1lab.results.read_audit",return_value=previous), \
+             patch("h1lab.results.save"), \
+             patch("h1lab.core.dump_json") as written:
+            sync(now=now,search=lambda x:self.fail("TSDB blocked by true prior 429"))
+        written.assert_not_called()
+        self.assertNotIn(SIGNAL["match_key"],previous)
+
+    def test_429_is_audited_even_if_independent_bsd_verifies_final(self):
+        now = KO + timedelta(days=2)
+        bsd_score={"match_key":SIGNAL["match_key"],"status":"final",
+                   "home_goals":2,"away_goals":1,
+                   "source":"https://sports.bzzoiro.com/api/v2/events/123/"}
+        def blocked(_):
+            raise TheSportsDBProviderError("thesportsdb_http_429",stop_cycle=True)
+        with patch.dict("os.environ",{"BSD_API_KEY":"synthetic"}), \
+             patch("h1lab.bsd.find_result",return_value=(bsd_score,"verified_bsd_ft")), \
+             patch("h1lab.results.read_state",return_value={"signals":[SIGNAL]}), \
+             patch("h1lab.results.read_rows",return_value=[]), \
+             patch("h1lab.results.load_results",return_value={}), \
+             patch("h1lab.results.read_audit",return_value={}), \
+             patch("h1lab.results.write_rows") as stored, \
+             patch("h1lab.results.save"), \
+             patch("h1lab.core.dump_json") as written:
+            sync(now=now,search=blocked)
+        self.assertEqual(stored.call_count,1)
+        record=written.call_args.args[1][SIGNAL["match_key"]]
+        self.assertEqual(record["reason"],"confirmed_bsd_only")
+        self.assertEqual(record["thesportsdb_reason"],"thesportsdb_http_429")
+        self.assertIsNotNone(recent_tsdb_access_denial(
+            written.call_args.args[1],now))
 
 
 if __name__ == "__main__":

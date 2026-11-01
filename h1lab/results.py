@@ -164,6 +164,57 @@ def read_audit():
     return obj if isinstance(obj, dict) else {}
 
 
+TSDB_ACCESS_DENIALS = frozenset({
+    "thesportsdb_http_401", "thesportsdb_http_403", "thesportsdb_http_429",
+})
+TSDB_ACCESS_COOLDOWN = timedelta(hours=4)
+
+
+def recent_tsdb_access_denial(audit, now):
+    """Only a previously recorded REAL HTTP refusal may defer new calls.
+
+    A skipped call never refreshes a refusal. Ignore malformed/naive/future
+    timestamps and other provider failures. Preserve all H1 fixture rules.
+    """
+    if now.tzinfo is None or not isinstance(audit, dict):
+        raise ValueError("Invalid TheSportsDB access evidence")
+    latest = None
+    reason = None
+    now = now.astimezone(UTC)
+    for item in audit.values():
+        if not isinstance(item, dict):
+            continue
+        evidence = item.get("thesportsdb_reason")
+        # Earlier H1 audits store the HTTP denial inside the combined reason.
+        if evidence is None:
+            combined = item.get("reason")
+            if isinstance(combined, str) and ";thesportsdb:" in combined:
+                evidence = combined.rsplit(";thesportsdb:", 1)[1]
+        if not isinstance(evidence, str) or evidence not in TSDB_ACCESS_DENIALS:
+            continue
+        raw = item.get("checked_at")
+        if not isinstance(raw, str):
+            continue
+        try:
+            attempted = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if attempted.tzinfo is None:
+            continue
+        attempted = attempted.astimezone(UTC)
+        if not timedelta(0) <= now - attempted < TSDB_ACCESS_COOLDOWN:
+            continue
+        if latest is None or attempted > latest:
+            latest, reason = attempted, evidence
+    if latest is None:
+        return None
+    return {
+        "reason": reason,
+        "observed_at_utc": latest.isoformat(timespec="seconds"),
+        "retry_not_before_utc": (latest + TSDB_ACCESS_COOLDOWN).isoformat(timespec="seconds"),
+    }
+
+
 def read_rows():
     if not RESULTS.exists():
         return []
@@ -237,7 +288,8 @@ def sync(now=None, search=api_events):
     newly_final = 0
     errors = 0
     updates = 0
-    tsdb_circuit_reason = None
+    prior_denial = recent_tsdb_access_denial(audit, now)
+    tsdb_circuit_reason = prior_denial["reason"] if prior_denial else None
     tsdb_skipped = 0
     bsd_enabled = bool(os.environ.get("BSD_API_KEY", "").strip())
     due_signals, plan = plan_due_signals(state["signals"], resolved, audit, now, limit=20)
@@ -300,6 +352,9 @@ def sync(now=None, search=api_events):
             "checked_at": now.isoformat(timespec="seconds"),
             "status": "settled" if result else "pending",
             "reason": reason,
+            # Keep independent supplier evidence even when BSD alone verifies
+            # the final, so a real 429 cannot disappear under 'confirmed_bsd_only'.
+            "thesportsdb_reason": fallback_reason,
         }
         updates += 1
         if result is not None:
@@ -316,6 +371,7 @@ def sync(now=None, search=api_events):
           "provider errors:", errors, "unresolved:", len(state["signals"])-len(resolved))
     print("H1_PROVIDER_HEALTH", json.dumps({
         "thesportsdb_circuit": tsdb_circuit_reason or "closed",
+        "thesportsdb_prior_denial": prior_denial,
         "thesportsdb_skipped_calls": tsdb_skipped,
         "selected": len(due_signals), "processed": scanned,
     }, sort_keys=True))
