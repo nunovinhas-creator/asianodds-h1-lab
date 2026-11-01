@@ -72,6 +72,37 @@ class GuardTests(unittest.TestCase):
                     g.seal('ft', manifest)
             os.chdir(previous)
 
+    def test_deleted_unreachable_member_is_not_hashed_as_live_index_file(self):
+        # Segmented storage prunes old generations from the Git index.
+        # Sealing must validate the reachable set rather than hash deleted paths.
+        with tempfile.TemporaryDirectory() as tmp:
+            previous = os.getcwd()
+            os.chdir(tmp)
+            try:
+                subprocess.run(['git', 'init', '-q'], check=True)
+                subprocess.run(['git', 'config', 'user.name', 'test'], check=True)
+                subprocess.run(['git', 'config', 'user.email', 'test@example.invalid'], check=True)
+                target = Path('docs/lab/report.json')
+                target.parent.mkdir(parents=True)
+                target.write_text('{"count":1}')
+                old = Path('docs/lab/obsolete.json')
+                old.write_text('{"old":true}')
+                subprocess.run(['git', 'add', '.'], check=True)
+                subprocess.run(['git', 'commit', '-qm', 'baseline'], check=True)
+                subprocess.run(['git', 'rm', '-q', str(old)], check=True)
+                target.write_text('{"count":2}')
+                subprocess.run(['git', 'add', str(target)], check=True)
+                manifest = Path(tmp) / 'seal.json'
+                with patch.dict(g.REQUIRED, {'ft': (str(target),)}):
+                    g.seal('ft', manifest)
+                hashes = json.loads(manifest.read_text())['sha256']
+                self.assertIn(str(target), hashes)
+                self.assertNotIn(str(old), hashes)
+                subprocess.run(['git', 'commit', '-qm', 'new generation without old'], check=True)
+                g.verify(manifest)
+            finally:
+                os.chdir(previous)
+
     def test_workflows_guard_before_commit_and_after_each_rebase(self):
         root = Path(__file__).resolve().parents[1]
         for filename, pipeline in [('lab-v4-audit.yml','audit'), ('lab-ft-results.yml','ft')]:
@@ -85,11 +116,15 @@ class GuardTests(unittest.TestCase):
                 self.assertNotIn("git rebase", tail)
                 self.assertIn("lab_ft_immutable_gate verify", tail)
                 self.assertIn("lab_discovery_authoritative_release stage", tail)
-                self.assertLess(tail.index("publication_guard verify"),
-                                tail.index("git fetch origin main"))
+                self.assertIn("python -m scripts.lab_ft_publish_safe", tail)
+                self.assertIn('--manifest "$RUNNER_TEMP/publication-seal.json"', tail)
+                self.assertIn('--baseline "$RUNNER_TEMP/ft-certified-baseline.json"', tail)
+                self.assertLess(tail.index("publication_guard seal"),
+                                tail.index("lab_ft_publish_safe"))
             else:
                 self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
-            self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
+            if pipeline == "audit":
+                self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
             for name in g.PRODUCERS[pipeline]:
                 self.assertIn('id: ' + name + '\n', source)
 

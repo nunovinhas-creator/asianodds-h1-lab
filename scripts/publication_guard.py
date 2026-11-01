@@ -95,7 +95,17 @@ def git(*args):
 def seal(pipeline, manifest):
     changed = git('diff', '--cached', '--name-only', '-z').decode().split('\0')
     streams = inventory(pipeline)
-    names = sorted(set(REQUIRED[pipeline]) | set(streams) | {name for name in changed if name})
+    # A segmented generation removes immutable, unreferenced old shards from
+    # HEAD while retaining their historical Git objects. Deleted paths exist
+    # in the staged diff but NOT in the prospective index. Do not attempt to
+    # hash ':deleted/path' as if it were a live artifact.
+    staged_changes = {
+        name for name in changed if name and subprocess.run(
+            ['git', 'cat-file', '-e', ':' + name],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            check=False).returncode == 0
+    }
+    names = sorted(set(REQUIRED[pipeline]) | set(streams) | staged_changes)
     if pipeline == 'ft' and 'docs/lab/discoveries.json' in REQUIRED[pipeline]:
         # Seal every reachable content-addressed page with the public root in
         # the same Git commit. Old unreferenced pages may remain immutable.

@@ -406,15 +406,13 @@ jobs:
             exit 0
           fi
           git commit -m 'data(lab): reconcile observed match FT [skip ci]'
-          # DISCOVERY_SEGMENTED_NO_REBASE: avoid replaying stale FT.
-          python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
-          python -m scripts.lab_discovery_authoritative_release verify
-          git fetch origin main
-          if [ "$(git rev-parse origin/main)" != "$FT_BASE_HEAD" ]; then
-            echo FT_REMOTE_CONFLICT_RERUN_WHOLE_RECONCILIATION
-            exit 1
-          fi
-          git push origin HEAD:refs/heads/main
+          # DISCOVERY_SEGMENTED_NO_REBASE: transport ONLY sealed FT artifacts
+          # across independently verified append-only H1/V4 updates. Never
+          # recompute/rebase FT evidence or exceed a bounded Git CAS retry.
+          python -m scripts.lab_ft_publish_safe \
+            --base "$FT_BASE_HEAD" \
+            --manifest "$RUNNER_TEMP/publication-seal.json" \
+            --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
           echo LAB_FT_PUBLISHED
 
   # Direct job dependency also covers watchdog dispatches whose workflow_run
