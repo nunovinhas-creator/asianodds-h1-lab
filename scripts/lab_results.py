@@ -102,9 +102,27 @@ class PacedTSDB:
                 time.sleep(self.interval - gap)
         self.last = time.monotonic()
         self.counts["requested"] += 1
-        from h1lab.results import api_events, choose_result
+        from h1lab.results import api_events, choose_result, TheSportsDBProviderError
         try:
             found, reason = choose_result(signal, api_events(signal))
+        except TheSportsDBProviderError as exc:
+            # api_events wraps HTTP 401/403/429 in a classified OSError.
+            # Catching only HTTPError erroneously converted genuine 429 into
+            # 'unavailable', repeatedly re-querying the denied API instead
+            # of persisting a durable rate-limit gate.
+            if exc.reason == 'thesportsdb_http_429':
+                self.cooldowns = record_429(
+                    self.cooldowns, 'thesportsdb', self.clock())
+                self.rate_limited = True
+                self.counts['http_429'] += 1
+                return None, 'tsdb_http_429'
+            if exc.stop_cycle:
+                self.rate_limited = True
+                code = exc.reason.removeprefix('thesportsdb_')
+                self.counts[code] += 1
+                return None, 'tsdb_' + code
+            self.counts['unavailable'] += 1
+            return None, 'tsdb_unavailable'
         except HTTPError as exc:
             if exc.code == 429:
                 self.cooldowns = record_429(self.cooldowns, 'thesportsdb', self.clock(),
