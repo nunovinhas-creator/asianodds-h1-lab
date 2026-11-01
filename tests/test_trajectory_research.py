@@ -132,6 +132,21 @@ class RepeatedStudyTests(unittest.TestCase):
 
     def test_tracked_real_chronology_is_coherent_and_not_a_profit_study(self):
         raw=json.loads((ROOT/"docs"/"lab"/"match-trajectories.json").read_text(encoding="utf-8"))
+        self._check_real_chronology(raw)
+
+    def test_real_chronology_checks_survive_newer_matches_displacing_the_sample(self):
+        # Regression for the #107 audit: the published sample keeps only the
+        # most recent N repeated matches, so the pinned old real examples drift
+        # out of it as new matches arrive and the LAB bundle would be blocked
+        # again. Simulate 15+ newer repeated matches by shrinking the cap on
+        # the same tracked inputs; the checks must not depend on sample rank.
+        from h1lab.timeline import generate
+        full = generate(ROOT, max_timelines=10 ** 6)
+        for cap in (400, 385, 100, 10):
+            with self.subTest(cap=cap):
+                self._check_real_chronology(generate(ROOT, max_timelines=cap), population=full)
+
+    def _check_real_chronology(self, raw, population=None):
         d=evaluate(raw)
         self.assertGreater(d["scope"]["repeated_matches_analysed"],5)
         self.assertLessEqual(d["scope"]["repeated_matches_analysed"],d["scope"]["all_distinct_matches"])
@@ -169,7 +184,12 @@ class RepeatedStudyTests(unittest.TestCase):
             "3571094759:50685","3571094759:50686",
             "3571094759:50675","3571094759:50681",
         }
-        found={eid for t in raw["timelines"] for eid in t["event_ids"]}
+        # Tracked history is immutable, so the examples must exist in the whole
+        # repeated-match population - not necessarily in the bounded sample.
+        if population is None:
+            from h1lab.timeline import generate
+            population = generate(ROOT, max_timelines=10 ** 6)
+        found={eid for t in population["timelines"] for eid in t["event_ids"]}
         self.assertTrue(targets.issubset(found),"Expected tracked real examples absent")
 
     def test_deterministic_summary_when_order_of_match_timelines_changes(self):
