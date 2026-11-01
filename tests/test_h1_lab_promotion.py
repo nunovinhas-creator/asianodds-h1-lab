@@ -119,10 +119,21 @@ class H1LabPromotionTests(unittest.TestCase):
             "chronology_certified": False,
         }
         journal = {"schema_version": 1, "records": {KEY: claims}, "conflicts": {}}
-        self.assertEqual(candidate(s, row, NOW)[1], "unrecognized_evidence")
+        self.assertEqual(candidate(s, row, NOW)[1],
+                         "dual_provider_evidence_rejected:attestation_journal_missing_or_unsupported")
         self.assertEqual(candidate(s, row, NOW, journal)[1], "verified_lab_final")
         self.assertEqual(len(propose({"signals": [s]}, {"matches": {KEY: row}},
                                      [], NOW, journal)[0]), 1)
+        expected_reason = {
+            "no_journal": "attestation_journal_missing_or_unsupported",
+            "conflict": "attestation_conflict_recorded",
+            "score": "claim_binding_mismatch",
+            "sha": "claim_seal_invalid",
+            "url": "result_source_not_in_attested_sources",
+            "timing": "observed_before_kickoff_plus_90min_or_in_the_future",
+            "missing_provider": "provider_claim_missing",
+            "unsealed": "claim_binding_mismatch",
+        }
         for change in ("no_journal", "conflict", "score", "sha", "url",
                        "timing", "missing_provider", "unsealed"):
             item, ledger = copy.deepcopy(row), copy.deepcopy(journal)
@@ -140,7 +151,9 @@ class H1LabPromotionTests(unittest.TestCase):
             elif change == "unsealed":
                 item["verified_provider_sources"]["api_football"]["identity_match"] = "UNKNOWN"
             with self.subTest(change=change):
-                self.assertEqual(candidate(s, item, NOW, ledger)[1], "unrecognized_evidence")
+                result, reason = candidate(s, item, NOW, ledger)
+                self.assertIsNone(result)   # the rejection itself is unchanged
+                self.assertEqual(reason, "dual_provider_evidence_rejected:" + expected_reason[change])
 
     def test_provably_reversed_sportscore_slug_rejected(self):
         s=signal(home="Club A",away="Club B")

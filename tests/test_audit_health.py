@@ -283,6 +283,12 @@ class HealthTests(unittest.TestCase):
                          '2026-10-30T13:19:23+00:00')
 
     def test_h1_first_check_monitor_separates_overdue_retry_cooldown_and_expiry(self):
+        from datetime import timedelta
+        from unittest.mock import patch
+        with patch("h1lab.results.H1_RETRY_HORIZON", timedelta(days=30)):  # legacy fixtures
+            self._h1_first_check_legacy_horizon()
+
+    def _h1_first_check_legacy_horizon(self):
         now = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
         def fixture(key, kickoff):
             return {"match_key":key, "kickoff_utc":kickoff}
