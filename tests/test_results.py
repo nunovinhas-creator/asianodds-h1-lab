@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from h1lab.results import choose_result, norm_team, verified_score, sync
+from h1lab.results import choose_result, norm_team, verified_score, sync, plan_due_signals
 
 UTC = timezone.utc
 KO = datetime(2026, 10, 27, 19, 45, tzinfo=UTC)
@@ -73,6 +73,70 @@ class ResultMatching(unittest.TestCase):
 
     def test_more_than_one_exact_match_is_ambiguous(self):
         self.assertEqual(choose_result(SIGNAL, [EVENT, EVENT])[1], "ambiguous_event")
+
+    def test_unchecked_eligible_games_are_prioritised_before_retries(self):
+        now = KO + timedelta(days=5)
+        signals = [
+            {**SIGNAL, "match_key": f"old-retry-{i}",
+             "kickoff_utc": (KO + timedelta(hours=i)).isoformat()}
+            for i in range(4)
+        ]
+        signals += [
+            {**SIGNAL, "match_key": f"first-{i}",
+             "kickoff_utc": (KO + timedelta(hours=5 + i)).isoformat()}
+            for i in range(25)
+        ]
+        audit = {f"old-retry-{i}": {
+            "checked_at": (now - timedelta(hours=5)).isoformat(),
+            "status": "pending",
+        } for i in range(4)}
+        chosen, diag = plan_due_signals(signals, set(), audit, now)
+        self.assertEqual(len(chosen), 20)
+        self.assertEqual([s["match_key"] for s in chosen],
+                         [f"first-{i}" for i in range(20)])
+        self.assertEqual(diag, {"eligible": 29, "first_checks_due": 25,
+                                "retries_due": 4, "deferred_by_limit": 9})
+
+    def test_first_check_plan_respects_cooldown_grace_and_horizon(self):
+        now = KO + timedelta(days=6)
+        signals = [
+            {**SIGNAL, "match_key": "eligible-old",
+             "kickoff_utc": (now - timedelta(days=5)).isoformat()},
+            {**SIGNAL, "match_key": "recent-retry",
+             "kickoff_utc": (now - timedelta(days=3)).isoformat()},
+            {**SIGNAL, "match_key": "older-retry",
+             "kickoff_utc": (now - timedelta(days=4)).isoformat()},
+            {**SIGNAL, "match_key": "future",
+             "kickoff_utc": (now + timedelta(days=1)).isoformat()},
+            {**SIGNAL, "match_key": "in-grace",
+             "kickoff_utc": (now - timedelta(hours=2)).isoformat()},
+            {**SIGNAL, "match_key": "expired",
+             "kickoff_utc": (now - timedelta(days=31)).isoformat()},
+            {**SIGNAL, "match_key": "resolved",
+             "kickoff_utc": (now - timedelta(days=2)).isoformat()},
+        ]
+        audit = {
+            "recent-retry": {"checked_at": (now - timedelta(hours=2)).isoformat()},
+            "older-retry": {"checked_at": (now - timedelta(hours=5)).isoformat()},
+        }
+        chosen, diag = plan_due_signals(signals, {"resolved"}, audit, now, limit=2)
+        self.assertEqual([s["match_key"] for s in chosen],
+                         ["eligible-old", "older-retry"])
+        self.assertEqual(diag["eligible"], 2)
+        self.assertEqual(diag["deferred_by_limit"], 0)
+
+    def test_unchecked_first_check_selection_is_stable_and_idempotent(self):
+        now = KO + timedelta(days=3)
+        signal = {**SIGNAL, "match_key": "not-yet-checked"}
+        retry = {**SIGNAL, "match_key": "previously-checked"}
+        audit = {"previously-checked": {
+            "checked_at": (now - timedelta(hours=5)).isoformat()}}
+        selected, _ = plan_due_signals([retry, signal], set(), audit, now, 1)
+        self.assertEqual(selected[0]["match_key"], "not-yet-checked")
+        audit["not-yet-checked"] = {"checked_at": now.isoformat()}
+        selected, counts = plan_due_signals([retry, signal], set(), audit, now, 1)
+        self.assertEqual(selected[0]["match_key"], "previously-checked")
+        self.assertEqual(counts["first_checks_due"], 0)
 
     def test_sync_is_idempotent_with_verified_score(self):
         state = {"signals": [SIGNAL], "alerts": [], "tickets": [], "last_id": 1}
