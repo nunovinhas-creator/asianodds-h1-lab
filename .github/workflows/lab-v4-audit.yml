@@ -82,6 +82,14 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_timeline.py'
           python -m scripts.lab_match_trajectories
+      # Audit exactly the two production Telegram rules without sending messages.
+      # A parity mismatch fails the LAB bundle; H1 and its senders are untouched.
+      - name: Explain Telegram eligibility and audit possible false negatives
+        id: telegram_eligibility
+        continue-on-error: true
+        run: |
+          python -m unittest discover -s tests -p 'test_telegram_eligibility.py' -v
+          python -m scripts.lab_telegram_eligibility
       # A separate descriptive study of repeated messages. It uses the
       # already-built timeline and refuses to consume a stale source commit.
       # Never changes H1, ROI, picks, FIFO or Telegram notifications.
@@ -190,6 +198,7 @@ jobs:
           git add -f data/lab/v6-forecasts-*.jsonl 2>/dev/null || true
           if [ -f data/lab/v6-hypotheses.jsonl ]; then git add -f data/lab/v6-hypotheses.jsonl; fi
           if [ -f docs/lab/match-trajectories.json ]; then git add docs/lab/match-trajectories.json; fi
+          if [ "${{ steps.telegram_eligibility.outcome }}" = "success" ] && [ -f docs/lab/telegram-eligibility.json ]; then git add docs/lab/telegram-eligibility.json; fi
           if [ -f docs/lab/trajectory-research.json ]; then git add docs/lab/trajectory-research.json; fi
           if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
           python -m scripts.publication_guard seal --pipeline audit --manifest "$RUNNER_TEMP/publication-seal.json"

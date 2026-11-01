@@ -17,6 +17,7 @@ from pathlib import Path
 
 PRODUCERS = {
     'audit': ('v6_capture', 'v6_science_memory', 'v6_falsification', 'timeline',
+              'telegram_eligibility',
               'trajectory', 'outcome', 'v4_revisions', 'v6_scientific_radar',
               'v6_weekly', 'lab_archive', 'v6_p0'),
     'ft': ('v6_ft_events', 'v6_pruning', 'research', 'v6_residual', 'prospective', 'discovery'),
@@ -25,7 +26,7 @@ REQUIRED = {
     'audit': tuple('docs/lab/' + name + '.json' for name in (
         'v4-audit', 'golden-candidates', 'golden-report', 'golden-priority',
         'v6-shadow', 'v6-readiness', 'v6-price-quality', 'v6-feature-coverage',
-        'v6-memory', 'v6-falsification', 'match-trajectories', 'trajectory-research',
+        'v6-memory', 'v6-falsification', 'match-trajectories', 'telegram-eligibility', 'trajectory-research',
         'outcome-readiness', 'v4-revisions', 'v6-scientific-radar', 'v6-weekly-drift',
         'v6-archive-health', 'v6-p0-null-simulation', 'v6-p0-gates')),
     'ft': ('data/lab/ft-ledger.json', 'data/lab/pattern-registry.json',
