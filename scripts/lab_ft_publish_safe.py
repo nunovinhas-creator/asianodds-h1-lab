@@ -42,6 +42,20 @@ LLM_SHADOW = re.compile(
     r"llm-investigator-runs/\d+)\.json\Z"
 )
 
+# Known H1 Telegram receipts are independent of FT evidence.
+H1_NOTIFICATION_RECEIPTS = frozenset({
+    "data/three-total-moves-notifications.json",
+    "data/two-up-total-notifications.json",
+    "data/e4-notifications.json",
+    "data/strategy-notifications.json",
+    "data/pattern-notifications.json",
+    "data/t05-notifications.json",
+})
+H1_RESULT_OUTPUTS = frozenset({
+    "data/results.csv", "data/result_audit.json", "data/health/h1-results.json",
+})
+
+
 class UnsafeFTPublication(ValueError):
     pass
 
@@ -129,6 +143,38 @@ def append_only_jsonl(previous, current):
         return False
 
 
+
+def valid_notification_update(previous, current):
+    """Accept only retained, schema-valid receipts; never discard H1 history."""
+    if previous is None or current is None:
+        return False
+    try:
+        old, new = json.loads(previous), json.loads(current)
+        if not isinstance(old, dict) or not isinstance(new, dict):
+            return False
+        if old.get("schema_version") != 1 or new.get("schema_version") != 1:
+            return False
+        before, after = old.get("entries"), new.get("entries")
+        if not isinstance(before, dict) or not isinstance(after, dict):
+            return False
+        if any(not isinstance(key, str) or not isinstance(row, dict)
+               for key, row in after.items()):
+            return False
+        if not before.keys() <= after.keys():
+            return False
+        for key, prior in before.items():
+            if not isinstance(prior, dict):
+                return False
+            updated = after[key]
+            # Withdrawals may change status; fixture identity never changes.
+            for field in ("match_key", "kickoff_utc"):
+                if field in prior and prior[field] != updated.get(field):
+                    return False
+        return True
+    except (ValueError, UnicodeDecodeError, TypeError):
+        return False
+
+
 def allowed_remote_changes(root, base, remote, protected, produced):
     remote_changes = changed_paths(root, base, remote)
     overlap = remote_changes & (protected | produced)
@@ -151,6 +197,15 @@ def allowed_remote_changes(root, base, remote, protected, produced):
         elif path in ("docs/data.json", "data/results.json"):
             if blob_or_none(root, remote, path) is None:
                 raise UnsafeFTPublication("H1 artifact deleted: " + path)
+        elif path in H1_RESULT_OUTPUTS:
+            # H1 results have a separate producer; keep their exact remote blobs.
+            if blob_or_none(root, remote, path) is None:
+                raise UnsafeFTPublication("H1 result output deleted: " + path)
+        elif path in H1_NOTIFICATION_RECEIPTS:
+            if not valid_notification_update(
+                    blob_or_none(root, base, path),
+                    blob_or_none(root, remote, path)):
+                raise UnsafeFTPublication("H1 notification receipt invalid: " + path)
         elif JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
             if not append_only_jsonl(blob_or_none(root, base, path),
                                      blob_or_none(root, remote, path) or b""):
