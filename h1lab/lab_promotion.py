@@ -59,18 +59,21 @@ def _safe_source(value):
 
 
 
-def _confirmed_dual_evidence(signal, row, now, journal):
-    """Prove legacy dual-provider FT from immutable attestations, not a label."""
+def dual_evidence_rejection(signal, row, now, journal):
+    """None when dual-provider FT is proven by immutable attestations, else a specific reason.
+
+    Diagnostic split of the former boolean check: every reason still means "reject".
+    """
     if not isinstance(journal, dict) or journal.get("schema_version") != 1:
-        return False
+        return "attestation_journal_missing_or_unsupported"
     key = signal["match_key"]
     if key in (journal.get("conflicts") or {}):
-        return False
+        return "attestation_conflict_recorded"
     proof = row.get("dual_provider_corroboration")
     sources = row.get("verified_provider_sources")
     claims = (journal.get("records") or {}).get(key)
     if not all(isinstance(x, dict) for x in (proof, sources, claims)):
-        return False
+        return "proof_claims_or_sources_missing"
     providers = proof.get("providers")
     if (proof.get("method") != "TWO_STRONG_PROVIDER_IDS_SAME_REGULATION_FT"
             or proof.get("scores_agree") is not True
@@ -79,28 +82,28 @@ def _confirmed_dual_evidence(signal, row, now, journal):
             or len(set(providers)) != len(providers)
             or providers != sorted(providers)
             or not set(providers).issubset({"api_football", "goal", "openfoot"})):
-        return False
+        return "proof_method_or_provider_set_invalid"
     digests = proof.get("attestation_sha256")
     times = proof.get("first_observed_at_utc")
     if not isinstance(digests, dict) or not isinstance(times, dict):
-        return False
+        return "proof_digests_or_times_missing"
     result = row["result"]
     kickoff = _utc(signal["kickoff_utc"])
     if kickoff is None:
-        return False
+        return "kickoff_invalid"
     proof_sources = set()
     for provider in providers:
         claim = claims.get(provider)
         attached = sources.get(provider)
         if not isinstance(claim, dict) or not isinstance(attached, dict):
-            return False
+            return "provider_claim_missing"
         if set(claim) != {*ATTESTATION_FIELDS, "sha256"}:
-            return False
+            return "claim_fields_invalid"
         try:
             if seal_attestation(claim) != claim:
-                return False
+                return "claim_seal_invalid"
         except (TypeError, ValueError, KeyError):
-            return False
+            return "claim_seal_invalid"
         if (claim["match_key"] != key or claim["provider"] != provider
                 or claim["sha256"] != digests.get(provider)
                 or claim["observed_at_utc"] != times.get(provider)
@@ -109,15 +112,23 @@ def _confirmed_dual_evidence(signal, row, now, journal):
                 or not attestation_source_ok(claim)
                 or (claim["home_goals"], claim["away_goals"]) !=
                    (result["home_goals"], result["away_goals"])):
-            return False
+            return "claim_binding_mismatch"
         observed, provider_ko = _utc(claim["observed_at_utc"]), _utc(claim["kickoff_utc"])
-        if (observed is None or provider_ko is None
-                or abs((provider_ko - kickoff).total_seconds()) > 300
-                or not kickoff + timedelta(minutes=90) <= observed <= now
-                or observed > kickoff + timedelta(hours=24)):
-            return False
+        if observed is None or provider_ko is None:
+            return "provider_time_invalid"
+        if abs((provider_ko - kickoff).total_seconds()) > 300:
+            return "provider_kickoff_differs_more_than_5min"
+        if not kickoff + timedelta(minutes=90) <= observed <= now:
+            return "observed_before_kickoff_plus_90min_or_in_the_future"
+        if observed > kickoff + timedelta(hours=24):
+            return "observed_after_24h_window"
         proof_sources.add(claim["source"])
-    return result["source"] in proof_sources
+    return None if result["source"] in proof_sources else "result_source_not_in_attested_sources"
+
+
+def _confirmed_dual_evidence(signal, row, now, journal):
+    """Prove legacy dual-provider FT from immutable attestations, not a label."""
+    return dual_evidence_rejection(signal, row, now, journal) is None
 
 
 def candidate(signal, row, now, attestations=None):
@@ -144,8 +155,10 @@ def candidate(signal, row, now, attestations=None):
         return None, "untrusted_result_url"
     evidence = result.get("evidence")
     if evidence == "dual_provider_only":
-        if not _confirmed_dual_evidence(signal, row, now, attestations):
-            return None, "unrecognized_evidence"
+        why = dual_evidence_rejection(signal, row, now, attestations)
+        if why is not None:
+            # Same rejection as before; only the label is now diagnostic.
+            return None, "dual_provider_evidence_rejected:" + why
         return {"match_key": key, "status": "final", "home_goals": home,
                 "away_goals": away, "source": source}, "verified_lab_final"
     if (not isinstance(evidence, str) or not evidence or

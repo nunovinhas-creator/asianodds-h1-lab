@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -167,7 +168,14 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persis
         key = row["match_key"]
         if delivery.gate(ledger, key, kickoff, clock(), counts) == "skip":
             continue
-        if delivery.blocked(store, clock()):
+        try:
+            paused = delivery.blocked(store, clock())
+        except ValueError:
+            # Unreadable pause record: nothing is sent (no HTTP), loudly, and the job goes on to store data.
+            delivery._bump(counts, "block_unreadable")
+            print("TELEGRAM_BLOCK_UNREADABLE", file=sys.stderr)
+            break
+        if paused:
             delivery._bump(counts, "suspended")
             continue
         if not enabled:

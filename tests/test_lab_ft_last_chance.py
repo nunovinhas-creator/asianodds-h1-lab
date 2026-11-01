@@ -408,7 +408,10 @@ class RealDataReplayInvariants(unittest.TestCase):
             if row.get("status") == "EXPIRED_UNVERIFIED":
                 self.assertEqual(after[key]["status"], "EXPIRED_UNVERIFIED", key)   # terminal, never promoted
         for key, row in after.items():
-            if row.get("provider_answers_total") is not None and row.get("last_visit_outcome") == "NO_SNAPSHOT":
+            # Only rows visited by THIS replay: rows untouched here keep the answers recorded by the real
+            # production poll that wrote the ledger (they are legitimate and not produced by the replay).
+            visited_now = row.get("queue_visited_at") != before.get(key, {}).get("queue_visited_at")
+            if visited_now and row.get("provider_answers_total") is not None and row.get("last_visit_outcome") == "NO_SNAPSHOT":
                 # everything was blocked: no provider may be recorded as having answered
                 self.assertEqual(row.get("last_visit_providers_answered"), [], key)
         self.assertEqual({k for k, v in after.items() if v.get("status") == "FINAL"},

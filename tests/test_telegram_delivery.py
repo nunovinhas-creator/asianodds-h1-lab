@@ -124,10 +124,26 @@ class HttpClassificationTests(Base):
             self.assertIsNone(ctx.exception.retry_after)
             self.assertEqual(BlockStore().read()["diagnosis"], "FLOOD_WAIT_CONSERVATIVE_5MIN")
 
-    def test_corrupt_block_file_fails_closed(self):
-        Path(os.environ["TG_DELIVERY_BLOCK_FILE"]).write_text("{not json")
-        with self.assertRaises(ValueError):
-            run_once(self.rows, self.ledger, lambda m: self.fail("sent"), self.clock)
+    def test_corrupt_or_inaccessible_block_file_sends_nothing_explicitly_and_does_not_crash_the_job(self):
+        import contextlib, io
+        target = Path(os.environ["TG_DELIVERY_BLOCK_FILE"])
+        for label, prepare in (("corrupt", lambda: target.write_text("{not json")),
+                               ("wrong schema", lambda: target.write_text('{"schema_version": 9}')),
+                               ("a directory", lambda: (target.unlink(), target.mkdir()))):
+            with self.subTest(label=label):
+                if target.is_dir(): target.rmdir()
+                prepare()
+                buf = io.StringIO()
+                with contextlib.redirect_stderr(buf):
+                    ledger, stats = run_once(self.rows, three.empty_ledger(NOW), lambda m: self.fail("sent"), self.clock)
+                self.assertEqual((ledger["entries"], stats.get("block_unreadable")), ({}, 1))
+                self.assertIn("TELEGRAM_BLOCK_UNREADABLE", buf.getvalue())
+                with self.assertRaises(BotBlockedError):                      # bot.send_message itself (all six modules)
+                    with patch.dict(os.environ, {"TG_BOT_TOKEN": "1:T", "TG_CHAT_ID": "1"}), \
+                         patch.object(bot, "urlopen", lambda *a, **k: self.fail("HTTP attempted")):
+                        bot.send_message("x")
+                if target.is_dir(): target.rmdir()
+        target.unlink(missing_ok=True)
 
 
 class RetryAfterTests(Base):
@@ -537,6 +553,80 @@ class BlockStoreSemanticsTests(Base):
         store.record(NOW - timedelta(minutes=1), 429, NOW - timedelta(minutes=10), "OLD")
         self.ledger, _ = run_once(self.rows, self.ledger, lambda m: 3, self.clock)
         self.assertIsNone(store.read())
+
+
+class MergeGateTests(Base):
+    """Gates 4-10 of the integration order, as executable checks."""
+
+    def test_no_secret_reaches_any_output_ledger_or_block_file_on_any_failure_path(self):
+        import contextlib, io
+        secret = "987654321:AAH-SECRET-TOKEN-VALUE"
+        env = {"TG_BOT_TOKEN": secret, "TG_CHAT_ID": "42"}
+        out, err = io.StringIO(), io.StringIO()
+        exceptions = []
+        def http(code, body=None):
+            return HTTPError("https://api.telegram.org/bot%s/sendMessage" % secret, code, "x", {},
+                             io.BytesIO(json.dumps(body or {"parameters": {"retry_after": 30}}).encode()))
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), patch.dict(os.environ, env):
+            for failure in (http(429), http(401), http(403), http(400), http(500), URLError("https://x/bot" + secret), TimeoutError()):
+                BlockStore().clear()
+                ledger = three.empty_ledger(NOW)
+                def fake(request, timeout=0, failure=failure): raise failure
+                with patch.object(bot, "urlopen", fake):
+                    ledger, stats = three.process(self.rows, ledger, NOW, bot.send_message, True, clock=Clock(NOW))
+                exceptions.append(json.dumps(ledger) + json.dumps(stats))
+                block = Path(os.environ["TG_DELIVERY_BLOCK_FILE"])
+                if block.exists():
+                    exceptions.append(block.read_text())
+        everything = out.getvalue() + err.getvalue() + "".join(exceptions)
+        self.assertNotIn("AAH-SECRET", everything)
+        self.assertNotIn(secret, everything)
+
+    def test_old_sent_receipts_and_message_ids_survive_every_state_transition(self):
+        old = {"status": "sent", "telegram_message_id": 352, "at": "2026-11-01T20:30:00+00:00",
+               "kickoff_utc": KO.isoformat(), "rule_version": three.RULE_VERSION}
+        self.ledger["entries"]["fixture-1"] = dict(old)
+        self.ledger["entries"]["other"] = {"status": "sent", "telegram_message_id": 354}
+        for sender in (rejected(429, 5), lambda m: 1, rejected(401)):
+            self.ledger, _ = run_once(self.rows, self.ledger, sender, self.clock)
+        three.process([], self.ledger, KO + timedelta(days=1), lambda m: 1, True, clock=Clock(KO + timedelta(days=1)))
+        self.assertEqual(self.ledger["entries"]["fixture-1"], old)
+        self.assertEqual(self.ledger["entries"]["other"]["telegram_message_id"], 354)
+
+    def test_two_up_blocked_before_http_is_not_uncertain(self):
+        from tests.test_two_up_notify import select as select_two, lomza, NOW as T2
+        def blocked(_): raise BotBlockedError("TELEGRAM_SEND_BLOCKED: no request made")
+        ledger, stats = two.process(select_two(lomza()), two.empty_ledger(T2), T2, blocked, True, clock=Clock(T2))
+        self.assertEqual((ledger["entries"], stats.get("blocked_before_http"), stats.get("uncertain", 0)), ({}, 1, 0))
+
+    def test_ft_publication_validator_accepts_the_new_terminal_states_and_keeps_receipts_immutable(self):
+        from tests.test_lab_ft_publish_safe import eligibility_report
+        from scripts import lab_ft_publish_safe as safe
+        key = "2026-11-01,a,b"
+        def blob(when, receipts):
+            return json.dumps(eligibility_report(when, receipts=receipts), sort_keys=True).encode()
+        old = blob("2026-11-01T12:00:00+00:00", {})
+        for status in td.TERMINAL_RECEIPT_STATUSES:
+            with self.subTest(status=status):
+                new = blob("2026-11-01T13:00:00+00:00", {"three": {"status": status, "telegram_message_id": 5 if status == "sent" else None}})
+                self.assertTrue(safe.valid_telegram_eligibility_update(old, new), status)
+        sent = blob("2026-11-01T13:00:00+00:00", {"three": {"status": "sent", "telegram_message_id": 5}})
+        flipped = blob("2026-11-01T14:00:00+00:00", {"three": {"status": "delivery_rejected_final", "telegram_message_id": None}})
+        self.assertFalse(safe.valid_telegram_eligibility_update(sent, flipped))           # immutability kept
+        transient = blob("2026-11-01T14:00:00+00:00", {"three": {"status": "delivery_rejected", "telegram_message_id": None}})
+        self.assertFalse(safe.valid_telegram_eligibility_update(old, transient))           # never published as a receipt
+
+    def test_eligibility_report_skips_transient_states_and_accepts_terminal_ones(self):
+        from h1lab import telegram_eligibility as te
+        self.assertEqual(set(td.TERMINAL_RECEIPT_STATUSES), {"sent", "delivery_uncertain_manual_review", "delivery_rejected_final", "expired_not_sent"})
+        self.assertTrue(hasattr(te, "TERMINAL_RECEIPT_STATUSES"))
+
+    def test_the_four_legacy_notifiers_remain_disabled_in_the_workflow(self):
+        text = Path(".github/workflows/collect.yml").read_text(encoding="utf-8")
+        for module in ("e4_notify", "strategy_notify", "t05_notify", "pattern_notify"):
+            self.assertNotIn("h1lab." + module, text, module)
+        self.assertIn("h1lab.three_moves_notify", text)
+        self.assertIn("h1lab.two_up_notify", text)
 
 
 class PublicationContractTests(unittest.TestCase):

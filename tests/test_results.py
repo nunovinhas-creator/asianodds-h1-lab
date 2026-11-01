@@ -36,6 +36,14 @@ EVENT = {
 
 
 class ResultMatching(unittest.TestCase):
+    """Queue-order, cooldown and 429 semantics. These fixtures are days old, so they pin the
+    legacy 30-day horizon; the 24h retry policy v2 has its own tests in test_h1_retry_horizon."""
+
+    def setUp(self):
+        patcher = patch("h1lab.results.H1_RETRY_HORIZON", timedelta(days=30))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_normalization_preserves_age_groups(self):
         self.assertEqual(norm_team("SV Werder Bremen"), norm_team("Werder Bremen"))
         self.assertNotEqual(norm_team("Bristol City U21"), norm_team("Bristol City"))
