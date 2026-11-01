@@ -100,7 +100,7 @@
     return {three,two,note:reason+(proof?" · Descartados: "+proof:""),
       review:!!row.review_possible_false_negative};
   }
-  const api={h1Metrics,labMetrics,sortedSignals,filteredSignals,telegramDecision,ageState,roi,decimal,timeText};
+  const api={h1Metrics,labMetrics,sortedSignals,filteredSignals,filteredTimelines,telegramDecision,ageState,roi,decimal,timeText};
   if(typeof module==="object"&&module.exports)module.exports=api;
   if(typeof document==="undefined")return;
   const $=id=>document.getElementById(id);
