@@ -175,6 +175,152 @@ def valid_notification_update(previous, current):
         return False
 
 
+
+# This is a derived read-only H1/Telegram diagnostic, not an FT dependency.
+# It may be regenerated between FT checkout and FT publication.
+TELEGRAM_ELIGIBILITY_REPORT = "docs/lab/telegram-eligibility.json"
+
+
+def _eligibility_timestamp(value):
+    from datetime import datetime, timezone
+    if not isinstance(value, str):
+        raise ValueError("Invalid UTC eligibility timestamp")
+    moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if moment.tzinfo is None or moment.utcoffset().total_seconds() != 0:
+        raise ValueError("Eligibility timestamp must be UTC")
+    return moment.astimezone(timezone.utc)
+
+
+def _valid_eligibility_report(raw):
+    """Validate the independent report without treating it as FT evidence.
+
+    Its visible game window can legitimately rotate. Cross-version validation
+    therefore protects identities of shared games, never requires key growth.
+    """
+    if not isinstance(raw, bytes) or not 0 < len(raw) <= 512_000:
+        return None
+    try:
+        from h1lab import telegram_eligibility as eligibility
+        from h1lab import three_moves_notify, two_up_notify
+        def pairs(items):
+            out = {}
+            for key, value in items:
+                if key in out:
+                    raise ValueError("Duplicate JSON key")
+                out[key] = value
+            return out
+        def reject_constant(value):
+            raise ValueError("Nonfinite JSON number")
+        data = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs,
+                          parse_constant=reject_constant)
+        if not isinstance(data, dict) or data.get("schema_version") != eligibility.SCHEMA:
+            return None
+        if data.get("status") != "READ_ONLY_PARITY_VERIFIED_NOT_DELIVERY_PROOF":
+            return None
+        if data.get("rules") != {
+                "three": three_moves_notify.RULE_VERSION,
+                "two": two_up_notify.RULE_VERSION}:
+            return None
+        _eligibility_timestamp(data.get("generated_at"))
+        if (not isinstance(data.get("source_commit"), str)
+                or data["source_commit"] != "unknown"
+                and not SHA.fullmatch(data["source_commit"])):
+            return None
+        if not isinstance(data.get("limitations"), str) or not data["limitations"]:
+            return None
+        games, summary = data.get("games"), data.get("summary")
+        if not isinstance(games, dict) or not isinstance(summary, dict):
+            return None
+        fields = (
+            "future_three_eligible", "future_two_eligible", "visible_games",
+            "future_visible_exclusions", "review_possible_false_negative",
+            "v4_source_errors",
+        )
+        if any(type(summary.get(field)) is not int or summary[field] < 0
+               for field in fields):
+            return None
+        if summary["visible_games"] != len(games):
+            return None
+        reviews = 0
+        for key, game in games.items():
+            if (not isinstance(key, str) or not key
+                    or not isinstance(game, dict)
+                    or game.get("match_key") != key
+                    or not isinstance(game.get("match_label"), str)
+                    or not game["match_label"]):
+                return None
+            kickoff = game.get("kickoff_utc")
+            if kickoff is not None:
+                _eligibility_timestamp(kickoff)
+            for field in ("three_eligible", "two_eligible", "v4_down_observed",
+                          "review_possible_false_negative"):
+                if type(game.get(field)) is not bool:
+                    return None
+            for field in ("observed_messages", "v4_moves_observed",
+                          "valid_three_moves", "v4_up_observed", "valid_up_moves"):
+                if type(game.get(field)) is not int or game[field] < 0:
+                    return None
+            if (not isinstance(game.get("net_up"), (int, float))
+                    or isinstance(game["net_up"], bool)):
+                return None
+            # json.loads rejects NaN and infinity through parse_constant.
+            if (not isinstance(game.get("rejects"), dict)
+                    or any(not isinstance(k, str) or not k or
+                           type(v) is not int or v < 0
+                           for k, v in game["rejects"].items())):
+                return None
+            if not isinstance(game.get("reason"), str):
+                return None
+            if game.get("review_note") is not None and not isinstance(game["review_note"], str):
+                return None
+            receipts = game.get("receipts")
+            if (not isinstance(receipts, dict)
+                    or any(kind not in ("three", "two") for kind in receipts)):
+                return None
+            for entry in receipts.values():
+                if (not isinstance(entry, dict)
+                        or entry.get("status") not in (
+                            "sent", "delivery_uncertain_manual_review")
+                        or (entry.get("telegram_message_id") is not None and
+                            (type(entry["telegram_message_id"]) is not int or
+                             entry["telegram_message_id"] < 0))):
+                    return None
+            reviews += int(game["review_possible_false_negative"])
+        if summary["review_possible_false_negative"] != reviews:
+            return None
+        return data
+    except (ValueError, TypeError, UnicodeDecodeError, OverflowError, KeyError):
+        return None
+
+
+def valid_telegram_eligibility_update(previous, current):
+    """Allow only a newer valid read-only report; never overwrite remote H1.
+
+    A rotating visible-games window is allowed. Overlapping fixture identity
+    and observed Telegram receipts are immutable, while eligibility flags can
+    naturally change with incoming observations and kickoff.
+    """
+    old = _valid_eligibility_report(previous)
+    new = _valid_eligibility_report(current)
+    if old is None or new is None:
+        return False
+    try:
+        if (_eligibility_timestamp(new["generated_at"]) <
+                _eligibility_timestamp(old["generated_at"])):
+            return False
+        for key in old["games"].keys() & new["games"].keys():
+            before, after = old["games"][key], new["games"][key]
+            if any(before.get(field) != after.get(field)
+                   for field in ("match_key", "match_label", "kickoff_utc")):
+                return False
+            for rule, receipt in before["receipts"].items():
+                if after["receipts"].get(rule) != receipt:
+                    return False
+        return True
+    except (KeyError, ValueError, TypeError):
+        return False
+
+
 def allowed_remote_changes(root, base, remote, protected, produced):
     remote_changes = changed_paths(root, base, remote)
     overlap = remote_changes & (protected | produced)
@@ -201,6 +347,13 @@ def allowed_remote_changes(root, base, remote, protected, produced):
             # H1 results have a separate producer; keep their exact remote blobs.
             if blob_or_none(root, remote, path) is None:
                 raise UnsafeFTPublication("H1 result output deleted: " + path)
+        elif path == TELEGRAM_ELIGIBILITY_REPORT:
+            # Independent report from another H1/Telegram producer. The FT
+            # isolated-index transport retains the exact REMOTE blob.
+            if not valid_telegram_eligibility_update(
+                    blob_or_none(root, base, path),
+                    blob_or_none(root, remote, path)):
+                raise UnsafeFTPublication("Telegram eligibility report invalid: " + path)
         elif path in H1_NOTIFICATION_RECEIPTS:
             if not valid_notification_update(
                     blob_or_none(root, base, path),
