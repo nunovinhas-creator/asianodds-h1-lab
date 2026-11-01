@@ -322,6 +322,9 @@ def valid_telegram_eligibility_update(previous, current):
         return False
 
 
+_MAX_REPORTED_REFUSALS = 7
+
+
 def _check_remote_path(root, base, remote, path):
     """Raise UnsafeFTPublication unless this concurrent remote change is provably unrelated to FT."""
     if (path.startswith(("h1lab/", "scripts/", ".github/", "tests/"))
@@ -387,7 +390,19 @@ def allowed_remote_changes(root, base, remote, protected, produced):
         # path sorts first (a code change must not be reported as "unknown docs/...").
         extra = ""
         if len(violations) > 1:
-            extra = " | %d more refused: %s" % (len(violations) - 1, "; ".join(v[:110] for v in violations[1:8]))
+            first, rest = violations[0], violations[1:]
+            # Program/identity/integrity causes first so truncation can never hide the primary cause
+            # behind alphabetically earlier documentation paths.
+            rest = sorted(rest, key=lambda v: 0 if not v.startswith("Unknown concurrent path") else 1)
+            shown = rest[:_MAX_REPORTED_REFUSALS]
+            kinds = {}
+            for v in violations:
+                kinds[v.split(":", 1)[0]] = kinds.get(v.split(":", 1)[0], 0) + 1
+            extra = " | %d refused paths in total (%s); %d more shown: %s" % (
+                len(violations), ", ".join("%s x%d" % kv for kv in sorted(kinds.items())),
+                len(shown), "; ".join(v[:110] for v in shown))
+            if len(rest) > len(shown):
+                extra += " | TRUNCATED: %d refused paths not listed" % (len(rest) - len(shown))
         raise UnsafeFTPublication(violations[0] + extra)
     return sorted(remote_changes)
 

@@ -37,6 +37,26 @@ class IncidentTests(Base):
         git(self.root, "fetch", "-q", "origin", "main")
         self.assertEqual(git(self.root, "rev-parse", "origin/main"), remote_before)   # nothing published
 
+    def test_message_reports_total_shown_and_explicit_truncation(self):
+        changes = {"docs/audit/new-%02d.md" % i: "x\n" for i in range(12)}
+        changes["h1lab/results.py"] = "# code\n"
+        self.collector_commit(changes)
+        with self.assertRaises(p.UnsafeFTPublication) as ctx:
+            self.publish()
+        message = str(ctx.exception)
+        self.assertIn("13 refused paths in total", message)
+        self.assertIn("FT dependency or program changed x1", message)
+        self.assertIn("7 more shown", message)
+        self.assertIn("TRUNCATED: 5 refused paths not listed", message)
+        self.assertIn("FT dependency or program changed: h1lab/results.py", message)  # relevant reason kept
+
+    def test_message_without_truncation_has_no_truncation_marker(self):
+        self.collector_commit({"docs/audit/a.md": "x\n", "docs/audit/b.md": "x\n"})
+        with self.assertRaises(p.UnsafeFTPublication) as ctx:
+            self.publish()
+        self.assertIn("2 refused paths in total (Unknown concurrent path x2); 1 more shown", str(ctx.exception))
+        self.assertNotIn("TRUNCATED", str(ctx.exception))
+
     def test_docs_only_new_file_is_still_refused_no_generic_docs_allowlist(self):
         for path in ("docs/audit/anything.md", "docs/audit/nested/new.md", "docs/lab/new-report.json", "docs/NOTES.md"):
             with self.subTest(path=path):
