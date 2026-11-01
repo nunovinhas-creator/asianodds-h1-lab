@@ -7,7 +7,7 @@ from unittest.mock import patch
 from h1lab.results import (
     TheSportsDBProviderError, api_events, choose_result, norm_team,
     parse_provider_events, verified_score, sync, plan_due_signals,
-    recent_tsdb_access_denial,
+    recent_tsdb_access_denial, TSDBPacer, TSDB_MIN_INTERVAL_SECONDS,
 )
 
 UTC = timezone.utc
@@ -195,6 +195,49 @@ class ResultMatching(unittest.TestCase):
                 self.assertTrue(raised.exception.stop_cycle)
         self.assertEqual(parse_provider_events({"event": None}), [])
         self.assertEqual(parse_provider_events({"event": []}), [])
+
+    def test_tsdb_pacer_bounded_start_to_start_spacing(self):
+        fake_time=[100.0]
+        sleeps=[]
+        def sleep(amount):
+            sleeps.append(amount)
+            fake_time[0] += amount
+        pacer=TSDBPacer(clock=lambda: fake_time[0], sleep=sleep)
+        pacer.before_call()
+        self.assertEqual(sleeps,[])
+        fake_time[0] += 0.7
+        pacer.before_call()
+        self.assertAlmostEqual(sleeps[0],TSDB_MIN_INTERVAL_SECONDS-0.7)
+        fake_time[0] += TSDB_MIN_INTERVAL_SECONDS+0.1
+        pacer.before_call()
+        self.assertEqual(len(sleeps),1)
+
+    def test_tsdb_pacing_only_before_real_nonblocked_fallback_calls(self):
+        now=KO+timedelta(days=2)
+        signals=[{**SIGNAL,"match_key":f"paced-{i}"} for i in range(4)]
+        events=[]
+        class FakePacer:
+            def before_call(self):
+                events.append("pace")
+        def reject(signal):
+            events.append(signal["match_key"])
+            if signal["match_key"]=="paced-1":
+                raise TheSportsDBProviderError("thesportsdb_http_429",stop_cycle=True)
+            return []
+        with patch.dict("os.environ",{"BSD_API_KEY":"synthetic"}), \
+             patch("h1lab.bsd.find_result",return_value=(None,"bsd_empty_finished_list")), \
+             patch("h1lab.results.read_state",return_value={"signals":signals}), \
+             patch("h1lab.results.read_rows",return_value=[]), \
+             patch("h1lab.results.load_results",return_value={}), \
+             patch("h1lab.results.read_audit",return_value={}), \
+             patch("h1lab.results.save"), \
+             patch("h1lab.core.dump_json"):
+            sync(now=now,search=reject,pace=FakePacer())
+        # No artificial waiting/calls after a real HTTP 429, but BSD
+        # continues independent checks for the remaining H1 candidates.
+        self.assertEqual(events,["pace","paced-0","pace","paced-1"])
+        with self.assertRaises(ValueError):
+            TSDBPacer(interval=-1)
 
     def test_thesportsdb_http_429_is_classified_without_body(self):
         with patch("h1lab.results.urlopen", side_effect=HTTPError(

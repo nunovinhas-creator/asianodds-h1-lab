@@ -9,6 +9,7 @@ import json
 import os
 import re
 import tempfile
+import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -34,6 +35,31 @@ class TheSportsDBProviderError(OSError):
         super().__init__(reason)
         self.reason = reason
         self.stop_cycle = stop_cycle
+
+
+# Match the existing LAB FT supplier pacing (<30 requests per minute).
+# This never increases query volume; it only spaces real TheSportsDB HTTP calls.
+TSDB_MIN_INTERVAL_SECONDS = 2.3
+
+
+class TSDBPacer:
+    """Per-H1-cycle start-to-start delay for actual TSDB HTTP requests."""
+
+    def __init__(self, interval=TSDB_MIN_INTERVAL_SECONDS, *, clock=None, sleep=None):
+        if not isinstance(interval, (int, float)) or not 0 <= interval <= 60:
+            raise ValueError("Invalid TheSportsDB pacing interval")
+        self.interval = interval
+        self.clock = clock or time.monotonic
+        self.sleep = sleep or time.sleep
+        self.last_started = None
+
+    def before_call(self):
+        now = self.clock()
+        if self.last_started is not None:
+            remaining = self.interval - (now - self.last_started)
+            if remaining > 0:
+                self.sleep(remaining)
+        self.last_started = self.clock()
 
 
 def parse_provider_events(payload):
@@ -282,8 +308,13 @@ def plan_due_signals(signals, resolved, audit, now, limit=20):
     return chosen, diagnostics
 
 
-def sync(now=None, search=api_events):
+def sync(now=None, search=api_events, *, pace=None):
     now = (now or datetime.now(UTC)).astimezone(UTC)
+    # The production default always paces the real TSDB API. Synthetic
+    # injected search callables are not remote HTTP and stay fast in tests.
+    # An explicit pacer can also be injected for deterministic verification.
+    tsdb_pace = pace if pace is not None else (
+        TSDBPacer() if search is api_events else None)
     state = read_state()
     rows = read_rows()
     resolved = set(load_results(RESULTS))
@@ -323,6 +354,8 @@ def sync(now=None, search=api_events):
             tsdb_skipped += 1
         else:
             try:
+                if tsdb_pace is not None:
+                    tsdb_pace.before_call()
                 fallback, fallback_reason = choose_result(signal, search(signal))
             except TheSportsDBProviderError as exc:
                 fallback_reason = exc.reason
