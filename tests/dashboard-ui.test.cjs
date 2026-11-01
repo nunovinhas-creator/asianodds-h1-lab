@@ -52,6 +52,22 @@ test("LAB: search and related/reversal/V4 filters do not fabricate records",()=>
   assert.equal(model.filteredTimelines(tl,"","v4").length,1);
   assert.equal(model.filteredTimelines(tl,"unknown","all").length,0);
 });
+test("Telegram panel distinguishes sent, uncertain, eligible and filtered without guessing delivery",()=>{
+  const base={three_eligible:false,two_eligible:false,valid_three_moves:2,valid_up_moves:1,
+    net_up:0.25,v4_down_observed:true,reason:"Movimentos V4 independentes insuficientes",
+    rejects:{suspected_duplicate:1},review_possible_false_negative:true,receipts:{}};
+  const excluded=model.telegramDecision(base);
+  assert.match(excluded.three,/2\/3/);
+  assert.match(excluded.two,/1\/2/);
+  assert.match(excluded.two,/descida V4/);
+  assert.match(excluded.note,/repetições suspeitas/);
+  assert.equal(excluded.review,true);
+  const sent=model.telegramDecision({...base,receipts:{three:{status:"sent",telegram_message_id:350}}});
+  assert.match(sent.three,/Enviado.*#350/);
+  const uncertain=model.telegramDecision({...base,receipts:{two:{status:"delivery_uncertain_manual_review"}}});
+  assert.match(uncertain.two,/Entrega incerta/);
+  assert.match(model.telegramDecision({...base,three_eligible:true}).three,/sem recibo/);
+});
 test("Static page: IDs exist, dedicated LAB entry and data endpoints are reachable by relative path",()=>{
   // Legacy H1 remains fully functional but is no longer the main entry.
   const html=fs.readFileSync(path.join(root,"docs/h1.html"),"utf8");
