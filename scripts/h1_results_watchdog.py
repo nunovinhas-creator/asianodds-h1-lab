@@ -17,9 +17,10 @@ from scripts.lab_ft_watchdog import OWNER_REPO, SOURCE_WORKFLOW, _json_request, 
 
 RECEIPT = Path('data/health/h1-results.json')
 # Free-tier safeguard: a completed H1 cycle checks at most 20 fixtures.
-# Never dispatch a fallback more often than once per 65 minutes; this is
-# <= 20 candidates/hour even if GitHub's best-effort hourly cron is delayed.
-# The original 90-minute fallback left verified first checks unnecessarily late.
+# Never dispatch a fallback more often than once per 65 minutes.
+# The normal hourly cron and its separate 45-minute due gate remain unchanged;
+# this bounds fallback frequency without promising an overall hourly quota.
+# The original 90-minute fallback left first checks unnecessarily late.
 MIN_AGE = timedelta(minutes=65)
 OUTPUTS = ('data/results.csv', 'data/result_audit.json')
 
