@@ -43,6 +43,10 @@ class HealthTests(unittest.TestCase):
         statuses={x['name']:x['status'] for x in r['checks']}
         self.assertEqual(statuses['ft_counts'],'OK')
         self.assertEqual(statuses['ft_backlog'],'OK')
+        report=json.loads((root/'docs/lab/ft-results.json').read_text())
+        self.assertGreaterEqual(report['final_recorded'],364)
+        self.assertEqual(report['coverage_diagnostics']['closed_unverified'],
+                         report['status_counts'].get('EXPIRED_UNVERIFIED',0))
         self.assertEqual(statuses['h1_replay'],'OK')
         self.assertEqual(statuses['collector'],'OK')
 
@@ -169,6 +173,43 @@ class HealthTests(unittest.TestCase):
         for altered in scenarios:
             with self.subTest(altered=altered),self.assertRaises(ValueError):
                 verify_ft_backlog(ledger,ft,altered)
+
+
+    def test_closed_unverified_is_terminal_and_keeps_final_immutable(self):
+        from copy import deepcopy
+        ledger={'matches':{
+            'a':{'status':'FINAL'}, 'b':{'status':'FINAL'},
+            'c':{'status':'EXPIRED_UNVERIFIED'}, 'd':{'status':'PENDING'},
+        }}
+        ft={'matches':4,'final_recorded':2,
+            'last_updated_at':'2026-11-01T09:33:00Z',
+            'coverage_diagnostics':{
+                'past_unverified_eligible':1,'closed_unverified':1}}
+        backlog={'schema_version':1,'status':'FT_BACKLOG_AUDIT_OBSERVATION_ONLY',
+            'measured_at':'2026-11-01T09:33:00Z','total_matches':4,
+            'classification':{'verified_ft':2,'closed_unverified':1,
+                              'past_due_unverified':1,'past_due_never_checked':1},
+            'overdue_games':[{'match_key':'d'}],'overdue_omitted':0,
+            'queue_plan':{'eligible':1,'selected':0,'deferred_by_capacity':1}}
+        expected=verify_ft_backlog(ledger,ft,backlog)
+        self.assertEqual((expected['matches'],expected['final'],expected['overdue']),(4,2,1))
+        # A closed game cannot silently re-enter the due queue or the final pool.
+        wrong=deepcopy(backlog)
+        wrong['overdue_games']=[{'match_key':'c'}]
+        with self.assertRaisesRegex(ValueError,'terminal'):
+            verify_ft_backlog(ledger,ft,wrong)
+        wrong=deepcopy(backlog)
+        wrong['classification']['closed_unverified']=0
+        with self.assertRaises(ValueError):
+            verify_ft_backlog(ledger,ft,wrong)
+        wrong=deepcopy(backlog)
+        wrong['classification']['closed_unverified']=2
+        with self.assertRaises(ValueError):
+            verify_ft_backlog(ledger,ft,wrong)
+        wrong_ft=deepcopy(ft)
+        wrong_ft['coverage_diagnostics']['closed_unverified']=0
+        with self.assertRaisesRegex(ValueError,'closed-unverified coverage'):
+            verify_ft_backlog(ledger,wrong_ft,backlog)
 
     def test_missing_ft_backlog_is_unknown_not_false_zero(self):
         from datetime import timedelta
