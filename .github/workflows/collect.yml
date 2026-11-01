@@ -47,6 +47,10 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          # Durable delivery state (see docs/audit/telegram-durable-activation.md). OFF unless the
+          # repository variable TG_DURABLE_INTENT is exactly "1".
+          TG_DURABLE_INTENT: ${{ vars.TG_DURABLE_INTENT == '1' && '1' || '0' }}
+          TG_IGNORE_AUTH_BLOCK: ${{ vars.TG_IGNORE_AUTH_BLOCK == '1' && '1' || '0' }}
         run: python -m h1lab.three_moves_notify
       # ADDITIVE alert. The existing three-movement sender above is unchanged.
       # At least two independent upward V4 Total moves, net >= 0.50, no V4 fall.
@@ -54,6 +58,10 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          # Durable delivery state (see docs/audit/telegram-durable-activation.md). OFF unless the
+          # repository variable TG_DURABLE_INTENT is exactly "1".
+          TG_DURABLE_INTENT: ${{ vars.TG_DURABLE_INTENT == '1' && '1' || '0' }}
+          TG_IGNORE_AUTH_BLOCK: ${{ vars.TG_IGNORE_AUTH_BLOCK == '1' && '1' || '0' }}
         run: python -m h1lab.two_up_notify
       - name: Store data for dashboard
         run: |
@@ -63,6 +71,8 @@ jobs:
           if [ -f data/pattern-notifications.json ]; then git add data/pattern-notifications.json; fi
           if [ -f data/three-total-moves-notifications.json ]; then git add data/three-total-moves-notifications.json; fi
           if [ -f data/two-up-total-notifications.json ]; then git add data/two-up-total-notifications.json; fi
+          # Shared Telegram pause (429 retry_after / 401 / 403): committed so it survives between jobs.
+          if [ -f data/telegram-delivery-block.json ] || git ls-files --error-unmatch data/telegram-delivery-block.json >/dev/null 2>&1; then git add -A -- data/telegram-delivery-block.json; fi
           if [ -d data/lab ]; then git add data/lab; fi
           if ! git diff --cached --quiet; then
             git commit -m 'data: collect and notify H1 [skip ci]'
