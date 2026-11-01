@@ -6,7 +6,7 @@ O separador **Mercados e jogos** em `docs/h1.html#market` passa a apresentar, po
 
 A classificação é calculada em `h1lab.telegram_eligibility` sobre os mesmos `collect_timelines` e validada, jogo a jogo, com `three_moves_notify.candidates` e `two_up_notify.candidates`. Qualquer divergência bloqueia o relatório e o bundle LAB, **sem** alterar os emissores ou o coletor H1. A auditoria não tem acesso aos segredos do bot, não envia mensagens, não toca em resultados FT, tickets, picks ou ledgers.
 
-`docs/lab/telegram-eligibility.json` é um derivado pequeno (máximo 250 KB), separado da cronologia de quase 2 MB. Inclui contagem de movimentos não planos V4, movimentos aceites em cada regra, exclusões por origem legada, linha estável, repetições, ambiguidades, mesmo episódio e observações fora do intervalo pré-jogo. Contém ainda os recibos oficiais dos dois ledgers; a ausência de recibo não prova falha de entrega. Recibos de entrega incerta exigem verificação manual, sem reenvio automático.
+`docs/lab/telegram-eligibility.json` é um derivado pequeno (máximo 512 KB), separado da cronologia de quase 2 MB. Inclui contagem de movimentos não planos V4, movimentos aceites em cada regra, exclusões por origem legada, linha estável, repetições, ambiguidades, mesmo episódio e observações fora do intervalo pré-jogo. Contém ainda os recibos oficiais dos dois ledgers; a ausência de recibo não prova falha de entrega. Recibos de entrega incerta exigem verificação manual, sem reenvio automático.
 
 ## Falsos negativos: o que significa "possível"
 
