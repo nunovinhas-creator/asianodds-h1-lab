@@ -72,11 +72,39 @@
        filter==="v4"&&(t.events||[]).some(e=>Object.values(e.snapshots||{}).some(m=>m.origin==="V4_EXPLICIT")));
     });
   }
-  const api={h1Metrics,labMetrics,sortedSignals,filteredSignals,filteredTimelines,ageState,roi,decimal,timeText};
+  function telegramDecision(row){
+    if(!row)return {three:"Sem auditoria de elegibilidade",two:"Sem auditoria de elegibilidade",note:"O painel não confirma o envio.",review:false};
+    const receipts=row.receipts||{};
+    function rule(key,eligible,count,threshold){
+      const receipt=receipts[key];
+      if(receipt?.status==="sent")return "Enviado · mensagem Telegram #"+receipt.telegram_message_id;
+      if(receipt?.status==="delivery_uncertain_manual_review")return "Entrega incerta · revisão manual";
+      if(eligible)return "Elegível · sem recibo publicado (verificar logs)";
+      return "Excluído · "+count+"/"+threshold+" movimentos válidos";
+    }
+    const three=rule("three",row.three_eligible,row.valid_three_moves,3);
+    let two=rule("two",row.two_eligible,row.valid_up_moves,2);
+    if(!row.two_eligible&&!receipts.two){
+      const n=Number(row.net_up)||0;
+      two+=" · subida líquida "+decimal(n)+(row.v4_down_observed?" · descida V4 observada":"");
+    }
+    const reason=row.reason||"Motivo indisponível";
+    const excludes=Object.entries(row.rejects||{}).filter(([,n])=>n>0);
+    const names={
+      suspected_duplicate:"repetições suspeitas",ambiguous_transition:"transições ambíguas",
+      same_episode:"mesmo episódio",not_explicit_v4:"sem V4 explícito",
+      flat_total_line:"Total estável",outside_decision_window:"fora da janela de decisão",
+      invalid_direction:"direção inválida",invalid_line:"linha inválida"
+    };
+    const proof=excludes.map(([k,n])=>n+" "+(names[k]||k)).join(" · ");
+    return {three,two,note:reason+(proof?" · Descartados: "+proof:""),
+      review:!!row.review_possible_false_negative};
+  }
+  const api={h1Metrics,labMetrics,sortedSignals,filteredSignals,telegramDecision,ageState,roi,decimal,timeText};
   if(typeof module==="object"&&module.exports)module.exports=api;
   if(typeof document==="undefined")return;
   const $=id=>document.getElementById(id);
-  const app={current:"overview",h1:null,v4:null,golden:null,timeline:null,priority:null,failures:[],loading:false};
+  const app={current:"overview",h1:null,v4:null,golden:null,timeline:null,telegram:null,priority:null,failures:[],loading:false};
   function e(tag,txt,cls){const x=document.createElement(tag);if(txt!=null)x.textContent=String(txt);if(cls)x.className=cls;return x;}
   function append(parent,...children){for(const c of children)if(c!=null)parent.append(c);return parent;}
   function clear(id){const x=$(id);if(x)x.replaceChildren();return x}
@@ -284,6 +312,23 @@
         status("1X2: "+count(t.trajectory?.one_x_two?.observations||0),""));
       if(t.possibly_redundant_event_ids?.length)tags.append(status(t.possibly_redundant_event_ids.length+" snapshot(s) possivelmente repetido(s)","warn"));
       box.append(tags,chart(t.trajectory?.total?.points||[]));
+      const matchingAudit=app.telegram?.schema_version===1 &&
+        app.telegram?.status==="READ_ONLY_PARITY_VERIFIED_NOT_DELIVERY_PROOF" &&
+        app.telegram?.source_commit===app.timeline?.source_commit;
+      const audit=matchingAudit?app.telegram.games?.[t.match_key]:null;
+      const notice=e("section",null,"telegram-audit");
+      notice.append(e("strong","Telegram · elegibilidade das duas regras"));
+      if(!matchingAudit||!audit){
+        notice.append(e("p","A aguardar auditoria compatível com esta cronologia; os alertas do gráfico não comprovam envios."));
+      }else{
+        const summary=telegramDecision(audit);
+        notice.append(e("p","3 movimentos: "+summary.three),
+          e("p","2 subidas: "+summary.two),
+          e("p","Motivo: "+summary.note));
+        if(summary.review)notice.append(e("p","Possível falso negativo: requer revisão da independência dos movimentos; não autoriza envio automático.","telegram-review"));
+        notice.append(e("small","Fotografia de "+dateTag(app.telegram.generated_at)+" · faltas de recibo não provam que o Telegram recusou o envio."));
+      }
+      box.append(notice);
       const foot=e("div",null,"market-foot");
       append(foot,e("span",count(t.related_messages?.length||0)+" pares relacionados"),
         e("span",count(t.trajectory?.total?.reversals?.length||0)+" reversões assinaladas"));
@@ -332,7 +377,7 @@
     app.loading=true;$("refresh").disabled=true;
     const paths={
       h1:"./data.json",v4:"./lab/v4-audit.json",golden:"./lab/golden-report.json",
-      timeline:"./lab/match-trajectories.json",priority:"./lab/golden-priority.json"
+      timeline:"./lab/match-trajectories.json",telegram:"./lab/telegram-eligibility.json",priority:"./lab/golden-priority.json"
     };
     const results=await Promise.all(Object.entries(paths).map(async ([key,path])=>{
       try{
