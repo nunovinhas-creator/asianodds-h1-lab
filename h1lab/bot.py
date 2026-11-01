@@ -2,7 +2,10 @@
 import json
 import os
 from urllib.error import HTTPError, URLError
+from datetime import datetime, timedelta, timezone
 from urllib.request import Request, urlopen
+
+from .telegram_block import BlockStore
 
 
 class BotDeliveryError(RuntimeError):
@@ -14,6 +17,11 @@ class BotDeliveryError(RuntimeError):
     outcome = "DELIVERY_UNCERTAIN"
 
 
+class BotBlockedError(BotDeliveryError):
+    """Not sent: a shared 429/401/403 block is active. No HTTP request was made."""
+    outcome = "NOT_SENT_BLOCKED"
+
+
 class BotRejectedError(BotDeliveryError):
     """Telegram answered with an explicit 4xx: the request was NOT accepted."""
     outcome = "DEFINITELY_REJECTED"
@@ -22,6 +30,23 @@ class BotRejectedError(BotDeliveryError):
         super().__init__(message)
         self.http_status = http_status
         self.retry_after = retry_after
+
+
+def _record_block(store, status, retry_after):
+    """Shared pause for every notifier: retry_after (429) or a 24h probe interval (401/403)."""
+    if status not in (429, 401, 403):
+        return
+    now = datetime.now(timezone.utc)
+    if status == 429:
+        wait = timedelta(seconds=retry_after if retry_after is not None else 300)
+        diagnosis = "FLOOD_WAIT_RETRY_AFTER" if retry_after is not None else "FLOOD_WAIT_CONSERVATIVE_5MIN"
+    else:
+        wait = timedelta(hours=24)
+        diagnosis = "AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"
+    try:
+        store.record(now + wait, status, now, diagnosis)
+    except OSError:
+        pass  # the rejection itself is still raised and recorded in the notifier ledger
 
 
 def _retry_after(exc):
@@ -41,6 +66,11 @@ def configured():
 
 
 def send_message(message):
+    store = BlockStore()
+    blocked = store.active(datetime.now(timezone.utc))
+    if blocked is not None:
+        raise BotBlockedError("TELEGRAM_SEND_BLOCKED: HTTP %s until %s (no request made)"
+                              % (blocked["http_status"], blocked["until"]))
     token = os.environ.get("TG_BOT_TOKEN", "").strip()
     chat_id = os.environ.get("TG_CHAT_ID", "").strip()
     if not token or not chat_id:
@@ -64,10 +94,12 @@ def send_message(message):
     except HTTPError as exc:
         # The exception repr and URL contain the bot secret. Never expose either.
         if 400 <= exc.code < 500:
+            retry_after = _retry_after(exc) if exc.code == 429 else None
+            _record_block(store, exc.code, retry_after)
             raise BotRejectedError(
                 "TELEGRAM_DELIVERY_REJECTED: HTTP " + str(exc.code) +
                 ". Check bot token, chat ID, and that the recipient started the bot.",
-                exc.code, _retry_after(exc) if exc.code == 429 else None) from None
+                exc.code, retry_after) from None
         raise BotDeliveryError(
             "TELEGRAM_DELIVERY_UNCERTAIN: HTTP " + str(exc.code) +
             ". A server error does not prove the message was not accepted.") from None

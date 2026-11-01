@@ -136,7 +136,7 @@ def empty_ledger(now):
             "activated_at": now.isoformat(timespec="seconds"), "entries": {}}
 
 
-def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persist=None):
+def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persist=None, store=None):
     """One initial message per eligible fixture, all future kickoff dates.
 
     Ambiguous Telegram deliveries get a persistent review state, not retries.
@@ -150,6 +150,7 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persis
         clock = lambda: now
     stats = {"eligible_future": len(rows), "sent": 0, "already_notified": 0,
              "unconfigured": 0, "expired": 0, "uncertain": 0}
+    store = store or delivery.default_store()
     delivery.sweep(ledger, clock(), stats)
     attempts = 0
     for row in sorted(rows, key=lambda r: (r["kickoff_utc"], r["match_key"])):
@@ -160,7 +161,7 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persis
         key = row["match_key"]
         if delivery.gate(ledger, key, kickoff, clock(), stats) == "skip":
             continue
-        if delivery.blocked(ledger, clock()):
+        if delivery.blocked(store, clock()):
             delivery._bump(stats, "suspended")
             continue
         if not enabled:
@@ -178,7 +179,7 @@ def process(rows, ledger, now, sender, enabled, *, pace=None, clock=None, persis
         outcome = delivery.deliver(
             ledger, key, sender, message_for_game(row),
             {"kickoff_utc": row["kickoff_utc"], "rule_version": RULE_VERSION,
-             "movement_event_ids": [m["event_id"] for m in row["movements"]]}, {"observed_through": row["observed_through"], "movements_at_send": row["movement_count"]}, clock, persist, stats)
+             "movement_event_ids": [m["event_id"] for m in row["movements"]]}, {"observed_through": row["observed_through"], "movements_at_send": row["movement_count"]}, clock, persist, stats, store)
         if outcome == "stop":
             break
     return ledger, stats
@@ -210,11 +211,18 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None, *, dry_run=F
                 print("MATCH", row["match_label"], row["kickoff_utc"],
                       "moves", row["movement_count"], "reversals", row["reversals"])
         return ledger
+    publish = (delivery.git_intent_publisher(root, str(LEDGER))
+               if delivery.durable_enabled() else None)
+
+    def persist(value):
+        _write(path, value)
+        if publish is not None and delivery.has_intent(value):
+            publish()  # opt-in TG_DURABLE_INTENT=1: push the intent BEFORE the HTTP call
     ledger, stats = process(rows, ledger, now, sender,
                             configured() if bot_enabled is None else bot_enabled,
                             pace=lambda: time.sleep(1.2),
                             clock=(lambda: datetime.now(timezone.utc)) if realtime else (lambda: now),
-                            persist=lambda value: _write(path, value))
+                            persist=persist)
     _write(path, ledger)
     print("MASTER_BRAIN_THREE_TOTAL_MOVES_NOTIFY", stats,
           "timeline_issues", issues, "excluded_observations", excluded,

@@ -3,23 +3,34 @@
 States stored in a notification ledger entry (``entries[match_key]``):
 
   sent                              SENT_CONFIRMED - API returned a valid message_id. Terminal; never resent.
-  delivery_uncertain_manual_review  DELIVERY_UNCERTAIN - network/timeout/5xx/no message_id, or a crash after
-                                    the send started. Terminal; NEVER resent automatically (duplicate guard).
+  delivery_uncertain_manual_review  DELIVERY_UNCERTAIN - network/timeout/5xx/no message_id, or a run that
+                                    ended after the send started. Terminal; NEVER resent automatically.
   delivery_rejected                 DEFINITELY_REJECTED (retryable) - explicit 429/401/403. Waits for
-                                    ``retry_not_before``; bounded by MAX_REJECTED_ATTEMPTS and by kickoff.
+                                    ``retry_not_before``; bounded attempts; only before kickoff.
   delivery_rejected_final           DEFINITELY_REJECTED (not retryable) - other 4xx, or attempts exhausted.
-  expired_not_sent                  EXPIRED_NOT_SENT - a rejected alert whose game started before a safe retry.
-  send_in_progress                  Intent persisted just before the HTTP call. Found on a later run it means
-                                    the process died mid-send: it is converted to uncertain, never resent.
+  expired_not_sent                  EXPIRED_NOT_SENT - the safe retry time is at/after kickoff, or the game
+                                    started while the alert was suspended.
+  send_in_progress                  Intent persisted before the HTTP call. Found by a later run it means the
+                                    process ended mid-send: converted to uncertain, never resent.
 
-A ``delivery_block`` object at ledger level pauses every send after 429 (retry_after) or 401/403.
-Eligibility rules are not touched here. Transient states are not published as receipts.
+Delivery guarantees (honest):
+  * Default (workflow commits the ledger only at the end of the job): AT-LEAST-ONCE across jobs. If the
+    job dies after Telegram accepted a message and before the ledger commit, the next job can resend.
+  * With TG_DURABLE_INTENT=1 (opt-in; a push of the ledger BEFORE each send, a handful of tiny commits
+    per day): AT-MOST-ONCE. A crash can lose an alert (flagged uncertain for manual review) but cannot
+    duplicate it. Exactly-once is not claimable: Telegram offers no idempotency key.
+
+The 429/401/403 pause lives in the shared ``telegram_block`` file, not in a ledger, so every notifier
+that sends through ``bot.send_message`` honours it. Eligibility rules are not touched here.
 """
 from __future__ import annotations
 
+import os
+import subprocess
 from datetime import datetime, timedelta, timezone
 
 from .bot import BotDeliveryError, BotRejectedError
+from .telegram_block import BlockStore
 
 SENT = "sent"
 UNCERTAIN = "delivery_uncertain_manual_review"
@@ -29,10 +40,17 @@ REJECTED_FINAL = "delivery_rejected_final"
 EXPIRED = "expired_not_sent"
 
 TERMINAL_RECEIPT_STATUSES = (SENT, UNCERTAIN, REJECTED_FINAL, EXPIRED)
-MAX_REJECTED_ATTEMPTS = 3
-AUTH_BLOCK = timedelta(hours=6)
-DEFAULT_RETRY_AFTER = timedelta(minutes=5)
-MAX_RETRY_AFTER = timedelta(hours=6)
+MAX_FLOOD_ATTEMPTS = 6
+MAX_AUTH_ATTEMPTS = 2
+AUTH_PROBE_INTERVAL = timedelta(hours=24)
+BACKOFF_BASE = timedelta(minutes=5)
+BACKOFF_CAP = timedelta(hours=1)
+RETRY_MARGIN = timedelta(seconds=1)
+AUTH_DIAGNOSIS = "AUTH_REJECTED_CHECK_TG_BOT_TOKEN_AND_TG_CHAT_ID"
+
+
+class IntentNotDurable(RuntimeError):
+    """The pre-send intent could not be made durable; nothing was sent."""
 
 
 def _utc(value):
@@ -51,24 +69,22 @@ def _iso(moment):
     return moment.astimezone(timezone.utc).isoformat(timespec="seconds")
 
 
-def blocked(ledger, moment):
-    block = ledger.get("delivery_block")
-    until = _utc(block.get("until")) if isinstance(block, dict) else None
-    return block if until is not None and moment < until else None
+def default_store():
+    return BlockStore()
+
+
+def blocked(store, moment):
+    return store.active(moment)
 
 
 def gate(ledger, key, kickoff, moment, stats):
-    """Decide what to do with a game that may already have an entry.
-
-    Returns 'send' (go on), or 'skip'. May rewrite a stale entry in place.
-    """
+    """Decide what to do with a game that may already have an entry: 'send' or 'skip'."""
     entry = ledger["entries"].get(key)
     if entry is None:
         return "send"
     status = entry.get("status")
     if status == IN_PROGRESS:
-        ledger["entries"][key] = {**entry, "status": UNCERTAIN,
-                                  "reason": "process_ended_during_send"}
+        ledger["entries"][key] = {**entry, "status": UNCERTAIN, "reason": "process_ended_during_send"}
         _bump(stats, "uncertain")
         return "skip"
     if status == REJECTED:
@@ -101,43 +117,65 @@ def sweep(ledger, moment, stats):
                 _bump(stats, "expired_not_sent")
 
 
-def deliver(ledger, key, sender, message, base, sent_fields, clock, persist, stats):
-    """Send once. Returns 'sent', 'continue' or 'stop' (global block raised)."""
-    previous = ledger["entries"].get(key) or {}
-    attempts = int(previous.get("attempts", 0)) + 1
+def _wait_for(exc, attempts):
+    if exc.http_status == 429:
+        if exc.retry_after is not None:
+            return timedelta(seconds=exc.retry_after) + RETRY_MARGIN, "FLOOD_WAIT_RETRY_AFTER"
+        wait = min(BACKOFF_BASE * (2 ** max(0, attempts - 1)), BACKOFF_CAP)
+        return wait, "FLOOD_WAIT_CONSERVATIVE_BACKOFF"
+    if exc.http_status in (401, 403):
+        return AUTH_PROBE_INTERVAL, AUTH_DIAGNOSIS
+    return None, None
+
+
+def deliver(ledger, key, sender, message, base, sent_fields, clock, persist, stats, store=None):
+    """Send at most once. Returns 'sent', 'continue' or 'stop' (shared block raised / intent failed)."""
+    store = store or default_store()
+    previous = ledger["entries"].get(key)
+    attempts = int((previous or {}).get("attempts", 0)) + 1
     started = clock()
-    # Persist the intent first: a crash from here on can only yield UNCERTAIN, never a resend.
+    # Persist the intent first: from here on a dead process can only yield UNCERTAIN, never a resend.
     ledger["entries"][key] = {**base, "status": IN_PROGRESS, "at": _iso(started), "attempts": attempts}
     if persist is not None:
-        persist(ledger)
+        try:
+            persist(ledger)
+        except Exception:
+            if previous is None:
+                ledger["entries"].pop(key, None)
+            else:
+                ledger["entries"][key] = previous
+            _bump(stats, "intent_not_durable")
+            return "stop"  # fail closed: never send what could not be recorded durably
     try:
         mid = sender(message)
         if isinstance(mid, bool) or not isinstance(mid, int):
             raise BotDeliveryError("TELEGRAM_DELIVERY_UNCERTAIN: missing message ID")
     except BotRejectedError as exc:
         moment = clock()
-        retryable = exc.http_status in (429, 401, 403) and attempts < MAX_REJECTED_ATTEMPTS
+        wait, diagnosis = _wait_for(exc, attempts)
         entry = {**base, "at": _iso(moment), "attempts": attempts, "http_status": exc.http_status}
-        if exc.http_status == 429:
-            wait = timedelta(seconds=exc.retry_after) if exc.retry_after is not None else DEFAULT_RETRY_AFTER
-            wait = min(wait, MAX_RETRY_AFTER)
-        elif exc.http_status in (401, 403):
-            wait = AUTH_BLOCK
+        stop = False
+        if wait is not None:
+            store.record(moment + wait, exc.http_status, moment, diagnosis)
+            stop = True
+            entry["diagnosis"] = diagnosis
+        limit = MAX_FLOOD_ATTEMPTS if exc.http_status == 429 else MAX_AUTH_ATTEMPTS
+        kickoff = _utc(base.get("kickoff_utc"))
+        if wait is None:
+            entry.update(status=REJECTED_FINAL, reason="http_4xx_not_retryable")
+        elif attempts >= limit:
+            entry.update(status=REJECTED_FINAL, reason="attempts_exhausted")
+        elif kickoff is not None and moment + wait >= kickoff:
+            entry.update(status=EXPIRED, expired_at=_iso(moment), reason="retry_not_before_kickoff",
+                         retry_not_before=_iso(moment + wait))
+            _bump(stats, "expired_not_sent")
         else:
-            wait = None
-        if exc.http_status in (429, 401, 403) and wait is not None:
-            ledger["delivery_block"] = {"until": _iso(moment + wait), "http_status": exc.http_status,
-                                        "set_at": _iso(moment)}
-        if retryable:
             entry.update(status=REJECTED, retry_not_before=_iso(moment + wait))
-        else:
-            entry.update(status=REJECTED_FINAL,
-                         reason="attempts_exhausted" if exc.http_status in (429, 401, 403) else "http_4xx_not_retryable")
         ledger["entries"][key] = entry
         _bump(stats, "rejected")
         if persist is not None:
             persist(ledger)
-        return "stop" if exc.http_status in (429, 401, 403) else "continue"
+        return "stop" if stop else "continue"
     except BotDeliveryError:
         ledger["entries"][key] = {**base, "status": UNCERTAIN, "at": _iso(clock()), "attempts": attempts}
         _bump(stats, "uncertain")
@@ -146,8 +184,47 @@ def deliver(ledger, key, sender, message, base, sent_fields, clock, persist, sta
         return "continue"
     ledger["entries"][key] = {**base, **sent_fields, "status": SENT, "telegram_message_id": mid,
                               "at": _iso(started), "attempts": attempts}
-    ledger.pop("delivery_block", None)  # a confirmed send proves the credentials/limit recovered
     _bump(stats, "sent")
     if persist is not None:
         persist(ledger)
     return "sent"
+
+
+def has_intent(ledger):
+    return any(isinstance(e, dict) and e.get("status") == IN_PROGRESS for e in ledger.get("entries", {}).values())
+
+
+def git_intent_publisher(root, relpath, *, branch=None, retries=3, git=None):
+    """Return ``publish(ledger_path_written)`` that pushes the ledger before a send (opt-in).
+
+    commit -> push; on rejection: fetch + rebase + push again (bounded). Any failure raises
+    IntentNotDurable so ``deliver`` refuses to send (fail closed). Data-only tiny commits.
+    """
+    def run(*args):
+        if git is not None:
+            return git(root, *args)
+        return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout
+
+    def publish():
+        try:
+            target = branch or run("rev-parse", "--abbrev-ref", "HEAD").strip()
+            run("add", "--", relpath)
+            if not run("diff", "--cached", "--name-only").strip():
+                return
+            run("-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
+                "commit", "-m", "data: telegram delivery intent [skip ci]", "--", relpath)
+            for _ in range(retries):
+                try:
+                    run("push", "origin", "HEAD:refs/heads/" + target)
+                    return
+                except subprocess.CalledProcessError:
+                    run("fetch", "origin", target)
+                    run("rebase", "origin/" + target)
+            raise IntentNotDurable("push rejected after %d attempts" % retries)
+        except subprocess.CalledProcessError as exc:
+            raise IntentNotDurable("git failed") from exc
+    return publish
+
+
+def durable_enabled():
+    return os.environ.get("TG_DURABLE_INTENT") == "1"
