@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import three_moves_notify, two_up_notify
+from .telegram_delivery import IN_PROGRESS, REJECTED, TERMINAL_RECEIPT_STATUSES
 from .timeline import (DEFAULT_MAX_TIMELINES, collect_timelines,
                        read_sources, utc)
 
@@ -163,7 +164,11 @@ def build(timelines, now, receipts_three=None, receipts_two=None,
             entry = ledger.get(key)
             if entry is not None:
                 status = entry.get("status")
-                if status not in ("sent", "delivery_uncertain_manual_review"):
+                if status in (REJECTED, IN_PROGRESS):
+                    # Transient (retry pending / intent). Not a receipt: publishing it
+                    # would break receipt immutability when it later becomes `sent`.
+                    continue
+                if status not in TERMINAL_RECEIPT_STATUSES:
                     raise ValueError("Unknown receipt status: " + str(status))
                 delivered[label] = {"status": status,
                                     "telegram_message_id": entry.get("telegram_message_id")}
