@@ -20,7 +20,9 @@ BODY = json.dumps({"event": {"id": 67067, "status": "finished", "home": 2, "away
 
 def bsd_parse(body, match_key):
     data = json.loads(body)["event"]
-    return {"home_goals": data["home"], "away_goals": data["away"]} if data["status"] == "finished" else None
+    if data["status"] != "finished":
+        return None
+    return {"event_id": data["id"], "home_goals": data["home"], "away_goals": data["away"]}
 
 
 PARSERS = {"bsd": ("bsd-v11", bsd_parse)}
@@ -30,7 +32,8 @@ def observation(**over):
     obs = {"match_key": "2026-11-02,59190,67067", "provider": "bsd",
            "kickoff_utc": KICKOFF.isoformat(), "observed_at": OBSERVED.isoformat(),
            "http_status": 200, "adapter_version": "bsd-v11",
-           "endpoint": "https://sports.bzzoiro.com/api/v2/events/67067/", "body": BODY}
+           "endpoint": "https://sports.bzzoiro.com/api/v2/events/67067/", "body": BODY,
+           "provider_event_id": "67067"}
     obs.update(over)
     return obs
 
@@ -66,7 +69,7 @@ class CheckpointRules(unittest.TestCase):
         with patch("urllib.request.urlopen", side_effect=AssertionError("provider call")):
             reusable, refused = self.replay(ck.load(path), OBSERVED + timedelta(minutes=40))
         self.assertEqual(refused, [])
-        self.assertEqual(reusable[0].derived, {"home_goals": 2, "away_goals": 1})
+        self.assertEqual(reusable[0].derived, {"event_id": 67067, "home_goals": 2, "away_goals": 1})
         self.assertFalse(reusable[0].certified)
         self.assertFalse(hasattr(reusable[0], "status"))
         with self.assertRaises(ck.CheckpointRefused):
@@ -133,6 +136,51 @@ class CheckpointRules(unittest.TestCase):
         self.assertEqual(len(list(self.dir.glob("ft-checkpoint-*.json"))), 1)
         with self.assertRaisesRegex(ck.CheckpointRefused, "different checkpoint"):
             ck.write_once(self.dir, document(rejection_reasons=["other"]))
+
+
+class ProvenanceReview(unittest.TestCase):
+    """Phase-5 review items: the local seal is integrity, not authenticated origin."""
+
+    def run_record(self, **over):
+        rec = {"id": 41393026365, "repository": ck.SOURCE_REPOSITORY, "path": ck.SOURCE_WORKFLOW,
+               "head_sha": "9eb7f3f7357903dd75032980f471454723a739e3",
+               "created_at": "2026-11-02T05:16:15Z", "updated_at": "2026-11-02T05:17:51Z"}
+        rec.update(over)
+        return rec
+
+    def test_github_vouches_for_workflow_commit_bytes_and_time(self):
+        doc = document()
+        raw = ck._canonical(doc)
+        digest = hashlib.sha256(raw).hexdigest()
+        self.assertEqual(ck.verify_provenance(doc, self.run_record(), digest, raw), {"41393026365"})
+        for bad in ({"path": ".github/workflows/other.yml"}, {"repository": "evil/fork"},
+                    {"head_sha": "0" * 40}, {"id": 1}, {"updated_at": "2026-11-02T05:16:59Z"}):
+            with self.subTest(bad=bad), self.assertRaises(ck.CheckpointRefused):
+                ck.verify_provenance(doc, self.run_record(**bad), digest, raw)
+
+    def test_body_swap_with_recomputed_hashes_is_caught_by_github_digest(self):
+        doc = document()
+        digest = hashlib.sha256(ck._canonical(doc)).hexdigest()   # what GitHub stored
+        forged = json.loads(ck._canonical(doc))
+        new_body = json.dumps({"event": {"id": 67067, "status": "finished", "home": 0, "away": 3}}).encode()
+        forged["observations"][0]["body_b64"] = __import__("base64").b64encode(new_body).decode()
+        forged["observations"][0]["body_sha256"] = hashlib.sha256(new_body).hexdigest()
+        forged.pop("seal")
+        forged["seal"] = hashlib.sha256(ck._canonical(forged)).hexdigest()   # locally "valid"
+        with self.assertRaisesRegex(ck.CheckpointRefused, "differ from the artifact"):
+            ck.verify_provenance(forged, self.run_record(), digest, ck._canonical(forged))
+
+    def test_premature_other_game_and_header_fields_refused(self):
+        with self.assertRaisesRegex(ck.CheckpointRefused, "Premature"):
+            document(observations=[observation(observed_at=(KICKOFF + timedelta(minutes=60)).isoformat())])
+        with self.assertRaisesRegex(ck.CheckpointRefused, "Unexpected observation fields"):
+            document(observations=[observation(headers={"x-apisports-key": "k"})])
+        with self.assertRaisesRegex(ck.CheckpointRefused, "event id"):
+            document(observations=[observation(provider_event_id="")])
+        other = document(observations=[observation(provider_event_id="99999")])
+        reusable, refused = ck.replay(other, now=OBSERVED + timedelta(minutes=5), parsers=PARSERS,
+                                      trusted_run_ids={"41393026365"})
+        self.assertEqual((reusable, refused[0][2]), ([], "identity_mismatch"))
 
 
 class BareGitRejectionDemo(base.GitFTPublicationTests):

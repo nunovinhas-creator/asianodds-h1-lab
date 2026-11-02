@@ -80,3 +80,23 @@ No workflow, producer or publisher imports the module; enabling it needs a separ
 | Interruption / concurrency | child killed between write and publish leaves no checkpoint and rerun succeeds; 4 concurrent writers → one identical file |
 
 Run: `python -m unittest tests.test_lab_ft_observation_checkpoint`.
+
+## Security/provenance review (2026-11-02, Architect phase 5) — still a demonstration
+
+| Item | Status |
+|---|---|
+| Workflow authenticity (not just run-id format) | `verify_provenance()` requires the GitHub Actions API run record: repository, workflow path `lab-ft-results.yml`, `head_sha` == `code_commit`, run id. **Fetching that record is not implemented** (would need the API + token in the replaying job). |
+| Run ↔ commit ↔ config | `code_commit` must equal the run's `head_sha`; `config_sha256` stored but **not yet recomputed** from a known config manifest. |
+| Request ↔ response | `exchange_sha256` binds endpoint + provider event id + body hash; replay refuses a body whose parsed `event_id` differs (`identity_mismatch`). |
+| Timestamp origin | `observed_at` is self-reported by the run; it must fall inside `[run.created_at, run.updated_at]` from GitHub. Sub-run precision is not authenticated. |
+| Body swap + recomputed hashes | The seal is **integrity, not authentication**: a forged, resealed file passes `load()`; it is refused only by the GitHub artifact digest check (test). |
+| Premature / out-of-window | refused before kickoff+95 min, after kickoff+24 h (at observation and at replay) |
+| Other games | provider event id must match the parsed body |
+| Current parser | always re-parses; `None` → refused |
+| Secrets/headers | field whitelist (no headers/cookies), credential pattern scan on bodies |
+| Size/retention | 200 obs, 64 KiB/body, 2 MiB/file; intended Actions artifact with 2-day retention (future, flag OFF by default) |
+| Never FINAL | `UncertifiedObservation` only; certification stays in the normal path |
+
+Residual risks before any wiring: the GitHub artifact digest is computed over the uploaded **zip**,
+so the verifier must download the artifact and compare the zip digest before extracting; API access
+and token scope for the replaying job; config manifest hashing; clock trust inside a run.

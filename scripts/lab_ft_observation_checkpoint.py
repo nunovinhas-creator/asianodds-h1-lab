@@ -35,6 +35,12 @@ from pathlib import Path
 SCHEMA = 1
 WINDOW = timedelta(hours=24)
 MAX_AGE = timedelta(hours=6)
+# An FT observation earlier than this after kickoff cannot be a full-time result.
+MIN_FT_DELAY = timedelta(minutes=95)
+SOURCE_WORKFLOW = ".github/workflows/lab-ft-results.yml"
+SOURCE_REPOSITORY = "nunovinhas-creator/asianodds-h1-lab"
+ALLOWED_OBSERVATION_KEYS = {"match_key", "provider", "kickoff_utc", "observed_at", "http_status",
+                            "adapter_version", "endpoint", "body", "provider_event_id"}
 MAX_OBSERVATIONS = 200
 MAX_BODY_BYTES = 64 * 1024
 MAX_FILE_BYTES = 2 * 1024 * 1024
@@ -82,6 +88,11 @@ def build(*, run_id, code_commit, remote_commit, config_sha256, rejection_reason
         raise CheckpointRefused("Observation count outside limits")
     rows = []
     for obs in observations:
+        extra = set(obs) - ALLOWED_OBSERVATION_KEYS
+        if extra:  # e.g. request/response headers, cookies, auth: never stored
+            raise CheckpointRefused("Unexpected observation fields: %s" % sorted(extra))
+        if not str(obs.get("provider_event_id") or ""):
+            raise CheckpointRefused("Observation not bound to a provider event id")
         body = obs["body"]
         if not isinstance(body, bytes) or len(body) > MAX_BODY_BYTES:
             raise CheckpointRefused("Observation body outside limits")
@@ -90,11 +101,18 @@ def build(*, run_id, code_commit, remote_commit, config_sha256, rejection_reason
         kickoff, observed = _utc(obs["kickoff_utc"]), _utc(obs["observed_at"])
         if observed > kickoff + WINDOW:
             raise CheckpointRefused("Observation made after the 24 h window: " + obs["match_key"])
+        if observed < kickoff + MIN_FT_DELAY:
+            raise CheckpointRefused("Premature FT observation: " + obs["match_key"])
         rows.append({
             "match_key": obs["match_key"], "provider": obs["provider"],
             "kickoff_utc": kickoff.isoformat(), "observed_at": observed.isoformat(),
             "http_status": int(obs["http_status"]), "adapter_version": str(obs["adapter_version"]),
             "endpoint_sha256": hashlib.sha256(obs["endpoint"].encode()).hexdigest(),
+            "provider_event_id": str(obs["provider_event_id"]),
+            # request <-> response binding: the response hash is tied to this exact request
+            "exchange_sha256": hashlib.sha256(
+                obs["endpoint"].encode() + b"\0" + str(obs["provider_event_id"]).encode()
+                + b"\0" + hashlib.sha256(body).hexdigest().encode()).hexdigest(),
             "body_sha256": hashlib.sha256(body).hexdigest(),
             "body_b64": base64.b64encode(body).decode(),
         })
@@ -149,6 +167,30 @@ def load(path):
     return doc
 
 
+def verify_provenance(doc, run, artifact_sha256, raw_bytes):
+    """Authenticity comes from GitHub, not from the local hash.
+
+    ``run`` is the workflow-run record fetched from the GitHub Actions API by run id (repository,
+    workflow path, head_sha, event, created_at, updated_at); ``artifact_sha256`` is the digest
+    GitHub reports for the uploaded artifact. The seal only proves internal integrity: anyone can
+    recompute it after swapping a body, so a checkpoint is trusted only when GitHub vouches for the
+    exact bytes, the source workflow and the commit, and every observation falls inside the run.
+    """
+    if str(run.get("id")) != doc["run_id"]:
+        raise CheckpointRefused("Run id mismatch")
+    if run.get("repository") != SOURCE_REPOSITORY or run.get("path") != SOURCE_WORKFLOW:
+        raise CheckpointRefused("Checkpoint not produced by the FT workflow of this repository")
+    if run.get("head_sha") != doc["code_commit"]:
+        raise CheckpointRefused("Checkpoint code commit differs from the run's commit")
+    if hashlib.sha256(raw_bytes).hexdigest() != artifact_sha256:
+        raise CheckpointRefused("Checkpoint bytes differ from the artifact GitHub stored")
+    start, end = _utc(run["created_at"]), _utc(run["updated_at"])
+    for row in doc["observations"]:
+        if not start <= _utc(row["observed_at"]) <= end:
+            raise CheckpointRefused("Observation timestamp outside the source run")
+    return {doc["run_id"]}
+
+
 def replay(doc, *, now, parsers, trusted_run_ids, max_age=MAX_AGE):
     """Re-derive evidence with the CURRENT parsers. No network. Returns (reusable, refused).
 
@@ -180,9 +222,14 @@ def replay(doc, *, now, parsers, trusted_run_ids, max_age=MAX_AGE):
             reason = "provider_parser_unavailable"
         elif row["http_status"] != 200:
             reason = "non_200_observation"
+        elif observed < kickoff + MIN_FT_DELAY:
+            reason = "premature_observation"
         if reason is None:
             version, parse = parsers[row["provider"]]
             derived = parse(body, key)
+            if derived is not None and str(derived.get("event_id")) != row["provider_event_id"]:
+                refused.append((key, row["provider"], "identity_mismatch"))
+                continue
             if derived is None:
                 reason = "not_rederivable_by_current_parser"
                 if version != row["adapter_version"]:
