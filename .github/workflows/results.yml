@@ -70,6 +70,21 @@ jobs:
           git add -f data/health/h1-results.json
           if ! git diff --cached --quiet; then
             git commit -m "data: reconcile verified H1 finals [skip ci]"
-            git pull --rebase origin main
-            git push origin main
+            # No rebase, no force push, no provider re-query: transport the H1
+            # outputs over concurrent LAB/FT/V4 commits after proving they are
+            # independent; refuse code changes and contradictory results.
+            python -m scripts.h1_publish_safe --base "$H1_SOURCE_SHA" \
+              --receipt "$RUNNER_TEMP/h1-publish-receipt.json" \
+              --bundle "$RUNNER_TEMP/h1-unpublished.bundle"
           fi
+      - name: Keep the H1 publication receipt
+        if: always() && steps.due.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-publish-receipt-${{ github.run_id }}
+          # On failure the unpublished H1 commit (results, audit, receipt) is kept as a bundle.
+          path: |
+            ${{ runner.temp }}/h1-publish-receipt.json
+            ${{ runner.temp }}/h1-unpublished.bundle
+          if-no-files-found: ignore
+          retention-days: 30
