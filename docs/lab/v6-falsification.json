@@ -61,15 +61,15 @@
             "residual": -0.2852
           },
           "RISING_WITH_FLAT": {
-            "market": 0.5315,
-            "n": 7,
-            "observed": 0.5714,
-            "residual": 0.04
+            "market": 0.5468,
+            "n": 8,
+            "observed": 0.625,
+            "residual": 0.0782
           }
         }
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 26,
+      "n": 27,
       "required": "two episode-category cells with >=10 genuine scored FT each",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -149,10 +149,10 @@
             "residual": -0.0495
           },
           "6_TO_24H": {
-            "market": 0.5891,
-            "n": 11,
-            "observed": 0.6364,
-            "residual": 0.0473
+            "market": 0.5945,
+            "n": 12,
+            "observed": 0.6667,
+            "residual": 0.0722
           },
           "GT_24H": {
             "market": 0.5591,
@@ -169,7 +169,7 @@
         }
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 32,
+      "n": 33,
       "required": "two lead-time strata each with >=20 eligible FT",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -212,10 +212,10 @@
             "residual": -0.041
           },
           "LEAGUE_OTHER": {
-            "market": 0.5761,
-            "n": 26,
-            "observed": 0.4615,
-            "residual": -0.1146
+            "market": 0.579,
+            "n": 27,
+            "observed": 0.4815,
+            "residual": -0.0975
           },
           "UNKNOWN": {
             "market": 0.6474,
@@ -226,7 +226,7 @@
         }
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 32,
+      "n": 33,
       "required": "two heuristic competition types with >=20 scored FT each",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -262,16 +262,16 @@
       "diagnostics": {
         "days": 5,
         "leave_one_day_out_residual": {
-          "2026-10-28": -0.0963,
-          "2026-10-29": -0.1256,
-          "2026-10-30": -0.0559,
-          "2026-10-31": -0.038,
+          "2026-10-28": -0.0805,
+          "2026-10-29": -0.1068,
+          "2026-10-30": -0.0392,
+          "2026-10-31": -0.022,
           "2026-11-01": -0.0638
         },
-        "trimmed_residual": -0.034
+        "trimmed_residual": -0.0218
       },
       "meaning": "DESCRIPTIVE_SCREEN_NOT_OOS_APPROVAL",
-      "n": 32,
+      "n": 33,
       "required": "30 selected FT spanning 3 days, leave-one-day-out and trim highest 5% absolute residual",
       "result": "FAIL",
       "source_match_keys": [
@@ -306,17 +306,17 @@
       "code": "F07_RESIDUAL_VS_MARKET",
       "diagnostics": {
         "compared_to_market": {
-          "market": 0.5762,
-          "n": 32,
-          "observed": 0.5,
-          "residual": -0.0762
+          "market": 0.5785,
+          "n": 33,
+          "observed": 0.5152,
+          "residual": -0.0634
         },
         "distinct_weeks": 1,
         "formal_e_process_required_independently": true,
         "not_a_p_value": true
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 32,
+      "n": 33,
       "required": ">=1000 FT after hypothesis registration across >=3 weeks; mean residual > 5 pp",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -355,7 +355,7 @@
         "within_line_residual_uplift_vs_controls": {}
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 32,
+      "n": 33,
       "required": "two market-line bins with >=20 selected AND 20 controls each",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -390,10 +390,10 @@
       "code": "F09_MATCHED_MARKET_PEERS",
       "diagnostics": {
         "match_method": "fixed scales, greedy, no control reuse",
-        "matched_mean_residual_difference": 0.0062
+        "matched_mean_residual_difference": 0.0059
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 27,
+      "n": 28,
       "required": "30 no-reuse peers within lambda 0.25 and lead time 6h",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -430,13 +430,13 @@
         "coverage_gate": "WARMUP",
         "coverage_is_source_observable_not_delivery_certification": true,
         "invalid_freezes": 0,
-        "prospective_pattern_without_ft": 63,
+        "prospective_pattern_without_ft": 62,
         "registered_at": "2026-10-28T14:41:35+00:00",
-        "scored_fraction_of_observed_selected": 0.3368421052631579,
-        "selected_with_clean_ft": 32
+        "scored_fraction_of_observed_selected": 0.3473684210526316,
+        "selected_with_clean_ft": 33
       },
       "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 32,
+      "n": 33,
       "required": "1000 registered genuine FT in >=3 weeks AND source coverage 14-day gate",
       "result": "INSUFFICIENT_N",
       "source_match_keys": [
@@ -469,19 +469,19 @@
     }
   ],
   "data_lineage": {
-    "confirmed_evidence_events": 313,
+    "confirmed_evidence_events": 316,
     "excluded_reasons": {
       "captured_before_formal_registration": 89,
-      "ft_missing_or_quarantined": 398,
+      "ft_missing_or_quarantined": 396,
       "no_clean_market_probability": 170,
       "not_completed_prospective_freeze": 99
     },
     "forecast_journal_tail": "d1ea1ebf027e091f009d77f10ac9a412aeb687b7e057edf1e68265d3d4dd6530",
     "frozen_records": 1283,
-    "memory_evidence_tail": "bdfa3754da500be46d869036b8b8f66b5575a841ae381de51e381aff822bc131",
+    "memory_evidence_tail": "c9ca1e42ea16a5f15e7a3f0e70c2815b18bb95d275ff24d4a292d58e1660c4dc",
     "source": "frozen forecasts + append-only V6 FT evidence; no historical V5 backfill"
   },
-  "evaluation_clock": "2026-11-02T00:06:34+00:00",
+  "evaluation_clock": "2026-11-02T00:11:32+00:00",
   "hypothesis_definition_sha256": "3a2ad8c8a23443e1eb20e83bb5d753279ba93762c2efcb2947a1b5dd3e8900a0",
   "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
   "limitations": [
@@ -495,11 +495,11 @@
   "overall": "INCONCLUSIVO",
   "registered_at": "2026-10-28T14:41:35+00:00",
   "sample": {
-    "controls_scored": 166,
+    "controls_scored": 167,
     "eligible_completed": 596,
-    "eligible_scored": 198,
+    "eligible_scored": 200,
     "selected_completed": 95,
-    "selected_scored": 32
+    "selected_scored": 33
   },
   "schema_version": 1,
   "status": "V6_FALSIFICATION_SHADOW_NO_PROMOTION",
