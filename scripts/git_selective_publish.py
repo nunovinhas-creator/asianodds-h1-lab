@@ -65,6 +65,14 @@ class PublicationRefused(ValueError):
         self.kind = kind
 
 
+class Superseded(PublicationRefused):
+    """Valid, but computed on inputs that changed on main meanwhile: not published, recomputed by
+    the producer's next run. Never a partial publication, never presented as current state."""
+
+    def __init__(self, message):
+        super().__init__(message, "SUPERSEDED_BY_NEWER_INPUTS")
+
+
 class RetryExhausted(PublicationRefused):
     def __init__(self, message):
         super().__init__(message, "RETRY_EXHAUSTED")
@@ -171,6 +179,10 @@ class Policy:
     def rerender(self, root):
         raise PublicationRefused("Policy cannot re-render derived views", "RERENDER_FAILED")
 
+    def verify_equivalent(self, root, remote):
+        """Before accepting 'already published': is the remote's derived state coherent too?"""
+        return True
+
     def verify_candidate(self, root, remote, candidate, produced):
         """Final check of the exact tree that will be pushed."""
 
@@ -201,11 +213,14 @@ def classify_remote(policy, root, base, remote, produced, source):
             refusals.append(exc)
     if refusals:
         order = {"INCOMPATIBLE_PROGRAM": 0, "CONCURRENT_OWNER_WRITE": 1, "INTEGRITY": 2,
-                 "DEPENDENCY_CHANGED": 3, "UNKNOWN_PATH": 9}
+                 "DEPENDENCY_CHANGED": 3, "UNKNOWN_PATH": 9,
+                 "SUPERSEDED_BY_NEWER_INPUTS": 20}   # any real refusal outranks a supersession
         refusals.sort(key=lambda e: order.get(e.kind, 5))
         first = refusals[0]
         more = "" if len(refusals) == 1 else " | %d refused paths: %s" % (
             len(refusals), "; ".join(str(e)[:100] for e in refusals[1:8]))
+        if isinstance(first, Superseded) and all(isinstance(e, Superseded) for e in refusals):
+            raise Superseded(str(first) + more)
         raise PublicationRefused(str(first) + more, first.kind)
     if any(a not in ("keep", "rerender", "equal") for a in actions.values()):
         raise PublicationRefused("Policy returned an invalid action", "GIT_ERROR")
@@ -221,11 +236,13 @@ def publish(root, *, base, policy, receipt=None, bundle=None, max_attempts=6,
         return _publish(root, base, policy, receipt, trace, max_attempts,
                         max_transport_failures, sleep, push, branch)
     except PublicationRefused as exc:
-        status = exc.kind if exc.kind in ("RETRY_EXHAUSTED", "OUTCOME_UNRESOLVED",
-                                          "PUSH_REFUSED") else "REFUSED"
+        status = exc.kind if exc.kind in ("RETRY_EXHAUSTED", "OUTCOME_UNRESOLVED", "PUSH_REFUSED",
+                                          "SUPERSEDED_BY_NEWER_INPUTS") else "REFUSED"
         failure_class = {"RETRY_EXHAUSTED": "TRANSIENT_CONTENTION",
                          "OUTCOME_UNRESOLVED": "TRANSPORT",
-                         "PUSH_REFUSED": "PUSH_REFUSED"}.get(status, "PERSISTENT_INCOMPATIBILITY")
+                         "PUSH_REFUSED": "PUSH_REFUSED",
+                         "SUPERSEDED_BY_NEWER_INPUTS": "SUPERSEDED_SAFE_SKIP"}.get(
+                             status, "PERSISTENT_INCOMPATIBILITY")
         source = trace["source"]
         bundle_path = None
         extra = {}
@@ -283,7 +300,8 @@ def _publish(root, base, policy, receipt, trace, max_attempts, max_transport_fai
         if run(root, "merge-base", "--is-ancestor", base, remote, check=False).returncode:
             raise PublicationRefused("Remote main no longer descends from the producer base",
                                      "HISTORY_DIVERGED")
-        if remote != base and outcome.same_paths(root, source, remote, compare):
+        if remote != base and outcome.same_paths(root, source, remote, compare) \
+                and policy.verify_equivalent(root, remote):
             run(root, "reset", "-q", "--hard", remote)
             emit(policy, receipt, {**doc, "status": "ALREADY_PUBLISHED_EQUIVALENT",
                                    "path": "EQUIVALENT_ALREADY_ON_REMOTE", "attempt": attempt,

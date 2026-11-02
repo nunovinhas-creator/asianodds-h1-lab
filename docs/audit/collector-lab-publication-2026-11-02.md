@@ -82,6 +82,45 @@ dono e que cada `git add` de cada workflow só toca ficheiros do respetivo dono.
     `TELEGRAM_RESEND_RISK`.
 * Elegibilidade dos alertas, notificadores, quotas e cooldowns: **inalterados**.
 
+### 3.1 Imutabilidade das observações (revisão crítica, 2.ª iteração)
+
+A primeira versão só verificava a permanência dos identificadores. Agora a
+publicação reexecuta os leitores de produção (`h1lab.v4_revisions.read_events`,
+`verify_projection`, `h1lab.core.public_data`) sobre a árvore de origem **e** sobre
+a árvore candidata exata.
+
+| Dado | Imutável | Pode mudar legitimamente | Prova exigida |
+|---|---|---|---|
+| `state.json` `alerts[]` (por `event_id`) | registo inteiro | — (`core.incorporate` só acrescenta) | igualdade campo-a-campo |
+| `state.json` `signals[]` / `tickets[]` | registo inteiro | — | igualdade campo-a-campo |
+| `state.json` `last_id` | nunca recua | cresce | monotonia |
+| `state.json` `diagnostics`, `collector` | — | estado operacional | — |
+| `markets-*` (vista V4) | `event_id`, `observed_at` (hora original Telegram) | odds, linha, mercado, identidade — **só** via nova revisão | revisão `EDIT_DATE_CHANGED`/`CONTENT_CHANGED_EDIT_UNPROVEN` nova no journal, encadeada à anterior, cujo `snapshot_sha256` é exatamente a linha nova (`verify_projection`) |
+| `formats-*` | `event_id`, `observed_at` | assinatura, só para eventos revistos no mesmo commit | revisão V4 do mesmo evento |
+| `v4-revisions-*` | prefixo inteiro (cadeia SHA) | só append | `read_events`: `sha256`, `previous_sha256`, `previous_event_revision_id`, `snapshot_sha256`, `known_at` |
+| `docs/data.json` | — | derivado | igual **exatamente** a `public_data(state, results.csv, generated_at)` da mesma árvore |
+
+O journal guarda, para cada revisão: evento (`event_id`), conteúdo anterior
+(revisão anterior ligada por `previous_event_revision_id`), conteúdo novo
+(`snapshot`), momento (`known_at`, `telegram_edit_at`) e proveniência
+(`parser_commit`, `parser_source_sha256` no snapshot). Uma revisão para evento
+inexistente, um hash ou elo de cadeia inválido, uma alteração não registada ou
+uma reescrita da hora original são recusados (`tests/test_collect_publish_safe.py::
+HistoricalObservationImmutability`, casos 1–8). Reprodução sobre a `main` real:
+os 39 commits do coletor disponíveis no histórico raso são todos aceites pelas
+novas guardas (sem falsos positivos) e o `docs/data.json` atual é coerente.
+
+Outras correções desta iteração: `stage` remove do índice ficheiros estrangeiros
+staged por passos anteriores e, com `--park`, guarda num patch e restaura ficheiros
+estrangeiros modificados (antes deixariam o checkout "sujo" e a publicação inteira
+seria recusada); o caminho `ALREADY_PUBLISHED_EQUIVALENT` só é aceite se o
+`docs/data.json` remoto for coerente — caso contrário a vista é reparada e publicada.
+
+Limite conhecido: se `market_v4.store` falhar a meio (é não-fatal no coletor), os
+ficheiros V4 incoerentes fazem a publicação inteira do ciclo ser recusada, com
+recibo, bundle e `TELEGRAM_RESEND_RISK`. Preferiu-se recusa explícita a publicação
+parcial.
+
 ## 4. Telegram — risco residual honesto
 
 `TG_DURABLE_INTENT=0` (confirmado nos logs) ⇒ **AT-LEAST-ONCE**. Janela: do

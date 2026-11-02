@@ -33,8 +33,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -64,24 +62,52 @@ def _json(raw, path):
 
 
 # ------------------------------------------------------------------ own-change guards
+# Field policy (docs/audit/collector-lab-publication-2026-11-02.md, section 3.1):
+#   state.json  alerts/signals/tickets: IMMUTABLE whole records once published (core.incorporate
+#               only appends); last_id never decreases; diagnostics/collector are mutable status.
+#   markets-*   latest V4 view: event_id and observed_at (original Telegram time) immutable; any
+#               other change is legitimate ONLY when the V4 revision journal gained a revision of
+#               that event whose snapshot is exactly the new row (verify_projection + SHA chain).
+#   formats-*   structural signature: event_id/observed_at immutable; content may change only for
+#               an event revised in the same commit's V4 journal.
+#   v4-revisions append-only SHA chain (previous content, new content, known_at, parser provenance).
+IMMUTABLE_COLLECTIONS = (("alerts", "event_id"), ("signals", "signal_id"), ("tickets", "ticket_id"))
+REVISION_KINDS = ("EDIT_DATE_CHANGED", "CONTENT_CHANGED_EDIT_UNPROVEN")
+
+
+def _keyed(rows, key, field):
+    out = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get(key), str) or not row[key]:
+            _refuse("Collected %s record without %s" % (field, key))
+        if row[key] in out:
+            _refuse("Duplicate collected %s: %s" % (field, row[key]))
+        out[row[key]] = row
+    return out
+
+
 def verify_state(before, after):
-    """Observations are only ever added: checkpoint, alerts, signals and tickets never go back."""
+    """Published observations are immutable records; only new ones may be appended."""
     new = _json(after, own.COLLECT_STATE)
     if not isinstance(new, dict) or not all(isinstance(new.get(k), list)
                                             for k in ("alerts", "signals", "tickets")):
         _refuse("Invalid collector state")
     if type(new.get("last_id")) is not int or new["last_id"] < 0:
         _refuse("Invalid Telegram checkpoint")
+    current = {field: _keyed(new[field], key, field) for field, key in IMMUTABLE_COLLECTIONS}
     if before is None:
         return {"alerts_added": len(new["alerts"]), "last_id": new["last_id"]}
     old = _json(before, own.COLLECT_STATE)
     if new["last_id"] < old.get("last_id", 0):
         _refuse("Telegram checkpoint went back: %s -> %s" % (old.get("last_id"), new["last_id"]))
-    for field, key in (("alerts", "event_id"), ("signals", "signal_id"), ("tickets", "ticket_id")):
-        had = {r.get(key) for r in old.get(field, []) if isinstance(r, dict)}
-        has = {r.get(key) for r in new[field] if isinstance(r, dict)}
-        if not had <= has:
-            _refuse("Collected %s removed: %r" % (field, sorted(map(str, had - has))[:5]))
+    for field, key in IMMUTABLE_COLLECTIONS:
+        for ident, row in _keyed(old.get(field, []), key, field).items():
+            if ident not in current[field]:
+                _refuse("Collected %s removed: %s" % (field, ident))
+            if current[field][ident] != row:
+                changed = sorted(k for k in set(row) | set(current[field][ident])
+                                 if row.get(k) != current[field][ident].get(k))
+                _refuse("Published %s rewritten in place: %s fields %r" % (field, ident, changed[:6]))
     if not stable_fixtures(before, after):
         _refuse("Fixture identity rewritten in collector state")
     return {"alerts_added": len(new["alerts"]) - len(old.get("alerts", [])),
@@ -128,6 +154,33 @@ def changed_receipts(before, after):
     return rows
 
 
+def _v4_paths(root, ref):
+    raw = sel.git(root, "ls-tree", "-r", "--name-only", "-z", ref, "--", "data/lab/")
+    return [n.decode() for n in raw.split(b"\0") if n and (
+        own.MARKETS_VIEW.fullmatch(n.decode()) or own.FORMATS_VIEW.fullmatch(n.decode())
+        or own.V4_REVISIONS.fullmatch(n.decode()))]
+
+
+def _materialise(root, ref, directory):
+    """Write exactly the V4 files of ``ref`` so the production readers can replay them."""
+    for name in _v4_paths(root, ref):
+        target = Path(directory) / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(sel.blob(root, ref, name))
+    (Path(directory) / "data/lab").mkdir(parents=True, exist_ok=True)
+
+
+def _family_rows(directory, prefix):
+    from h1lab.lab_archive import monthly_paths
+    rows = {}
+    for part in monthly_paths(directory, prefix):
+        for event_id, row in _view_rows(part.read_bytes(), str(part.name)).items():
+            if event_id in rows:
+                _refuse("Event duplicated across V4 view parts: " + event_id)
+            rows[event_id] = row
+    return rows
+
+
 def _view_rows(raw, path):
     rows = {}
     try:
@@ -149,41 +202,91 @@ def _view_rows(raw, path):
     return rows
 
 
-def _view_family(path):
-    """(prefix, month) of a latest-view partition (all parts of a month form one view)."""
-    name = path.rsplit("/", 1)[1]
-    prefix = "markets" if name.startswith("markets-") else "formats"
-    return prefix, name[len(prefix) + 1:len(prefix) + 8]
+def verify_v4(root, before_ref, after_ref):
+    """Replay the V4 journal and views of both trees with the production readers.
+
+    * the revision journal of ``after`` is a valid SHA chain whose prefix is the ``before`` chain;
+    * the markets latest view of ``after`` is exactly the latest journal snapshot of every event
+      (``v4_revisions.verify_projection``) - a revision for a missing event, a broken hash or an
+      unjournalled edit all fail here;
+    * an event's view row may change only through a NEW revision (edit/content change) of that
+      event, never its event_id or original Telegram time;
+    * no observed event leaves a view; format rows change only for revised events.
+    """
+    import tempfile
+    from h1lab import v4_revisions as rev
+    with tempfile.TemporaryDirectory(prefix="v4-before-") as b, \
+            tempfile.TemporaryDirectory(prefix="v4-after-") as a:
+        _materialise(root, before_ref, b)
+        _materialise(root, after_ref, a)
+        try:
+            old_events = rev.read_events(b)
+            new_events = rev.read_events(a)
+            rev.verify_projection(a)
+        except (ValueError, KeyError, TypeError) as exc:
+            _refuse("V4 revision journal or projection invalid: %s" % exc)
+        if new_events[:len(old_events)] != old_events:
+            _refuse("V4 revision journal history rewritten")
+        added = new_events[len(old_events):]
+        revised = {e["event_id"] for e in added if e.get("kind") in REVISION_KINDS}
+        for prefix in ("markets", "formats"):
+            old_rows, new_rows = _family_rows(b, prefix), _family_rows(a, prefix)
+            lost = sorted(old_rows.keys() - new_rows.keys())
+            if lost:
+                _refuse("V4 latest view lost observed events: %s %r" % (prefix, lost[:5]))
+            for event_id, row in old_rows.items():
+                cur = new_rows[event_id]
+                if cur.get("observed_at") != row.get("observed_at"):
+                    _refuse("Original Telegram time rewritten: %s %s" % (prefix, event_id))
+                if prefix == "markets":
+                    if rev.fingerprint(cur) != rev.fingerprint(row) and event_id not in revised:
+                        _refuse("V4 observation changed without an audited revision: " + event_id)
+                elif cur != row and event_id not in revised:
+                    _refuse("Format observation rewritten without a V4 revision: " + event_id)
+        for e in added:
+            if e.get("kind") in REVISION_KINDS:
+                previous = next((x for x in reversed(old_events + added[:added.index(e)])
+                                 if x["event_id"] == e["event_id"]), None)
+                if previous is None or e["telegram_original_at"] != previous["telegram_original_at"]:
+                    _refuse("V4 revision does not continue its event: " + e["event_id"])
+        kinds = {}
+        for e in added:
+            kinds[e.get("kind")] = kinds.get(e.get("kind"), 0) + 1
+        return {"v4_revisions_appended": len(added), "v4_revision_kinds": kinds,
+                "v4_revised_events": sorted(revised)[:20]}
 
 
-def verify_views(root, before_ref, after_ref, paths):
-    """A latest view may be updated or repartitioned, but never loses an observed event."""
-    families = {_view_family(p) for p in paths}
-    listing = {}
-    for ref in (before_ref, after_ref):
-        names = sel.git(root, "ls-tree", "-r", "--name-only", "-z", ref, "--", "data/lab/")
-        listing[ref] = [n.decode() for n in names.split(b"\0") if n]
-    for prefix, month in sorted(families):
-        pattern = own.MARKETS_VIEW if prefix == "markets" else own.FORMATS_VIEW
-        events = {}
-        for ref in (before_ref, after_ref):
-            merged = {}
-            for name in listing[ref]:
-                if pattern.fullmatch(name) and _view_family(name) == (prefix, month):
-                    rows = _view_rows(sel.blob(root, ref, name), name)
-                    if merged.keys() & rows.keys():
-                        _refuse("Event duplicated across V4 view parts: %s-%s" % (prefix, month))
-                    merged.update(rows)
-            events[ref] = merged
-        lost = events[before_ref].keys() - events[after_ref].keys()
-        if lost:
-            _refuse("V4 latest view lost observed events: %s-%s %r"
-                    % (prefix, month, sorted(lost)[:5]))
+def dashboard_is_coherent(root, ref):
+    """docs/data.json must be exactly public_data(state, results, generated_at) of ``ref``."""
+    import tempfile
+    from h1lab.core import load_results, public_data
+    raw, state = sel.blob(root, ref, own.COLLECT_RENDERED), sel.blob(root, ref, own.COLLECT_STATE)
+    if raw is None or state is None:
+        return False
+    try:
+        view = json.loads(raw)
+        moment = datetime.fromisoformat(view["generated_at"])
+        with tempfile.TemporaryDirectory(prefix="results-") as d:
+            path = Path(d) / "results.csv"
+            path.write_bytes(sel.blob(root, ref, "data/results.csv") or b"")
+            expected = public_data(json.loads(state), load_results(path), moment)
+        return json.loads(json.dumps(expected, ensure_ascii=False)) == view
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
+def render_dashboard(root):
+    """In-process equivalent of ``h1lab.cli render`` for an arbitrary checkout root."""
+    from h1lab.core import dump_json, load_results, public_data
+    root = Path(root)
+    state = json.loads((root / own.COLLECT_STATE).read_text(encoding="utf-8"))
+    dump_json(root / own.COLLECT_RENDERED,
+              public_data(state, load_results(root / "data/results.csv"), datetime.now(timezone.utc)))
 
 
 def verify_change(root, before_ref, after_ref, paths, *, now=None):
-    info = {"telegram_receipts_changed": [], "v4_revisions_appended": 0}
-    views = []
+    info = {"telegram_receipts_changed": []}
+    v4 = False
     for path in sorted(paths):
         before, after = sel.blob(root, before_ref, path), sel.blob(root, after_ref, path)
         if path == own.COLLECT_STATE:
@@ -203,16 +306,18 @@ def verify_change(root, before_ref, after_ref, paths, *, now=None):
         elif own.V4_REVISIONS.fullmatch(path):
             if after is None or not append_only_jsonl(before, after):
                 _refuse("V4 revision journal rewritten: " + path)
-            info["v4_revisions_appended"] += after.count(b"\n") - (before or b"").count(b"\n")
+            v4 = True
         elif own.MARKETS_VIEW.fullmatch(path) or own.FORMATS_VIEW.fullmatch(path):
-            views.append(path)
+            v4 = True
         elif path == own.COLLECT_RENDERED:
             if after is None or not isinstance(_json(after, path), dict):
                 _refuse("Dashboard data invalid or deleted")
+            if not dashboard_is_coherent(root, after_ref):
+                _refuse("docs/data.json is not the render of the published state and results")
         else:
             _refuse("Not a collector output: " + path, "NOT_OWNER")
-    if views:
-        verify_views(root, before_ref, after_ref, views)
+    if v4:
+        info.update(verify_v4(root, before_ref, after_ref))
     return info
 
 
@@ -222,7 +327,7 @@ class CollectorPolicy(sel.Policy):
     rerender_paths = frozenset({own.COLLECT_RENDERED})
 
     def __init__(self, render=None, now=None):
-        self._render = render
+        self._render = render or render_dashboard
         self._now = now
 
     def owns(self, path):
@@ -252,13 +357,14 @@ class CollectorPolicy(sel.Policy):
         _refuse("Unknown concurrent path: " + path, "UNKNOWN_PATH")
 
     def rerender(self, root):
-        if self._render is not None:
-            return self._render(root)
-        proc = subprocess.run([sys.executable, "-m", "h1lab.cli", "render"], cwd=str(root),
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if proc.returncode:
-            _refuse("Offline dashboard re-render failed: "
-                    + proc.stderr.decode("utf-8", "replace")[-300:], "RERENDER_FAILED")
+        try:
+            self._render(root)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            _refuse("Offline dashboard re-render failed: %s" % exc, "RERENDER_FAILED")
+
+    def verify_equivalent(self, root, remote):
+        """An 'already published' main must also carry a coherent derived dashboard."""
+        return dashboard_is_coherent(root, remote)
 
     def verify_candidate(self, root, remote, candidate, produced):
         verify_change(root, remote, candidate, produced, now=self._now)
@@ -288,9 +394,21 @@ class CollectorPolicy(sel.Policy):
 
 
 # ------------------------------------------------------------------ stage
-def stage(root):
-    """Stage exactly the changed collector-owned paths; report anything else."""
+def stage(root, park=None):
+    """Stage exactly the changed collector-owned paths; unstage and report anything else.
+
+    Tracked non-collector files left modified by an earlier step are never published. With
+    ``park`` their diff is saved to that patch file and the files are restored, so the selective
+    publisher starts from a clean checkout instead of refusing the whole collector commit.
+    """
     root = Path(root)
+    pre = sel.git(root, "diff", "--cached", "--name-only", "-z", "--no-renames")
+    foreign_staged = [n.decode() for n in pre.split(b"\0")
+                      if n and not own.is_collector_owned(n.decode())]
+    if foreign_staged:
+        # Staged by an earlier step: never let them ride along in the collector commit.
+        sel.git(root, "reset", "-q", "--", *foreign_staged)
+        print("::warning title=COLLECT_FOREIGN_STAGED_REMOVED::" + ", ".join(foreign_staged[:10]))
     raw = sel.git(root, "status", "--porcelain", "-z", "--untracked-files=all", "--no-renames")
     staged, unexpected = [], []
     for item in raw.split(b"\0"):
@@ -303,7 +421,18 @@ def stage(root):
             unexpected.append(path)
     if staged:
         sel.git(root, "add", "-A", "--", *staged)
-    print("COLLECT_STAGED", json.dumps({"paths": staged}, sort_keys=True))
+    tracked = [p for p in unexpected
+               if sel.run(root, "ls-files", "--error-unmatch", "--", p, check=False).returncode == 0]
+    parked = []
+    if park and tracked:
+        Path(park).parent.mkdir(parents=True, exist_ok=True)
+        Path(park).write_bytes(sel.git(root, "diff", "--binary", "--", *tracked))
+        sel.git(root, "checkout", "-q", "--", *tracked)
+        parked = tracked
+        print("::warning title=COLLECT_FOREIGN_CHANGES_PARKED::%s (patch: %s)"
+              % (", ".join(tracked[:10]), park))
+    print("COLLECT_STAGED", json.dumps({"paths": staged, "foreign_unstaged": foreign_staged,
+                                        "parked": parked}, sort_keys=True))
     if unexpected:
         # Never published by the collector; visible so an unexpected writer is noticed.
         print("::warning title=COLLECT_UNEXPECTED_LOCAL_CHANGES::" + ", ".join(unexpected[:10]))
@@ -325,7 +454,9 @@ def _annotate(document):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="mode", required=True)
-    sub.add_parser("stage").add_argument("--root", type=Path, default=Path.cwd())
+    st = sub.add_parser("stage")
+    st.add_argument("--root", type=Path, default=Path.cwd())
+    st.add_argument("--park", type=Path, help="save and restore tracked non-collector changes")
     pub = sub.add_parser("publish")
     pub.add_argument("--root", type=Path, default=Path.cwd())
     pub.add_argument("--base", required=True)
@@ -334,7 +465,7 @@ def main(argv=None):
     pub.add_argument("--max-attempts", type=int, default=6)
     args = parser.parse_args(argv)
     if args.mode == "stage":
-        stage(args.root)
+        stage(args.root, park=args.park)
         return 0
     try:
         sel.publish(args.root, base=args.base, policy=CollectorPolicy(), receipt=args.receipt,

@@ -75,7 +75,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          python -m scripts.collect_publish_safe stage
+          python -m scripts.collect_publish_safe stage --park "$RUNNER_TEMP/collect-unexpected.patch"
           if ! git diff --cached --quiet; then
             git commit -q -m 'data: collect and notify H1 [skip ci]'
             python -m scripts.collect_publish_safe publish --base "$COLLECT_BASE_SHA" \
@@ -94,6 +94,15 @@ jobs:
           path: |
             ${{ runner.temp }}/collect-publish-receipt.json
             ${{ runner.temp }}/collect-unpublished.bundle
+          if-no-files-found: ignore
+          retention-days: 30
+      # Tracked non-collector changes are never published; keep them for review when present.
+      - name: Keep parked non-collector changes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-unexpected-changes-${{ github.run_id }}
+          path: ${{ runner.temp }}/collect-unexpected.patch
           if-no-files-found: ignore
           retention-days: 30
       # A missing GitHub schedule can starve authenticated FT lookups.
