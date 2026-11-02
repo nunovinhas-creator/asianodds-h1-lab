@@ -12,7 +12,7 @@ Push outcome states (see docs/audit/publication-push-outcome-2026-11-02.md):
                        the candidate was provably NOT accepted.
 ``UNCERTAIN``          transport failed after the pack may have been sent
                        (HTTP 408/5xx, RPC failed, unexpected disconnect, remote
-                       hung up). Acceptance is unknown until the remote is read.
+                       hung up, ``[remote rejected] ... (Internal Server Error)``). Acceptance is unknown until the remote is read.
 ``AUTH``               authentication/authorisation/branch-protection refusal.
                        Never retried.
 ``TRANSIENT``          transport failed before anything could reach the
@@ -54,6 +54,11 @@ _UNCERTAIN_MARKERS = (
     "early eof", "connection reset", "operation timed out", "timed out", "broken pipe",
     "the remote end hung up unexpectedly", "sideband packet", "gnutls_handshake",
     "unexpected eof",
+    # GitHub server-side failure reported on the ref line, e.g.
+    # "! [remote rejected] <sha> -> main (Internal Server Error)". The ref update may or
+    # may not have been applied, so the remote is read before any retry.
+    "(internal server error)", "(bad gateway)", "(service unavailable)",
+    "(gateway timeout)", "(failed to update ref)",
 )
 _TRANSIENT_MARKERS = (
     "could not resolve host", "failed to connect", "connection refused",

@@ -21,6 +21,12 @@ HTTP_408 = (b"error: RPC failed; HTTP 408 curl 22 The requested URL returned err
             b"send-pack: unexpected disconnect while reading sideband packet\n"
             b"fatal: the remote end hung up unexpectedly\nEverything up-to-date\n")
 CONN_RESET = b"fatal: unable to access 'https://github.com/x/y/': Connection reset by peer\n"
+# Production stderr of H1 collect run 41479757276 (GitHub 500 on the ref update).
+REMOTE_500 = (b"remote: Internal Server Error\nremote: Request ID 8EB8:6AE8B751\n"
+              b"remote: Time 2026-11-02T16:16:19Z\n"
+              b"To https://github.com/nunovinhas-creator/asianodds-h1-lab\n"
+              b" ! [remote rejected] cd5363235f9be527e0831d181393c0ff6f01d3d9 -> main (Internal Server Error)\n"
+              b"error: failed to push some refs to 'https://github.com/nunovinhas-creator/asianodds-h1-lab'\n")
 AUTH_403 = (b"remote: Permission to x/y.git denied to github-actions[bot].\n"
             b"fatal: unable to access 'https://github.com/x/y/': The requested URL returned error: 403\n")
 
@@ -121,6 +127,16 @@ class FTPushOutcomeTests(_base.GitFTPublicationTests):
         def hook(n, real, args):
             if n == 1:
                 return subprocess.CompletedProcess(args, 128, b"", CONN_RESET)
+            return real()
+        published, pushes = self.run_publish(hook)
+        self.assertEqual(len(pushes), 2)
+        self.assertEqual(self.remote_main(), published)
+
+    # 3b. GitHub "[remote rejected] ... (Internal Server Error)" -> probe, then bounded retry.
+    def test_remote_rejected_internal_server_error_retries(self):
+        def hook(n, real, args):
+            if n == 1:
+                return subprocess.CompletedProcess(args, 1, b"", REMOTE_500)
             return real()
         published, pushes = self.run_publish(hook)
         self.assertEqual(len(pushes), 2)
@@ -290,6 +306,12 @@ for _name in [n for n in dir(_base.GitFTPublicationTests) if n.startswith("test_
 class ClassifierTests(unittest.TestCase):
     def test_production_408_is_uncertain_not_absent(self):
         self.assertEqual(outcome.classify_push_failure(HTTP_408.decode()), outcome.UNCERTAIN)
+
+    def test_remote_rejected_server_error_is_uncertain(self):
+        self.assertEqual(outcome.classify_push_failure(REMOTE_500.decode()), outcome.UNCERTAIN)
+        for reason in ("Bad Gateway", "Service Unavailable", "Gateway Timeout"):
+            self.assertEqual(outcome.classify_push_failure(
+                f" ! [remote rejected] {'c' * 40} -> main ({reason})"), outcome.UNCERTAIN)
 
     def test_cas_and_auth(self):
         a, b = "a" * 40, "b" * 40
