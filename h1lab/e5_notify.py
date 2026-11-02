@@ -65,6 +65,10 @@ MIN_LEAD = timedelta(hours=6)
 MAX_RESEARCH_AGE = timedelta(hours=24)
 WITHDRAWN = "|WITHDRAWN"
 PACE_SECONDS = 3.0                       # <= 20 messages/minute: safe for groups and private chats
+# New E5 alerts only for kickoffs within the next 12 hours (user decision 2026-11-02, after the
+# initial all-dates batch). Later games stay pending and are alerted once they enter the window.
+# Withdrawals of an alert already sent are not restricted by this window (only before kickoff).
+MAX_ALERT_LOOKAHEAD = timedelta(hours=12)
 SEND_BUDGET = timedelta(minutes=14)      # time budget per run, NOT a game quota (rest: next cycle)
 LISBON = ZoneInfo("Europe/Lisbon")
 
@@ -284,13 +288,18 @@ def process(rows, ledger, now, sender, enabled, *, research=None, pace=None, clo
     eligible = [r for r in rows if r["state"] == ELIGIBLE]
     stats = {"eligible_future": len(eligible), "sent": 0, "withdrawals_sent": 0,
              "already_notified": 0, "unconfigured": 0, "expired": 0, "uncertain": 0,
-             "deferred_time_budget": 0}
+             "deferred_time_budget": 0, "deferred_beyond_12h": 0}
     store = store or delivery.default_store()
     delivery.sweep(ledger, clock(), stats)
     started, attempts = clock(), 0
     for row in sorted(rows, key=lambda r: (r.get("kickoff_utc") or "", str(r["match_key"]))):
         if row["state"] == ELIGIBLE:
             key, kind = row["match_key"], "ENTERED"
+            ko = utc(row["kickoff_utc"])
+            if (ko is not None and ko > now + MAX_ALERT_LOOKAHEAD and
+                    row["match_key"] not in ledger["entries"]):
+                stats["deferred_beyond_12h"] += 1
+                continue
         elif proven_withdrawal(row, ledger["entries"].get(row["match_key"])):
             key, kind = row["match_key"] + WITHDRAWN, "WITHDRAWN"
         else:
@@ -406,7 +415,8 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None, *, dry_run=F
     if dry_run:
         hist, unavailable = history(research, now)
         for row in rows:
-            if row["state"] == ELIGIBLE and row["match_key"] not in ledger["entries"]:
+            if (row["state"] == ELIGIBLE and row["match_key"] not in ledger["entries"] and
+                    utc(row["kickoff_utc"]) <= now + MAX_ALERT_LOOKAHEAD):
                 print("E5_DRY_RUN_MESSAGE\n" + message_for_game(row, hist, unavailable))
         return ledger, head
     enabled = configured() if bot_enabled is None else bot_enabled
