@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-02T18:22:46+00:00",
+ "generated_at": "2026-11-02T18:27:20+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "dd70942c6805c939fb12c0b51f8276c2587f2110",
+ "source_commit": "850d4bd81840c25e5258924ee24acab0538c2143",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 1243,
   "matches_with_identity_inconsistency": 2,
   "max_messages_per_match": 6,
-  "messages": 1875,
+  "messages": 1876,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1075,
+  "messages_on_repeated_matches": 1076,
   "messages_v4_only": 1,
-  "messages_with_v4": 1801,
-  "movement_episodes_upper_bound": 1801,
+  "messages_with_v4": 1802,
+  "movement_episodes_upper_bound": 1802,
   "possibly_redundant_snapshots": 57,
   "post_kickoff_messages": 75,
   "related_message_pairs": 74,
@@ -53,27 +53,28 @@
   "repeated_matches": 443,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 116,
-   "V4_EXPLICIT": 2996
+   "V4_EXPLICIT": 2997
   },
   "total_line_reversals_on_repeated": 246,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 59,
-   "CONTINUOUS": 351,
+   "CONTINUOUS": 352,
    "SAME_MOVEMENT_REPEAT": 74,
    "UNOBSERVED_CHANGE": 147
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 608,
    "one_x_two:AGREE": 587,
-   "total:AGREE": 1798
+   "total:AGREE": 1799
   }
  },
  "timelines": [
   {
-   "event_count": 2,
+   "event_count": 3,
    "event_ids": [
     "3571094759:52356",
-    "3571094759:52462"
+    "3571094759:52462",
+    "3571094759:52466"
    ],
    "events": [
     {
@@ -177,6 +178,38 @@
        "status": "AGREE"
       }
      }
+    },
+    {
+     "event_id": "3571094759:52466",
+     "message_id": 52466,
+     "minutes_to_kickoff": 37.6,
+     "observed_at": "2026-11-02T18:22:23+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.84,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 2.02,
+        "under_price": 1.83
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
     }
    ],
    "first_observed_at": "2026-11-02T11:05:34+00:00",
@@ -188,7 +221,7 @@
     "per_message_conflicts": [],
     "team_names_consistent": true
    },
-   "last_observed_at": "2026-11-02T18:09:46+00:00",
+   "last_observed_at": "2026-11-02T18:22:23+00:00",
    "match_key": "2026-11-02,27862,1171",
    "match_label": "Jong PSV Eindhoven vs NAC Breda",
    "movement_episodes": [
@@ -197,14 +230,18 @@
     ],
     [
      "3571094759:52462"
+    ],
+    [
+     "3571094759:52466"
     ]
    ],
-   "movement_episodes_upper_bound": 2,
+   "movement_episodes_upper_bound": 3,
    "possibly_redundant_event_ids": [],
    "post_kickoff_messages": 0,
    "related_messages": [],
    "seconds_between_messages": [
-    25452.0
+    25452.0,
+    757.0
    ],
    "trajectory": {
     "asian_handicap": {
@@ -254,11 +291,11 @@
     },
     "total": {
      "first_observed_line": 3.75,
-     "last_observed_line": 3.5,
-     "net_observed_change": -0.25,
-     "observations": 2,
+     "last_observed_line": 3.25,
+     "net_observed_change": -0.5,
+     "observations": 3,
      "origins": {
-      "V4_EXPLICIT": 2
+      "V4_EXPLICIT": 3
      },
      "points": [
       {
@@ -274,6 +311,13 @@
        "event_id": "3571094759:52462",
        "move": "FLAT",
        "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.5,
+       "event_id": "3571094759:52466",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
       }
      ],
      "reversals": [],
@@ -285,6 +329,14 @@
        "previous_after_line": 3.5,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:52462"
+      },
+      {
+       "from": "3571094759:52462",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.5,
+       "previous_after_line": 3.5,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52466"
       }
      ]
     }
