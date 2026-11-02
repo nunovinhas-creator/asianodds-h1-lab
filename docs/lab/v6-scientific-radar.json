@@ -27,7 +27,7 @@
         },
         {
           "code": "F02_RISING_VS_FLAT",
-          "n": 27,
+          "n": 28,
           "name": "Subidas vs estabilidade",
           "required": "two episode-category cells with >=10 genuine scored FT each",
           "result": "INSUFFICIENT_N"
@@ -41,49 +41,49 @@
         },
         {
           "code": "F04_LEAD_TIME_STRATA",
-          "n": 33,
+          "n": 34,
           "name": "Antecedência do alerta",
           "required": "two lead-time strata each with >=20 eligible FT",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F05_COMPETITION_CONTEXT",
-          "n": 33,
+          "n": 34,
           "name": "Contexto da competição",
           "required": "two heuristic competition types with >=20 scored FT each",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F06_LEAVE_DAY_OUT_AND_TRIM",
-          "n": 33,
+          "n": 34,
           "name": "Robustez entre dias",
           "required": "30 selected FT spanning 3 days, leave-one-day-out and trim highest 5% absolute residual",
           "result": "FAIL"
         },
         {
           "code": "F07_RESIDUAL_VS_MARKET",
-          "n": 33,
+          "n": 34,
           "name": "Diferença face ao mercado",
           "required": ">=1000 FT after hypothesis registration across >=3 weeks; mean residual > 5 pp",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F08_COMPETING_MARKET_LINE",
-          "n": 33,
+          "n": 34,
           "name": "Linha como explicação alternativa",
           "required": "two market-line bins with >=20 selected AND 20 controls each",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F09_MATCHED_MARKET_PEERS",
-          "n": 28,
+          "n": 29,
           "name": "Jogos comparáveis",
           "required": "30 no-reuse peers within lambda 0.25 and lead time 6h",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F10_PROSPECTIVE_CONFIRMATION",
-          "n": 33,
+          "n": 34,
           "name": "Validação cronológica",
           "required": "1000 registered genuine FT in >=3 weeks AND source coverage 14-day gate",
           "result": "INSUFFICIENT_N"
@@ -91,7 +91,7 @@
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
       "frozen_matches": 967,
-      "ft_verified": 319,
+      "ft_verified": 320,
       "games": [
         {
           "event_id": "3571094759:51310",
@@ -1854,14 +1854,14 @@
           "frozen_known_at": "2026-11-02T04:01:26+00:00",
           "ft": {
             "checked_at": null,
-            "event_id": null,
-            "evidence_level": null,
+            "event_id": "FT6:e555de703bf540ebbcee119e5fa6",
+            "evidence_level": "NOT_YET_VERIFIED",
             "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
             "scientific_event_sha256": null,
             "score": null,
-            "sha256": null,
+            "sha256": "556ac0f2ac1b89c831486d1ee05e7a42b5f0f6f2fd514cc9237ab8eae5656f01",
             "source_url": null,
-            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+            "status": "PENDING"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-08T03:00:00+00:00",
@@ -7929,14 +7929,14 @@
           "frozen_known_at": "2026-11-02T04:06:25+00:00",
           "ft": {
             "checked_at": null,
-            "event_id": null,
-            "evidence_level": null,
+            "event_id": "FT6:3a076e51660f0ee11751fd3c40fc",
+            "evidence_level": "NOT_YET_VERIFIED",
             "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
             "scientific_event_sha256": null,
             "score": null,
-            "sha256": null,
+            "sha256": "4e1fabee6b9cf6fd9ad70b9516c24f8aba99ae27ada1f3077af0de314a2ff103",
             "source_url": null,
-            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+            "status": "PENDING"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-02T16:00:00+00:00",
@@ -8436,15 +8436,21 @@
           },
           "frozen_known_at": "2026-11-02T00:41:30+00:00",
           "ft": {
-            "checked_at": null,
-            "event_id": "FT6:f138b4ab33eb2d84f4ce38ab1593",
-            "evidence_level": "NOT_YET_VERIFIED",
-            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
-            "scientific_event_sha256": null,
-            "score": null,
-            "sha256": "a3317aa07da05c24690f7d104f0ce8349eddad7c637f2054a81a43b508ec7a43",
-            "source_url": null,
-            "status": "PENDING"
+            "checked_at": "2026-11-02T04:36:29+00:00",
+            "event_id": "FT6:3f4c49238bff6e043a5e6045c72e",
+            "evidence_level": "MULTI_PROVIDER",
+            "science_status": "SCIENCE_FT_CONFIRMED",
+            "scientific_event_sha256": "e4f2e87fc57bbb9e10877f14f44e6f54e7efdd55f57c44a6d088370f94e3b2e3",
+            "score": {
+              "away": 3,
+              "evidence": "bsd_and_sportscore",
+              "home": 1,
+              "identity_match": null,
+              "source": "https://sports.bzzoiro.com/api/v2/events/5398/"
+            },
+            "sha256": "fe83ebd9abec30367ed8e4b622bb2b347238de231242fc7d8937abc761d3c838",
+            "source_url": "https://sports.bzzoiro.com/api/v2/events/5398/",
+            "status": "FINAL_WITH_AFTER_KICKOFF_VERIFICATION"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-02T01:30:00+00:00",
@@ -27914,15 +27920,15 @@
           },
           "frozen_known_at": "2026-10-31T04:56:32+00:00",
           "ft": {
-            "checked_at": "2026-11-01T16:06:27+00:00",
-            "event_id": "FT6:63e282fac3e376855a7e07c8c200",
+            "checked_at": null,
+            "event_id": "FT6:7e7cbf82735af165a11caaeae77d",
             "evidence_level": "NOT_YET_VERIFIED",
             "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
             "scientific_event_sha256": null,
             "score": null,
-            "sha256": "a483704ea83caff787cfb8c518de390b1383ff538e80eca3c0af54c1d7fe62bc",
+            "sha256": "8ef2a3ff7264e8abd9a67b3b72429db95c5ab867f03b1e67bc42ce40be3a36a7",
             "source_url": null,
-            "status": "PENDING"
+            "status": "EXPIRED_UNVERIFIED"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-01T04:00:00+00:00",
@@ -77854,24 +77860,23 @@
     "forecasts": "b836b978755ea8a83465ab77f2a80e8fe075e2aaf3754ec99ebd817ef090d805",
     "observations": "632b63aa773be84ec94a3dd67ec6f569bdb0073558ae0a5bcfd7ccdd4ca5dd54",
     "patterns": "42505ebbc054b9495692b084c31fd232c8365ee7bb9efe3660101b5602fbc619",
-    "science_evidence": "db755bae9000be468eddde3e516b8670b6c0456bf350f3c5770a5398cee045d3",
-    "universal_ft": "bcb0e89d1d129288cedfbb335de72c398b4fa5214fd49d510267114fc75745d3",
+    "science_evidence": "e4f2e87fc57bbb9e10877f14f44e6f54e7efdd55f57c44a6d088370f94e3b2e3",
+    "universal_ft": "556ac0f2ac1b89c831486d1ee05e7a42b5f0f6f2fd514cc9237ab8eae5656f01",
     "v4_revisions": "d33126154f5d9205bcb49593fbd9560dfc5349a43bc5dc501603c0559bd077f7"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
   "totals": {
     "evidence_quality": {
-      "EXPIRED_UNVERIFIED": 350,
-      "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 319,
+      "EXPIRED_UNVERIFIED": 351,
+      "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 320,
       "IDENTITY_CONFLICT": 1,
-      "NOT_REGISTERED_IN_FT_JOURNAL": 2,
       "PENDING": 295,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 116,
       "V4_VERSION_VERIFIED_BEFORE_FREEZE": 851
     },
     "frozen_snapshots": 1298,
-    "ft_universal_events": 2144,
+    "ft_universal_events": 2148,
     "unique_matches": 967,
     "v4_revision_events": 1668
   }
