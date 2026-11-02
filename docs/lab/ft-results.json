@@ -40,7 +40,7 @@
     "date_list_requests": 0,
     "fallback_results_recovered": 0,
     "lookup_reason_counts": {
-      "bsd_date_cooldown_deferred": 29
+      "bsd_date_cooldown_deferred": 30
     }
   },
   "coverage_diagnostics": {
@@ -79,7 +79,7 @@
     "affected_matches_count": 0,
     "dual_postcheck_errors": 0,
     "invalid_provider_results": 0,
-    "measured_at": "2026-11-02T06:36:25+00:00",
+    "measured_at": "2026-11-02T06:46:03+00:00",
     "provider_errors": 0,
     "provider_failure_breakdown": {},
     "scope": "adapter execution only; not coverage or publication health",
@@ -197,28 +197,27 @@
       "deferred_days": {
         "2026-11-01": "bsd_date_cooldown_deferred"
       },
-      "direct_id_requests_shared_with_monte": 1,
+      "direct_id_requests_shared_with_monte": 0,
       "direct_lookup": {
         "conflicts": 0,
-        "http_requests": 1,
-        "ids_reused": 1,
+        "http_requests": 0,
+        "ids_reused": 0,
         "known_ids": 66,
         "reasons": {
-          "bsd_registry_no_id": 29,
-          "verified_bsd_from_persisted_id": 1
+          "bsd_registry_no_id": 30
         }
       },
       "eligible_days_after": 0,
       "eligible_days_before": 0,
       "fallback_detail_requests": 0,
-      "http_total": 1,
+      "http_total": 0,
       "independent_of_ft_queue": true,
       "monte_only_detail_requests": 0,
       "new_ids": 0,
       "overdue_compared_with_complete_catalogue": 193,
       "overdue_without_id": 193,
       "overdue_without_id_after": 193,
-      "persisted_id_new_finals": 1,
+      "persisted_id_new_finals": 0,
       "planned_days": [],
       "post_reconcile": {
         "quarantined_bindings": 0,
@@ -250,8 +249,95 @@
         "selected_days": []
       }
     },
-    "deferred_by_capacity": 28,
+    "deferred_by_capacity": 22,
     "deferred_keys": [
+      "2026-11-01,1325,772",
+      "2026-11-01,22427,26598",
+      "2026-11-01,23167,24010",
+      "2026-11-01,23732,95373",
+      "2026-11-01,27452,66595",
+      "2026-11-01,517,735",
+      "2026-11-01,667,686",
+      "2026-11-01,84555,42354",
+      "2026-11-01,239,59515",
+      "2026-11-01,599,649",
+      "2026-11-01,74076,54005",
+      "2026-11-01,79272,10027047",
+      "2026-11-01,1099,27287",
+      "2026-11-01,1374,22812",
+      "2026-11-01,23802,23602",
+      "2026-11-01,24576,1077",
+      "2026-11-01,32161,23857",
+      "2026-11-01,10054577,36940",
+      "2026-11-01,10012125,59309",
+      "2026-11-01,101226,38765",
+      "2026-11-01,1021,997",
+      "2026-11-01,23123,29243"
+    ],
+    "documented_ft_total": 31,
+    "dual_postcheck_confirmed": 0,
+    "dual_postcheck_conflicts": 0,
+    "dual_postcheck_scanned": 0,
+    "dual_provider_consensus": {
+      "conflicts_in_run": 0,
+      "invalid_previous_claims": {},
+      "reason_counts": {
+        "fewer_than_two_strong_providers": 11,
+        "not_unique_or_identity_changed": 19
+      },
+      "source_revision_quarantines": 0,
+      "validated_source_claims": 0,
+      "verified_in_run": 0
+    },
+    "durable_provider_attestations": {
+      "conflict_keys": 0,
+      "inserted": 0,
+      "repeated": 0,
+      "revisions_quarantined": 0,
+      "total_claims": 183
+    },
+    "eligible": 52,
+    "goal_id_probe": {
+      "calls": 0,
+      "candidates_planned": 0,
+      "outcome": []
+    },
+    "goal_reviewed_id_probe": {
+      "approved_selected": 0,
+      "decisions": {
+        "2026-10-27,77621,67110": {
+          "reason": "NOT_SELECTED_IN_CURRENT_FT_QUEUE",
+          "status": "DEFERRED"
+        }
+      },
+      "observations": {}
+    },
+    "http_429_cooldowns": {
+      "thesportsdb": {
+        "attempted_at_utc": "2026-11-02T06:36:49.483968+00:00",
+        "basis": "CONSERVATIVE_4H_WITHOUT_VALID_RETRY_AFTER",
+        "blocked_until_utc": "2026-11-02T10:36:49.483968+00:00",
+        "http_status": 429
+      }
+    },
+    "last_chance_eligible": [],
+    "last_chance_selected": [],
+    "never_checked_deferred": 22,
+    "never_checked_eligible": 52,
+    "newly_confirmed": 0,
+    "old_id_recovery_turn": [],
+    "provider_id_collisions": 0,
+    "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
+    "same_run_cached_postcheck": {
+      "adapter_http_requests": 0,
+      "eligible_new_strong_pairs": 0,
+      "execution_errors": 0,
+      "scope": "new STRONG review pairs on COMPLETE already-fetched day lists",
+      "score_conflicts": 0,
+      "verified": 0
+    },
+    "selected": 30,
+    "selected_keys": [
       "2026-11-01,10039379,100567",
       "2026-11-01,10048487,10089357",
       "2026-11-01,30902,30901",
@@ -279,102 +365,9 @@
       "2026-11-01,37844,38643",
       "2026-11-01,48436,48434",
       "2026-11-01,508,1381",
-      "2026-11-01,630,587"
-    ],
-    "documented_ft_total": 31,
-    "dual_postcheck_confirmed": 0,
-    "dual_postcheck_conflicts": 0,
-    "dual_postcheck_scanned": 0,
-    "dual_provider_consensus": {
-      "conflicts_in_run": 0,
-      "invalid_previous_claims": {},
-      "reason_counts": {
-        "fewer_than_two_strong_providers": 8,
-        "not_unique_or_identity_changed": 22
-      },
-      "source_revision_quarantines": 0,
-      "validated_source_claims": 0,
-      "verified_in_run": 0
-    },
-    "durable_provider_attestations": {
-      "conflict_keys": 0,
-      "inserted": 0,
-      "repeated": 0,
-      "revisions_quarantined": 0,
-      "total_claims": 183
-    },
-    "eligible": 58,
-    "goal_id_probe": {
-      "calls": 0,
-      "candidates_planned": 0,
-      "outcome": []
-    },
-    "goal_reviewed_id_probe": {
-      "approved_selected": 0,
-      "decisions": {
-        "2026-10-27,77621,67110": {
-          "reason": "NOT_SELECTED_IN_CURRENT_FT_QUEUE",
-          "status": "DEFERRED"
-        }
-      },
-      "observations": {}
-    },
-    "http_429_cooldowns": {
-      "thesportsdb": {
-        "attempted_at_utc": "2026-11-02T06:36:49.483968+00:00",
-        "basis": "CONSERVATIVE_4H_WITHOUT_VALID_RETRY_AFTER",
-        "blocked_until_utc": "2026-11-02T10:36:49.483968+00:00",
-        "http_status": 429
-      }
-    },
-    "last_chance_eligible": [],
-    "last_chance_selected": [],
-    "never_checked_deferred": 28,
-    "never_checked_eligible": 58,
-    "newly_confirmed": 1,
-    "old_id_recovery_turn": [],
-    "provider_id_collisions": 0,
-    "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
-    "same_run_cached_postcheck": {
-      "adapter_http_requests": 0,
-      "eligible_new_strong_pairs": 0,
-      "execution_errors": 0,
-      "scope": "new STRONG review pairs on COMPLETE already-fetched day lists",
-      "score_conflicts": 0,
-      "verified": 0
-    },
-    "selected": 30,
-    "selected_keys": [
-      "2026-11-01,37949,1617",
-      "2026-11-01,27522,37825",
-      "2026-11-01,1662,565",
-      "2026-11-01,25901,37537",
-      "2026-11-01,58469,32826",
-      "2026-11-01,27463,27459",
-      "2026-11-01,10061801,10067655",
-      "2026-11-01,27455,27462",
-      "2026-11-01,30944,98295",
-      "2026-11-01,35187,28225",
-      "2026-11-01,39674,10028492",
-      "2026-11-01,52181,29389",
-      "2026-11-01,695,46875",
-      "2026-11-02,310,251",
-      "2026-11-01,29218,30931",
-      "2026-11-01,33888,88009",
-      "2026-11-01,49415,24586",
-      "2026-11-01,26890,26883",
-      "2026-11-01,27476,27481",
-      "2026-11-01,28220,28221",
-      "2026-11-01,53297,10058348",
-      "2026-11-01,73483,10056017",
-      "2026-11-01,23798,23804",
-      "2026-11-01,35444,10062448",
-      "2026-11-01,1029,1014",
-      "2026-11-01,10045848,22932",
-      "2026-11-01,10039247,52240",
-      "2026-11-01,10041570,10048541",
-      "2026-11-01,59846,10071955",
-      "2026-11-01,732,53909"
+      "2026-11-01,630,587",
+      "2026-11-01,10085635,74671",
+      "2026-11-01,72950,47096"
     ],
     "selection_mode": "BOUNDED_PROVIDER_POLL"
   },
@@ -7460,7 +7453,7 @@
   "h1_alerts_count": 1747,
   "h1_signals_count_in_state": 369,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-11-02T06:36:25+00:00",
+  "last_updated_at": "2026-11-02T06:46:03+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -7473,13 +7466,13 @@
   "monte_carlos_bsd": {
     "archive_sha256_prefix": "afc7faaf6193deab",
     "archive_status": "read_only_loaded",
-    "bsd_direct_event_requests": 1,
+    "bsd_direct_event_requests": 0,
     "catalog_matchday_groups": 7352,
     "core_name_event_id_candidates": 0,
     "exact_event_id_candidates": 0,
     "rate_limited": false,
     "reason_counts": {
-      "no_exact_archive_match": 29
+      "no_exact_archive_match": 30
     },
     "reviewed_bsd_ids_verified": 0,
     "verified_core_name_in_run": 0,
@@ -7495,7 +7488,7 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "pending_due_checks": 28,
+  "pending_due_checks": 22,
   "reviewed_alias_catalog_matches": 16,
   "reviewed_bsd_id_catalog_matches": 5,
   "schema_version": 1,
@@ -7507,15 +7500,14 @@
     "remaining_quarantined": 0
   },
   "sportscore_search": {
-    "cached_date_team_queries": 2,
+    "cached_date_team_queries": 5,
     "competition_core_targets": 0,
     "competition_core_verified": 0,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "source_home_away_conflict": 1,
-      "sportscore_no_exact_match": 29
+      "sportscore_no_exact_match": 30
     },
-    "requests": 22,
+    "requests": 25,
     "reviewed_alias_ft_in_run": 0,
     "targeted_searches": 20
   },
@@ -7527,10 +7519,7 @@
     "PENDING": 311
   },
   "thesportsdb_search": {
-    "http_429": 1,
-    "no_event": 10,
-    "requested": 11,
-    "suppressed_after_429": 19
+    "cooldown_deferred": 30
   },
   "timing_counts": {
     "BLOCKED_REVIEW": 1,
@@ -7543,8 +7532,8 @@
   "unverified": 726,
   "v6_ft_priority": {
     "budget": 30,
-    "hinted_eligible": 43,
-    "hinted_selected": 25,
+    "hinted_eligible": 34,
+    "hinted_selected": 20,
     "hints_do_not_override": [
       "3h grace",
       "4h cooldown",
