@@ -473,7 +473,7 @@ class E5ReceiptPublisherTests(unittest.TestCase):
         fx = BareGitFixture()
         self.addCleanup(fx.cleanup)
         root = fx.clone("collector")
-        ledger = e5.empty_ledger(NOW)
+        ledger = json.loads((root / e5.LEDGER).read_text())          # existing receipts are kept
         ledger["entries"]["k"] = {"status": delivery.IN_PROGRESS, "match_key": "k",
                                   "kickoff_utc": KO.isoformat()}
         (root / e5.LEDGER).write_text(json.dumps(ledger))
@@ -486,6 +486,11 @@ class E5ReceiptPublisherTests(unittest.TestCase):
         self.assertEqual(fx.json(str(e5.LEDGER))["entries"]["k"]["status"], delivery.IN_PROGRESS)
         self.assertEqual(fx.json("data/lab/ft-ledger.json")["matches"], {})
         self.assertIsNone(publish())                                   # unchanged: no commit
+        changed_rule = dict(ledger, rule_version="OTHER_RULE")             # rule identity is frozen
+        (root / e5.LEDGER).write_text(json.dumps(changed_rule))
+        with self.assertRaises(delivery.IntentNotDurable):
+            publish()
+        git(root, "reset", "-q", "--hard", published)
         ledger["entries"]["k"].update(status="sent", telegram_message_id=5)
         (root / e5.LEDGER).write_text(json.dumps(ledger))
         self.assertEqual(publish(final=True), fx.main())
