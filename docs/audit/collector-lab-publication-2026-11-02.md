@@ -96,6 +96,54 @@ Nos casos 2 e 3 o job falha com o recibo listando os alertas em risco de
 reenvio e o bundle. O caso 1 não deixa diagnóstico no repositório (só o log do
 job interrompido). O modo durável não foi ativado. Exactly-once não é prometido.
 
-## 5. LAB V4
+## 5. LAB V4 (`lab-v4-audit.yml`)
 
-Ver secção acrescentada pela PR do LAB V4.
+O `publication_guard` (outcomes de todos os produtores + selo dos bytes) já
+impedia publicações parciais e alterações dos ficheiros selados durante o
+rebase. O risco está no que o selo **não** cobre: as **entradas** dos relatórios.
+
+| Pergunta | Loop antigo (fetch/rebase/verify/push ×5) | Evidência |
+|---|---|---|
+| Pode perder alterações? | Não (rebase preserva commits remotos); conflitos fazem o job falhar sem recibo | `test_concurrent_journal_append_conflicts` |
+| Sobrescrever resultados independentes? | Não diretamente (só ficheiros staged) | — |
+| Duplicar entradas append-only? | Não observado: rebase em conflito falha; 408-depois-de-aceite é absorvido pelo rebase no-op | — |
+| Publicar relatórios sobre entradas incompatíveis? | **Sim** | `test_closed_month_append_publishes_an_index_that_contradicts_main`, `test_rewritten_ft_final_is_not_noticed`, `test_report_contradicting_rolled_back_receipt_is_published` |
+| Destruir um selo válido no rebase? | Não: o selo detecta (ou o rebase entra em conflito) | `test_same_artifact_by_another_lab_run_conflicts_or_is_caught_by_the_seal` |
+| Confundir rejeitada com aceite? | Não perde dados, mas não classifica nem emite recibo; AUTH é repetido 5× | — |
+
+O caso mais grave: um append FT a um mês fechado que o novo
+`v6-archive-index.json` acabou de selar faz rebase limpo, passa o selo e é
+publicado; a `main` passa a ter um índice que contradiz os ficheiros, e todos os
+builds seguintes falham com `SEALED_MONTH_MUTATED_OR_MISSING`.
+
+### Correção: `scripts/lab_v4_publish_safe.py`
+
+Mesmo motor comum; `publication_guard outcomes` e `seal` mantidos no workflow;
+`publication_guard.verify` reexecutado sobre a árvore candidata exata.
+
+Política de dependências por caminho remoto: artefacto LAB V4 alterado por outro
+→ recusa (`CONCURRENT_OWNER_WRITE`, inclui journals e nova geração do arquivo);
+identidade de jogos, recibos Telegram, bloqueio e journal V4 do coletor validados;
+`results.csv` certificado retido; FINAL do `ft-ledger.json` inalterados; journals
+FT append-only; rótulos Golden (`data/lab/golden/**`) → recusa; programa/legado/
+desconhecido → recusa. Verificações sobre o candidato: selo, cada entrada selada
+do índice de arquivo contra os blobs do candidato, cada recibo terminal citado em
+`telegram-eligibility.json` contra os ledgers do candidato, journals append-only.
+Recusa explícita, nunca publicação parcial. Recibo `LAB_V4_PUBLISH_RECEIPT`.
+
+## 6. Simulação conjunta dos quatro escritores
+
+`tests/test_four_writer_concurrency.py` usa os publicadores reais (coletor e LAB
+V4 no motor comum; FT #202 e H1 #203 inalterados). Os quatro preparam o ciclo a
+partir da mesma base e publicam nas **24 ordens possíveis**, com faltas fixas:
+2.º publicador CAS (commit LLM independente), 3.º HTTP 408 antes da aceitação,
+4.º HTTP 408 depois da aceitação seguido de outro commit. Invariantes: todos os
+commits presentes, cada mensagem uma única vez, recibos Telegram intactos, FINAL
+FT e H1 retidos, journals com prefixo da base, sem duplicados, `docs/data.json`
+consistente com as entradas finais. Contenção persistente → `RETRY_EXHAUSTED`
+após exatamente 6 tentativas (limite não aumentado) e publicação posterior sem
+novo trabalho; incompatibilidade persistente → `REFUSED` sem nada parcial.
+
+Recusas conhecidas do publicador FT (não alteradas aqui, seguras): nova geração
+de `v6-archive-index.json` e partições `markets-…-partNNNN` bloqueiam esse ciclo
+FT (`KnownCrossProducerRefusals`).
