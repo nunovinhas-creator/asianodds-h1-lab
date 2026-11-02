@@ -61,7 +61,7 @@ TERMINAL = ("sent", "delivery_uncertain_manual_review", "delivery_rejected_final
             "expired_not_sent")
 KEEP_OWNERS = frozenset({own.LLM, own.OFFLINE_STATS, own.LAB_QUALITY, own.SITE, own.DOCUMENTATION})
 # Written by others, never read by any LAB V4 producer (derived H1 dashboard; Telegram pause).
-NON_MATERIAL = frozenset({own.COLLECT_RENDERED, own.TELEGRAM_BLOCK})
+NON_MATERIAL = frozenset({own.COLLECT_RENDERED, own.TELEGRAM_BLOCK, own.E5_LEDGER})
 TRAILER = "LAB-Input-Commit: "
 
 

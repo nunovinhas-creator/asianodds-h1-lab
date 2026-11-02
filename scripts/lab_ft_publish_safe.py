@@ -46,6 +46,7 @@ LLM_SHADOW = re.compile(
 
 # Known H1 Telegram receipts are independent of FT evidence.
 H1_NOTIFICATION_RECEIPTS = frozenset({
+    "data/e5-over25-notifications.json",
     "data/three-total-moves-notifications.json",
     "data/two-up-total-notifications.json",
     "data/e4-notifications.json",

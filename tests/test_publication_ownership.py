@@ -37,8 +37,8 @@ class OwnershipMatrixTests(unittest.TestCase):
         self.assertEqual(missing, [])
 
     def test_collector_owned_set_is_explicit(self):
-        for path in ("data/state.json", "docs/data.json", "data/three-total-moves-notifications.json",
-                     "data/two-up-total-notifications.json", "data/telegram-delivery-block.json",
+        for path in ("data/state.json", "docs/data.json", "data/e5-over25-notifications.json",
+                     "data/telegram-delivery-block.json",
                      "data/lab/markets-2026-11.jsonl", "data/lab/markets-2026-11-part0001.jsonl",
                      "data/lab/formats-2026-11.jsonl", "data/lab/v4-revisions-2026-11.jsonl"):
             self.assertEqual(own.owner_of(path), own.COLLECTOR, path)
@@ -50,6 +50,9 @@ class OwnershipMatrixTests(unittest.TestCase):
                             ("data/lab/v6-ft-events-2026-11.jsonl", own.FT),
                             ("data/lab/discovery-state.json", own.FT),
                             ("data/pattern-notifications.json", own.LEGACY),
+                            # retired 2026-11-02 (E5 is the only emitter): frozen historical proof
+                            ("data/three-total-moves-notifications.json", own.LEGACY),
+                            ("data/two-up-total-notifications.json", own.LEGACY),
                             ("data/lab/golden/reviews/x.json", own.MANUAL_REVIEW)):
             self.assertEqual(own.owner_of(path), owner, path)
 

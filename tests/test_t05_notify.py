@@ -124,7 +124,8 @@ class T05Tests(unittest.TestCase):
         wf=(Path(__file__).resolve().parents[1]/".github/workflows/collect.yml").read_text()
         self.assertNotIn("run: python -m h1lab.e4_notify",wf)
         self.assertNotIn("run: python -m h1lab.t05_notify",wf)
-        self.assertIn("run: python -m h1lab.three_moves_notify",wf)
+        self.assertNotIn("run: python -m h1lab.three_moves_notify",wf)
+        self.assertIn("run: python -m h1lab.e5_notify",wf)
         self.assertNotIn("git add data/t05-notifications.json",wf)
         self.assertNotIn("run: python -m h1lab.strategy_notify",wf)
 

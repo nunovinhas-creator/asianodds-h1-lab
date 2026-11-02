@@ -61,6 +61,9 @@ SENT_NEW = {"status": "sent", "telegram_message_id": 777, "kickoff_utc": "2026-1
 
 BASELINE = {
     "data/state.json": state(),
+    # E5 (2026-11-02) is the only active Telegram receipt ledger, owned by the collector.
+    "data/e5-over25-notifications.json": ledger(**{"2026-11-01_1_2": SENT_OLD}),
+    # Retired emitters: frozen historical proof (LEGACY_FROZEN), never written again.
     "data/three-total-moves-notifications.json": ledger(**{"2026-11-01_1_2": SENT_OLD}),
     "data/two-up-total-notifications.json": ledger(rule="TWO_UP"),
     "data/pattern-notifications.json": {"schema_version": 1, "entries": {}},

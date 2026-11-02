@@ -181,15 +181,17 @@ class TwoUpNotificationTests(unittest.TestCase):
             self.assertFalse((Path(tmp)/watch.LEDGER).exists())
             self.assertFalse((Path(tmp)/old.LEDGER).exists())
 
-    def test_production_workflow_preserves_first_sender_and_adds_second(self):
+    def test_production_workflow_retired_both_senders_for_e5(self):
+        # 2026-11-02: E5 is the only Telegram emitter; both ledgers are frozen historical proof.
         root=Path(__file__).resolve().parents[1]
         wf=(root/".github/workflows/collect.yml").read_text(encoding="utf-8")
-        self.assertEqual(wf.count("run: python -m h1lab.three_moves_notify"),1)
-        self.assertEqual(wf.count("run: python -m h1lab.two_up_notify"),1)
+        self.assertEqual(wf.count("run: python -m h1lab.three_moves_notify"),0)
+        self.assertEqual(wf.count("run: python -m h1lab.two_up_notify"),0)
+        self.assertEqual(wf.count("run: python -m h1lab.e5_notify"),1)
         from scripts import publication_ownership as own
         self.assertIn("python -m scripts.collect_publish_safe stage",wf)
-        self.assertTrue(own.is_collector_owned("data/three-total-moves-notifications.json"))
-        self.assertTrue(own.is_collector_owned("data/two-up-total-notifications.json"))
+        self.assertEqual(own.owner_of("data/three-total-moves-notifications.json"),own.LEGACY)
+        self.assertEqual(own.owner_of("data/two-up-total-notifications.json"),own.LEGACY)
         self.assertNotIn("run: python -m h1lab.t05_notify",wf)
         self.assertNotIn("run: python -m h1lab.e4_notify",wf)
 

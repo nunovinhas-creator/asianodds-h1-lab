@@ -1,4 +1,4 @@
-"""collect.yml: durable Telegram mode is OFF by default and nothing else about the workflow changed."""
+"""collect.yml: E5 is the only Telegram emitter, runs after data publication and is always durable."""
 import re
 import unittest
 from pathlib import Path
@@ -7,16 +7,21 @@ TEXT = (Path(__file__).resolve().parents[1] / ".github/workflows/collect.yml").r
 
 
 class CollectTelegramInfraTests(unittest.TestCase):
-    def test_durable_mode_defaults_off_and_is_driven_only_by_a_repository_variable(self):
-        self.assertEqual(TEXT.count("TG_DURABLE_INTENT: ${{ vars.TG_DURABLE_INTENT == '1' && '1' || '0' }}"), 2)
-        self.assertEqual(TEXT.count("TG_IGNORE_AUTH_BLOCK: ${{ vars.TG_IGNORE_AUTH_BLOCK == '1' && '1' || '0' }}"), 2)
-        self.assertNotIn("TG_DURABLE_INTENT: '1'", TEXT)
-        self.assertNotIn("TG_DURABLE_INTENT: 1", TEXT)
+    def test_e5_durability_is_mandatory_not_an_opt_in_variable(self):
+        # E5 publishes every intent on main BEFORE its Telegram request (at-most-once). The old
+        # TG_DURABLE_INTENT opt-in (default off, at-least-once) no longer drives any sender.
+        self.assertNotIn("TG_DURABLE_INTENT", TEXT)
+        self.assertNotIn("TG_IGNORE_AUTH_BLOCK", TEXT)
+        self.assertEqual(TEXT.count("TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}"), 1)
 
-    def test_only_the_two_active_notifiers_get_the_variables(self):
+    def test_only_the_e5_notifier_gets_the_bot_secrets(self):
         for step in re.split(r"\n      - ", TEXT):
-            if "TG_DURABLE_INTENT" in step:
-                self.assertTrue("three_moves_notify" in step or "two_up_notify" in step, step[:80])
+            if "TG_BOT_TOKEN" in step or "TG_CHAT_ID" in step:
+                self.assertIn("python -m h1lab.e5_notify", step, step[:80])
+
+    def test_collected_data_is_published_before_any_telegram_request(self):
+        self.assertLess(TEXT.index("python -m scripts.collect_publish_safe publish"),
+                        TEXT.index("python -m h1lab.e5_notify"))
 
     def test_block_file_is_committed_with_the_other_notification_state(self):
         # Staged (including deletion of an expired block) by the ownership-matrix stage step.
@@ -30,13 +35,15 @@ class CollectTelegramInfraTests(unittest.TestCase):
         self.assertIn("group: asianodds-h1-write", TEXT)
         self.assertIn("cancel-in-progress: false", TEXT)
         self.assertIn("contents: write", TEXT)
-        for needle in ("python -m h1lab.cli collect", "python -m h1lab.three_moves_notify",
-                       "python -m h1lab.two_up_notify", "python -m scripts.lab_ft_watchdog",
+        for needle in ("python -m h1lab.cli collect", "python -m h1lab.e5_notify",
+                       "python -m scripts.lab_ft_watchdog",
                        "python -m scripts.h1_results_watchdog",
                        "python -m scripts.collect_publish_safe stage",
                        "python -m scripts.collect_publish_safe publish"):
             self.assertEqual(TEXT.count(needle), 1, needle)
         self.assertNotIn("h1lab.e4_notify", TEXT)
+        self.assertNotIn("h1lab.three_moves_notify", TEXT)
+        self.assertNotIn("h1lab.two_up_notify", TEXT)
         self.assertNotIn("h1lab.strategy_notify", TEXT)
         self.assertNotIn("h1lab.t05_notify", TEXT)
         # No rebase/force push after Telegram was sent; no blanket staging of data/lab.

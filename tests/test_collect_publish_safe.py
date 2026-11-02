@@ -21,8 +21,8 @@ from tests.git_writers import (AUTH_403, HTTP_408, SENT_NEW, SENT_OLD, BareGitFi
                                v4_journal_paths, write)
 from tests.git_writers import render as production_render
 
-THREE = "data/three-total-moves-notifications.json"
-TWO = "data/two-up-total-notifications.json"
+THREE = "data/e5-over25-notifications.json"          # the active (E5) collector receipt ledger
+TWO = "data/two-up-total-notifications.json"         # retired: frozen legacy proof
 BLOCK = "data/telegram-delivery-block.json"
 MARKETS = "data/lab/markets-2026-11.jsonl"
 FORMATS = "data/lab/formats-2026-11.jsonl"
@@ -256,9 +256,12 @@ class SafeCollectorPublication(Base):
         self.assertIn(git(root, "rev-parse", "HEAD"), bundle_heads)
 
     def test_concurrent_ledger_or_block_change_is_refused(self):
-        for path, content in ((THREE, ledger(**{"2026-11-01_1_2": SENT_OLD, "x_y": SENT_NEW})),
-                              (TWO, ledger(rule="TWO_UP", **{"x_y": SENT_NEW})),
-                              (BLOCK, {"schema_version": 1, "until": "2099-01-01T00:00:00+00:00"})):
+        for path, content, kind in (
+                (THREE, ledger(**{"2026-11-01_1_2": SENT_OLD, "x_y": SENT_NEW}), "CONCURRENT_OWNER_WRITE"),
+                # A retired (frozen) ledger can never change: refused as an integrity breach.
+                (TWO, ledger(rule="TWO_UP", **{"x_y": SENT_NEW}), "INTEGRITY"),
+                (BLOCK, {"schema_version": 1, "until": "2099-01-01T00:00:00+00:00"},
+                 "CONCURRENT_OWNER_WRITE")):
             with self.subTest(path=path):
                 fx = BareGitFixture()
                 self.addCleanup(fx.cleanup)
@@ -267,7 +270,7 @@ class SafeCollectorPublication(Base):
                 fx.plain_commit("collector2", {path: content}, c.MESSAGE)
                 with self.assertRaises(sel.PublicationRefused):
                     self.publish(root, base)
-                self.assertEqual(self.receipt["reason_kind"], "CONCURRENT_OWNER_WRITE")
+                self.assertEqual(self.receipt["reason_kind"], kind)
 
     def test_cannot_lock_ref_race_retries_and_preserves_the_other_writer(self):
         root, base = collector_cycle(self.fx)

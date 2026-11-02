@@ -65,7 +65,7 @@ class Writers:
         write(root, "data/state.json", gw.state(150, ("c:1", "c:2")))
         gw.observe(root, 2, observed="2026-11-02T07:00:00+00:00")   # production V4 stores
         render(root)
-        write(root, "data/three-total-moves-notifications.json",
+        write(root, "data/e5-over25-notifications.json",
               ledger(**{"2026-11-01_1_2": gw.SENT_OLD, "2026-11-03_2": gw.SENT_NEW}))
         col.stage(root)
         git(root, "commit", "-qm", col.MESSAGE)
@@ -231,7 +231,7 @@ class FourWriterConcurrency(unittest.TestCase):
         # Collector: observation, receipts (old terminal + new).
         st = fx.json("data/state.json")
         self.assertEqual((st["last_id"], [a["event_id"] for a in st["alerts"]]), (150, ["c:1", "c:2"]))
-        receipts = fx.json("data/three-total-moves-notifications.json")["entries"]
+        receipts = fx.json("data/e5-over25-notifications.json")["entries"]
         self.assertEqual(receipts["2026-11-01,1,2"], gw.SENT_OLD)
         self.assertEqual(receipts["2026-11-03,2"]["telegram_message_id"], 777)
         # No silent change of historical observations: replay base -> final main with the

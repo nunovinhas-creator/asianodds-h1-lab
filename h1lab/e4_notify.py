@@ -216,6 +216,8 @@ def preview(root=ROOT, now=None):
 
 
 if __name__ == "__main__":
+    from .telegram_emitters import main_guard
+    main_guard("h1lab.e4_notify")  # RETIRED: only a read-only --dry-run remains
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="no messages, no receipts")
     args = parser.parse_args()

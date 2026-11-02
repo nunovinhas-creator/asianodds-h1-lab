@@ -23,7 +23,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,35 +43,13 @@ jobs:
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
         run: python -m h1lab.cli collect
-      # Original Telegram rule 1 remains: >=3 separate V4 Total-line movements.
-      # Legacy E4, T05, generic V5, H1 singles and triples stay DISABLED.
-      # Keeps all future fixtures (no 12h cutoff) and sends once per match.
-      - name: Notify MASTER BRAIN 3 verified Total movements
-        env:
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          # Durable delivery state (see docs/audit/telegram-durable-activation.md). OFF unless the
-          # repository variable TG_DURABLE_INTENT is exactly "1".
-          TG_DURABLE_INTENT: ${{ vars.TG_DURABLE_INTENT == '1' && '1' || '0' }}
-          TG_IGNORE_AUTH_BLOCK: ${{ vars.TG_IGNORE_AUTH_BLOCK == '1' && '1' || '0' }}
-        run: python -m h1lab.three_moves_notify
-      # ADDITIVE alert. The existing three-movement sender above is unchanged.
-      # At least two independent upward V4 Total moves, net >= 0.50, no V4 fall.
-      - name: Notify MASTER BRAIN 2 distinct Total rises (additional)
-        env:
-          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          # Durable delivery state (see docs/audit/telegram-durable-activation.md). OFF unless the
-          # repository variable TG_DURABLE_INTENT is exactly "1".
-          TG_DURABLE_INTENT: ${{ vars.TG_DURABLE_INTENT == '1' && '1' || '0' }}
-          TG_IGNORE_AUTH_BLOCK: ${{ vars.TG_IGNORE_AUTH_BLOCK == '1' && '1' || '0' }}
-        run: python -m h1lab.two_up_notify
-      # Telegram may already have been sent above. A Git conflict is only a Git problem:
-      # no rebase, no force push, no re-collection and no new Telegram request here.
+      # The collector commit is published BEFORE any Telegram request (E5 runs after this step).
+      # No rebase, no force push, no re-collection and no Telegram request here.
       # Only the collector-owned paths of scripts/publication_ownership.py are staged
       # (never the whole data/lab directory) and transported over the current main
       # after every concurrent change was classified (docs/audit/collector-lab-publication-2026-11-02.md).
       - name: Store data for dashboard
+        id: store
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -84,6 +62,27 @@ jobs:
           else
             echo "COLLECT_PUBLISH_RECEIPT {\"status\": \"NOTHING_TO_PUBLISH\"}"
           fi
+      # THE ONLY ACTIVE TELEGRAM EMITTER: E5 (P5-8bced1b27e), Over 2,5 golos.
+      # Retired and never invoked: 3+ Total moves, 2 Total rises, E1-E4, T05, H1 singles/triples,
+      # Pattern Watch (h1lab/telegram_emitters.py). All future fixtures, no 12h cutoff, no game quota.
+      # At-most-once: each intent is published on main (selective collector publication) BEFORE its
+      # Telegram request; if that is impossible nothing is sent. Receipts: data/e5-over25-notifications.json.
+      - name: Notify MASTER BRAIN E5 - Over 2,5 (exclusive)
+        id: e5
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python -m h1lab.e5_notify
+      - name: Keep the E5 receipt ledger when its publication failed
+        if: failure() && steps.e5.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e5-receipts-${{ github.run_id }}
+          path: |
+            data/e5-over25-notifications.json
+            data/telegram-delivery-block.json
+          if-no-files-found: ignore
+          retention-days: 90
       # Only on failure (every-5-minute successes are in the log as COLLECT_PUBLISH_RECEIPT).
       - name: Keep the failed collector publication receipt and bundle
         if: failure()
@@ -106,15 +105,17 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
       # A missing GitHub schedule can starve authenticated FT lookups.
-      # Runs ONLY after H1 has persisted alerts and notifications.
+      # Runs ONLY after H1 has persisted the collected data (even if the E5 step failed).
       # Does not modify H1/Telegram or block data publication on failure.
       - name: Wake overdue LAB FT workflow (nonblocking watchdog)
+        if: ${{ !cancelled() && steps.store.outcome == 'success' }}
         continue-on-error: true
         timeout-minutes: 1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python -m scripts.lab_ft_watchdog
       - name: Wake overdue H1 results workflow (nonblocking watchdog)
+        if: ${{ !cancelled() && steps.store.outcome == 'success' }}
         continue-on-error: true
         timeout-minutes: 1
         env:
