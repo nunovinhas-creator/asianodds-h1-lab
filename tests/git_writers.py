@@ -61,13 +61,9 @@ SENT_NEW = {"status": "sent", "telegram_message_id": 777, "kickoff_utc": "2026-1
 
 BASELINE = {
     "data/state.json": state(),
-    "docs/data.json": None,
     "data/three-total-moves-notifications.json": ledger(**{"2026-11-01_1_2": SENT_OLD}),
     "data/two-up-total-notifications.json": ledger(rule="TWO_UP"),
     "data/pattern-notifications.json": {"schema_version": 1, "entries": {}},
-    "data/lab/markets-2026-11.jsonl": jline(event_id="c:1", observed_at="2026-11-02T06:00:00+00:00"),
-    "data/lab/formats-2026-11.jsonl": jline(event_id="c:1", observed_at="2026-11-02T06:00:00+00:00"),
-    "data/lab/v4-revisions-2026-11.jsonl": jline(event_id="c:1", sha256="a" * 64),
     "data/results.csv": "match_key,status,home_goals,away_goals,source\n\"2026-11-01,1,2\",final,1,0,x\n",
     "data/result_audit.json": {"2026-11-01,1,2": {"status": "settled"}},
     "data/health/h1-results.json": {"status": "CYCLE_COMPLETED", "n": 1},
@@ -82,19 +78,55 @@ BASELINE = {
 }
 
 
-def view(alerts, results):
-    """Rendered dashboard (docs/data.json) with realistic distance between fields."""
-    return {"alerts": alerts, "generated_at": "fixed", "h1": {"roi": 0}, "lab": [],
-            "results": results}
+# ---------------------------------------------------------------- production V4 writers
+def v4_row(n, line_after=3.25, observed="2026-11-02T06:00:00+00:00", edit_at=None,
+           kickoff="2026-11-03T19:00:00+00:00", under=1.88):
+    """A schema-4 market row shaped exactly like ``h1lab.market_v4.parse`` output."""
+    row = {"schema_version": 4, "parser": "telegram_multimarket_shadow", "event_id": "c:%d" % n,
+           "observed_at": observed, "trigger_market": "total",
+           "trigger": {"market": "total", "before": 3.0, "after": line_after, "pct": None,
+                       "selection": None},
+           "window_minutes": None,
+           "markets": {"total": {"before": {"line": 3.0, "over_price": 1.85, "under_price": 2.03},
+                                 "after": {"line": line_after, "over_price": 2.02,
+                                           "under_price": under},
+                                 "line_changed": True, "cross_line_prices_comparable": False}},
+           "match_key": "2026-11-03,%d" % n, "kickoff_utc": kickoff,
+           "identity_source": {"kickoff_utc": "telegram_clock", "match_key": "url_match"},
+           "field_source": "telegram_explicit_rows", "parser_revision": "v4-provenance-1",
+           "parser_commit": "f" * 40, "parser_source_sha256": "e" * 64,
+           "source": "telegram_explicit_rows",
+           "unverified_fields": ["btts", "full_market_depth", "trigger_pct"]}
+    if edit_at:
+        row["telegram_edit_at"] = edit_at
+    return row
 
 
-BASELINE["docs/data.json"] = view(1, 1)
+def observe(root, n, text="Total 3,0 -> 3,25", **kw):
+    """Persist one V4 observation and its format signature with the production stores."""
+    from datetime import datetime
+    from h1lab import market_v4, shadow_formats
+    row = v4_row(n, **kw)
+    market_v4.store(root, [row])
+    when = datetime.fromisoformat(row["observed_at"])
+    shadow_formats.store(root, [shadow_formats.inspect(text, when, n, "c", True)])
+    return row
+
+
+def render(root):
+    from scripts.collect_publish_safe import render_dashboard
+    render_dashboard(root)
+
+
+def v4_journal_paths(fixture):
+    names = git(fixture.remote, "ls-tree", "-r", "--name-only", "main", "--", "data/lab/").split()
+    return [n for n in names if n.startswith("data/lab/v4-revisions-")]
 
 
 class BareGitFixture:
     """One bare 'GitHub' + named writer clones that all start from the same main."""
 
-    def __init__(self, files=None):
+    def __init__(self, files=None, v4_events=(1,)):
         self.tmp = tempfile.TemporaryDirectory()
         self.home = Path(self.tmp.name)
         self.remote = self.home / "github.git"
@@ -102,6 +134,9 @@ class BareGitFixture:
         seed = self.clone("seed")
         for name, content in (files or BASELINE).items():
             write(seed, name, content)
+        for n in v4_events:              # real SHA-chained journal + projection
+            observe(seed, n)
+        render(seed)                     # docs/data.json exactly as the collector renders it
         git(seed, "add", "-A")
         git(seed, "commit", "-qm", "baseline")
         git(seed, "push", "-q", "origin", "HEAD:refs/heads/main")
@@ -132,13 +167,15 @@ class BareGitFixture:
         raw = self.show(path, ref)
         return None if raw is None else json.loads(raw)
 
-    def plain_commit(self, name, changes, message, deletions=()):
+    def plain_commit(self, name, changes, message, deletions=(), action=None):
         """Another writer publishes an ordinary fast-forward commit on the current main."""
         root = self.clone(name)
         git(root, "fetch", "-q", "origin", "main")
         git(root, "reset", "-q", "--hard", "origin/main")
         for path, content in changes.items():
             write(root, path, content)
+        if action:
+            action(root)
         for path in deletions:
             git(root, "rm", "-q", path)
         git(root, "add", "-A")
