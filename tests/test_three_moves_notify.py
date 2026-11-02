@@ -160,7 +160,10 @@ class ThreeTotalMovementTests(unittest.TestCase):
         self.assertNotIn("run: python -m h1lab.strategy_notify", wf)
         self.assertNotIn("run: python -m h1lab.pattern_notify", wf)
         self.assertNotIn("run: python -m h1lab.notify", wf)
-        self.assertIn("git add data/three-total-moves-notifications.json", wf)
+        # The ledger is committed through the explicit collector ownership matrix.
+        from scripts import publication_ownership as own
+        self.assertIn("python -m scripts.collect_publish_safe stage", wf)
+        self.assertTrue(own.is_collector_owned("data/three-total-moves-notifications.json"))
 
 
 if __name__ == "__main__":

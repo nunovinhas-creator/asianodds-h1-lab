@@ -186,8 +186,10 @@ class TwoUpNotificationTests(unittest.TestCase):
         wf=(root/".github/workflows/collect.yml").read_text(encoding="utf-8")
         self.assertEqual(wf.count("run: python -m h1lab.three_moves_notify"),1)
         self.assertEqual(wf.count("run: python -m h1lab.two_up_notify"),1)
-        self.assertIn("git add data/three-total-moves-notifications.json",wf)
-        self.assertIn("git add data/two-up-total-notifications.json",wf)
+        from scripts import publication_ownership as own
+        self.assertIn("python -m scripts.collect_publish_safe stage",wf)
+        self.assertTrue(own.is_collector_owned("data/three-total-moves-notifications.json"))
+        self.assertTrue(own.is_collector_owned("data/two-up-total-notifications.json"))
         self.assertNotIn("run: python -m h1lab.t05_notify",wf)
         self.assertNotIn("run: python -m h1lab.e4_notify",wf)
 

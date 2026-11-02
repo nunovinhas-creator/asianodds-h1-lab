@@ -311,7 +311,9 @@ class FiveStrategyTests(unittest.TestCase):
         self.assertNotIn("run: python -m h1lab.t05_notify",text)
         self.assertNotIn("run: python -m h1lab.strategy_notify",text)
         self.assertNotIn("run: python -m h1lab.pattern_notify",text)
-        self.assertIn("git add data/three-total-moves-notifications.json",text)
+        from scripts import publication_ownership as own
+        self.assertIn("python -m scripts.collect_publish_safe stage",text)
+        self.assertTrue(own.is_collector_owned("data/three-total-moves-notifications.json"))
 
     def test_real_root_runner_does_not_send_or_create_legacy_receipts(self):
         with tempfile.TemporaryDirectory() as tmp:

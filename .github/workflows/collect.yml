@@ -30,7 +30,10 @@ jobs:
         with:
           python-version: '3.11'
       - name: Reconcile latest data checkpoint
-        run: git pull --rebase origin main
+        run: |
+          git pull --rebase origin main
+          # Publication base: the collector commit is transported over newer main from here.
+          echo "COLLECT_BASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - run: pip install -r requirements.txt
       - name: Read authorised Telegram channel
         env:
@@ -63,22 +66,45 @@ jobs:
           TG_DURABLE_INTENT: ${{ vars.TG_DURABLE_INTENT == '1' && '1' || '0' }}
           TG_IGNORE_AUTH_BLOCK: ${{ vars.TG_IGNORE_AUTH_BLOCK == '1' && '1' || '0' }}
         run: python -m h1lab.two_up_notify
+      # Telegram may already have been sent above. A Git conflict is only a Git problem:
+      # no rebase, no force push, no re-collection and no new Telegram request here.
+      # Only the collector-owned paths of scripts/publication_ownership.py are staged
+      # (never the whole data/lab directory) and transported over the current main
+      # after every concurrent change was classified (docs/audit/collector-lab-publication-2026-11-02.md).
       - name: Store data for dashboard
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/state.json docs/data.json
-          if [ -f data/pattern-notifications.json ]; then git add data/pattern-notifications.json; fi
-          if [ -f data/three-total-moves-notifications.json ]; then git add data/three-total-moves-notifications.json; fi
-          if [ -f data/two-up-total-notifications.json ]; then git add data/two-up-total-notifications.json; fi
-          # Shared Telegram pause (429 retry_after / 401 / 403): committed so it survives between jobs.
-          if [ -f data/telegram-delivery-block.json ] || git ls-files --error-unmatch data/telegram-delivery-block.json >/dev/null 2>&1; then git add -A -- data/telegram-delivery-block.json; fi
-          if [ -d data/lab ]; then git add data/lab; fi
+          python -m scripts.collect_publish_safe stage --park "$RUNNER_TEMP/collect-unexpected.patch"
           if ! git diff --cached --quiet; then
-            git commit -m 'data: collect and notify H1 [skip ci]'
-            git pull --rebase origin main
-            git push origin main
+            git commit -q -m 'data: collect and notify H1 [skip ci]'
+            python -m scripts.collect_publish_safe publish --base "$COLLECT_BASE_SHA" \
+              --receipt "$RUNNER_TEMP/collect-publish-receipt.json" \
+              --bundle "$RUNNER_TEMP/collect-unpublished.bundle"
+          else
+            echo "COLLECT_PUBLISH_RECEIPT {\"status\": \"NOTHING_TO_PUBLISH\"}"
           fi
+      # Only on failure (every-5-minute successes are in the log as COLLECT_PUBLISH_RECEIPT).
+      - name: Keep the failed collector publication receipt and bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-publish-receipt-${{ github.run_id }}
+          # On failure the unpublished collector commit (state, receipts, block, V4 views) is kept.
+          path: |
+            ${{ runner.temp }}/collect-publish-receipt.json
+            ${{ runner.temp }}/collect-unpublished.bundle
+          if-no-files-found: ignore
+          retention-days: 30
+      # Tracked non-collector changes are never published; keep them for review when present.
+      - name: Keep parked non-collector changes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-unexpected-changes-${{ github.run_id }}
+          path: ${{ runner.temp }}/collect-unexpected.patch
+          if-no-files-found: ignore
+          retention-days: 30
       # A missing GitHub schedule can starve authenticated FT lookups.
       # Runs ONLY after H1 has persisted alerts and notifications.
       # Does not modify H1/Telegram or block data publication on failure.
