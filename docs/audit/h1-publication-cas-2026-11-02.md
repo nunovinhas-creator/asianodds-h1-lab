@@ -58,3 +58,28 @@ LAB V4 + FT writers pushing in a thread (every writer commit preserved, one H1 c
 * A `results.yml` run that races LAB/FT logs `H1_PUSH_FAILURE … CAS_REJECTED`
   followed by `H1_PUBLISH_RECEIPT … PUBLISHED`; no failed run for a pure race.
 * `provider_requeries` always 0; `results.csv` rows of the base never change.
+
+## Revision 2 (after #202 merge `09f97421`)
+
+**CI failure cause.** `test_realistic_concurrency_with_lab_and_ft_writers` let a free-running writer
+thread push up to 25 commits; depending on thread scheduling, it advanced `main` before every one of
+the 10 bounded H1 attempts → `Remote advanced during all bounded H1 publication attempts`. The test
+mixed two different situations and depended on timing.
+
+**Replacement (deterministic, lock-step with events — no sleeps):**
+* `test_transient_contention_publishes_without_requery_and_keeps_every_commit`: a real writer thread
+  pushes exactly one LAB V4 / FT commit *before each* of the first 4 H1 pushes (4 CAS rejections),
+  then stops; H1 must publish on attempt 5 with receipt `PUBLISHED`, `provider_requeries 0`, all 4
+  independent commits preserved, one H1 commit. Repeated 5× per run.
+* `test_persistent_contention_exhausts_safely_with_receipt_and_bundle`: the writer wins every one of
+  the 4 allowed attempts → explicit failure, receipt `RETRY_EXHAUSTED` (attempts, every remote head,
+  `CAS_REJECTED`×4, source commit), nothing partial on `main`, all independent commits kept, local
+  branch back on the unpublished H1 commit and exported as a Git bundle.
+Local repetition: 20/20 transient published, 20/20 persistent refused safely, 20/20 incident replays.
+
+**Hardening:** every failure writes a complete receipt (`REFUSED` / `OUTCOME_UNRESOLVED` /
+`RETRY_EXHAUSTED`) and `results.yml` uploads the receipt and the bundle (so a lost cycle like 06:57 is
+recoverable from the artifact); audit timestamps compared as UTC instants; a concurrent FT ledger change
+is independent only when every FINAL the H1 job could import keeps its exact result; Telegram block,
+eligibility report and notification receipts use the strict FT validators. Real-history check: 0 false
+refusals on 65 H1 audit commits and 70 FT ledger commits.
