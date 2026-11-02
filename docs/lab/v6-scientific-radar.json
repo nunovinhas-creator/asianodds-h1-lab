@@ -3,7 +3,7 @@
   "hypotheses": [
     {
       "comparison": "market_model_residual",
-      "condition_original": 146,
+      "condition_original": 147,
       "condition_strict": 126,
       "decision_event_sha256": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
       "decision_reason": "INCONCLUSIVE_LOW_POWER",
@@ -90,7 +90,7 @@
         }
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
-      "frozen_matches": 1007,
+      "frozen_matches": 1008,
       "ft_verified": 324,
       "games": [
         {
@@ -6342,6 +6342,78 @@
             "telegram_edit_at": null
           },
           "telegram_original_at": "2026-11-02T03:34:19+00:00"
+        },
+        {
+          "event_id": "3571094759:52389",
+          "forecast": {
+            "competition_heuristic": "CUP",
+            "feature_sha256": "bbfd98e7f402af2f545ab8f896e0ef1453295705524d448a072f347e9aef21d6",
+            "feature_version": 2,
+            "forecast_kind": "MARKET_BASELINE_ONLY",
+            "market_co_observation": "SEPARATE_MESSAGES_ONLY",
+            "market_probability_over_2_5": 0.6418,
+            "market_total_after": {
+              "line": 3.25,
+              "margin": 0.07259,
+              "over_price": 1.97,
+              "under_price": 1.77
+            },
+            "market_total_before": {
+              "line": 3.0,
+              "margin": 0.07002,
+              "over_price": 1.77,
+              "under_price": 1.98
+            },
+            "memory_observation_sha256": "a0721c6db2fa6a84290ade72f63e9a4b2851f15c426b83cfeb80bab68dc73ef5",
+            "memory_pattern_sha256": "d315377f90372265e417cf4daea6e286dd05b189491d258acc31f7ab39fcd0d8",
+            "model_delta_vs_market": 0.0,
+            "original_posthoc_condition": true,
+            "quality_flags": [],
+            "quality_status": "USABLE",
+            "sha256": "9c671120f2b037ebe21556ce62a9d82024430ba342ecad96141e5a11e8224756",
+            "strict_observation": false
+          },
+          "frozen_known_at": "2026-11-02T13:06:42+00:00",
+          "ft": {
+            "checked_at": null,
+            "event_id": null,
+            "evidence_level": null,
+            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
+            "scientific_event_sha256": null,
+            "score": null,
+            "sha256": null,
+            "source_url": null,
+            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+          },
+          "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+          "kickoff_utc": "2026-11-03T19:45:00+00:00",
+          "match_key": "2026-11-03,24286,49641",
+          "match_label": "Worthing FC vs Fulham FC U21",
+          "snapshot_history_count": 1,
+          "source_v4": {
+            "known_at": "2026-11-02T13:06:17+00:00",
+            "markets": {
+              "total": {
+                "after": {
+                  "line": 3.25,
+                  "over_price": 1.97,
+                  "under_price": 1.77
+                },
+                "before": {
+                  "line": 3.0,
+                  "over_price": 1.77,
+                  "under_price": 1.98
+                },
+                "cross_line_prices_comparable": false,
+                "line_changed": true
+              }
+            },
+            "revision_id": "V4R:6d963eca38e729dbec12ba078634",
+            "sha256": "2f3b8f17ea7dfc6ee34864e1ec39f6978e678231c3a4d47d69c12990955de58f",
+            "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
+            "telegram_edit_at": null
+          },
+          "telegram_original_at": "2026-11-02T13:02:51+00:00"
         },
         {
           "event_id": "3571094759:52306",
@@ -81191,12 +81263,12 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "596a78a5ddcf736eb20c4786ddb49a020c197bb12edf9d02a169bb3adce77ee7",
-    "observations": "68d072a6e24ee6ebfad36e8222d9bc09a1e1290b4f6745c11703765094dca9ba",
-    "patterns": "cc7f165deab107874e4ea9309ce74a02d929cc0b1d8ff36bc5014b177cc89521",
+    "forecasts": "9c671120f2b037ebe21556ce62a9d82024430ba342ecad96141e5a11e8224756",
+    "observations": "a0721c6db2fa6a84290ade72f63e9a4b2851f15c426b83cfeb80bab68dc73ef5",
+    "patterns": "d315377f90372265e417cf4daea6e286dd05b189491d258acc31f7ab39fcd0d8",
     "science_evidence": "ce4009c2f0b6b49ab5ef97e0912cae33fdc716dbe211f70a282c9182ac3ad93c",
     "universal_ft": "250181d155b7e1d76d689675910d287e8c6772be21f9cd70360778c17fd4af2c",
-    "v4_revisions": "3d4b5b07ee65deaad0ba688ac3fd4dcab3a56ba8fc16d7091b5454eb684c1337"
+    "v4_revisions": "2f3b8f17ea7dfc6ee34864e1ec39f6978e678231c3a4d47d69c12990955de58f"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
@@ -81205,13 +81277,14 @@
       "EXPIRED_UNVERIFIED": 415,
       "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 324,
       "IDENTITY_CONFLICT": 1,
+      "NOT_REGISTERED_IN_FT_JOURNAL": 1,
       "PENDING": 267,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 116,
-      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 891
+      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 892
     },
-    "frozen_snapshots": 1351,
+    "frozen_snapshots": 1352,
     "ft_universal_events": 2259,
-    "unique_matches": 1007,
-    "v4_revision_events": 1725
+    "unique_matches": 1008,
+    "v4_revision_events": 1727
   }
 }
