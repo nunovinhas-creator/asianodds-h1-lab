@@ -623,10 +623,10 @@ class MergeGateTests(Base):
 
     def test_the_four_legacy_notifiers_remain_disabled_in_the_workflow(self):
         text = Path(".github/workflows/collect.yml").read_text(encoding="utf-8")
-        for module in ("e4_notify", "strategy_notify", "t05_notify", "pattern_notify"):
+        for module in ("e4_notify", "strategy_notify", "t05_notify", "pattern_notify",
+                       "three_moves_notify", "two_up_notify"):
             self.assertNotIn("h1lab." + module, text, module)
-        self.assertIn("h1lab.three_moves_notify", text)
-        self.assertIn("h1lab.two_up_notify", text)
+        self.assertIn("h1lab.e5_notify", text)
 
 
 class PublicationContractTests(unittest.TestCase):

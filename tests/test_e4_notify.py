@@ -130,7 +130,8 @@ class E4OnlyTests(unittest.TestCase):
         text = (Path(__file__).resolve().parents[1] /
                 ".github/workflows/collect.yml").read_text(encoding="utf-8")
         self.assertNotIn("run: python -m h1lab.e4_notify", text)
-        self.assertIn("run: python -m h1lab.three_moves_notify", text)
+        self.assertNotIn("run: python -m h1lab.three_moves_notify", text)
+        self.assertIn("run: python -m h1lab.e5_notify", text)
         self.assertNotIn("run: python -m h1lab.strategy_notify", text)
         self.assertNotIn("run: python -m h1lab.pattern_notify", text)
         self.assertNotIn("run: python -m h1lab.notify", text)

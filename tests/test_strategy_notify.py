@@ -306,14 +306,16 @@ class FiveStrategyTests(unittest.TestCase):
 
     def test_workflow_switch_disables_generic_sender(self):
         text=(REPO/".github/workflows/collect.yml").read_text(encoding="utf-8")
-        self.assertIn("python -m h1lab.three_moves_notify",text)
+        self.assertNotIn("python -m h1lab.three_moves_notify",text)
+        self.assertIn("python -m h1lab.e5_notify",text)
         self.assertNotIn("run: python -m h1lab.e4_notify",text)
         self.assertNotIn("run: python -m h1lab.t05_notify",text)
         self.assertNotIn("run: python -m h1lab.strategy_notify",text)
         self.assertNotIn("run: python -m h1lab.pattern_notify",text)
         from scripts import publication_ownership as own
         self.assertIn("python -m scripts.collect_publish_safe stage",text)
-        self.assertTrue(own.is_collector_owned("data/three-total-moves-notifications.json"))
+        self.assertEqual(own.owner_of("data/three-total-moves-notifications.json"),own.LEGACY)
+        self.assertTrue(own.is_collector_owned("data/e5-over25-notifications.json"))
 
     def test_real_root_runner_does_not_send_or_create_legacy_receipts(self):
         with tempfile.TemporaryDirectory() as tmp:

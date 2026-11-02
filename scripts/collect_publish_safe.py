@@ -16,7 +16,7 @@ Two subcommands:
              the shared selective publisher (``scripts.git_selective_publish``).
 
 Collector-owned outputs: ``data/state.json``, ``docs/data.json`` (derived; re-rendered
-offline when H1 results moved), the two active Telegram receipt ledgers, the shared
+offline when H1 results moved), the E5 Telegram receipt ledger (the only active one), the shared
 Telegram delivery block, the V4 market and format latest views and the V4 revision
 journal. Concurrent changes by FT, LAB V4, LLM, statistics, quality, site or
 documentation commits are kept byte-for-byte: none of them is a collector input.
@@ -24,10 +24,10 @@ A concurrent change to any collector-owned path (a second collector), a program
 change, a frozen legacy ledger or an unknown path refuses the publication.
 
 The publisher never re-collects, never calls Telegram (neither the channel nor the
-Bot API) and never changes alert eligibility. Delivery remains AT-LEAST-ONCE with
-``TG_DURABLE_INTENT=0``: when publication fails after a send, the failure receipt
-lists every receipt that is not on ``main`` so the operator knows which alerts the
-next cycle may resend. Exactly-once is not claimed.
+Bot API) and never changes alert eligibility. The collector commit is published BEFORE
+the E5 notifier runs; E5 receipts are then published one intent at a time by
+``e5_receipt_publisher`` (same policy and selective transport, AT-MOST-ONCE: an intent
+that cannot be published blocks the send). Exactly-once is not claimed.
 """
 from __future__ import annotations
 
@@ -43,6 +43,7 @@ from scripts.lab_ft_publish_safe import (append_only_jsonl, stable_fixtures,
                                          valid_telegram_block_update)
 
 MESSAGE = "data: collect and notify H1 [skip ci]"
+E5_MESSAGE = "data: E5 telegram receipts [skip ci]"
 TERMINAL = ("sent", "delivery_uncertain_manual_review", "delivery_rejected_final",
             "expired_not_sent")
 KEEP_OWNERS = frozenset({own.FT, own.LAB_V4, own.LLM, own.OFFLINE_STATS, own.LAB_QUALITY,
@@ -391,6 +392,55 @@ class CollectorPolicy(sel.Policy):
             if sent else "NONE_KNOWN",
             "observations_unpublished": state,
         }
+
+
+class E5ReceiptPolicy(CollectorPolicy):
+    """Publishes ONLY the E5 receipt ledger and the shared Telegram pause file."""
+    name = "E5_RECEIPTS"
+    message = E5_MESSAGE
+
+    def owns(self, path):
+        return path in (own.E5_LEDGER, own.TELEGRAM_BLOCK)
+
+
+def e5_receipt_publisher(root, *, publish=None, policy=None):
+    """``publisher(final=False)`` commits the E5 ledger (+ pause file) and publishes it on main.
+
+    Used by ``h1lab.e5_notify`` BEFORE every Telegram request (the intent) and once at the end
+    (outcomes). Any failure raises ``IntentNotDurable``: the notifier then sends nothing more.
+    The checkout must hold no other tracked change (the collector commit is already published).
+    """
+    from h1lab.telegram_delivery import IntentNotDurable
+    root = Path(root)
+    publish = publish or sel.publish
+    policy = policy or E5ReceiptPolicy()
+
+    def publisher(final=False):
+        paths = [own.E5_LEDGER, own.TELEGRAM_BLOCK]
+        try:
+            present = [p for p in paths if (root / p).exists() or sel.run(
+                root, "ls-files", "--error-unmatch", "--", p, check=False).returncode == 0]
+            if not present:
+                return None
+            sel.git(root, "add", "-A", "--", *present)
+            if not sel.git(root, "diff", "--cached", "--name-only", "--", *present).strip():
+                return None
+            dirty = [line[3:] for line in sel.git(
+                root, "status", "--porcelain", "--untracked-files=no").decode().splitlines()
+                if line[3:] not in present]
+            if dirty:
+                raise IntentNotDurable("checkout holds other tracked changes: %s" % dirty[:5])
+            base = sel.sha(root, "HEAD")
+            sel.git(root, "-c", "user.name=github-actions[bot]",
+                    "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
+                    "commit", "-q", "-m", E5_MESSAGE, "--", *present)
+            return publish(root, base=base, policy=policy)
+        except IntentNotDurable:
+            raise
+        except Exception as exc:  # any Git/publication failure = not durable: fail closed
+            raise IntentNotDurable("E5 receipts not published (%s): %s"
+                                   % (type(exc).__name__, str(exc)[:240])) from exc
+    return publisher
 
 
 # ------------------------------------------------------------------ stage

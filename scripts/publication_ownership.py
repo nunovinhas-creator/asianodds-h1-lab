@@ -34,10 +34,11 @@ PART = r"(?:-part\d{4})?"
 # --- collector -----------------------------------------------------------------------------
 COLLECT_STATE = "data/state.json"
 COLLECT_RENDERED = "docs/data.json"            # derived: state.json + results.csv (H1 re-renders it)
-THREE_LEDGER = "data/three-total-moves-notifications.json"
-TWO_LEDGER = "data/two-up-total-notifications.json"
+E5_LEDGER = "data/e5-over25-notifications.json"      # the ONLY active Telegram receipt ledger
+THREE_LEDGER = "data/three-total-moves-notifications.json"   # retired 2026-11-02: frozen proof
+TWO_LEDGER = "data/two-up-total-notifications.json"          # retired 2026-11-02: frozen proof
 TELEGRAM_BLOCK = "data/telegram-delivery-block.json"
-TELEGRAM_LEDGERS = (THREE_LEDGER, TWO_LEDGER)
+TELEGRAM_LEDGERS = (E5_LEDGER,)
 MARKETS_VIEW = re.compile(r"data/lab/markets-" + MONTH + PART + r"\.jsonl\Z")   # mutable latest view
 FORMATS_VIEW = re.compile(r"data/lab/formats-" + MONTH + PART + r"\.jsonl\Z")   # mutable latest view
 V4_REVISIONS = re.compile(r"data/lab/v4-revisions-" + MONTH + PART + r"\.jsonl\Z")  # append-only SHA chain
@@ -84,7 +85,8 @@ QUALITY = "docs/lab/quality.json"
 
 LEGACY_LEDGERS = frozenset({
     "data/pattern-notifications.json", "data/e4-notifications.json",
-    "data/strategy-notifications.json", "data/t05-notifications.json"})
+    "data/strategy-notifications.json", "data/t05-notifications.json",
+    THREE_LEDGER, TWO_LEDGER})
 
 PROGRAM_PREFIXES = ("h1lab/", "scripts/", ".github/", "config/", "scheduler/", "tools/")
 PROGRAM_FILES = frozenset({"requirements.txt", "requirements-test.txt", ".gitignore"})

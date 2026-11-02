@@ -23,10 +23,15 @@ jobs:
         run: pip install -r requirements-test.txt
       - run: python -m compileall -q h1lab scripts
       - run: python -m unittest discover -s tests -v
-      - name: Three distinct V4 Total moves — read-only real-fixture dry-run
-        run: python -m h1lab.three_moves_notify --dry-run
-      - name: Two independent upward V4 Total moves — additive dry-run
-        run: python -m h1lab.two_up_notify --dry-run
+      - name: E5 Over 2,5 (only active Telegram emitter) — read-only real-fixture dry-run
+        run: python -m h1lab.e5_notify --dry-run
+      - name: Retired Telegram emitters refuse to send (no secrets, no network)
+        run: |
+          for m in three_moves_notify two_up_notify strategy_notify e4_notify t05_notify pattern_notify notify; do
+            out=$(python -m h1lab.$m 2>&1)
+            echo "$out" | grep -q TELEGRAM_EMITTER_RETIRED || { echo "$m did not refuse"; exit 1; }
+          done
+          git diff --exit-code -- data/
       - name: Telegram eligibility — real historical inputs and production-rule parity (no bot)
         run: |
           python -m scripts.lab_telegram_eligibility

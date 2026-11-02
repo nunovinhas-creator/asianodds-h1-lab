@@ -25,7 +25,8 @@ INDEX = "data/lab/v6-archive-index.json"
 RUNCHECKS = "data/lab/v4-runchecks.jsonl"
 FORECASTS = "data/lab/v6-forecasts-2026-11.jsonl"
 ELIG = "docs/lab/telegram-eligibility.json"
-THREE = "data/three-total-moves-notifications.json"
+THREE = "data/three-total-moves-notifications.json"   # retired 2026-11-02: frozen legacy proof
+E5 = "data/e5-over25-notifications.json"             # the only active receipt ledger (not a LAB input)
 
 
 def lab_files():
@@ -194,9 +195,7 @@ class SafeLabV4Publication(Base):
                 ("FT report", {"docs/lab/ft-results.json": {"final": 2}}, None),
                 ("H1 result", {"data/results.csv": gw.BASELINE["data/results.csv"]
                                + "\"2026-11-02,3,4\",final,0,0,y\n"}, None),
-                ("collector observation", {}, collect),
-                ("Telegram receipt", {THREE: ledger(**{"2026-11-01_1_2": gw.SENT_OLD,
-                                                      "2026-11-03_2": gw.SENT_NEW})}, None))
+                ("collector observation", {}, collect))
 
     def test_valid_material_input_changes_supersede_instead_of_publishing_stale_reports(self):
         for name, changes, action in self.material_changes():
@@ -266,7 +265,20 @@ class SafeLabV4Publication(Base):
         self.refused({"data/lab/ft-ledger.json": FT_FINAL_CHANGED}, "DEPENDENCY_CHANGED")
 
     def test_rolled_back_receipt_is_refused(self):
-        self.refused({THREE: ledger()}, "DEPENDENCY_CHANGED")
+        self.refused({E5: ledger()}, "DEPENDENCY_CHANGED")
+
+    def test_frozen_legacy_receipt_change_is_refused(self):
+        self.refused({THREE: ledger(**{"2026-11-01_1_2": gw.SENT_OLD, "2026-11-03_2": gw.SENT_NEW})},
+                     "INTEGRITY")
+
+    def test_new_e5_receipt_is_not_a_lab_input_and_is_kept_byte_for_byte(self):
+        root, base, manifest = lab_cycle(self.fx)
+        receipts = ledger(**{"2026-11-01_1_2": gw.SENT_OLD, "2026-11-03_2": gw.SENT_NEW})
+        self.fx.plain_commit("collector", {E5: receipts}, "data: E5 telegram receipts [skip ci]")
+        published = self.publish(root, base, manifest)
+        self.assertEqual(self.receipt["status"], "PUBLISHED")
+        self.assertEqual(self.fx.json(E5, published)["entries"]["2026-11-03,2"]["telegram_message_id"], 777)
+        self.assert_lab_bytes()
 
     def test_fixture_identity_rewrite_is_refused(self):
         self.refused({"data/state.json": gw.state(home="Z")}, "DEPENDENCY_CHANGED")

@@ -154,7 +154,8 @@ class ThreeTotalMovementTests(unittest.TestCase):
     def test_production_workflow_has_exactly_one_telegram_sender(self):
         root = Path(__file__).resolve().parents[1]
         wf = (root / ".github/workflows/collect.yml").read_text(encoding="utf-8")
-        self.assertEqual(wf.count("run: python -m h1lab.three_moves_notify"), 1)
+        self.assertEqual(wf.count("run: python -m h1lab.three_moves_notify"), 0)   # retired 2026-11-02
+        self.assertEqual(wf.count("run: python -m h1lab.e5_notify"), 1)
         self.assertNotIn("run: python -m h1lab.e4_notify", wf)
         self.assertNotIn("run: python -m h1lab.t05_notify", wf)
         self.assertNotIn("run: python -m h1lab.strategy_notify", wf)
@@ -163,7 +164,8 @@ class ThreeTotalMovementTests(unittest.TestCase):
         # The ledger is committed through the explicit collector ownership matrix.
         from scripts import publication_ownership as own
         self.assertIn("python -m scripts.collect_publish_safe stage", wf)
-        self.assertTrue(own.is_collector_owned("data/three-total-moves-notifications.json"))
+        self.assertEqual(own.owner_of("data/three-total-moves-notifications.json"), own.LEGACY)
+        self.assertTrue(own.is_collector_owned("data/e5-over25-notifications.json"))
 
 
 if __name__ == "__main__":

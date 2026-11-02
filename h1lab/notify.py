@@ -54,4 +54,6 @@ def run():
 
 
 if __name__ == "__main__":
+    from .telegram_emitters import refuse
+    refuse("h1lab.notify")  # RETIRED: never sends
     run()

@@ -241,6 +241,8 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None, *, dry_run=F
 
 
 if __name__ == "__main__":
+    from .telegram_emitters import main_guard
+    main_guard("h1lab.three_moves_notify")  # RETIRED: only a read-only --dry-run remains
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

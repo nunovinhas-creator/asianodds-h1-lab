@@ -157,4 +157,6 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None):
 
 
 if __name__ == "__main__":
+    from .telegram_emitters import refuse
+    refuse("h1lab.pattern_notify")  # RETIRED: never sends
     run()
