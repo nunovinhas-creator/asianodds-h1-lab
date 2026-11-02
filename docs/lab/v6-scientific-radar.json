@@ -3,7 +3,7 @@
   "hypotheses": [
     {
       "comparison": "market_model_residual",
-      "condition_original": 153,
+      "condition_original": 154,
       "condition_strict": 132,
       "decision_event_sha256": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
       "decision_reason": "INCONCLUSIVE_LOW_POWER",
@@ -20,7 +20,7 @@
       "falsification_checks": [
         {
           "code": "F01_EPISODE_INDEPENDENCE",
-          "n": 97,
+          "n": 101,
           "name": "Episódios independentes",
           "required": "10 selected freezes with captured context; strict >= 80%",
           "result": "PASS"
@@ -34,7 +34,7 @@
         },
         {
           "code": "F03_1X2_AH_CONSISTENCY",
-          "n": 36,
+          "n": 37,
           "name": "Concordância entre mercados",
           "required": "10 comparable simultaneous AH/1X2 direction events",
           "result": "PASS"
@@ -90,7 +90,7 @@
         }
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
-      "frozen_matches": 1026,
+      "frozen_matches": 1027,
       "ft_verified": 327,
       "games": [
         {
@@ -4847,6 +4847,110 @@
             "telegram_edit_at": null
           },
           "telegram_original_at": "2026-11-01T12:34:10+00:00"
+        },
+        {
+          "event_id": "3571094759:52427",
+          "forecast": {
+            "competition_heuristic": "LEAGUE_OTHER",
+            "feature_sha256": "8b05c6b4185e3377ba3b9b68ec1bda8a06bce458a01c890abef0ff8feeb709c6",
+            "feature_version": 2,
+            "forecast_kind": "MARKET_BASELINE_ONLY",
+            "market_co_observation": "SEPARATE_MESSAGES_ONLY",
+            "market_probability_over_2_5": null,
+            "market_total_after": {
+              "line": 3.5,
+              "margin": -0.17184,
+              "over_price": 2.41,
+              "under_price": 2.42
+            },
+            "market_total_before": {
+              "line": 2.5,
+              "margin": -0.07396,
+              "over_price": 1.95,
+              "under_price": 2.42
+            },
+            "memory_observation_sha256": "a9cbdae71152fa520862cb0b282069bbcdf5f469391cdfbec96290d20579ea3d",
+            "memory_pattern_sha256": "5340c9c1e0ed31360d80492c87e5fd9c066003e7d8c14f2fef9d363620e5d69b",
+            "model_delta_vs_market": 0.0,
+            "original_posthoc_condition": true,
+            "quality_flags": [
+              "negative_before_margin",
+              "negative_after_margin",
+              "cross_line_unchanged_price"
+            ],
+            "quality_status": "UNUSABLE",
+            "sha256": "ebc6f3d21acdfa0d17be923cdf3dda90c5b19288673d3e5c7ef845d5a3628531",
+            "strict_observation": false
+          },
+          "frozen_known_at": "2026-11-02T16:02:08+00:00",
+          "ft": {
+            "checked_at": null,
+            "event_id": null,
+            "evidence_level": null,
+            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
+            "scientific_event_sha256": null,
+            "score": null,
+            "sha256": null,
+            "source_url": null,
+            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+          },
+          "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+          "kickoff_utc": "2026-11-06T18:00:00+00:00",
+          "match_key": "2026-11-06,639,54106",
+          "match_label": "Akademisk Boldklub vs Vendsyssel FF",
+          "snapshot_history_count": 1,
+          "source_v4": {
+            "known_at": "2026-11-02T16:01:11+00:00",
+            "markets": {
+              "asian_handicap": {
+                "after": {
+                  "away_price": 1.62,
+                  "home_price": 2.32,
+                  "line": -0.75
+                },
+                "before": {
+                  "away_price": 2.39,
+                  "home_price": 1.59,
+                  "line": 0.0
+                },
+                "cross_line_prices_comparable": false,
+                "line_changed": true
+              },
+              "one_x_two": {
+                "1": {
+                  "after": 2.05,
+                  "before": 2.12
+                },
+                "2": {
+                  "after": 3.35,
+                  "before": 3.12
+                },
+                "X": {
+                  "after": 3.86,
+                  "before": 3.85
+                }
+              },
+              "total": {
+                "after": {
+                  "line": 3.5,
+                  "over_price": 2.41,
+                  "under_price": 2.42
+                },
+                "before": {
+                  "line": 2.5,
+                  "over_price": 1.95,
+                  "under_price": 2.42
+                },
+                "cross_line_prices_comparable": false,
+                "line_changed": true
+              }
+            },
+            "revision_id": "V4R:b487a4b9d48ce813a7570e8b301a",
+            "sha256": "297b9a33f217a812cd0ec730587692c7ac35afe99dfc3179dd61a481c9db532c",
+            "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
+            "telegram_edit_at": null
+          },
+          "telegram_original_at": "2026-11-02T15:58:31+00:00"
         },
         {
           "event_id": "3571094759:52164",
@@ -82660,12 +82764,12 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "570e75f704a9a1517509914e073b476b428910d9c0402bfb18fe2cf29cb910ce",
-    "observations": "e989d07df311cdc6249f876bd64faf875c718b43fdd9385636dfe7018338d225",
-    "patterns": "97ea7f3f1a88d05d05afd6f183ab3d8151924baa87c595427149b70631c03393",
+    "forecasts": "ebc6f3d21acdfa0d17be923cdf3dda90c5b19288673d3e5c7ef845d5a3628531",
+    "observations": "a9cbdae71152fa520862cb0b282069bbcdf5f469391cdfbec96290d20579ea3d",
+    "patterns": "5340c9c1e0ed31360d80492c87e5fd9c066003e7d8c14f2fef9d363620e5d69b",
     "science_evidence": "d34ee48cc582d13fdff5b78b3e78ee45c91c0876f4846dfe0338d57bb2ae7bc8",
     "universal_ft": "3343fde5c616e568d003a5216debc16c2b8b5ad2014204cd3c8d7df5cf5b026b",
-    "v4_revisions": "214719032678f8d8dbc5867b8b980c9693e02ce6f27db7f1462ba1a1d1c8999a"
+    "v4_revisions": "297b9a33f217a812cd0ec730587692c7ac35afe99dfc3179dd61a481c9db532c"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
@@ -82674,14 +82778,14 @@
       "EXPIRED_UNVERIFIED": 469,
       "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 327,
       "IDENTITY_CONFLICT": 1,
-      "NOT_REGISTERED_IN_FT_JOURNAL": 4,
+      "NOT_REGISTERED_IN_FT_JOURNAL": 5,
       "PENDING": 225,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 116,
-      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 910
+      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 911
     },
-    "frozen_snapshots": 1383,
+    "frozen_snapshots": 1384,
     "ft_universal_events": 2339,
-    "unique_matches": 1026,
-    "v4_revision_events": 1764
+    "unique_matches": 1027,
+    "v4_revision_events": 1766
   }
 }
