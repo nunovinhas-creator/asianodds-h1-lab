@@ -20,6 +20,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from scripts import git_publish_outcome as outcome
 from scripts import publication_guard
 from scripts.lab_discovery_authoritative_release import main as discovery_verify
 from h1lab.lab_ft_final_guard import verify_files
@@ -577,17 +578,28 @@ def retriable_main_push_race(stderr: str) -> bool:
     <sha> but expected <sha>" instead of a conventional non-fast-forward hint.
     The next attempt must still fetch main and re-verify all protected paths.
     """
-    if any(x in stderr for x in ("non-fast-forward", "fetch first", "stale info")):
-        return True
-    return bool(re.search(
-        r"cannot lock ref 'refs/heads/main': is at [a-f0-9]{40} "
-        r"but expected [a-f0-9]{40}(?![a-f0-9])", stderr
-    ))
+    return outcome.classify_push_failure(stderr, "main") == outcome.CAS_REJECTED
 
 
-def publish(root, *, base, manifest, baseline, max_attempts=6):
+def _receipt(status, **fields):
+    print("FT_PUBLISH_RECEIPT", json.dumps({"status": status, "provider_requeries": 0,
+                                            **fields}, sort_keys=True))
+
+
+def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_failures=3,
+            sleep=None):
+    """Publish the sealed FT commit; idempotent across transport errors and crashes.
+
+    Push outcomes: PUBLISHED, CAS_REJECTED (retry after full revalidation),
+    UNCERTAIN/TRANSIENT (read the remote first; recognise an accepted commit,
+    otherwise a bounded, fully revalidated retry), AUTH (abort), concurrent
+    incompatible change (abort via allowed_remote_changes).
+    """
+    import time as _time
+    sleep = sleep or _time.sleep
     root, manifest, baseline = Path(root), Path(manifest), Path(baseline)
-    if not SHA.fullmatch(base) or not 1 <= max_attempts <= 10:
+    if (not SHA.fullmatch(base) or not 1 <= max_attempts <= 10
+            or not 0 <= max_transport_failures <= 5):
         raise UnsafeFTPublication("Invalid original run base or bounded retry count")
     source = sha(root, "HEAD")
     if sha(root, "HEAD^") != base:
@@ -619,11 +631,19 @@ def publish(root, *, base, manifest, baseline, max_attempts=6):
     publication_guard.verify(manifest)
     verify_files(baseline, root / "data/lab/ft-ledger.json")
     last_remote = None
+    transport_failures = 0
     for attempt in range(1, max_attempts+1):
         git(root, "fetch", "--no-tags", "origin", "main")
         remote = sha(root, "FETCH_HEAD")
         if run(root, "merge-base", "--is-ancestor", base, remote, check=False).returncode:
             raise UnsafeFTPublication("Remote main no longer descends from the FT input base")
+        # Idempotence: an earlier attempt (lost response, crash after push, or a
+        # concurrent identical publisher) already put these exact FT bytes on main.
+        if remote != base and outcome.same_paths(root, source, remote, produced):
+            git(root, "reset", "--hard", remote)
+            _receipt("ALREADY_PUBLISHED_EQUIVALENT", attempt=attempt, remote=remote,
+                     source_commit=source, transport_failures=transport_failures)
+            return remote
         allowed = allowed_remote_changes(root, base, remote, sealed, produced)
         if remote == base:
             candidate = source
@@ -641,14 +661,37 @@ def publish(root, *, base, manifest, baseline, max_attempts=6):
                 "source_commit": source, "published_commit": candidate,
                 "unrelated_paths": len(allowed), "sealed_files": len(sealed),
                 "provider_requeries": 0}, sort_keys=True))
+            _receipt("PUBLISHED", attempt=attempt, published_commit=candidate,
+                     remote_base=remote, source_commit=source)
             return candidate
         last_remote = remote
-        # Only an ordinary non-fast-forward race is retried. Other push errors
-        # (auth, protection, hooks) are never silently hidden.
         err = result.stderr.decode("utf-8", "replace")
-        if not retriable_main_push_race(err):
-            raise UnsafeFTPublication("Push failed for reason other than a Git race: " + err[-300:])
-        print("FT_REMOTE_RACE_RECHECK", attempt, "after", last_remote)
+        kind = outcome.classify_push_failure(err, "main")
+        if kind == outcome.CAS_REJECTED:
+            print("FT_REMOTE_RACE_RECHECK", attempt, "after", last_remote)
+            continue
+        if kind in (outcome.UNCERTAIN, outcome.TRANSIENT):
+            transport_failures += 1
+            state, now = outcome.probe_remote(root, candidate, "main", sleep=sleep)
+            print("FT_PUSH_OUTCOME_PROBE", json.dumps({
+                "attempt": attempt, "kind": kind, "candidate": candidate,
+                "remote_before_push": remote, "remote_after": now, "state": state},
+                sort_keys=True))
+            if state == outcome.PUBLISHED:
+                _receipt("PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR", attempt=attempt,
+                         published_commit=candidate, remote_after=now, source_commit=source)
+                return candidate
+            if state == outcome.UNRESOLVED:
+                raise UnsafeFTPublication(
+                    "FT push outcome unknown and remote unreadable; not retried: " + err[-200:])
+            if transport_failures > max_transport_failures:
+                raise UnsafeFTPublication(
+                    "FT push transport failed %d times; commit not on remote: %s"
+                    % (transport_failures, err[-200:]))
+            sleep(2 ** transport_failures)
+            continue
+        # Auth, protection, hooks and unknown errors are never silently hidden.
+        raise UnsafeFTPublication("Push failed for reason other than a Git race: " + err[-300:])
     raise UnsafeFTPublication("Remote advanced during all bounded FT publication attempts")
 
 
