@@ -203,7 +203,7 @@ jobs:
           if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
           python -m scripts.publication_guard seal --pipeline audit --manifest "$RUNNER_TEMP/publication-seal.json"
           if ! git diff --cached --quiet; then
-            git commit -q -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
+            git commit -q -m 'data(lab): refresh V4 comparison and log checks [skip ci]' -m "LAB-Input-Commit: $LAB_SOURCE_SHA"
             # No rebase, no force push: the sealed commit is transported over the current
             # main only after every concurrent path was classified as independent of the
             # LAB inputs, and the exact candidate re-verified (seal, archive index, receipts).

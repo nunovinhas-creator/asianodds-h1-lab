@@ -16,16 +16,21 @@ concurrently, or a Telegram receipt rolled back, is not seen by the old loop.
 
 Dependency policy of every concurrent remote path (``scripts.publication_ownership``):
 
-* LAB V4-owned path changed by someone else -> refuse (CONCURRENT_OWNER_WRITE);
-* program/config -> refuse; frozen legacy ledger -> refuse; unknown -> refuse;
-* collector: fixture identities must stay stable, receipts valid and retained,
-  the Telegram block never shortened, the V4 revision journal append-only; the
-  mutable V4 market/format views may grow (reports carry their source_commit);
-* H1: certified ``results.csv`` rows must be retained unchanged;
-* FT: every FINAL of ``ft-ledger.json`` at the LAB base keeps its exact result,
-  FT/discovery event journals stay append-only; other FT outputs are kept;
-* human-reviewed Golden labels (``data/lab/golden/**``) are a LAB input -> refuse;
-* LLM, statistics, quality, site and documentation commits are kept.
+* integrity violations refuse (REFUSED, failure): another LAB V4 writer of the same
+  artifacts/journals/archive generation; program/config; frozen legacy ledger; unknown
+  path; Golden labels changed; fixture identity rewritten; Telegram receipts rolled back;
+  Telegram block shortened; V4 revision or FT event journal rewritten; certified
+  ``results.csv`` row changed; FT FINAL changed;
+* a VALID change of a material report input (collector state, V4 views/journal, receipt
+  ledgers; H1 results; any FT output) -> ``SUPERSEDED_BY_NEWER_INPUTS``: the sealed
+  reports were computed on the input commit, so they are NOT published over newer inputs
+  (no stale report presented as current). The job exits 0 with a notice; the next LAB run,
+  triggered by the next collector completion, recomputes on the new main;
+* non-material: ``docs/data.json`` (derived H1 view) and the Telegram pause (read only by
+  the notifiers); LLM, statistics, quality, site and documentation commits are kept.
+
+Provenance: every LAB commit carries ``LAB-Input-Commit: <sha>``; the publisher proves that
+no material path differs between that commit and the parent of the published commit.
 
 The exact candidate tree is then re-verified: the publication seal (bytes and
 journal inventory), every sealed entry of the produced archive index against the
@@ -55,6 +60,9 @@ ELIGIBILITY = "docs/lab/telegram-eligibility.json"
 TERMINAL = ("sent", "delivery_uncertain_manual_review", "delivery_rejected_final",
             "expired_not_sent")
 KEEP_OWNERS = frozenset({own.LLM, own.OFFLINE_STATS, own.LAB_QUALITY, own.SITE, own.DOCUMENTATION})
+# Written by others, never read by any LAB V4 producer (derived H1 dashboard; Telegram pause).
+NON_MATERIAL = frozenset({own.COLLECT_RENDERED, own.TELEGRAM_BLOCK})
+TRAILER = "LAB-Input-Commit: "
 
 
 def _refuse(message, kind="DEPENDENCY_CHANGED"):
@@ -121,6 +129,7 @@ class LabV4Policy(sel.Policy):
     def __init__(self, manifest, guard_verify=None):
         self.manifest = Path(manifest)
         self._guard = guard_verify or publication_guard.verify
+        self.input_commit = None
 
     def owns(self, path):
         return own.is_lab_v4_owned(path)
@@ -133,6 +142,12 @@ class LabV4Policy(sel.Policy):
                 _refuse("Publication seal rejected: %s" % exc, "INTEGRITY")
 
     def verify_own(self, root, base, source, produced):
+        # Provenance: every LAB commit names the exact input commit its reports were computed on.
+        self.input_commit = base
+        self.message = MESSAGE + "\n\n" + TRAILER + base
+        body = sel.git(root, "log", "-1", "--format=%B", source).decode()
+        if TRAILER in body and (TRAILER + base) not in body:
+            _refuse("LAB commit names a different input commit", "INVALID_INPUT")
         proof = json.loads(self.manifest.read_text(encoding="utf-8"))
         if proof.get("pipeline") != "audit":
             _refuse("Not an audit publication seal", "INVALID_INPUT")
@@ -146,13 +161,15 @@ class LabV4Policy(sel.Policy):
                 if after is None or not append_only_jsonl(sel.blob(root, base, path), after):
                     _refuse("LAB journal rewritten by its own producer: " + path, "INTEGRITY")
         self._seal(root)
-        return {"sealed_files": len(proof.get("sha256", {})),
+        return {"input_commit": base, "sealed_files": len(proof.get("sha256", {})),
                 "archive_entries_checked": verify_archive_index(root, source),
                 "eligibility_receipts_checked": verify_eligibility_receipts(root, source)}
 
     def check_remote(self, root, base, remote, path, produced, source):
         owner = own.owner_of(path)
         before, after = sel.blob(root, base, path), sel.blob(root, remote, path)
+        if path in self._sealed_paths(root, base, source):
+            _refuse("Closed month sealed by the archive index changed concurrently: " + path)
         if owner == own.LAB_V4:
             _refuse("Concurrent LAB V4 writer changed " + path, "CONCURRENT_OWNER_WRITE")
         if owner == own.PROGRAM:
@@ -178,7 +195,7 @@ class LabV4Policy(sel.Policy):
                     _refuse("V4 revision journal rewritten: " + path)
             elif after is None:
                 _refuse("Collector output deleted: " + path)
-            return "keep"
+            return self._material(path)
         if owner == own.H1_RESULTS:
             if after is None:
                 _refuse("H1 result output deleted: " + path)
@@ -187,7 +204,7 @@ class LabV4Policy(sel.Policy):
                     verify_results(before, after)
                 except UnsafeH1Publication as exc:
                     _refuse(str(exc))
-            return "keep"
+            return self._material(path)
         if owner == own.FT:
             if path == own.FT_LEDGER:
                 try:
@@ -197,12 +214,42 @@ class LabV4Policy(sel.Policy):
             elif own.FT_EVENTS.fullmatch(path):
                 if after is None or not append_only_jsonl(before, after):
                     _refuse("FT event journal rewritten: " + path)
-            return "keep"
+            return self._material(path)
         if owner in KEEP_OWNERS:
             return "keep"
         _refuse("Unknown concurrent path: " + path, "UNKNOWN_PATH")
 
+    def _sealed_paths(self, root, base, source):
+        """Closed monthly files sealed by the base index or by the index this run produced."""
+        key = (base, source)
+        if getattr(self, "_sealed_key", None) != key:
+            paths = set()
+            for ref in (base, source):
+                raw = sel.blob(root, ref, own.LAB_V4_ARCHIVE_INDEX)
+                try:
+                    paths |= {e["path"] for e in json.loads(raw)["sealed"]} if raw else set()
+                except (ValueError, KeyError, TypeError):
+                    _refuse("Unreadable archive index", "INTEGRITY")
+            self._sealed_key, self._sealed = key, paths
+        return self._sealed
+
+    def _material(self, path):
+        """A valid concurrent change of a report INPUT: the sealed reports were computed on the
+        input commit, so publishing them over newer inputs would present stale results as current.
+        Not published; the next LAB run (triggered by the next collector completion) recomputes."""
+        if path in NON_MATERIAL:
+            return "keep"
+        raise sel.Superseded("LAB inputs advanced on main since %s: %s"
+                             % ((self.input_commit or "?")[:12], path))
+
     def verify_candidate(self, root, remote, candidate, produced):
+        # Every path that differs between the input commit and the candidate's parent must be
+        # non-material: the published reports describe exactly the inputs they sit on.
+        moved = sel.changed_paths(root, self.input_commit, remote)
+        material = sorted(p for p in moved if p not in NON_MATERIAL
+                          and own.owner_of(p) not in KEEP_OWNERS)
+        if material:
+            raise sel.Superseded("Material LAB inputs differ from the input commit: %r" % material[:8])
         self._seal(root)
         verify_archive_index(root, candidate)
         verify_eligibility_receipts(root, candidate)
@@ -225,6 +272,11 @@ def main(argv=None):
     try:
         sel.publish(args.root, base=args.base, policy=LabV4Policy(args.manifest),
                     receipt=args.receipt, bundle=args.bundle, max_attempts=args.max_attempts)
+    except sel.Superseded as exc:
+        # Deliberate safe skip: nothing stale is published; the next run recomputes.
+        print("::notice title=LAB_AUDIT_SUPERSEDED::%s" % str(exc)[:300])
+        print("LAB_AUDIT_SUPERSEDED")
+        return 0
     except sel.PublicationRefused as exc:
         print("::error title=LAB_AUDIT_PUBLISH_FAILED::%s %s" % (exc.kind, str(exc)[:300]))
         print("LAB_AUDIT_PUBLISH_FAILED")

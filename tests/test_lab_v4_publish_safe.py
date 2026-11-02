@@ -20,7 +20,7 @@ from tests.git_writers import (HTTP_408, BareGitFixture, PushHook, accept_then_f
                                jline, ledger, race, write)
 
 CLOSED_FT = "data/lab/v6-ft-events-2026-10.jsonl"
-CLOSED_V4 = "data/lab/v4-revisions-2026-10.jsonl"
+CLOSED_V4 = "data/lab/discovery-events-2026-10.jsonl"   # a second closed append-only month
 INDEX = "data/lab/v6-archive-index.json"
 RUNCHECKS = "data/lab/v4-runchecks.jsonl"
 FORECASTS = "data/lab/v6-forecasts-2026-11.jsonl"
@@ -33,7 +33,7 @@ def lab_files():
     for name in publication_guard.REQUIRED["audit"]:
         files[name] = {"generated": 0}
     files[CLOSED_FT] = jline(ft="old-1") + jline(ft="old-2")
-    files[CLOSED_V4] = jline(event_id="c:0", sha256="0" * 64)
+    files[CLOSED_V4] = jline(discovery="d0")
     files[INDEX] = {"schema_version": 1, "sealed": []}
     files["data/lab/golden/reviews/a.json"] = {"label": "ok"}
     return files
@@ -56,6 +56,8 @@ def eligibility(receipts):
 def lab_cycle(fx, name="lab"):
     """One LAB V4 audit after its producers succeeded: stage, seal (real guard), commit."""
     root = fx.clone(name)
+    git(root, "fetch", "-q", "origin", "main")
+    git(root, "reset", "-q", "--hard", "origin/main")
     base = git(root, "rev-parse", "HEAD")
     write(root, "docs/lab/v4-audit.json", {"generated": 1, "source_commit": base})
     write(root, RUNCHECKS, (root / RUNCHECKS).read_text() + jline(run=2))
@@ -67,7 +69,7 @@ def lab_cycle(fx, name="lab"):
     manifest = fx.home / (name + "-seal.json")
     with lab.inside(root):
         publication_guard.seal("audit", str(manifest))
-    git(root, "commit", "-qm", lab.MESSAGE)
+    git(root, "commit", "-q", "-m", lab.MESSAGE, "-m", lab.TRAILER + base)   # as lab-v4-audit.yml
     return root, base, manifest
 
 
@@ -164,31 +166,77 @@ class SafeLabV4Publication(Base):
         self.assertEqual(r["eligibility_receipts_checked"], 1)
         self.assert_lab_bytes()
 
-    def test_independent_ft_h1_collector_and_llm_commits_are_preserved(self):
+    def test_non_material_concurrent_commits_are_preserved(self):
         root, base, manifest = lab_cycle(self.fx)
+        self.fx.plain_commit("llm", {"docs/lab/llm-investigator-index.json": {"runs": 1}}, "LLM")
+        self.fx.plain_commit("human", {"docs/audit/note.md": "x\n"}, "docs")
+        view = self.fx.json("docs/data.json")
+        self.fx.plain_commit("h1view", {"docs/data.json": {**view, "generated_at": "2026-11-02T09:00:00+00:00"}},
+                             "dashboard re-render")
+        heads = git(self.fx.remote, "rev-list", "main").split()
+        published = self.publish(root, base, manifest)
+        self.assertTrue(set(heads) <= set(git(self.fx.remote, "rev-list", published).split()))
+        self.assertEqual(self.receipt["status"], "PUBLISHED")
+        self.assertIn(lab.TRAILER + base, git(self.fx.remote, "log", "-1", "--format=%B", published))
+        self.assert_lab_bytes()
+
+    def material_changes(self):
         ft = {"schema_version": 1, "matches": {
             "2026-11-01,1,2": {"status": "FINAL", "result": {"home_goals": 1, "away_goals": 0}},
             "2026-11-02,3,4": {"status": "FINAL", "result": {"home_goals": 0, "away_goals": 0}}}}
-        self.fx.plain_commit("ft", {"data/lab/ft-ledger.json": ft,
-                                    "data/lab/v6-ft-events-2026-11.jsonl": jline(ft="e1") + jline(ft="e2"),
-                                    "docs/lab/ft-results.json": {"final": 2}}, "FT")
-        self.fx.plain_commit("h1", {"data/results.csv": gw.BASELINE["data/results.csv"]
-                                    + "\"2026-11-02,3,4\",final,0,0,y\n"}, "H1")
-        self.fx.plain_commit("collector", {
-            "data/state.json": gw.state(150, ("c:1", "c:2")),
-            "data/lab/markets-2026-11.jsonl": gw.BASELINE["data/lab/markets-2026-11.jsonl"]
-            + jline(event_id="c:2", observed_at="2026-11-02T07:00:00+00:00"),
-            "data/lab/v4-revisions-2026-11.jsonl": gw.BASELINE["data/lab/v4-revisions-2026-11.jsonl"]
-            + jline(event_id="c:2", sha256="b" * 64),
-            THREE: ledger(**{"2026-11-01_1_2": gw.SENT_OLD, "2026-11-03_2": gw.SENT_NEW})}, "collect")
-        self.fx.plain_commit("llm", {"docs/lab/llm-investigator-index.json": {"runs": 1}}, "LLM")
-        heads = git(self.fx.remote, "rev-list", "main")
-        published = self.publish(root, base, manifest)
-        self.assertTrue(all(h in git(self.fx.remote, "rev-list", published) for h in heads.split()))
-        self.assertEqual(self.fx.json("data/lab/ft-ledger.json"), ft)
-        self.assertIn("2026-11-03,2", self.fx.json(THREE)["entries"])
-        self.assertEqual(self.receipt["concurrent_paths"], 9)
-        self.assert_lab_bytes()
+
+        def collect(root):
+            write(root, "data/state.json", gw.state(150, ("c:1", "c:2")))
+            gw.observe(root, 2, observed="2026-11-02T07:00:00+00:00")
+            gw.render(root)
+        return (("FT new FINAL", {"data/lab/ft-ledger.json": ft}, None),
+                ("FT event", {"data/lab/v6-ft-events-2026-11.jsonl": jline(ft="e1") + jline(ft="e2")}, None),
+                ("FT report", {"docs/lab/ft-results.json": {"final": 2}}, None),
+                ("H1 result", {"data/results.csv": gw.BASELINE["data/results.csv"]
+                               + "\"2026-11-02,3,4\",final,0,0,y\n"}, None),
+                ("collector observation", {}, collect),
+                ("Telegram receipt", {THREE: ledger(**{"2026-11-01_1_2": gw.SENT_OLD,
+                                                      "2026-11-03_2": gw.SENT_NEW})}, None))
+
+    def test_valid_material_input_changes_supersede_instead_of_publishing_stale_reports(self):
+        for name, changes, action in self.material_changes():
+            with self.subTest(name):
+                self.fx = BareGitFixture(lab_files())
+                self.addCleanup(self.fx.cleanup)
+                root, base, manifest = lab_cycle(self.fx)
+                head = self.fx.plain_commit("other", changes, name, action=action)
+                with self.assertRaises(sel.Superseded):
+                    self.publish(root, base, manifest)
+                self.assertEqual(self.fx.main(), head, "no stale LAB report published")
+                self.assertEqual(self.hook.calls, [])
+                self.assertEqual((self.receipt["status"], self.receipt["failure_class"]),
+                                 ("SUPERSEDED_BY_NEWER_INPUTS", "SUPERSEDED_SAFE_SKIP"))
+                self.assertNotIn(lab.MESSAGE, git(self.fx.remote, "log", "--format=%s", "main"))
+
+    def test_rerun_after_supersession_publishes_reports_of_exactly_the_new_inputs(self):
+        _, changes, action = self.material_changes()[4]
+        root, base, manifest = lab_cycle(self.fx)
+        self.fx.plain_commit("collector", changes, "collect", action=action)
+        with self.assertRaises(sel.Superseded):
+            self.publish(root, base, manifest)
+        rerun, new_base, new_manifest = lab_cycle(self.fx, "lab-rerun")   # next triggered run
+        self.assertNotEqual(new_base, base)
+        published = self.publish(rerun, new_base, new_manifest)
+        body = git(self.fx.remote, "log", "-1", "--format=%B", published)
+        self.assertEqual(self.fx.json("docs/lab/v4-audit.json")["source_commit"], new_base)
+        input_commit = body.split(lab.TRAILER)[1].split()[0]
+        moved = git(self.fx.remote, "diff", "--name-only", input_commit, published + "^").split()
+        self.assertEqual([p for p in moved if p not in lab.NON_MATERIAL], [],
+                         "the reports sit on exactly the inputs they were computed from")
+
+    def test_cas_race_by_a_material_writer_supersedes_on_the_retry(self):
+        root, base, manifest = lab_cycle(self.fx)
+        hook = PushHook({1: race(self.fx, "ft", {"docs/lab/ft-results.json": {"final": 3}}, "FT")})
+        with self.assertRaises(sel.Superseded):
+            self.publish(root, base, manifest, hook)
+        self.assertEqual(len(hook.calls), 1)
+        self.assertEqual(self.fx.json("docs/lab/ft-results.json"), {"final": 3})
+        self.assertEqual(self.fx.json("docs/lab/v4-audit.json"), {"generated": 0})
 
     def refused(self, changes, kind, writer="other"):
         root, base, manifest = lab_cycle(self.fx)
@@ -203,7 +251,16 @@ class SafeLabV4Publication(Base):
 
     def test_closed_month_change_contradicting_new_index_is_refused(self):
         r = self.refused({CLOSED_FT: lab_files()[CLOSED_FT] + jline(ft="late")}, "DEPENDENCY_CHANGED")
-        self.assertIn("Archive index contradicts", r["reason"])
+        self.assertIn("Closed month sealed by the archive index changed", r["reason"])
+        # Second line of defence on the exact tree: the produced index is re-hashed against
+        # the blobs. Build the tree the old rebase loop would have published and check it.
+        root = self.fx.clone("lab")                    # holds the unpublished LAB commit
+        git(root, "fetch", "-q", "origin", "main")
+        git(root, "checkout", "-q", "origin/main", "--", CLOSED_FT)
+        git(root, "commit", "-qm", "LAB index over the concurrently changed closed month")
+        with self.assertRaises(sel.PublicationRefused) as ctx:
+            lab.verify_archive_index(root, "HEAD")
+        self.assertIn("Archive index contradicts", str(ctx.exception))
 
     def test_rewritten_ft_final_is_refused(self):
         self.refused({"data/lab/ft-ledger.json": FT_FINAL_CHANGED}, "DEPENDENCY_CHANGED")
@@ -215,8 +272,8 @@ class SafeLabV4Publication(Base):
         self.refused({"data/state.json": gw.state(home="Z")}, "DEPENDENCY_CHANGED")
 
     def test_rewritten_v4_revision_journal_is_refused(self):
-        self.refused({"data/lab/v4-revisions-2026-11.jsonl": jline(event_id="x", sha256="c" * 64)},
-                     "DEPENDENCY_CHANGED")
+        journal = gw.v4_journal_paths(self.fx)[0]
+        self.refused({journal: jline(event_id="x", sha256="c" * 64)}, "DEPENDENCY_CHANGED")
 
     def test_certified_h1_result_change_is_refused(self):
         self.refused({"data/results.csv": "match_key,status,home_goals,away_goals,source\n"
@@ -251,12 +308,12 @@ class SafeLabV4Publication(Base):
         self.assertEqual(self.hook.calls, [])
         self.assertEqual(self.receipt["reason_kind"], "INTEGRITY")
 
-    def test_cas_race_retries_and_keeps_the_ft_commit(self):
+    def test_cas_race_retries_and_keeps_the_independent_commit(self):
         root, base, manifest = lab_cycle(self.fx)
-        hook = PushHook({1: race(self.fx, "ft", {"docs/lab/ft-results.json": {"final": 3}}, "FT")})
+        hook = PushHook({1: race(self.fx, "llm", {"docs/lab/llm-investigator-index.json": {"runs": 3}}, "LLM")})
         published = self.publish(root, base, manifest, hook)
         self.assertEqual((self.receipt["path"], self.receipt["cas_retries"]), ("AFTER_CAS", 1))
-        self.assertEqual(self.fx.json("docs/lab/ft-results.json"), {"final": 3})
+        self.assertEqual(self.fx.json("docs/lab/llm-investigator-index.json"), {"runs": 3})
         self.assertEqual(self.fx.main(), published)
 
     def test_http_408_before_and_after_acceptance(self):
@@ -275,12 +332,21 @@ class SafeLabV4Publication(Base):
     def test_crash_after_publication_rerun_is_equivalent_without_push(self):
         root, base, manifest = lab_cycle(self.fx)
         git(root, "push", "-q", "origin", "HEAD:refs/heads/main")
-        self.fx.plain_commit("collector", {"docs/data.json": gw.view(1, 1) | {"x": 1}}, "collect")
+        self.fx.plain_commit("llm", {"docs/lab/llm-investigator-index.json": {"runs": 2}}, "LLM")
         hook = PushHook()
         self.publish(root, base, manifest, hook)
         self.assertEqual(hook.calls, [])
         self.assertEqual(self.receipt["status"], "ALREADY_PUBLISHED_EQUIVALENT")
         self.assertEqual(self.fx.show(RUNCHECKS).count("\n"), 2, "journal entry not duplicated")
+
+
+class ProvenanceContract(Base):
+    def test_commit_naming_another_input_commit_is_refused(self):
+        root, base, manifest = lab_cycle(self.fx)
+        git(root, "commit", "-q", "--amend", "-m", lab.MESSAGE, "-m", lab.TRAILER + "0" * 40)
+        with self.assertRaises(sel.PublicationRefused):
+            self.publish(root, base, manifest)
+        self.assertEqual(self.receipt["reason_kind"], "INVALID_INPUT")
 
 
 class WorkflowContract(unittest.TestCase):
@@ -289,6 +355,7 @@ class WorkflowContract(unittest.TestCase):
         self.assertIn("python -m scripts.publication_guard outcomes --pipeline audit", text)
         self.assertIn("python -m scripts.publication_guard seal --pipeline audit", text)
         self.assertIn("python -m scripts.lab_v4_publish_safe --base \"$LAB_SOURCE_SHA\"", text)
+        self.assertIn('-m "LAB-Input-Commit: $LAB_SOURCE_SHA"', text)
         self.assertNotIn("git rebase", text)
         self.assertNotIn("for attempt in", text)
         self.assertNotIn("--force", text)

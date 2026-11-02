@@ -48,10 +48,7 @@ def files():
     return out
 
 
-def render(root):
-    st = json.loads((Path(root) / "data/state.json").read_text())
-    rows = (Path(root) / "data/results.csv").read_text().count("\n") - 1
-    write(root, "docs/data.json", gw.view(len(st["alerts"]), rows))
+render = gw.render       # production public_data render (docs/data.json)
 
 
 class Writers:
@@ -66,13 +63,10 @@ class Writers:
         root = self.fx.clone("collector")
         self.collector = (root, git(root, "rev-parse", "HEAD"))
         write(root, "data/state.json", gw.state(150, ("c:1", "c:2")))
+        gw.observe(root, 2, observed="2026-11-02T07:00:00+00:00")   # production V4 stores
         render(root)
         write(root, "data/three-total-moves-notifications.json",
               ledger(**{"2026-11-01_1_2": gw.SENT_OLD, "2026-11-03_2": gw.SENT_NEW}))
-        for path in ("data/lab/markets-2026-11.jsonl", "data/lab/formats-2026-11.jsonl"):
-            write(root, path, gw.BASELINE[path] + jline(event_id="c:2", observed_at="2026-11-02T07:00:00+00:00"))
-        write(root, "data/lab/v4-revisions-2026-11.jsonl",
-              gw.BASELINE["data/lab/v4-revisions-2026-11.jsonl"] + jline(event_id="c:2", sha256="b" * 64))
         col.stage(root)
         git(root, "commit", "-qm", col.MESSAGE)
 
@@ -83,23 +77,37 @@ class Writers:
 
     # -------------------------------------------------------------- LAB V4
     def prepare_lab(self):
+        """A LAB run starts from the CURRENT main (a re-triggered run after a supersession)."""
         root = self.fx.clone("lab")
+        git(root, "fetch", "-q", "origin", "main")
+        git(root, "reset", "-q", "--hard", "origin/main")
         base = git(root, "rev-parse", "HEAD")
         write(root, "docs/lab/v4-audit.json", {"generated": 1, "source_commit": base})
-        write(root, "data/lab/v4-runchecks.jsonl", gw.BASELINE["data/lab/v4-runchecks.jsonl"] + jline(run=2))
-        write(root, "data/lab/v6-forecasts-2026-11.jsonl",
-              gw.BASELINE["data/lab/v6-forecasts-2026-11.jsonl"] + jline(forecast="f2"))
+        for path, line in (("data/lab/v4-runchecks.jsonl", jline(run=2, input=base)),
+                           ("data/lab/v6-forecasts-2026-11.jsonl", jline(forecast="f2", input=base))):
+            write(root, path, (root / path).read_text() + line)
         git(root, "add", "docs/lab", "data/lab/v4-runchecks.jsonl", "data/lab/v6-forecasts-2026-11.jsonl")
         manifest = self.home / "lab-seal.json"
         with lab.inside(root):
             publication_guard.seal("audit", str(manifest))
-        git(root, "commit", "-qm", lab.MESSAGE)
+        git(root, "commit", "-q", "-m", lab.MESSAGE, "-m", lab.TRAILER + base)   # as lab-v4-audit.yml
         self.lab = (root, base, manifest)
 
-    def publish_lab(self, push):
-        root, base, manifest = self.lab
-        return sel.publish(root, base=base, policy=lab.LabV4Policy(manifest), push=push,
-                           receipt=self.home / "lab.json", sleep=lambda s: None)
+    def publish_lab(self, push, make_hook=None):
+        """Publish; on SUPERSEDED the next triggered run recomputes on the new main (bounded)."""
+        self.lab_superseded = 0
+        for _ in range(4):
+            root, base, manifest = self.lab
+            try:
+                return sel.publish(root, base=base, policy=lab.LabV4Policy(manifest), push=push,
+                                   receipt=self.home / "lab.json", sleep=lambda s: None)
+            except sel.Superseded:
+                if make_hook is None:
+                    raise
+                self.lab_superseded += 1
+                self.prepare_lab()
+                push = make_hook()
+        raise AssertionError("LAB never converged")
 
     # -------------------------------------------------------------- FT (#202)
     def prepare_ft(self):
@@ -142,7 +150,7 @@ class Writers:
                                                "2026-11-02,3,4": {"status": "settled",
                                                                   "checked_at": "2026-11-02T07:00:00+00:00"}})
         write(root, "data/health/h1-results.json", {"status": "CYCLE_COMPLETED", "n": 2})
-        render(root)
+        render(root)          # h1lab.cli render equivalent
         git(root, "add", "-A")
         git(root, "commit", "-qm", h1.MESSAGE)
         self.h1 = (root, base)
@@ -183,28 +191,34 @@ class FourWriterConcurrency(unittest.TestCase):
     def run_schedule(self, order, faults=True):
         fx = BareGitFixture(files())
         self.addCleanup(fx.cleanup)
-        home = fx.home
-        w = Writers(fx, home)
+        w = Writers(fx, fx.home)
         for name in ("collector", "lab", "ft", "h1"):        # all prepared from the SAME base
             getattr(w, "prepare_" + name)()
-        llm_runs = [0]
-        results = {}
+        results = {"lab_superseded": 0}
         for position, name in enumerate(order):
-            script = {}
-            if faults and position == 1:
-                llm_runs[0] += 1
-                script = {1: independent_llm(fx, llm_runs[0])}
-            elif faults and position == 2:
-                script = {1: gw.fail(HTTP_408)}
-            elif faults and position == 3:
-                def after(real, candidate):
-                    assert real().returncode == 0
-                    fx.plain_commit("llm", {"docs/lab/llm-investigator-index.json": {"runs": 99}}, "LLM late")
-                    return subprocess.CompletedProcess(["git"], 128, b"", HTTP_408)
-                script = {1: after}
-            hook = gw.PushHook(script)
-            results[name] = getattr(w, "publish_" + name)(hook)
-            results[name + "_pushes"] = len(hook.calls)
+            hooks = []
+
+            def make_hook(position=position, hooks=hooks):
+                script = {}
+                if faults and position == 1:
+                    script = {1: independent_llm(fx, len(hooks) + 10 * position)}
+                elif faults and position == 2:
+                    script = {1: gw.fail(HTTP_408)}
+                elif faults and position == 3:
+                    def after(real, candidate):
+                        assert real().returncode == 0
+                        fx.plain_commit("llm", {"docs/lab/llm-investigator-index.json": {"runs": 99}},
+                                        "LLM late")
+                        return subprocess.CompletedProcess(["git"], 128, b"", HTTP_408)
+                    script = {1: after}
+                hooks.append(gw.PushHook(script))
+                return hooks[-1]
+            if name == "lab":
+                results[name] = w.publish_lab(make_hook(), make_hook)
+                results["lab_superseded"] = w.lab_superseded
+            else:
+                results[name] = getattr(w, "publish_" + name)(make_hook())
+            results[name + "_pushes"] = len(hooks[-1].calls)
         return fx, results
 
     def check_invariants(self, fx, results, order):
@@ -214,35 +228,48 @@ class FourWriterConcurrency(unittest.TestCase):
         log = git(fx.remote, "log", "--format=%s", "main")
         for message in (col.MESSAGE, lab.MESSAGE, h1.MESSAGE, "data(lab): publish verified FT snapshot"):
             self.assertEqual(log.count(message), 1, "%s published %d times" % (message, log.count(message)))
-        # Collector: observation, receipts (old terminal + new), V4 views/journal.
+        # Collector: observation, receipts (old terminal + new).
         st = fx.json("data/state.json")
         self.assertEqual((st["last_id"], [a["event_id"] for a in st["alerts"]]), (150, ["c:1", "c:2"]))
         receipts = fx.json("data/three-total-moves-notifications.json")["entries"]
         self.assertEqual(receipts["2026-11-01,1,2"], gw.SENT_OLD)
         self.assertEqual(receipts["2026-11-03,2"]["telegram_message_id"], 777)
+        # No silent change of historical observations: replay base -> final main with the
+        # production readers (immutable alerts, SHA-chained V4 journal, projection, views).
+        col.verify_state(fx.show("data/state.json", fx.base).encode(), fx.show("data/state.json").encode())
+        v4 = col.verify_v4(fx.remote, fx.base, "main")
+        self.assertEqual(v4["v4_revision_kinds"], {"FIRST_SEEN_BY_COLLECTOR": 1}, order)
         # Certified finals: H1 row added, base row intact; FT FINALs intact + new one.
         self.assertEqual(fx.show("data/results.csv"), RESULTS_BASE + RESULT_NEW)
         self.assertEqual(fx.json("data/lab/ft-ledger.json"), FT_NEW)
         self.assertEqual(fx.json("data/result_audit.json")["2026-11-01,1,2"]["status"], "settled")
-        # Journals: base bytes are a prefix, every line JSON, no duplicates.
-        for path, base_key in (("data/lab/v4-revisions-2026-11.jsonl", None),
-                               ("data/lab/v4-runchecks.jsonl", None),
-                               ("data/lab/v6-forecasts-2026-11.jsonl", None),
-                               ("data/lab/v6-ft-events-2026-11.jsonl", None),
-                               ("data/lab/markets-2026-11.jsonl", None)):
+        # Append-only journals: base bytes are a prefix, every line JSON, no duplicates,
+        # exactly one LAB run published (superseded runs publish nothing).
+        for path in ("data/lab/v4-runchecks.jsonl", "data/lab/v6-forecasts-2026-11.jsonl",
+                     "data/lab/v6-ft-events-2026-11.jsonl"):
             text = fx.show(path)
-            self.assertTrue(text.startswith(gw.BASELINE[path]), path)
+            self.assertTrue(text.startswith(fx.show(path, fx.base)), path)
             lines = text.splitlines()
             self.assertEqual(len(lines), len(set(lines)), "duplicate journal entry in " + path)
             self.assertEqual(len(lines), 2, path)
             [json.loads(line) for line in lines]
-        # LAB artifacts and their seal survive every later publisher.
-        self.assertEqual(fx.json("docs/lab/v4-audit.json")["generated"], 1)
+        # LAB provenance: its reports sit on exactly the inputs they were computed from.
+        body = git(fx.remote, "log", "-1", "--format=%B", results["lab"])
+        input_commit = body.split(lab.TRAILER)[1].split()[0]
+        moved = git(fx.remote, "diff", "--name-only", input_commit, results["lab"] + "^").split()
+        self.assertEqual([p for p in moved if p not in lab.NON_MATERIAL
+                          and col.own.owner_of(p) not in lab.KEEP_OWNERS], [], order)
+        self.assertEqual(fx.json("docs/lab/v4-audit.json")["source_commit"], input_commit)
+        self.assertEqual(json.loads(fx.show("data/lab/v4-runchecks.jsonl").splitlines()[-1])["input"],
+                         input_commit)
         self.assertEqual(fx.json("docs/lab/ft-results.json"), {"final": 2})
-        # The derived dashboard is consistent with the final inputs (re-rendered offline).
-        self.assertEqual(fx.json("docs/data.json"), gw.view(2, 2), order)
+        # The derived dashboard is exactly the render of the final state and results.
+        self.assertTrue(col.dashboard_is_coherent(fx.remote, "main"), order)
+        view = fx.json("docs/data.json")
+        self.assertEqual(view["alert_count"], 2)
 
     def test_all_24_publication_orders_with_cas_and_408_faults(self):
+        superseded = 0
         for order in itertools.permutations(("collector", "lab", "ft", "h1")):
             with self.subTest(order=order):
                 fx, results = self.run_schedule(order)
@@ -251,6 +278,10 @@ class FourWriterConcurrency(unittest.TestCase):
                 self.assertEqual(results[order[3] + "_pushes"], 1)
                 self.assertEqual(results[order[1] + "_pushes"], 2)
                 self.assertEqual(results[order[2] + "_pushes"], 2)
+                # LAB is superseded exactly when a material writer published before it.
+                self.assertEqual(bool(results["lab_superseded"]), order.index("lab") > 0, order)
+                superseded += results["lab_superseded"]
+        self.assertEqual(superseded, 18, "18 of 24 orders have LAB after a material writer")
 
     def test_persistent_contention_exhausts_safely_for_every_engine_writer(self):
         fx = BareGitFixture(files())
@@ -271,7 +302,9 @@ class FourWriterConcurrency(unittest.TestCase):
                 self.assertNotEqual(fx.main(), before, "independent commits were all kept")
         # Once contention clears, the same unpublished commits publish without new work.
         w.publish_collector(gw.PushHook())
-        w.publish_lab(gw.PushHook())
+        # The collector's new inputs supersede the old LAB commit: the next LAB run recomputes.
+        w.publish_lab(gw.PushHook(), gw.PushHook)
+        self.assertEqual(w.lab_superseded, 1)
         self.assertIn(col.MESSAGE, git(fx.remote, "log", "--format=%s", "main"))
         self.assertIn(lab.MESSAGE, git(fx.remote, "log", "--format=%s", "main"))
 
@@ -294,6 +327,31 @@ class FourWriterConcurrency(unittest.TestCase):
                 self.assertEqual((receipt["reason_kind"], receipt["failure_class"]),
                                  (kind, "PERSISTENT_INCOMPATIBILITY"))
         self.assertEqual(fx.main(), head, "nothing partial published")
+
+    def test_incompatible_changes_are_refused_by_every_real_publisher(self):
+        cases = (
+            ("collector", {"data/state.json": gw.state(140, ("c:1", "c:9"))}, sel.PublicationRefused),
+            ("lab", {"data/results.csv": RESULTS_HEADER + "\"2026-11-01,1,2\",final,0,0,x\n"},
+             sel.PublicationRefused),
+            ("h1", {"data/results.csv": RESULTS_BASE + "\"2026-11-02,3,4\",final,9,9,z\n"},
+             h1.UnsafeH1Publication),
+            ("ft", {"data/lab/ft-ledger.json": {"schema_version": 1, "matches": {
+                "2026-11-01,1,2": {"status": "FINAL", "result": {"home_goals": 1, "away_goals": 0}},
+                "2026-11-02,5,6": {"status": "FINAL", "result": {"home_goals": 0, "away_goals": 0}}}}},
+             ft.UnsafeFTPublication))
+        for name, changes, exc in cases:
+            with self.subTest(name):
+                fx = BareGitFixture(files())
+                self.addCleanup(fx.cleanup)
+                w = Writers(fx, fx.home)
+                getattr(w, "prepare_" + name)()
+                head = fx.plain_commit("rogue", changes, "incompatible concurrent change")
+                hook = gw.PushHook()
+                with self.assertRaises(exc) as ctx:
+                    getattr(w, "publish_" + name)(hook)
+                self.assertNotIsInstance(ctx.exception, sel.Superseded)
+                self.assertEqual(hook.calls, [], "refused before any push")
+                self.assertEqual(fx.main(), head, "nothing partial, nothing overwritten")
 
 
 class KnownCrossProducerRefusals(unittest.TestCase):

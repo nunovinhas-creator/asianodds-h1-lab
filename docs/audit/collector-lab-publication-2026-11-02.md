@@ -170,6 +170,31 @@ do índice de arquivo contra os blobs do candidato, cada recibo terminal citado 
 `telegram-eligibility.json` contra os ledgers do candidato, journals append-only.
 Recusa explícita, nunca publicação parcial. Recibo `LAB_V4_PUBLISH_RECEIPT`.
 
+### 5.1 Relatórios sobre entradas obsoletas (revisão crítica, 2.ª iteração)
+
+A primeira versão mantinha alterações concorrentes **válidas** às entradas
+(estado/observações do coletor, recibos, `results.csv`, ledger FT) e publicava os
+relatórios selados por cima delas: um relatório calculado sobre a base aparecia na
+`main` ao lado de entradas mais recentes, sem o indicar.
+
+Regra atual (`scripts/lab_v4_publish_safe.py`):
+
+* violação de integridade → `REFUSED` (falha): FINAL alterado, linha certificada
+  alterada, recibo revertido, journal reescrito, identidade de jogos reescrita,
+  mês fechado selado pelo índice alterado, rótulos Golden, programa, desconhecido;
+* alteração **válida** de uma entrada material → `SUPERSEDED_BY_NEWER_INPUTS`:
+  nada publicado, nenhum relatório obsoleto apresentado como atual; o job termina
+  com `::notice` (exit 0) e a execução seguinte do LAB — disparada pela conclusão
+  seguinte do coletor (≤ 5 min) — recalcula sobre a nova `main`;
+* não-material (nenhum produtor LAB os lê): `docs/data.json`, bloqueio Telegram,
+  LLM, estatística, qualidade, site, documentação → mantidos.
+
+Proveniência: cada commit LAB transporta `LAB-Input-Commit: <sha>`; antes do push
+prova-se que nenhum caminho material difere entre esse commit e o pai do commit
+publicado. Um trailer que nomeie outro commit é recusado. Custo: as entradas
+append-only do LAB de um ciclo superado (p.ex. forecasts com `known_at`) não são
+publicadas; o ciclo seguinte regista o seu próprio instante de processamento.
+
 ## 6. Simulação conjunta dos quatro escritores
 
 `tests/test_four_writer_concurrency.py` usa os publicadores reais (coletor e LAB
@@ -182,6 +207,14 @@ FT e H1 retidos, journals com prefixo da base, sem duplicados, `docs/data.json`
 consistente com as entradas finais. Contenção persistente → `RETRY_EXHAUSTED`
 após exatamente 6 tentativas (limite não aumentado) e publicação posterior sem
 novo trabalho; incompatibilidade persistente → `REFUSED` sem nada parcial.
+
+Segunda iteração: o fixture usa os escritores de produção (`market_v4.store`,
+`shadow_formats.store`, `public_data`); o LAB é superado em exatamente 18 das 24
+ordens (sempre que um escritor material publica antes) e recalcula sobre a nova
+`main`; no fim de cada ordem a `main` é reproduzida desde a base com os leitores
+de produção (alertas imutáveis, cadeia V4, projeção, vistas) e o `docs/data.json`
+é igual ao render exato. Alterações incompatíveis são recusadas antes de qualquer
+push pelos quatro publicadores reais.
 
 Recusas conhecidas do publicador FT (não alteradas aqui, seguras): nova geração
 de `v6-archive-index.json` e partições `markets-…-partNNNN` bloqueiam esse ciclo
