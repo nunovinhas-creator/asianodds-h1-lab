@@ -43,11 +43,13 @@ import time
 from pathlib import Path
 
 from scripts import git_publish_outcome as outcome
+from datetime import datetime, timezone
+
+from scripts import lab_ft_publish_safe as ft_publisher
 from scripts.lab_ft_publish_safe import (
     H1_NOTIFICATION_RECEIPTS, JOURNAL, SHA, TELEGRAM_BLOCK, TELEGRAM_ELIGIBILITY_REPORT,
     V4_ARCHIVE, UnsafeFTPublication, append_only_jsonl, blob_or_none, changed_paths, git,
-    run, sha, stable_fixtures, tree_entry, valid_notification_update,
-    valid_telegram_block_update)
+    run, sha, stable_fixtures, tree_entry)
 
 RESULTS = "data/results.csv"
 AUDIT = "data/result_audit.json"
@@ -60,6 +62,7 @@ CODE_PREFIXES = ("h1lab/", "scripts/", ".github/", "tests/", "config/", "schedul
 CODE_FILES = ("requirements.txt", "requirements-test.txt")
 INDEPENDENT_PREFIXES = ("data/lab/", "docs/lab/")
 MESSAGE = "data: reconcile verified H1 finals [skip ci]"
+FT_LEDGER = "data/lab/ft-ledger.json"  # the only LAB input of the H1 job (h1lab.lab_promotion)
 
 
 class UnsafeH1Publication(UnsafeFTPublication):
@@ -104,6 +107,35 @@ def _numbers(entry, prefix=""):
             yield from _numbers(value, prefix + name + ".")
 
 
+def _instant(value):
+    """Audit timestamps are compared as UTC instants, never as strings."""
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        raise UnsafeH1Publication("Unparseable audit timestamp: %r" % (value,))
+    if parsed.tzinfo is None:
+        raise UnsafeH1Publication("Naive audit timestamp: %r" % (value,))
+    return parsed.astimezone(timezone.utc)
+
+
+def verify_ft_inputs(before, after):
+    """A concurrent FT publication is independent only if every FINAL the H1 job could have
+    imported at its base is still FINAL with the identical result (no invalidated proof)."""
+    try:
+        old = json.loads(before)["matches"] if before else {}
+        new = json.loads(after)["matches"] if after else None
+    except (ValueError, KeyError, TypeError):
+        raise UnsafeH1Publication("Unreadable FT ledger in concurrent change")
+    if new is None:
+        raise UnsafeH1Publication("FT ledger deleted concurrently")
+    for key, row in old.items():
+        if isinstance(row, dict) and row.get("status") == "FINAL":
+            cur = new.get(key)
+            if not isinstance(cur, dict) or cur.get("status") != "FINAL" \
+                    or cur.get("result") != row.get("result"):
+                raise UnsafeH1Publication("FT FINAL used by H1 changed concurrently: " + key)
+
+
 def verify_audit(before, after):
     old = json.loads(before) if before else {}
     new = json.loads(after) if after else {}
@@ -120,7 +152,7 @@ def verify_audit(before, after):
             raise UnsafeH1Publication("Terminal audit entry reopened: " + key)
         for stamp in ("checked_at", "expired_at"):
             if entry.get(stamp) and (not current.get(stamp)
-                                      or str(current[stamp]) < str(entry[stamp])):
+                                      or _instant(current[stamp]) < _instant(entry[stamp])):
                 raise UnsafeH1Publication("Audit timestamp went back: %s %s" % (key, stamp))
         now = dict(_numbers(current))
         for name, value in _numbers(entry):
@@ -143,17 +175,15 @@ def check_remote_path(root, base, remote, path):
         if blob_or_none(root, remote, path) is None:
             raise UnsafeH1Publication("Dashboard data deleted: " + path)
         return "rerender"
-    if path in H1_NOTIFICATION_RECEIPTS:
-        if not valid_notification_update(blob_or_none(root, base, path),
-                                         blob_or_none(root, remote, path)):
-            raise UnsafeH1Publication("Notification receipt rewritten: " + path)
+    if path in H1_NOTIFICATION_RECEIPTS or path in (TELEGRAM_BLOCK, TELEGRAM_ELIGIBILITY_REPORT):
+        # Exactly the strict validators of the FT publisher (modes, symlinks, rollback, secrets).
+        try:
+            ft_publisher._check_remote_path(root, base, remote, path)
+        except UnsafeFTPublication as exc:
+            raise UnsafeH1Publication(str(exc))
         return "keep"
-    if path == TELEGRAM_BLOCK:
-        if not valid_telegram_block_update(blob_or_none(root, base, path),
-                                           blob_or_none(root, remote, path)):
-            raise UnsafeH1Publication("Telegram block invalid: " + path)
-        return "keep"
-    if path == TELEGRAM_ELIGIBILITY_REPORT:
+    if path == FT_LEDGER:
+        verify_ft_inputs(blob_or_none(root, base, path), blob_or_none(root, remote, path))
         return "keep"
     if JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
         if not append_only_jsonl(blob_or_none(root, base, path),
@@ -203,14 +233,46 @@ def write_receipt(path, document):
         Path(path).write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
 
 
-def publish(root, *, base, receipt=None, max_attempts=6, max_transport_failures=3,
-            render=default_render, sleep=time.sleep):
+def publish(root, *, base, receipt=None, bundle=None, **kwargs):
+    """Publish, or fail with a complete receipt and the unpublished commit kept for diagnosis.
+
+    Failure statuses: RETRY_EXHAUSTED (persistent contention), OUTCOME_UNRESOLVED (transport,
+    remote unreadable), REFUSED (integrity/compatibility). The local branch is put back on the
+    unpublished H1 commit and, when ``bundle`` is given, that commit is exported as a Git bundle
+    (uploaded by the workflow as an artifact) so its outputs are never silently lost.
+    """
     root = Path(root)
+    trace = {"attempts": 0, "remote_heads": [], "kinds": []}
+    try:
+        return _publish(root, base=base, receipt=receipt, trace=trace, **kwargs)
+    except UnsafeFTPublication as exc:
+        message = str(exc)
+        status = ("RETRY_EXHAUSTED" if message.startswith("Remote advanced during all bounded")
+                  else "OUTCOME_UNRESOLVED" if "outcome unresolved" in message else "REFUSED")
+        source = trace.get("source")
+        if source:
+            run(root, "reset", "--hard", source, check=False)
+            if bundle:
+                made = run(root, "bundle", "create", str(bundle), "HEAD", "^" + base, check=False)
+                if made.returncode:
+                    print("H1_BUNDLE_FAILED", made.stderr.decode("utf-8", "replace")[-200:])
+        write_receipt(receipt, {"status": status, "reason": message[:500], "base": base,
+                                "source_commit": source, "published_commit": None,
+                                "attempts": trace["attempts"], "remote_heads": trace["remote_heads"],
+                                "push_failures": trace["kinds"], "provider_requeries": 0,
+                                "bundle": str(bundle) if bundle and source else None,
+                                "run_id": os.environ.get("GITHUB_RUN_ID")})
+        raise
+
+
+def _publish(root, *, base, receipt, trace, max_attempts=6, max_transport_failures=3,
+             render=default_render, sleep=time.sleep):
     if not SHA.fullmatch(base) or not 1 <= max_attempts <= 10:
         raise UnsafeH1Publication("Invalid H1 base or retry bound")
     source = sha(root, "HEAD")
     if sha(root, "HEAD^") != base:
         raise UnsafeH1Publication("H1 commit is not based on the pinned checkout")
+    trace["source"] = source
     if git(root, "status", "--porcelain", "--untracked-files=no").strip():
         raise UnsafeH1Publication("H1 checkout is not clean")
     produced = changed_paths(root, base, source)
@@ -223,8 +285,10 @@ def publish(root, *, base, receipt=None, max_attempts=6, max_transport_failures=
            "provider_requeries": 0, "run_id": os.environ.get("GITHUB_RUN_ID")}
     transport_failures = 0
     for attempt in range(1, max_attempts + 1):
+        trace["attempts"] = attempt
         git(root, "fetch", "--no-tags", "origin", "main")
         remote = sha(root, "FETCH_HEAD")
+        trace["remote_heads"].append(remote)
         if run(root, "merge-base", "--is-ancestor", base, remote, check=False).returncode:
             raise UnsafeH1Publication("Remote main no longer descends from the H1 base")
         if remote != base and owned and outcome.same_paths(root, source, remote, owned):
@@ -260,6 +324,7 @@ def publish(root, *, base, receipt=None, max_attempts=6, max_transport_failures=
             return candidate
         err = result.stderr.decode("utf-8", "replace")
         kind = outcome.classify_push_failure(err, "main")
+        trace["kinds"].append(kind)
         print("H1_PUSH_FAILURE", json.dumps({"attempt": attempt, "kind": kind,
                                              "candidate": candidate, "remote_before_push": remote}))
         if kind == outcome.CAS_REJECTED:
@@ -285,9 +350,11 @@ def main(argv=None):
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--base", required=True)
     parser.add_argument("--receipt", type=Path)
+    parser.add_argument("--bundle", type=Path, help="export the unpublished commit here on failure")
     parser.add_argument("--max-attempts", type=int, default=6)
     args = parser.parse_args(argv)
-    publish(args.root, base=args.base, receipt=args.receipt, max_attempts=args.max_attempts)
+    publish(args.root, base=args.base, receipt=args.receipt, bundle=args.bundle,
+            max_attempts=args.max_attempts)
 
 
 if __name__ == "__main__":

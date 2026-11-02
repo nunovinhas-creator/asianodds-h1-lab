@@ -26,6 +26,13 @@ def write(root, name, content):
     path.write_text(content)
 
 
+def ledger(*finals):
+    matches = {"2026-11-01,1,2": {"status": "FINAL", "result": {"home_goals": 1, "away_goals": 0}}}
+    for i, key in enumerate(finals):
+        matches[key] = {"status": "FINAL", "result": {"home_goals": i, "away_goals": 0}}
+    return json.dumps({"schema_version": 1, "matches": matches}, sort_keys=True) + "\n"
+
+
 def state(extra=False, home="A"):
     alerts = [{"match_key": "2026-11-01,1,2", "home": home, "away": "B",
                "kickoff_utc": "2026-11-01T13:00:00+00:00", "competition": "X"}]
@@ -65,7 +72,7 @@ class H1PublishTests(unittest.TestCase):
         write(self.root, h.RECEIPT, '{"status":"CYCLE_COMPLETED","n":1}\n')
         write(self.root, h.RENDERED, '{"roi":1}\n')
         write(self.root, h.STATE, state())
-        write(self.root, "data/lab/ft-ledger.json", '{"final":1}\n')
+        write(self.root, "data/lab/ft-ledger.json", ledger())
         write(self.root, "data/lab/markets-2026-11.jsonl", '{"id":1}\n')
         write(self.root, "h1lab/results.py", "# code\n")
         git(self.root, "add", ".")
@@ -148,9 +155,9 @@ class H1PublishTests(unittest.TestCase):
         self.assertEqual(self.main_file("docs/lab/v4-audit.json"), '{"v4":3}')
 
     def test_concurrent_ft_publication_preserved(self):
-        self.lab_commit({"data/lab/ft-ledger.json": '{"final":2}\n'}, "FT snapshot")
+        self.lab_commit({"data/lab/ft-ledger.json": ledger("2026-11-02,7,8")}, "FT snapshot")
         published, _ = self.publish()
-        self.assertEqual(self.main_file("data/lab/ft-ledger.json"), '{"final":2}')
+        self.assertEqual(self.main_file("data/lab/ft-ledger.json"), ledger("2026-11-02,7,8").strip())
         self.assertEqual(self.main_file(h.AUDIT), audit(**{"2026-11-01_3_4": {
             "status": "settled", "checked_at": "2026-11-02T06:56:59+00:00", "attempts": 2}}).strip())
 
@@ -252,41 +259,123 @@ class H1PublishTests(unittest.TestCase):
         self.assertTrue(head)
         self.assertNotEqual(result, self.base)
 
-    def test_realistic_concurrency_with_lab_and_ft_writers(self):
-        """LAB V4 and FT keep pushing while H1 publishes; nothing is lost, no force push."""
-        stop = threading.Event()
-        pushed = []
+    # -- deterministic contention -------------------------------------------------
+    def _writer_rounds(self, rounds):
+        """A real LAB/FT writer thread that pushes exactly once per H1 push attempt, in lock-step."""
+        go, done = threading.Event(), threading.Event()
+        pushed, errors = [], []
 
         def writer():
-            i = 0
-            while not stop.is_set() and i < 25:
-                i += 1
+            for i in range(1, rounds + 1):
+                if not go.wait(30):
+                    errors.append("writer never released")
+                    return
+                go.clear()
                 try:
-                    path = "docs/lab/v4-audit.json" if i % 2 else "data/lab/ft-ledger.json"
-                    self.lab_commit({path: json.dumps({"i": i}) + "\n"}, "writer %d" % i)
+                    if i % 2:
+                        self.lab_commit({"docs/lab/v4-audit.json": json.dumps({"i": i}) + "\n"},
+                                        "LAB V4 writer %d" % i)
+                    else:
+                        self.lab_commit({"data/lab/ft-ledger.json": ledger("2026-11-02,%d,0" % i)},
+                                        "FT writer %d" % i)
                     pushed.append(i)
-                except subprocess.CalledProcessError:
-                    pass
-        t = threading.Thread(target=writer)
-        t.start()
-        import time
-        deadline = time.time() + 30
-        while len(pushed) < 2 and time.time() < deadline:
-            time.sleep(0.05)
-        try:
-            published, pushes = self.publish(max_attempts=10)
-        finally:
-            stop.set()
-            t.join(60)
-        log = git(self.remote, "log", "--format=%H %s", "main")
-        self.assertIn(published, log)
-        for i in pushed:
-            self.assertIn("writer %d" % i, log)
-        self.assertEqual(self.main_file(h.RESULTS), (HEADER + ROW_A + ROW_B).strip())
-        self.assertEqual(log.count(h.MESSAGE), 1)
-        self.assertGreaterEqual(len(pushed), 2)
-        self.assertNotEqual(git(self.remote, "rev-parse", published + "^"), self.base)
+                except Exception as exc:  # pragma: no cover - reported by assertions
+                    errors.append(repr(exc))
+                finally:
+                    done.set()
 
+        thread = threading.Thread(target=writer, daemon=True)
+        thread.start()
+
+        def hook(n, real, args):
+            if n <= rounds:
+                done.clear()
+                go.set()
+                self.assertTrue(done.wait(30), "writer did not finish its round")
+            return real()
+        return hook, thread, pushed, errors
+
+    def test_transient_contention_publishes_without_requery_and_keeps_every_commit(self):
+        for repetition in range(5):
+            with self.subTest(repetition=repetition):
+                if repetition:
+                    self.setUp()
+                rounds = 4
+                hook, thread, pushed, errors = self._writer_rounds(rounds)
+                receipt = Path(self.tmp.name) / "receipt.json"
+                published, pushes = self.publish(hook, receipt=receipt, max_attempts=6)
+                thread.join(30)
+                self.assertEqual(errors, [])
+                self.assertEqual(pushed, list(range(1, rounds + 1)))
+                self.assertEqual(len(pushes), rounds + 1)
+                log = git(self.remote, "log", "--format=%s", "main")
+                for i in pushed:
+                    self.assertIn(("LAB V4 writer %d" if i % 2 else "FT writer %d") % i, log)
+                self.assertEqual(log.count(h.MESSAGE), 1)
+                self.assertEqual(git(self.remote, "rev-parse", "main"), published)
+                self.assertEqual(self.main_file(h.RESULTS), (HEADER + ROW_A + ROW_B).strip())
+                self.assertEqual(self.main_file("data/lab/ft-ledger.json"),
+                                 ledger("2026-11-02,4,0").strip())
+                doc = json.loads(receipt.read_text())
+                self.assertEqual((doc["status"], doc["attempt"], doc["provider_requeries"]),
+                                 ("PUBLISHED", rounds + 1, 0))
+
+    def test_persistent_contention_exhausts_safely_with_receipt_and_bundle(self):
+        attempts = 4
+        hook, thread, pushed, errors = self._writer_rounds(attempts)
+        receipt = Path(self.tmp.name) / "receipt.json"
+        bundle = Path(self.tmp.name) / "h1-unpublished.bundle"
+        with self.assertRaisesRegex(h.UnsafeH1Publication, "Remote advanced during all bounded"):
+            self.publish(hook, receipt=receipt, bundle=bundle, max_attempts=attempts)
+        thread.join(30)
+        self.assertEqual(errors, [])
+        log = git(self.remote, "log", "--format=%s", "main")
+        self.assertEqual(log.count(h.MESSAGE), 0)            # nothing partial published
+        self.assertEqual(log.count("writer"), attempts)       # every independent commit kept
+        self.assertEqual(self.main_file(h.RESULTS), (HEADER + ROW_A).strip())
+        doc = json.loads(receipt.read_text())
+        self.assertEqual(doc["status"], "RETRY_EXHAUSTED")
+        self.assertEqual((doc["attempts"], doc["push_failures"]), (attempts, ["CAS_REJECTED"] * attempts))
+        self.assertEqual(doc["source_commit"], self.source)
+        self.assertIsNone(doc["published_commit"])
+        # local diagnostics: the branch is back on the unpublished H1 commit, also exported
+        self.assertEqual(git(self.root, "rev-parse", "HEAD"), self.source)
+        self.assertIn("is okay", subprocess.run(
+            ["git", "-C", str(self.root), "bundle", "verify", str(bundle)],
+            capture_output=True, text=True).stderr)
+
+    # -- hardening ------------------------------------------------------------------
+    def test_concurrent_change_of_an_ft_final_used_by_h1_is_refused(self):
+        bad = json.loads(ledger())
+        bad["matches"]["2026-11-01,1,2"]["result"] = {"home_goals": 0, "away_goals": 0}
+        self.lab_commit({"data/lab/ft-ledger.json": json.dumps(bad) + "\n"}, "FT rewrite")
+        with self.assertRaisesRegex(h.UnsafeH1Publication, "FT FINAL used by H1 changed"):
+            self.publish()
+
+    def test_telegram_paths_use_the_strict_ft_validators(self):
+        self.lab_commit({"data/telegram-delivery-block.json": '{"token": "123:ABC"}\n'}, "bad block")
+        with self.assertRaises(h.UnsafeH1Publication):
+            self.publish()
+
+    def test_audit_timestamps_compared_as_utc_instants(self):
+        # '07:00+01:00' is 06:00Z: lexically later, instant earlier -> regression refused.
+        self._amend({h.AUDIT: audit(**{"2026-11-01_3_4": {
+            "status": "pending", "checked_at": "2026-11-01T20:30:00+01:00", "attempts": 1}})})
+        with self.assertRaisesRegex(h.UnsafeH1Publication, "timestamp went back"):
+            self.publish()
+        # 'Z' spelling of a later instant is accepted.
+        self._amend({h.AUDIT: audit(**{"2026-11-01_3_4": {
+            "status": "settled", "checked_at": "2026-11-02T06:56:59Z", "attempts": 2}})})
+        self.publish()
+
+    def test_failed_refusal_also_writes_a_complete_receipt(self):
+        self.lab_commit({"h1lab/results.py": "# new policy\n"}, "code")
+        receipt = Path(self.tmp.name) / "r.json"
+        with self.assertRaises(h.UnsafeH1Publication):
+            self.publish(receipt=receipt)
+        doc = json.loads(receipt.read_text())
+        self.assertEqual((doc["status"], doc["source_commit"]), ("REFUSED", self.source))
+        self.assertIn("Incompatible program change", doc["reason"])
 
 if __name__ == "__main__":
     unittest.main()
