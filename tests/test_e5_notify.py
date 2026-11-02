@@ -21,7 +21,7 @@ from h1lab.timeline import collect_timelines
 
 REPO = Path(__file__).resolve().parents[1]
 NOW = datetime(2026, 11, 2, 18, 0, tzinfo=timezone.utc)
-KO = NOW + timedelta(hours=30)
+KO = NOW + timedelta(hours=9)          # inside the 12-hour alert window
 
 
 def setUpModule():
@@ -173,10 +173,16 @@ class E5RuleTests(unittest.TestCase):
                 ledger, stats, sender = process([row])
                 self.assertEqual((sender.messages, ledger["entries"]), ([], {}))
 
-    def test_game_more_than_12_hours_ahead_is_sent(self):
+    def test_game_more_than_12_hours_ahead_is_eligible_but_deferred(self):
+        # User decision 2026-11-02: new alerts only for kickoffs within the next 12 hours.
         ko = NOW + timedelta(days=4)
         row = self.one(pair(0.03, lead=timedelta(days=5), ko=ko))
+        self.assertEqual(row["state"], e5.ELIGIBLE)
         ledger, stats, sender = process([row], research_doc=research())
+        self.assertEqual((sender.messages, ledger["entries"], stats["deferred_beyond_12h"]), ([], {}, 1))
+        # It is alerted once it enters the 12-hour window.
+        later = ko - timedelta(hours=11)
+        ledger, stats, sender = process([row], ledger, now=later, research_doc=research(now=later))
         self.assertEqual((stats["sent"], len(sender.messages)), (1, 1))
         text = sender.messages[0]
         for needle in ("🧠 MASTER BRAIN | E5 — OVER 2,5", "⚽ Casa vs Fora",
@@ -189,10 +195,18 @@ class E5RuleTests(unittest.TestCase):
         self.assertEqual((entry["status"], entry["telegram_message_id"], entry["transition"]),
                          ("sent", 101, "ENTERED"))
 
-    def test_all_future_games_sent_in_kickoff_order_without_a_quota(self):
+    def test_window_boundary_exactly_12_hours_is_sent_and_one_second_more_is_not(self):
+        rows = rows_for(pair(0.01, ko=NOW + timedelta(hours=12)) +
+                        [dict(a, event_id=a["event_id"] + "b", match_key="2026-11-03,8")
+                         for a in pair(0.01, ko=NOW + timedelta(hours=12, seconds=1))])
+        ledger, stats, sender = process(rows)
+        self.assertEqual((stats["sent"], stats["deferred_beyond_12h"]), (1, 1))
+        self.assertIn("2026-11-03,7", ledger["entries"])
+
+    def test_all_games_within_12h_sent_in_kickoff_order_without_a_quota(self):
         alerts, markets = [], []
         for n in range(9):
-            ko = NOW + timedelta(hours=60 - n * 5)
+            ko = NOW + timedelta(hours=11, minutes=-n * 45)
             for a in pair(0.01, ko=ko, match="2026-11-0%d,%d" % (3 + n % 3, n)):
                 a["event_id"] += ":%d" % n
                 alerts.append(a)

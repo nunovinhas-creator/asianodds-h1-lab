@@ -37,7 +37,10 @@ Receipts: `data/e5-over25-notifications.json` (collector-owned).
 
 ## Delivery
 
-* All future fixtures, every date, ordered by kickoff; no 12-hour window, no game quota.
+* Initial activation batch (2026-11-02 18:35 UTC): all future fixtures, every date (64 alerts).
+* Since then (user decision): new alerts only for kickoffs within the next **12 hours**, ordered
+  by kickoff, no game quota; a later game is alerted once it enters the window. Withdrawals of
+  an already-sent alert are not limited by the window (only before kickoff).
   A 14-minute time budget per run only defers the remainder to the next 5-minute cycle.
 * One alert per fixture and rule version. A withdrawal (`<match>|WITHDRAWN`) is sent once,
   only before kickoff and only from new valid V4 evidence observed after the alert that
