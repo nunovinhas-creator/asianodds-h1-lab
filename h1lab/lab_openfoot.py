@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from .lab_identity import EXACT,CORE,IDENTITY_VERSION,core_tokens,pair_level,select_event
+from .lab_goal import DayListRefused,fetch_error_category
 
 API="https://openfootapi.com/v1/matches"
 MAX_DAYS=2
@@ -52,11 +53,15 @@ def fetch(day,key):
     meta=body.get("meta") or {}
     page=meta.get("pagination") or {}
     rows=body["data"]
-    if (not isinstance(page,dict) or page.get("next_cursor") is not None
-        or meta.get("total_count")!=len(rows)
-        or len(rows)>100 or not all(isinstance(x,dict) for x in rows)
-        or (meta.get("access") or {}).get("authenticated") is not True):
-        raise ValueError("OpenFoot incomplete page")
+    # Same fail-closed conditions as before; each only gets its own diagnostic label.
+    if not isinstance(page,dict) or len(rows)>100 or not all(isinstance(x,dict) for x in rows):
+        raise DayListRefused("INVALID_PAYLOAD","OpenFoot incomplete page")
+    if page.get("next_cursor") is not None:
+        raise DayListRefused("MORE_PAGES","OpenFoot incomplete page")
+    if meta.get("total_count")!=len(rows):
+        raise DayListRefused("COUNT_MISMATCH","OpenFoot incomplete page")
+    if (meta.get("access") or {}).get("authenticated") is not True:
+        raise DayListRefused("UNAUTHENTICATED","OpenFoot incomplete page")
     return rows
 
 def candidate(signal,rows):
@@ -122,6 +127,8 @@ class OpenFootResults:
         self.days={}
         self.requests=0
         self.reasons=Counter()
+        # Why a requested date list was unusable (diagnostic only; the list stays refused).
+        self.date_errors={}
 
     def lookup(self,signal):
         if not self.key:return None,"openfoot_not_configured"
@@ -135,7 +142,9 @@ class OpenFootResults:
                 return None,"openfoot_day_budget_deferred"
             self.requests+=1
             try:self.days[day]=self.getter(day,self.key)
-            except (OSError,ValueError):self.days[day]=None
+            except (OSError,ValueError) as exc:
+                self.days[day]=None
+                self.date_errors[day]=fetch_error_category(exc)
         rows=self.days[day]
         if not isinstance(rows,list):
             return None,"openfoot_unavailable"
@@ -174,4 +183,5 @@ class OpenFootResults:
                 "requested_days":sorted(self.days),
                 "rotation_days":sorted(self.allowed_days) if self.allowed_days is not None else [],
                 "verified_in_run":self.reasons["verified_openfoot_ft"]+self.reasons["verified_openfoot_ft_reviewed_pair"],
-                "reason_counts":dict(sorted(self.reasons.items()))}
+                "reason_counts":dict(sorted(self.reasons.items())),
+                "date_errors":dict(sorted(self.date_errors.items()))}
