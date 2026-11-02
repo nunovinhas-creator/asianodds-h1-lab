@@ -26,6 +26,39 @@ class ReceiptReportTests(unittest.TestCase):
                          {"SAFE_ABORT_INCOMPATIBLE": 1, "UNRECOVERED_FAILURE": 1})
         self.assertEqual(out["provider_requeries_nonzero"], 1)
 
+    # Real receipt from production run 41425408616 (first LAB V4 run after #206).
+    SUPERSEDED_LINE = (
+        '2026-11-02T10:02:08.6785573Z LAB_V4_PUBLISH_RECEIPT {"attempts": 1, '
+        '"base": "d817947404f4b0228054027776716a32fb8d3876", "failure_class": '
+        '"SUPERSEDED_SAFE_SKIP", "provider_requeries": 0, "published_commit": null, '
+        '"push_failures": [], "reason": "LAB inputs advanced on main since d817947404f4: '
+        'data/health/h1-results.json", "reason_kind": "SUPERSEDED_BY_NEWER_INPUTS", '
+        '"remote_heads": ["f5672576ec40a4a73c6ad8c7093e1ca3dd4bac9c"], "run_id": "41425408616", '
+        '"status": "SUPERSEDED_BY_NEWER_INPUTS", "telegram_requests": 0}')
+
+    def test_supersession_is_its_own_category(self):
+        rows = list(r.parse([self.SUPERSEDED_LINE]))
+        self.assertEqual([row["category"] for row in rows], ["SUPERSEDED"])
+        self.assertIsNone(rows[0]["published_commit"])
+
+    def test_supersession_is_neither_publication_nor_failure_nor_unclassified(self):
+        out = r.report(list(r.parse([self.SUPERSEDED_LINE] + LOG)),
+                       datetime(2026, 11, 2, 7, 36, tzinfo=timezone.utc))
+        lab = out["windows"]["24h"]["by_producer"]["LAB_V4"]
+        self.assertEqual(lab, {"SUPERSEDED": 1})
+        for cat in ("FIRST_ATTEMPT", "AFTER_CAS", "AFTER_TRANSPORT", "RECOVERED",
+                    "UNRECOVERED_FAILURE", "SAFE_ABORT_INCOMPATIBLE", "UNCLASSIFIED"):
+            self.assertNotIn(cat, lab)
+
+    def test_reason_kind_alone_marks_supersession(self):
+        self.assertEqual(r.category({"status": "REFUSED",
+                                     "reason_kind": "SUPERSEDED_BY_NEWER_INPUTS"}), "SUPERSEDED")
+
+    def test_real_refusals_and_unknown_statuses_unchanged(self):
+        self.assertEqual(r.category({"status": "REFUSED", "reason_kind": "INTEGRITY"}),
+                         "SAFE_ABORT_INCOMPATIBLE")
+        self.assertEqual(r.category({"status": "SOMETHING_NEW"}), "UNCLASSIFIED")
+
 
 if __name__ == "__main__":
     unittest.main()
