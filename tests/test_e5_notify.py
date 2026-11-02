@@ -315,8 +315,9 @@ class E5DeliveryTests(unittest.TestCase):
         self.assertEqual(rows[0]["state"], e5.NOT_E5)
         ledger, stats, sender = process(rows, ledger, now=later)
         self.assertEqual((stats["withdrawals_sent"], stats["sent"]), (1, 0))
-        self.assertIn("❌ PADRÃO E5 RETIRADO", sender.messages[0])
-        self.assertIn("+0,1500", sender.messages[0])
+        self.assertIn("❌ MASTER BRAIN | E5 RETIRADA", sender.messages[0])
+        self.assertIn("📊 Variação anterior: +0,0200", sender.messages[0])
+        self.assertIn("📉 Nova variação: +0,1500", sender.messages[0])
         entry = ledger["entries"]["2026-11-03,7" + e5.WITHDRAWN]
         self.assertEqual((entry["status"], entry["transition"], entry["entry_message_id"]),
                          ("sent", "WITHDRAWN", 101))
@@ -424,6 +425,209 @@ class E5DeliveryTests(unittest.TestCase):
             e5.process(rows_for(pair(0.02)), {"schema_version": 1, "rule_version": "OTHER",
                                               "entries": {}}, NOW, sender, True)
         self.assertEqual(sender.messages, [])
+
+
+class E5WindowAndWithdrawalTests(unittest.TestCase):
+    """User checklist 2026-11-02: 12-hour window + automatic withdrawals."""
+
+    def setUp(self):
+        BlockStore().clear()
+
+    def _sent_for(self, ko):
+        rows = rows_for(pair(0.01, ko=ko))
+        return process(rows)
+
+    # 1, 2, 3
+    def test_window_11h59_and_12h00_sent_12h00m01s_deferred(self):
+        for delta, sent in ((timedelta(hours=11, minutes=59), 1), (timedelta(hours=12), 1),
+                            (timedelta(hours=12, seconds=1), 0)):
+            with self.subTest(delta=delta):
+                ledger, stats, sender = self._sent_for(NOW + delta)
+                self.assertEqual((stats["sent"], len(sender.messages)), (sent, sent))
+                self.assertEqual(stats["deferred_beyond_12h"], 1 - sent)
+
+    # 4
+    def test_deferred_game_is_sent_automatically_when_it_enters_the_window(self):
+        ko = NOW + timedelta(hours=20)
+        ledger, stats, sender = self._sent_for(ko)
+        self.assertEqual((sender.messages, stats["deferred_beyond_12h"]), ([], 1))
+        later = ko - timedelta(hours=12)
+        rows = rows_for(pair(0.01, ko=ko), now=later)
+        ledger, stats, sender = process(rows, ledger, now=later)
+        self.assertEqual((stats["sent"], ledger["entries"]["2026-11-03,7"]["status"]), (1, "sent"))
+
+    def _withdraw(self, start, end, *, ko=KO, ledger=None, now=NOW):
+        """Alert with net `start`, then a NEW V4 message moves the net to `end`."""
+        alerts = pair(start, ko=ko)
+        if ledger is None:
+            ledger, stats, _ = process(rows_for(alerts, now=now), now=now)
+            self.assertEqual(stats["sent"], 1)
+        later = now + timedelta(minutes=30)
+        moved = alerts + [message(3, round(2.0 + start, 4), round(2.0 + end, 4),
+                                  at=later - timedelta(minutes=1), ko=ko)]
+        rows = rows_for(moved, now=later)
+        ledger, stats, sender = process(rows, ledger, now=later)
+        return ledger, stats, sender, moved, later
+
+    # 5
+    def test_plus_0_04_to_plus_0_12_sends_withdrawal(self):
+        ledger, stats, sender, _, _ = self._withdraw(0.04, 0.12)
+        self.assertEqual(stats["withdrawals_sent"], 1)
+        self.assertIn("📊 Variação anterior: +0,0400", sender.messages[0])
+        self.assertIn("📉 Nova variação: +0,1200", sender.messages[0])
+
+    # 6
+    def test_minus_0_03_to_minus_0_11_sends_withdrawal(self):
+        ledger, stats, sender, _, _ = self._withdraw(-0.03, -0.11)
+        self.assertEqual(stats["withdrawals_sent"], 1)
+        self.assertIn("📊 Variação anterior: -0,0300", sender.messages[0])
+        self.assertIn("📉 Nova variação: -0,1100", sender.messages[0])
+
+    # 7, 8
+    def test_single_withdrawal_and_no_duplicate_on_unchanged_cycles(self):
+        ledger, stats, sender, moved, later = self._withdraw(0.02, 0.15)
+        self.assertEqual(len(sender.messages), 1)
+        for minutes in (5, 10, 15):
+            again = later + timedelta(minutes=minutes)
+            ledger, stats, sender = process(rows_for(moved, now=again), ledger, now=again)
+            self.assertEqual((sender.messages, stats["withdrawals_sent"]), ([], 0))
+        self.assertEqual(sum(k.endswith(e5.WITHDRAWN) for k in ledger["entries"]), 1)
+
+    # 9
+    def test_incomplete_data_never_withdraws(self):
+        ledger, _, _ = process(rows_for(pair(0.02)))
+        later = NOW + timedelta(minutes=30)
+        third = message(3, 2.02, 2.15, at=later - timedelta(minutes=1))
+        broken = v4(third)
+        broken["markets"]["total"]["after"]["over_price"] = None
+        rows = rows_for(pair(0.02) + [third], markets=[v4(a) for a in pair(0.02)] + [broken],
+                        now=later)
+        self.assertEqual(rows[0]["state"], e5.EXCLUDED)
+        ledger, stats, sender = process(rows, ledger, now=later)
+        self.assertEqual(sender.messages, [])
+
+    # 10
+    def test_started_game_gets_no_message_of_any_kind(self):
+        ko = NOW + timedelta(minutes=20)
+        ledger, stats, _ = process(rows_for(pair(0.02, ko=ko, lead=timedelta(hours=8))))
+        self.assertEqual(stats["sent"], 1)
+        moved = pair(0.02, ko=ko, lead=timedelta(hours=8)) + [
+            message(3, 2.02, 2.3, at=ko - timedelta(minutes=1), ko=ko)]
+        for after in (ko, ko + timedelta(hours=2)):
+            ledger, stats, sender = process(rows_for(moved, now=after), ledger, now=after)
+            self.assertEqual(sender.messages, [])
+
+    # 11 (Hull City U21 - Derby County U21 pattern)
+    def test_game_never_alerted_gets_no_withdrawal(self):
+        rows = rows_for(pair(0.9015))
+        self.assertEqual((rows[0]["state"], rows[0]["reason"]),
+                         (e5.NOT_E5, "VARIACAO_LIQUIDA_IGUAL_OU_SUPERIOR_A_0_10"))
+        for ledger in (e5.empty_ledger(NOW), self._uncertain_ledger()):
+            ledger, stats, sender = process(rows, ledger)
+            self.assertEqual((sender.messages, stats["withdrawals_sent"]), ([], 0))
+            self.assertNotIn("2026-11-03,7" + e5.WITHDRAWN, ledger["entries"])
+
+    def _uncertain_ledger(self):
+        ledger = e5.empty_ledger(NOW)
+        ledger["entries"]["2026-11-03,7"] = {"status": delivery.UNCERTAIN, "kickoff_utc": KO.isoformat(),
+                                            "observed_through": (NOW - timedelta(hours=3)).isoformat(),
+                                            "net_dlam": 0.01, "transition": "ENTERED"}
+        return ledger
+
+    # 12
+    def test_initial_batch_alert_outside_12h_can_still_be_withdrawn_before_kickoff(self):
+        ko = NOW + timedelta(days=3)
+        ledger = e5.empty_ledger(NOW)
+        ledger["entries"]["2026-11-03,7"] = {
+            "status": "sent", "telegram_message_id": 350, "transition": "ENTERED",
+            "kickoff_utc": ko.isoformat(), "net_dlam": 0.03,
+            "observed_through": (NOW - timedelta(minutes=5)).isoformat()}
+        ledger, stats, sender, _, _ = self._withdraw(0.03, 0.14, ko=ko, ledger=ledger)
+        self.assertEqual(stats["withdrawals_sent"], 1)
+        entry = ledger["entries"]["2026-11-03,7" + e5.WITHDRAWN]
+        self.assertEqual((entry["entry_message_id"], entry["previous_net_dlam"]), (350, 0.03))
+
+    # 13
+    def test_publication_failure_or_uncertain_withdrawal_is_never_duplicated(self):
+        ledger, _, _ = process(rows_for(pair(0.02)))
+        later = NOW + timedelta(minutes=30)
+        moved = pair(0.02) + [message(3, 2.02, 2.15, at=later - timedelta(minutes=1))]
+        rows = rows_for(moved, now=later)
+
+        def fail(_):
+            raise delivery.IntentNotDurable("push rejected")
+        copy = json.loads(json.dumps(ledger))
+        copy, stats, sender = process(rows, copy, now=later, persist=fail)
+        self.assertEqual((sender.messages, stats.get("intent_not_durable")), ([], 1))
+        self.assertNotIn("2026-11-03,7" + e5.WITHDRAWN, copy["entries"])
+        ledger, stats, sender = process(rows, ledger, now=later,
+                                        sender=Sender(BotDeliveryError("timeout")))
+        self.assertEqual(ledger["entries"]["2026-11-03,7" + e5.WITHDRAWN]["status"], delivery.UNCERTAIN)
+        again = later + timedelta(minutes=5)
+        ledger, stats, sender = process(rows_for(moved, now=again), ledger, now=again)
+        self.assertEqual(sender.messages, [])
+
+    def test_reentry_after_withdrawal_is_audited_not_resent(self):
+        ledger, stats, sender, moved, later = self._withdraw(0.02, 0.15)
+        self.assertEqual(stats["withdrawals_sent"], 1)
+        back = later + timedelta(minutes=30)
+        again = moved + [message(4, 2.17, 2.05, at=back - timedelta(minutes=1))]
+        rows = rows_for(again, now=back)
+        self.assertEqual(rows[0]["state"], e5.ELIGIBLE)
+        for tick in (back, back + timedelta(minutes=5)):
+            ledger, stats, sender = process(rows_for(again, now=tick), ledger, now=tick)
+            self.assertEqual(sender.messages, [])
+        audit = list(ledger["audit"].values())
+        self.assertEqual(len(audit), 1)
+        self.assertEqual((audit[0]["transition"], audit[0]["action"]),
+                         ("REENTERED_AFTER_WITHDRAWAL", "NOT_RESENT"))
+
+
+class E5RealLedgerTests(unittest.TestCase):
+    """14 + operational proof from the published ledger (Wycombe 369 -> 428, Hull none)."""
+
+    def setUp(self):
+        self.ledger = json.loads((REPO / e5.LEDGER).read_text(encoding="utf-8"))
+
+    def test_historical_receipts_are_preserved(self):
+        entries = self.ledger["entries"]
+        self.assertEqual(self.ledger["rule_version"], e5.RULE_VERSION)
+        self.assertGreaterEqual(len(entries), 64)
+        ids = [e["telegram_message_id"] for e in entries.values() if e.get("status") == "sent"]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertTrue({369, 428} <= set(ids))
+
+    def test_wycombe_withdrawal_regression(self):
+        key = "2026-11-02,99,49903"
+        entry, withdrawn = self.ledger["entries"][key], self.ledger["entries"][key + e5.WITHDRAWN]
+        self.assertEqual((entry["telegram_message_id"], entry["transition"]), (369, "ENTERED"))
+        self.assertEqual((withdrawn["telegram_message_id"], withdrawn["entry_message_id"],
+                          withdrawn["net_dlam"]), (428, 369, -0.1947))
+        row = {"state": e5.NOT_E5, "reason": "VARIACAO_LIQUIDA_IGUAL_OU_SUPERIOR_A_0_10",
+               "match_key": key, "match_label": entry["match_label"],
+               "kickoff_utc": entry["kickoff_utc"], "net_dlam": -0.1947,
+               "last_total_observed_at": withdrawn["last_total_observed_at"]}
+        self.assertTrue(e5.proven_withdrawal(row, entry))
+        text = e5.withdrawal_message(row, entry)
+        for needle in ("❌ MASTER BRAIN | E5 RETIRADA", "⚽ Wycombe Wanderers FC vs Brentford U21",
+                       "🕒 02/11/2026 19:00 (Portugal)", "⚠️ ESTE JOGO DEIXOU DE CUMPRIR A E5",
+                       "📊 Variação anterior: +0,0367", "📉 Nova variação: -0,1947",
+                       "🕒 Movimento observado: 02/11/2026 18:36 (Portugal)", "🆔 P5-8bced1b27e"):
+            self.assertIn(needle, text)
+        # already withdrawn: a new cycle never sends a second withdrawal
+        rows = [{**row, "first_observed_at": entry["first_observed_at"],
+                 "lead_minutes": entry["lead_minutes"], "observed_through": withdrawn["observed_through"],
+                 "feature_fingerprint": None, "event_ids": []}]
+        now = datetime(2026, 11, 2, 18, 50, tzinfo=timezone.utc)
+        copy = json.loads(json.dumps(self.ledger))
+        BlockStore().clear()
+        copy, stats, sender = process(rows, copy, now=now)
+        self.assertEqual((sender.messages, copy["entries"]), ([], self.ledger["entries"]))
+
+    def test_hull_city_u21_has_no_initial_alert_so_no_retroactive_withdrawal(self):
+        hull = [k for k, v in self.ledger["entries"].items()
+                if "Hull City" in (v.get("match_label") or "")]
+        self.assertEqual(hull, [])
 
 
 class E5RunTests(unittest.TestCase):
