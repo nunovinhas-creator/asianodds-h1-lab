@@ -42,6 +42,22 @@ def _when(e):
     return _utc(e.get("kickoffUtc")) if isinstance(e,dict) else None
 
 
+class DayListRefused(ValueError):
+    """A date list was received but refused (fail-closed); ``category`` is a fixed, safe label."""
+    def __init__(self,category,message):
+        super().__init__(message)
+        self.category=category
+
+
+def fetch_error_category(exc):
+    """Fixed label for a refused/failed date list; never exposes URLs, keys or payloads."""
+    if isinstance(exc,DayListRefused):
+        return exc.category
+    if isinstance(exc,OSError):
+        return "TRANSPORT_HTTP_OR_UNPARSEABLE"
+    return "INVALID_PAYLOAD"
+
+
 def fetch_date(day,key):
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}",day) or not key:
         raise ValueError("Invalid GOAL date query")
@@ -66,12 +82,12 @@ def fetch_date(day,key):
         not all(isinstance(ev,dict) for ev in rows)):
         raise ValueError("GOAL invalid result rows")
     if page is None and len(rows) >= 500:
-        raise ValueError("GOAL incomplete list: possible silent truncation")
+        raise DayListRefused("MORE_PAGES","GOAL incomplete list: possible silent truncation")
     if page is not None:
         if not isinstance(page,dict) or page.get("hasMore") is not False:
-            raise ValueError("GOAL incomplete pagination")
+            raise DayListRefused("MORE_PAGES","GOAL incomplete pagination")
         if type(page.get("total")) is not int or page["total"]!=len(rows):
-            raise ValueError("GOAL incomplete count")
+            raise DayListRefused("COUNT_MISMATCH","GOAL incomplete count")
     # Results-by-date returned complete lists without pagination in production.
     # Unexpected partial pagination cannot be used for unique matching.
     return rows
@@ -203,6 +219,8 @@ class GoalResults:
             raise ValueError("Invalid reviewed GOAL targets")
         self.reviewed_observations={}
         self.reasons=Counter()
+        # Why a requested date list was unusable (diagnostic only; the list stays refused).
+        self.date_errors={}
     def lookup(self,signal):
         if not self.key:
             return None,"goal_not_configured"
@@ -259,8 +277,9 @@ class GoalResults:
             self.requests+=1
             try:
                 self.cache[day]=self.getter(day,self.key)
-            except (OSError,ValueError):
+            except (OSError,ValueError) as exc:
                 self.cache[day]=None
+                self.date_errors[day]=fetch_error_category(exc)
         rows=self.cache[day]
         if not isinstance(rows,list):
             return None,"goal_unavailable"
@@ -280,4 +299,5 @@ class GoalResults:
                 "verified_in_run":sum(n for k,n in self.reasons.items()
                                       if k.startswith("verified_goal_ft")),
                 "reason_counts":dict(sorted(self.reasons.items())),
+                "date_errors":dict(sorted(self.date_errors.items())),
                 "id_outcomes":dict(sorted(self.id_outcomes.items()))}
