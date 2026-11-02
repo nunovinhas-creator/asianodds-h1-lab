@@ -33,22 +33,22 @@
   },
   "bsd_date_search": {
     "core_name_results_recovered": 0,
-    "date_complete_days": 1,
-    "date_days_examined": 1,
+    "date_complete_days": 0,
+    "date_days_examined": 0,
     "date_detail_requests": 0,
     "date_incomplete_days": 0,
-    "date_list_requests": 1,
+    "date_list_requests": 0,
     "fallback_results_recovered": 0,
     "lookup_reason_counts": {
-      "bsd_no_exact_match_in_date": 30
+      "bsd_date_cooldown_deferred": 28
     }
   },
   "coverage_diagnostics": {
     "blocked_review": 1,
-    "closed_unverified": 409,
-    "ft_confirmed": 442,
-    "future": 107,
-    "grace": 3,
+    "closed_unverified": 410,
+    "ft_confirmed": 443,
+    "future": 109,
+    "grace": 1,
     "notes": [
       "Provider obstacles may overlap: the same game can fail multiple providers.",
       "Rate-limit counts come from attempts, not distinct API-wide coverage.",
@@ -57,7 +57,7 @@
     "past_unverified_eligible": 199,
     "provider_obstacles": [
       {
-        "matches": 3,
+        "matches": 2,
         "provider": "openfoot",
         "reason": "openfoot_identity_no_core_match"
       }
@@ -66,33 +66,34 @@
     "unit": "distinct observed match_key",
     "unknown_kickoff": 0,
     "unresolved_statuses": {
-      "EXPIRED_UNVERIFIED": 409,
+      "EXPIRED_UNVERIFIED": 410,
       "IDENTITY_CONFLICT": 1,
       "PENDING": 309
     }
   },
   "displayed_matches": 500,
   "espn_scoreboards": {
-    "cached_league_days": 0,
+    "cached_league_days": 3,
     "confirmed_in_run": 0,
     "reason_counts": {
-      "unsupported_competition": 30
+      "espn_no_exact_match": 2,
+      "unsupported_competition": 28
     },
-    "requests": 0
+    "requests": 3
   },
   "execution_health": {
     "affected_match_keys": [],
     "affected_matches_count": 0,
     "dual_postcheck_errors": 0,
     "invalid_provider_results": 0,
-    "measured_at": "2026-11-02T03:56:26+00:00",
+    "measured_at": "2026-11-02T04:36:29+00:00",
     "provider_errors": 0,
     "provider_failure_breakdown": {},
     "scope": "adapter execution only; not coverage or publication health",
     "status": "ATTEMPTED",
     "unexpected_errors": 0
   },
-  "final_recorded": 442,
+  "final_recorded": 443,
   "fotmob_search": {
     "cached_days": 0,
     "licensed_automation_enabled": false,
@@ -107,8 +108,8 @@
         "invocations": 89
       },
       "bsd": {
-        "confirmed": 128,
-        "invocations": 159
+        "confirmed": 129,
+        "invocations": 160
       },
       "espn": {
         "confirmed": 56,
@@ -124,15 +125,15 @@
       },
       "openfoot": {
         "confirmed": 11,
-        "invocations": 119
+        "invocations": 118
       },
       "reviewed_public": {
         "confirmed": 0,
         "invocations": 0
       },
       "sportscore": {
-        "confirmed": 73,
-        "invocations": 113
+        "confirmed": 74,
+        "invocations": 114
       },
       "thesportsdb": {
         "confirmed": 34,
@@ -198,12 +199,13 @@
       "cooldown_blocked_games": 197,
       "coverage_absence_confirmed": 0,
       "coverage_absence_note": "No verified match cannot distinguish absence from names",
-      "date_http_by_path": {
-        "discovery": 1
+      "date_http_by_path": {},
+      "date_requests": 0,
+      "deferred_days": {
+        "2026-11-01": "bsd_date_cooldown_deferred",
+        "2026-11-02": "bsd_date_cooldown_deferred"
       },
-      "date_requests": 1,
-      "deferred_days": {},
-      "direct_id_requests_shared_with_monte": 0,
+      "direct_id_requests_shared_with_monte": 2,
       "direct_lookup": {
         "conflicts": 0,
         "http_requests": 0,
@@ -214,34 +216,27 @@
         }
       },
       "eligible_days_after": 0,
-      "eligible_days_before": 1,
+      "eligible_days_before": 0,
       "fallback_detail_requests": 0,
-      "http_total": 1,
+      "http_total": 2,
       "independent_of_ft_queue": true,
-      "monte_only_detail_requests": 0,
-      "new_ids": 2,
+      "monte_only_detail_requests": 2,
+      "new_ids": 0,
       "overdue_compared_with_complete_catalogue": 197,
-      "overdue_without_id": 199,
+      "overdue_without_id": 198,
       "overdue_without_id_after": 197,
       "persisted_id_new_finals": 0,
-      "planned_days": [
-        "2026-11-01"
-      ],
+      "planned_days": [],
       "post_reconcile": {
-        "compared_games": 199,
-        "complete_days": 1,
         "quarantined_bindings": 0,
         "total_id_bindings": 66
       },
       "pre_reconcile": {
-        "compared_games": 199,
-        "complete_days": 1,
-        "new_ids": 2,
         "quarantined_bindings": 0,
         "total_id_bindings": 66
       }
     },
-    "confirmed_provider_ids": 355,
+    "confirmed_provider_ids": 356,
     "date_rotation": {
       "api_football": {
         "date_budget": 3,
@@ -262,13 +257,14 @@
         "selected_days": []
       }
     },
-    "deferred_by_capacity": 5,
+    "deferred_by_capacity": 6,
     "deferred_keys": [
-      "2026-11-01,10005693,38211",
-      "2026-11-01,10062100,10056434",
-      "2026-11-01,10104318,10051335",
-      "2026-11-01,543,10016552",
-      "2026-11-01,48538,1623"
+      "2026-11-01,1045,30415",
+      "2026-11-01,22141,28733",
+      "2026-11-01,25534,10103323",
+      "2026-11-01,97842,23073",
+      "2026-11-01,54647,10048854",
+      "2026-11-01,30929,30921"
     ],
     "documented_ft_total": 31,
     "dual_postcheck_confirmed": 0,
@@ -292,7 +288,7 @@
       "revisions_quarantined": 0,
       "total_claims": 183
     },
-    "eligible": 35,
+    "eligible": 36,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
@@ -316,11 +312,17 @@
         "http_status": 429
       }
     },
-    "last_chance_eligible": [],
-    "last_chance_selected": [],
-    "never_checked_deferred": 5,
-    "never_checked_eligible": 35,
-    "newly_confirmed": 0,
+    "last_chance_eligible": [
+      "2026-11-01,10059953,10071601",
+      "2026-11-01,10104255,48888"
+    ],
+    "last_chance_selected": [
+      "2026-11-01,10059953,10071601",
+      "2026-11-01,10104255,48888"
+    ],
+    "never_checked_deferred": 6,
+    "never_checked_eligible": 36,
+    "newly_confirmed": 1,
     "old_id_recovery_turn": [],
     "provider_id_collisions": 0,
     "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
@@ -334,36 +336,36 @@
     },
     "selected": 30,
     "selected_keys": [
-      "2026-11-01,10056830,90827",
-      "2026-11-01,10059916,30489",
-      "2026-11-01,1320,30585",
-      "2026-11-01,23088,30666",
-      "2026-11-01,27336,27329",
-      "2026-11-01,1136,22207",
-      "2026-11-01,37833,1615",
-      "2026-11-01,10023622,10014379",
-      "2026-11-01,10050223,10085652",
-      "2026-11-01,55119,23721",
-      "2026-11-02,709,773",
-      "2026-11-01,10053721,33712",
-      "2026-11-01,28863,28864",
-      "2026-11-01,29156,30592",
-      "2026-11-01,29420,30469",
-      "2026-11-01,30521,30703",
-      "2026-11-01,30594,30575",
-      "2026-11-01,34718,53689",
-      "2026-11-01,37711,10048297",
-      "2026-11-01,50909,10085213",
-      "2026-11-01,56893,10066026",
-      "2026-11-01,59174,80077",
-      "2026-11-01,64888,91684",
-      "2026-11-01,79642,29563",
-      "2026-11-01,1687,1177",
-      "2026-11-01,1703,532",
-      "2026-11-01,24408,34006",
-      "2026-11-01,1279,23885",
-      "2026-11-01,1660,1620",
-      "2026-11-02,174,177"
+      "2026-11-01,10059953,10071601",
+      "2026-11-01,10104255,48888",
+      "2026-11-02,98781,38271",
+      "2026-11-02,10037770,29841",
+      "2026-11-01,10005693,38211",
+      "2026-11-01,10062100,10056434",
+      "2026-11-01,10104318,10051335",
+      "2026-11-01,543,10016552",
+      "2026-11-01,48538,1623",
+      "2026-11-01,30601,23097",
+      "2026-11-01,55990,10066147",
+      "2026-11-01,84078,23177",
+      "2026-11-01,1495,1168",
+      "2026-11-01,23049,23043",
+      "2026-11-01,31498,56433",
+      "2026-11-01,10050382,10016347",
+      "2026-11-01,31329,10087106",
+      "2026-11-01,31425,10032377",
+      "2026-11-01,10052947,10052604",
+      "2026-11-01,10074748,34720",
+      "2026-11-01,10103118,70942",
+      "2026-11-01,23964,363",
+      "2026-11-01,31269,25187",
+      "2026-11-01,838,23574",
+      "2026-11-01,10002359,362",
+      "2026-11-01,1723,30431",
+      "2026-11-01,48955,924",
+      "2026-11-01,897,24398",
+      "2026-11-01,945,206",
+      "2026-11-01,37096,35400"
     ],
     "selection_mode": "BOUNDED_PROVIDER_POLL"
   },
@@ -664,6 +666,19 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-08,10052947,10012059",
       "observed_alerts": 2,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
+      "away": "CF América",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Club Universidad Nacional (Pumas UNAM)",
+      "kickoff_utc": "2026-11-08T03:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-11-08,1037,1000",
+      "observed_alerts": 1,
       "reason": "awaiting_ft",
       "status": "PENDING"
     },
@@ -1695,6 +1710,19 @@
       "status": "PENDING"
     },
     {
+      "away": "Rio Ave FC U23",
+      "evidence": null,
+      "evidence_attempts": 0,
+      "home": "Leixoes SC U23",
+      "kickoff_utc": "2026-11-02T16:00:00+00:00",
+      "last_checked_at": null,
+      "legacy_last_checked_at": null,
+      "match_key": "2026-11-02,10016784,10004104",
+      "observed_alerts": 1,
+      "reason": "awaiting_ft",
+      "status": "PENDING"
+    },
+    {
       "away": "FC Dila Gori",
       "evidence": null,
       "evidence_attempts": 0,
@@ -1774,16 +1802,19 @@
     },
     {
       "away": "Minnesota United FC",
-      "evidence": null,
-      "evidence_attempts": 0,
+      "away_goals": 3,
+      "evidence": "bsd_and_sportscore",
+      "evidence_attempts": 1,
       "home": "Los Angeles FC",
+      "home_goals": 1,
       "kickoff_utc": "2026-11-02T01:30:00+00:00",
-      "last_checked_at": null,
-      "legacy_last_checked_at": null,
+      "last_checked_at": "2026-11-02T04:36:29+00:00",
+      "legacy_last_checked_at": "2026-11-02T04:36:29+00:00",
       "match_key": "2026-11-02,98781,38271",
       "observed_alerts": 2,
-      "reason": "awaiting_ft",
-      "status": "PENDING"
+      "reason": "ft_recorded_with_source",
+      "source": "https://sports.bzzoiro.com/api/v2/events/5398/",
+      "status": "FINAL"
     },
     {
       "away": "CD Platense",
@@ -5234,19 +5265,6 @@
       "status": "PENDING"
     },
     {
-      "away": "Urawa Red Diamonds Women",
-      "evidence": null,
-      "evidence_attempts": 1,
-      "home": "Albirex Niigata Women",
-      "kickoff_utc": "2026-11-01T04:00:00+00:00",
-      "last_checked_at": "2026-11-01T16:06:27+00:00",
-      "legacy_last_checked_at": "2026-11-01T16:06:27+00:00",
-      "match_key": "2026-11-01,28842,28840",
-      "observed_alerts": 1,
-      "reason": "no_verified_ft_yet",
-      "status": "PENDING"
-    },
-    {
       "away": "Avondale",
       "away_goals": 2,
       "evidence": "sportscore_only",
@@ -7421,22 +7439,6 @@
       "reason": "ft_recorded_with_source",
       "source": "https://sportscore.com/football/match/tj-hluboka-nad-vltavou-vs-fc-rokycany/zp5rzgh3j0y1q82/",
       "status": "FINAL"
-    },
-    {
-      "away": "SKU Amstetten",
-      "away_goals": 0,
-      "evidence": "api_football_only",
-      "evidence_attempts": 1,
-      "home": "SV Austria Salzburg",
-      "home_goals": 3,
-      "kickoff_utc": "2026-10-30T17:30:00+00:00",
-      "last_checked_at": "2026-10-31T02:01:35+00:00",
-      "legacy_last_checked_at": "2026-10-31T02:01:35+00:00",
-      "match_key": "2026-10-30,38162,24683",
-      "observed_alerts": 1,
-      "reason": "ft_recorded_with_source",
-      "source": "https://v3.football.api-sports.io/fixtures?id=1567940",
-      "status": "FINAL"
     }
   ],
   "goal_search": {
@@ -7452,10 +7454,10 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "h1_alerts_count": 1737,
-  "h1_signals_count_in_state": 368,
+  "h1_alerts_count": 1739,
+  "h1_signals_count_in_state": 369,
   "invalid_source_rows": 0,
-  "last_updated_at": "2026-11-02T03:56:26+00:00",
+  "last_updated_at": "2026-11-02T04:36:29+00:00",
   "limitations": [
     "A missing FT is not a lost wager or proof about goals.",
     "A single provider FT is identified as single-source, not independent cross-verification.",
@@ -7463,22 +7465,24 @@
     "SportScore results with a provably reversed home-away URL are quarantined.",
     "No betting ROI or predictive accuracy is computed; matches are the unit of analysis."
   ],
-  "matches": 1161,
-  "matches_omitted_from_display": 661,
+  "matches": 1163,
+  "matches_omitted_from_display": 663,
   "monte_carlos_bsd": {
     "archive_sha256_prefix": "afc7faaf6193deab",
     "archive_status": "read_only_loaded",
-    "bsd_direct_event_requests": 0,
+    "bsd_direct_event_requests": 2,
     "catalog_matchday_groups": 7352,
     "core_name_event_id_candidates": 0,
-    "exact_event_id_candidates": 0,
+    "exact_event_id_candidates": 2,
     "rate_limited": false,
     "reason_counts": {
-      "no_exact_archive_match": 30
+      "monte_bsd_identity_mismatch": 1,
+      "no_exact_archive_match": 28,
+      "verified_bsd_ft_from_monte_id": 1
     },
     "reviewed_bsd_ids_verified": 0,
     "verified_core_name_in_run": 0,
-    "verified_in_run": 0
+    "verified_in_run": 1
   },
   "openfoot_search": {
     "cached_days": 0,
@@ -7490,7 +7494,7 @@
     "rotation_days": [],
     "verified_in_run": 0
   },
-  "pending_due_checks": 5,
+  "pending_due_checks": 6,
   "reviewed_alias_catalog_matches": 16,
   "reviewed_bsd_id_catalog_matches": 5,
   "schema_version": 1,
@@ -7502,22 +7506,23 @@
     "remaining_quarantined": 0
   },
   "sportscore_search": {
-    "cached_date_team_queries": 3,
+    "cached_date_team_queries": 14,
     "competition_core_targets": 0,
     "competition_core_verified": 0,
-    "confirmed_in_run": 0,
+    "confirmed_in_run": 1,
     "reason_counts": {
-      "source_home_away_conflict": 1,
-      "sportscore_no_exact_match": 29
+      "source_home_away_conflict": 3,
+      "sportscore_no_exact_match": 26,
+      "verified_sportscore_ft": 1
     },
-    "requests": 23,
+    "requests": 34,
     "reviewed_alias_ft_in_run": 0,
     "targeted_searches": 20
   },
   "status": "LAB_FT_OBSERVATION_ONLY_NOT_CERTIFIED",
   "status_counts": {
-    "EXPIRED_UNVERIFIED": 409,
-    "FINAL": 442,
+    "EXPIRED_UNVERIFIED": 410,
+    "FINAL": 443,
     "IDENTITY_CONFLICT": 1,
     "PENDING": 309
   },
@@ -7526,19 +7531,19 @@
   },
   "timing_counts": {
     "BLOCKED_REVIEW": 1,
-    "ELIGIBLE_NEVER_QUERIED": 196,
-    "ELIGIBLE_RETRY_DUE": 3,
-    "EXPIRED": 409,
-    "FINAL_RECORDED": 442,
-    "FUTURE": 107,
-    "IN_3H_GRACE": 3
+    "ELIGIBLE_NEVER_QUERIED": 197,
+    "ELIGIBLE_RETRY_DUE": 2,
+    "EXPIRED": 410,
+    "FINAL_RECORDED": 443,
+    "FUTURE": 109,
+    "IN_3H_GRACE": 1
   },
   "universe": "every distinct match_key in H1 alerts and V4 market logs, including non-H1 signals",
-  "unverified": 719,
+  "unverified": 720,
   "v6_ft_priority": {
     "budget": 30,
-    "hinted_eligible": 28,
-    "hinted_selected": 24,
+    "hinted_eligible": 22,
+    "hinted_selected": 18,
     "hints_do_not_override": [
       "3h grace",
       "4h cooldown",
