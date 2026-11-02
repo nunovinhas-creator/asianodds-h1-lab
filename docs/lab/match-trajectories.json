@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-02T02:01:43+00:00",
+ "generated_at": "2026-11-02T02:06:42+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -22,23 +22,23 @@
  "sampling": {
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
-  "timelines_omitted": 5,
+  "timelines_omitted": 6,
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "95e6559d0235b8c50bee6eb5e58fe6a36408de43",
+ "source_commit": "aea6b616452e29448d9734e9b846809f8ab7a529",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 1156,
+  "matches": 1157,
   "matches_with_identity_inconsistency": 2,
   "max_messages_per_match": 6,
-  "messages": 1732,
+  "messages": 1734,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 981,
+  "messages_on_repeated_matches": 983,
   "messages_v4_only": 1,
-  "messages_with_v4": 1658,
-  "movement_episodes_upper_bound": 1665,
+  "messages_with_v4": 1660,
+  "movement_episodes_upper_bound": 1667,
   "possibly_redundant_snapshots": 50,
   "post_kickoff_messages": 71,
   "related_message_pairs": 67,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 17
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 405,
+  "repeated_matches": 406,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 115,
-   "V4_EXPLICIT": 2752
+   "V4_EXPLICIT": 2754
   },
-  "total_line_reversals_on_repeated": 219,
+  "total_line_reversals_on_repeated": 220,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 54,
-   "CONTINUOUS": 321,
+   "CONTINUOUS": 322,
    "SAME_MOVEMENT_REPEAT": 67,
    "UNOBSERVED_CHANGE": 133
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 557,
    "one_x_two:AGREE": 537,
-   "total:AGREE": 1656
+   "total:AGREE": 1658
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:51870",
+    "3571094759:52322"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:51870",
+     "message_id": 51870,
+     "minutes_to_kickoff": 9509.2,
+     "observed_at": "2026-10-31T14:30:47+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.99,
+        "under_price": 2.08
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 2.0,
+        "under_price": 2.08
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52322",
+     "message_id": 52322,
+     "minutes_to_kickoff": 7373.9,
+     "observed_at": "2026-11-02T02:06:05+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.84,
+        "under_price": 1.86
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.02,
+        "under_price": 1.86
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-10-31T14:30:47+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-07T05:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-02T02:06:05+00:00",
+   "match_key": "2026-11-07,799,1480",
+   "match_label": "Nagoya Grampus Eight vs Kyoto Purple Sanga",
+   "movement_episodes": [
+    [
+     "3571094759:51870"
+    ],
+    [
+     "3571094759:52322"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    128118.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.75,
+     "last_observed_line": 2.75,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:51870",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.75,
+       "before": 3.0,
+       "event_id": "3571094759:52322",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:51870",
+       "at_event": "3571094759:52322",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:51870",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52322"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -95972,203 +96118,6 @@
        "previous_after_line": 2.25,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:50641"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:50634",
-    "3571094759:50635"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50634",
-     "message_id": 50634,
-     "minutes_to_kickoff": 36.7,
-     "observed_at": "2026-10-27T15:23:18+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.0,
-        "over_price": 1.93,
-        "under_price": 1.84
-       },
-       "before": {
-        "line": 2.5,
-        "over_price": 1.86,
-        "under_price": 1.93
-       },
-       "origin": "H1_LEGACY_ONLY"
-      }
-     },
-     "sources": [
-      "H1_RECORD"
-     ],
-     "trigger_market": "total"
-    },
-    {
-     "event_id": "3571094759:50635",
-     "message_id": 50635,
-     "minutes_to_kickoff": 33.6,
-     "observed_at": "2026-10-27T15:26:24+00:00",
-     "snapshots": {
-      "asian_handicap": {
-       "after": {
-        "away_price": 1.81,
-        "home_price": 1.97,
-        "line": -1.75
-       },
-       "before": {
-        "away_price": 1.78,
-        "home_price": 1.97,
-        "line": -1.75
-       },
-       "origin": "H1_LEGACY_ONLY"
-      },
-      "one_x_two": {
-       "1": {
-        "after": 1.26,
-        "before": 1.23
-       },
-       "2": {
-        "after": 9.99,
-        "before": 9.37
-       },
-       "X": {
-        "after": 5.21,
-        "before": 5.27
-       },
-       "origin": "H1_LEGACY_ONLY"
-      },
-      "total": {
-       "after": {
-        "line": 3.0,
-        "over_price": 1.97,
-        "under_price": 1.79
-       },
-       "before": {
-        "line": 3.0,
-        "over_price": 1.95,
-        "under_price": 1.79
-       },
-       "origin": "H1_LEGACY_ONLY"
-      }
-     },
-     "sources": [
-      "H1_RECORD"
-     ],
-     "trigger_market": "1x2"
-    }
-   ],
-   "first_observed_at": "2026-10-27T15:23:18+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-27T16:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-27T15:26:24+00:00",
-   "match_key": "2026-10-27,33791,86126",
-   "match_label": "Express Red Eagles vs Kataka FC",
-   "movement_episodes": [
-    [
-     "3571094759:50634"
-    ],
-    [
-     "3571094759:50635"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    186.0
-   ],
-   "trajectory": {
-    "asian_handicap": {
-     "first_observed_line": -1.75,
-     "last_observed_line": -1.75,
-     "net_observed_change": 0.0,
-     "observations": 1,
-     "origins": {
-      "H1_LEGACY_ONLY": 1
-     },
-     "points": [
-      {
-       "after": -1.75,
-       "before": -1.75,
-       "event_id": "3571094759:50635",
-       "move": "FLAT",
-       "origin": "H1_LEGACY_ONLY"
-      }
-     ],
-     "reversals": [],
-     "transitions": []
-    },
-    "one_x_two": {
-     "observations": 1,
-     "origins": {
-      "H1_LEGACY_ONLY": 1
-     },
-     "points": [
-      {
-       "1": [
-        1.23,
-        1.26
-       ],
-       "2": [
-        9.37,
-        9.99
-       ],
-       "X": [
-        5.27,
-        5.21
-       ],
-       "event_id": "3571094759:50635",
-       "origin": "H1_LEGACY_ONLY"
-      }
-     ],
-     "transitions": []
-    },
-    "total": {
-     "first_observed_line": 2.5,
-     "last_observed_line": 3.0,
-     "net_observed_change": 0.5,
-     "observations": 2,
-     "origins": {
-      "H1_LEGACY_ONLY": 2
-     },
-     "points": [
-      {
-       "after": 3.0,
-       "before": 2.5,
-       "event_id": "3571094759:50634",
-       "move": "UP",
-       "origin": "H1_LEGACY_ONLY"
-      },
-      {
-       "after": 3.0,
-       "before": 3.0,
-       "event_id": "3571094759:50635",
-       "move": "FLAT",
-       "origin": "H1_LEGACY_ONLY"
-      }
-     ],
-     "reversals": [],
-     "transitions": [
-      {
-       "from": "3571094759:50634",
-       "line": "CONTINUOUS",
-       "next_before_line": 3.0,
-       "previous_after_line": 3.0,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:50635"
       }
      ]
     }
