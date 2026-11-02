@@ -12,6 +12,8 @@ Categories (one per receipt):
                            equivalent publication already present (idempotent rerun)
   UNRECOVERED_FAILURE      RETRY_EXHAUSTED, OUTCOME_UNRESOLVED, PUSH_REFUSED
   SAFE_ABORT_INCOMPATIBLE  REFUSED (integrity / dependency / concurrent owner)
+  SUPERSEDED               LAB V4 SUPERSEDED_BY_NEWER_INPUTS: deliberate safe skip, nothing
+                           published (not a publication, not a failure, not corruption)
   NOTHING_TO_PUBLISH
 
 Usage: python -m scripts.publication_receipts_report --since 2026-11-02T07:36:54Z logs/*.txt
@@ -36,6 +38,8 @@ def category(doc):
         return "NOTHING_TO_PUBLISH"
     if status in ("PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR", "ALREADY_PUBLISHED_EQUIVALENT"):
         return "RECOVERED"
+    if status == "SUPERSEDED_BY_NEWER_INPUTS" or doc.get("reason_kind") == "SUPERSEDED_BY_NEWER_INPUTS":
+        return "SUPERSEDED"
     if status == "REFUSED":
         return "SAFE_ABORT_INCOMPATIBLE"
     if status in ("RETRY_EXHAUSTED", "OUTCOME_UNRESOLVED", "PUSH_REFUSED"):
