@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T19:41:55+00:00",
+  "generated_at": "2026-11-02T19:46:57+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -37,9 +37,9 @@
       "percentage_descriptive": 62.0
     },
     "both_total_and_1x2": {
-      "matches": 262,
+      "matches": 261,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 65.5
+      "percentage_descriptive": 65.2
     },
     "opposing_intra_alert_directions": {
       "matches": 115,
@@ -72,9 +72,9 @@
       "percentage_descriptive": 97.2
     },
     "with_post_kickoff_alerts": {
-      "matches": 34,
+      "matches": 33,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 8.5
+      "percentage_descriptive": 8.2
     },
     "with_related_alerts": {
       "matches": 62,
@@ -82,9 +82,9 @@
       "percentage_descriptive": 15.5
     },
     "with_unobserved_line_gaps": {
-      "matches": 125,
+      "matches": 124,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 31.2
+      "percentage_descriptive": 31.0
     }
   },
   "opposing_direction_examples": [
@@ -242,53 +242,47 @@
     {
       "directions": [
         "DOWN",
-        "FLAT",
-        "FLAT",
-        "UP",
-        "FLAT"
+        "UP"
       ],
       "event_ids": [
-        "3571094759:51372",
-        "3571094759:52363",
-        "3571094759:52393",
-        "3571094759:52428",
-        "3571094759:52437"
+        "3571094759:52475",
+        "3571094759:52478"
       ],
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-11-02,27511,39597",
-      "match_label": "Atlético Rafaela vs CA Patronato de la Juventud Católica"
+      "match_key": "2026-11-02,243,152",
+      "match_label": "Atalanta vs Parma"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 1248,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
-    "events_analysed": 982,
-    "messages_in_source": 1887,
+    "events_analysed": 980,
+    "messages_in_source": 1888,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 446,
-    "repeated_matches_omitted": 46,
+    "repeated_matches_in_source": 447,
+    "repeated_matches_omitted": 47,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "3416aa1ad6e8f604658b43cad47ee16fab1bcef6",
-  "source_generated_at": "2026-11-02T19:41:54+00:00",
+  "source_commit": "197216abfd1adce31b1cd649fd339d37f242ad98",
+  "source_generated_at": "2026-11-02T19:46:55+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
-      "AFTER_KICKOFF": 34,
+      "AFTER_KICKOFF": 33,
       "T_0_TO_60": 208,
       "T_360_TO_1440": 161,
-      "T_60_TO_360": 148,
+      "T_60_TO_360": 147,
       "T_OVER_1440": 137,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
-      "AFTER_KICKOFF": 38,
-      "T_0_TO_60": 291,
+      "AFTER_KICKOFF": 37,
+      "T_0_TO_60": 292,
       "T_360_TO_1440": 234,
-      "T_60_TO_360": 214,
+      "T_60_TO_360": 212,
       "T_OVER_1440": 205,
       "UNKNOWN": 0
     },
@@ -297,27 +291,27 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 12,
-      "V4_EXPLICIT": 969
+      "V4_EXPLICIT": 967
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 35.3,
-      "FLAT": 29.6,
+      "FLAT": 29.4,
       "UP": 35.2
     },
     "down": 346,
-    "flat": 290,
-    "messages_with_total": 981,
+    "flat": 288,
+    "messages_with_total": 979,
     "up": 345,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 56,
-    "continuous": 326,
+    "continuous": 325,
     "identical_total_pairs": 50,
     "related_pairs": 62,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 12,
     "same_movement_repeat": 62,
-    "unobserved_change": 137
+    "unobserved_change": 136
   }
 }
