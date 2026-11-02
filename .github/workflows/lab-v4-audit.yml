@@ -203,17 +203,22 @@ jobs:
           if [ -f docs/lab/outcome-readiness.json ]; then git add docs/lab/outcome-readiness.json; fi
           python -m scripts.publication_guard seal --pipeline audit --manifest "$RUNNER_TEMP/publication-seal.json"
           if ! git diff --cached --quiet; then
-            git commit -m 'data(lab): refresh V4 comparison and log checks [skip ci]'
-            for attempt in 1 2 3 4 5; do
-              git fetch origin main
-              git rebase origin/main
-              python -m scripts.publication_guard verify --manifest "$RUNNER_TEMP/publication-seal.json"
-              if git push origin HEAD:main; then
-                echo "LAB_AUDIT_PUBLISHED"
-                exit 0
-              fi
-              sleep 2
-            done
-            echo "LAB_AUDIT_PUBLISH_FAILED"
-            exit 1
+            git commit -q -m 'data(lab): refresh V4 comparison and log checks [skip ci]' -m "LAB-Input-Commit: $LAB_SOURCE_SHA"
+            # No rebase, no force push: the sealed commit is transported over the current
+            # main only after every concurrent path was classified as independent of the
+            # LAB inputs, and the exact candidate re-verified (seal, archive index, receipts).
+            python -m scripts.lab_v4_publish_safe --base "$LAB_SOURCE_SHA" \
+              --manifest "$RUNNER_TEMP/publication-seal.json" \
+              --receipt "$RUNNER_TEMP/lab-v4-publish-receipt.json" \
+              --bundle "$RUNNER_TEMP/lab-v4-unpublished.bundle"
           fi
+      - name: Keep the failed LAB V4 publication receipt and bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab-v4-publish-receipt-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/lab-v4-publish-receipt.json
+            ${{ runner.temp }}/lab-v4-unpublished.bundle
+          if-no-files-found: ignore
+          retention-days: 30

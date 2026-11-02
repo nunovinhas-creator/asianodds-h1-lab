@@ -122,9 +122,14 @@ class GuardTests(unittest.TestCase):
                 self.assertLess(tail.index("publication_guard seal"),
                                 tail.index("lab_ft_publish_safe"))
             else:
-                self.assertLess(tail.index('git rebase'), tail.index('publication_guard verify'))
-            if pipeline == "audit":
-                self.assertLess(tail.index('publication_guard verify'), tail.index('git push'))
+                # No rebase: the selective publisher re-runs publication_guard.verify on the
+                # exact candidate tree before its only push (scripts/lab_v4_publish_safe.py).
+                self.assertNotIn("git rebase", tail)
+                self.assertNotIn("git push", tail)
+                self.assertIn('python -m scripts.lab_v4_publish_safe --base "$LAB_SOURCE_SHA"', tail)
+                self.assertIn('--manifest "$RUNNER_TEMP/publication-seal.json"', tail)
+                self.assertLess(tail.index("publication_guard seal"),
+                                tail.index("lab_v4_publish_safe"))
             for name in g.PRODUCERS[pipeline]:
                 self.assertIn('id: ' + name + '\n', source)
 
