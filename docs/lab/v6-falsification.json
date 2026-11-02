@@ -1,8 +1,8 @@
 {
   "check_result_counts": {
     "FAIL": 1,
-    "INSUFFICIENT_N": 7,
-    "PASS": 2
+    "INSUFFICIENT_N": 6,
+    "PASS": 3
   },
   "checks": [
     {
@@ -391,12 +391,12 @@
       "code": "F09_MATCHED_MARKET_PEERS",
       "diagnostics": {
         "match_method": "fixed scales, greedy, no control reuse",
-        "matched_mean_residual_difference": 0.0392
+        "matched_mean_residual_difference": 0.0387
       },
-      "meaning": "NOT_ENOUGH_PROSPECTIVE_INFORMATION",
-      "n": 29,
+      "meaning": "DESCRIPTIVE_SCREEN_NOT_OOS_APPROVAL",
+      "n": 30,
       "required": "30 no-reuse peers within lambda 0.25 and lead time 6h",
-      "result": "INSUFFICIENT_N",
+      "result": "PASS",
       "source_match_keys": [
         "2026-10-28,10018602,48030",
         "2026-10-28,10021073,78848",
@@ -416,13 +416,13 @@
         "2026-10-30,1225,25",
         "2026-10-30,23457,51098",
         "2026-10-30,26757,26732",
+        "2026-10-30,322,490",
         "2026-10-30,501,320",
         "2026-10-30,63702,30902",
         "2026-10-31,10052091,10018754",
         "2026-10-31,1336,22426",
         "2026-10-31,31120,23847",
-        "2026-10-31,35837,37974",
-        "2026-10-31,56214,22802"
+        "2026-10-31,35837,37974"
       ]
     },
     {
@@ -470,19 +470,19 @@
     }
   ],
   "data_lineage": {
-    "confirmed_evidence_events": 325,
+    "confirmed_evidence_events": 326,
     "excluded_reasons": {
       "captured_before_formal_registration": 89,
-      "ft_missing_or_quarantined": 393,
+      "ft_missing_or_quarantined": 392,
       "no_clean_market_probability": 170,
-      "not_completed_prospective_freeze": 117
+      "not_completed_prospective_freeze": 119
     },
-    "forecast_journal_tail": "a7b41ae6909c540ca5cc4892630026301b215d7a48b970030c949cbf9a5c53cd",
-    "frozen_records": 1306,
-    "memory_evidence_tail": "d3fe5092db772eb51eb659a3216155665d1fe068029ba66f45215875e18a5316",
+    "forecast_journal_tail": "877ec0f12dea4116238ad54d39b296094bc522f7b541fc6a2368f8b536d83705",
+    "frozen_records": 1308,
+    "memory_evidence_tail": "6db64605ced09c8db252de482abb7c68c4bf8ba24c1d8a67472ce48d9a7ebc50",
     "source": "frozen forecasts + append-only V6 FT evidence; no historical V5 backfill"
   },
-  "evaluation_clock": "2026-11-02T07:01:33+00:00",
+  "evaluation_clock": "2026-11-02T07:31:41+00:00",
   "hypothesis_definition_sha256": "3a2ad8c8a23443e1eb20e83bb5d753279ba93762c2efcb2947a1b5dd3e8900a0",
   "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
   "limitations": [
@@ -496,9 +496,9 @@
   "overall": "INCONCLUSIVO",
   "registered_at": "2026-10-28T14:41:35+00:00",
   "sample": {
-    "controls_scored": 172,
+    "controls_scored": 173,
     "eligible_completed": 599,
-    "eligible_scored": 206,
+    "eligible_scored": 207,
     "selected_completed": 96,
     "selected_scored": 34
   },

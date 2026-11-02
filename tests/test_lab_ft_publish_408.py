@@ -95,6 +95,27 @@ class FTPushOutcomeTests(_base.GitFTPublicationTests):
         self.assertEqual(len(pushes), 1)
         self.assertEqual(git(self.remote, "rev-parse", "refs/heads/main^"), published)
 
+    # 2c. Outcome unknown AND remote unreadable: never a blind second push.
+    def test_408_with_unreadable_remote_aborts_without_second_push(self):
+        def hook(n, real, args):
+            return subprocess.CompletedProcess(args, 128, b"", HTTP_408)
+        with patch.object(outcome, "remote_head", return_value=None):
+            with self.assertRaisesRegex(p.UnsafeFTPublication, "outcome unknown"):
+                self.run_publish(hook)
+        self.assertEqual(self.remote_main(), self.base)
+
+    # 2d. Probe semantics on a real bare remote.
+    def test_probe_remote_states(self):
+        sleeps = []
+        self.assertEqual(outcome.probe_remote(self.root, self.source, sleep=sleeps.append)[0],
+                         outcome.NOT_ACCEPTED)
+        self.assertEqual(outcome.probe_remote(self.root, self.base, sleep=sleeps.append)[0],
+                         outcome.PUBLISHED)
+        failed = subprocess.CompletedProcess([], 128, b"", b"fatal: unable to access")
+        self.assertEqual(outcome.probe_remote(self.root, self.base, fetch=lambda: failed,
+                                              sleep=sleeps.append)[0], outcome.UNRESOLVED)
+        self.assertEqual(sleeps, [2, 4])
+
     # 3. Connection dropped before any response (pack never arrived).
     def test_connection_failure_before_response_retries(self):
         def hook(n, real, args):
