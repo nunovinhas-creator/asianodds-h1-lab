@@ -25,7 +25,9 @@ read as movements. E5 is NOT E2: individual messages may move >= 0.05; only the 
 Delivery (reuses ``telegram_delivery``): one alert per fixture and rule version; a sent,
 uncertain, rejected-final or expired receipt is never resent. A withdrawal is sent once, only
 from NEW valid V4 evidence observed after the alert proving ``abs(net) >= 0.10``, and only
-before kickoff. Missing or ambiguous data never withdraws anything.
+before kickoff. Missing or ambiguous data never withdraws anything. New alerts only for kickoffs
+within the next 12 hours; withdrawals cover every confirmed alert (also the initial batch). A
+withdrawn game that satisfies E5 again is never re-alerted: the change goes to ``ledger["audit"]``.
 
 Durability is MANDATORY for real sends (at-most-once): the intent is published on ``main``
 through the collector's selective publisher BEFORE each Telegram request; if that cannot be
@@ -234,31 +236,63 @@ def message_for_game(row, hist, unavailable=None):
     return text
 
 
-def withdrawal_message(row):
+def withdrawal_message(row, entry=None):
+    """The single E5 withdrawal message (user format 2026-11-02)."""
     if row.get("state") != NOT_E5 or not row.get("match_label"):
         raise ValueError("invalid E5 withdrawal")
-    lines = ["🧠 MASTER BRAIN | E5 — OVER 2,5", "",
+    previous = (entry or {}).get("net_dlam")
+    if isinstance(previous, bool) or not isinstance(previous, (int, float)):
+        raise ValueError("E5 withdrawal needs the original variation of the confirmed alert")
+    lines = ["❌ MASTER BRAIN | E5 RETIRADA", "",
              "⚽ " + row["match_label"],
              "🕒 " + _local(row["kickoff_utc"]) + " (Portugal)", "",
-             "❌ PADRÃO E5 RETIRADO", "",
-             "📊 Variação dos golos implícitos: " + _signed(row["net_dlam"]) +
-             " (limite E5: inferior a 0,10 em valor absoluto)",
-             "🕑 Nova evidência V4: " + _local(row["last_total_observed_at"]) + " (Portugal)", "",
+             "⚠️ ESTE JOGO DEIXOU DE CUMPRIR A E5", "",
+             "📊 Variação anterior: " + _signed(previous),
+             "📉 Nova variação: " + _signed(row["net_dlam"]), "",
+             "🔎 Motivo: variação líquida dos golos implícitos igual ou superior a 0,10.", "",
+             "🕒 Movimento observado: " + _local(row["last_total_observed_at"]) + " (Portugal)", "",
              "🆔 " + PATTERN_ID]
     return "\n".join(lines)
+
+
+def confirmed_alert(entry):
+    """An initial E5 alert really delivered: SENT receipt with a real Telegram message id."""
+    mid = entry.get("telegram_message_id") if isinstance(entry, dict) else None
+    return (isinstance(entry, dict) and entry.get("status") == delivery.SENT and
+            entry.get("transition", "ENTERED") == "ENTERED" and
+            isinstance(mid, int) and not isinstance(mid, bool))
 
 
 def proven_withdrawal(row, entry):
     """Only fresh, valid V4 evidence observed AFTER the alert proves the pattern left E5."""
     if row.get("state") != NOT_E5 or row.get("reason") != "VARIACAO_LIQUIDA_IGUAL_OU_SUPERIOR_A_0_10":
         return False
-    if not isinstance(entry, dict) or entry.get("status") != delivery.SENT:
+    if not confirmed_alert(entry):
         return False
     previous = utc(entry.get("observed_through"))
     fresh = utc(row.get("last_total_observed_at"))
     net = row.get("net_dlam")
     return (previous is not None and fresh is not None and fresh > previous and
-            isinstance(net, (int, float)) and not isinstance(net, bool) and abs(net) >= NET_LIMIT)
+            isinstance(net, (int, float)) and not isinstance(net, bool) and
+            math.isfinite(net) and abs(net) >= NET_LIMIT)
+
+
+def audit_reentry(ledger, row, now, stats):
+    """A withdrawn game that satisfies E5 again is NOT re-alerted; the change is recorded once."""
+    withdrawn = ledger["entries"].get(row["match_key"] + WITHDRAWN)
+    if not isinstance(withdrawn, dict) or withdrawn.get("status") != delivery.SENT:
+        return False
+    audit = ledger.setdefault("audit", {})
+    key = "%s|REENTERED_AFTER_WITHDRAWAL|%s" % (row["match_key"], row["last_total_observed_at"])
+    if key not in audit:
+        audit[key] = {"match_key": row["match_key"], "match_label": row["match_label"],
+                      "kickoff_utc": row["kickoff_utc"], "rule_version": RULE_VERSION,
+                      "transition": "REENTERED_AFTER_WITHDRAWAL", "net_dlam": row["net_dlam"],
+                      "last_total_observed_at": row["last_total_observed_at"],
+                      "withdrawal_message_id": withdrawn.get("telegram_message_id"),
+                      "action": "NOT_RESENT", "recorded_at": now.isoformat(timespec="seconds")}
+        stats["reentered_after_withdrawal"] += 1
+    return True
 
 
 # --------------------------------------------------------------------------- ledger
@@ -277,7 +311,11 @@ def _valid_ledger(ledger):
 
 def process(rows, ledger, now, sender, enabled, *, research=None, pace=None, clock=None,
             persist=None, store=None, budget=SEND_BUDGET):
-    """Send every pending E5 alert (all future dates, no game quota) and proven withdrawals."""
+    """Send pending E5 alerts (kickoff within 12h, no game quota) and proven withdrawals.
+
+    Withdrawals apply to any confirmed alert (also the initial all-dates batch), only before kickoff,
+    whatever the 12-hour window.
+    """
     if not _valid_ledger(ledger):
         raise ValueError("invalid E5 ledger; nothing sent")
     if now.tzinfo is None:
@@ -288,13 +326,16 @@ def process(rows, ledger, now, sender, enabled, *, research=None, pace=None, clo
     eligible = [r for r in rows if r["state"] == ELIGIBLE]
     stats = {"eligible_future": len(eligible), "sent": 0, "withdrawals_sent": 0,
              "already_notified": 0, "unconfigured": 0, "expired": 0, "uncertain": 0,
-             "deferred_time_budget": 0, "deferred_beyond_12h": 0}
+             "deferred_time_budget": 0, "deferred_beyond_12h": 0,
+             "reentered_after_withdrawal": 0}
     store = store or delivery.default_store()
     delivery.sweep(ledger, clock(), stats)
     started, attempts = clock(), 0
     for row in sorted(rows, key=lambda r: (r.get("kickoff_utc") or "", str(r["match_key"]))):
         if row["state"] == ELIGIBLE:
             key, kind = row["match_key"], "ENTERED"
+            if audit_reentry(ledger, row, now, stats):
+                continue
             ko = utc(row["kickoff_utc"])
             if (ko is not None and ko > now + MAX_ALERT_LOOKAHEAD and
                     row["match_key"] not in ledger["entries"]):
@@ -335,9 +376,10 @@ def process(rows, ledger, now, sender, enabled, *, research=None, pace=None, clo
             history_note = ({"history_v5": hist} if hist else
                             {"history_v5_unavailable": unavailable})
         else:
-            text = withdrawal_message(row)
-            history_note = {"entry_message_id": ledger["entries"][row["match_key"]].get(
-                "telegram_message_id")}
+            original = ledger["entries"][row["match_key"]]
+            text = withdrawal_message(row, original)
+            history_note = {"entry_message_id": original.get("telegram_message_id"),
+                            "previous_net_dlam": original.get("net_dlam")}
         base = {"match_key": row["match_key"], "match_label": row["match_label"],
                 "kickoff_utc": row["kickoff_utc"], "rule_version": RULE_VERSION,
                 "strategy": STRATEGY, "rule_id": PATTERN_ID, "market": MARKET,
@@ -466,6 +508,9 @@ def run(root=ROOT, now=None, sender=send_message, bot_enabled=None, *, dry_run=F
                                             "match": entry.get("match_label"),
                                             "transition": entry.get("transition")},
                                            ensure_ascii=False))
+    for key, record in sorted((ledger.get("audit") or {}).items()):
+        if record.get("recorded_at") == now.isoformat(timespec="seconds"):
+            print("E5_AUDIT", json.dumps({"key": key, **record}, ensure_ascii=False))
     if stats.get("intent_not_durable") or stats.get("publish_failed"):
         raise SystemExit("E5_RECEIPT_DURABILITY_FAILED: see stats above")
     return ledger, stats
