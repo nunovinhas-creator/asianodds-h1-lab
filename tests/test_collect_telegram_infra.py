@@ -19,7 +19,10 @@ class CollectTelegramInfraTests(unittest.TestCase):
                 self.assertTrue("three_moves_notify" in step or "two_up_notify" in step, step[:80])
 
     def test_block_file_is_committed_with_the_other_notification_state(self):
-        self.assertIn("git add -A -- data/telegram-delivery-block.json", TEXT)
+        # Staged (including deletion of an expired block) by the ownership-matrix stage step.
+        from scripts import publication_ownership as own
+        self.assertIn("python -m scripts.collect_publish_safe stage", TEXT)
+        self.assertTrue(own.is_collector_owned("data/telegram-delivery-block.json"))
         self.assertNotIn("telegram-delivery-block", Path(".gitignore").read_text())
 
     def test_schedule_concurrency_permissions_and_steps_are_unchanged(self):
@@ -29,11 +32,18 @@ class CollectTelegramInfraTests(unittest.TestCase):
         self.assertIn("contents: write", TEXT)
         for needle in ("python -m h1lab.cli collect", "python -m h1lab.three_moves_notify",
                        "python -m h1lab.two_up_notify", "python -m scripts.lab_ft_watchdog",
-                       "python -m scripts.h1_results_watchdog"):
+                       "python -m scripts.h1_results_watchdog",
+                       "python -m scripts.collect_publish_safe stage",
+                       "python -m scripts.collect_publish_safe publish"):
             self.assertEqual(TEXT.count(needle), 1, needle)
         self.assertNotIn("h1lab.e4_notify", TEXT)
         self.assertNotIn("h1lab.strategy_notify", TEXT)
         self.assertNotIn("h1lab.t05_notify", TEXT)
+        # No rebase/force push after Telegram was sent; no blanket staging of data/lab.
+        self.assertNotIn("git pull --rebase origin main\n            git push", TEXT)
+        self.assertNotIn("git push origin main", TEXT)
+        self.assertNotIn("git add data/lab", TEXT)
+        self.assertNotIn("--force", TEXT)
 
     def test_yaml_parses(self):
         import yaml
