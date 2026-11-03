@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Investigação de padrões</title>
+<title>Padrões e estatísticas · MASTER BRAIN</title>
 <meta name="description" content="Motor de investigação do laboratório MASTER BRAIN: padrões de movimento de odds, combinações, resultados, validação fora da amostra e jogos semelhantes. Exploratório; não cria apostas.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -49,11 +49,12 @@ label.sel{display:block;font-weight:700;margin:6px 0}select{font:inherit;width:1
 svg text{fill:var(--soft);font:12px "Atkinson Hyperlegible",system-ui,sans-serif}
 details{margin:10px 0}summary{cursor:pointer;font-weight:700;min-height:32px}
 footer{margin-top:48px;font-size:15px;color:var(--soft)}
-</style></head>
+</style><style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
 <body><div class="wrap">
-<div class="top"><a href="./index.html">MASTER BRAIN</a><a href="./lab.html">Laboratório</a><a href="./lab-pattern-watch.html">Jogos futuros: movimentos de odds</a><a href="./lab-results.html">Resultados dos jogos</a><a href="./h1.html#h1">Arquivo Under H1</a></div>
-<h1 id="headline">Investigação de padrões</h1>
-<p class="lede">Movimentos de odds observados, combinações e resultados reais, por jogo. Tudo o que aqui aparece é exploratório até ser congelado e confirmado em jogos posteriores. Não há apostas nem ROI.</p>
+<nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html" aria-current="page">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
+
+<h1 id="headline">Que padrões aparecem nos movimentos das odds?</h1>
+<p class="lede">Compara os movimentos das odds com resultados reais, usando cada jogo como observação. Diferenças históricas sugerem hipóteses, mas ainda não são previsões validadas.</p>
 <p class="muted" id="stamp">A carregar…</p>
 <div class="kpis" aria-label="Resumo">
  <div><b id="k-games">—</b><span>jogos em estudo</span></div>
@@ -64,16 +65,16 @@ footer{margin-top:48px;font-size:15px;color:var(--soft)}
 <p class="note" id="verdict"></p>
 
 <div role="tablist" aria-label="Áreas de investigação" id="tabs">
- <button role="tab" id="t-pat" aria-controls="p-pat" aria-selected="true">Padrões</button>
+  <button role="tab" id="t-pat" aria-controls="p-pat" aria-selected="true">Padrões individuais</button>
  <button role="tab" id="t-com" aria-controls="p-com" aria-selected="false" tabindex="-1">Combinações</button>
+ <button role="tab" id="t-dis" aria-controls="p-dis" aria-selected="false" tabindex="-1">Hipóteses em teste</button>
  <button role="tab" id="t-sim" aria-controls="p-sim" aria-selected="false" tabindex="-1">Jogos semelhantes</button>
  <button role="tab" id="t-evo" aria-controls="p-evo" aria-selected="false" tabindex="-1">Evolução</button>
- <button role="tab" id="t-dis" aria-controls="p-dis" aria-selected="false" tabindex="-1">Descobertas</button>
- <button role="tab" id="t-ft" aria-controls="p-ft" aria-selected="false" tabindex="-1">Cobertura FT</button>
+ <button role="tab" id="t-ft" aria-controls="p-ft" aria-selected="false" tabindex="-1">Resultados disponíveis</button>
 </div>
 
 <section role="tabpanel" id="p-pat" aria-labelledby="t-pat">
- <h2>Padrões individuais</h2>
+ <h2>O que aconteceu nos jogos com cada padrão?</h2>
  <p class="muted">Taxa de Over 2,5 nos jogos com o padrão, comparada com os jogos sem ele. A barra mostra a diferença e o seu intervalo de confiança de 95%; o traço central é zero.</p>
  <label class="sel" for="outcome">Resultado</label>
  <select id="outcome"><option value="OVER_2_5">Over 2,5 golos (Under 2,5 é o complemento)</option><option value="BTTS_YES">Ambas marcam (BTTS Não é o complemento)</option></select>
@@ -81,32 +82,13 @@ footer{margin-top:48px;font-size:15px;color:var(--soft)}
 </section>
 
 <section role="tabpanel" id="p-com" aria-labelledby="t-com" hidden>
- <h2>Combinações</h2>
+ <h2>Quando aparecem vários sinais no mesmo jogo</h2>
  <p class="muted">Pares (A e B), exclusões (A sem B), ordem (A antes de B, noutro episódio) e trios (A e B sem C), geradas só a partir dos padrões, sem olhar para os resultados. Mostra-se uma por amostra de resultados idêntica.</p>
  <div class="cards" id="com-list"></div>
 </section>
 
-<section role="tabpanel" id="p-sim" aria-labelledby="t-sim" hidden>
- <h2>Jogos semelhantes</h2>
- <p class="muted">Para cada jogo recente, os jogos anteriores com comportamento de odds mais parecido, usando só a informação disponível no último alerta antes do início. O marcador final nunca entra na semelhança.</p>
- <label class="sel" for="sim-pick">Jogo</label>
- <select id="sim-pick"></select>
- <div id="sim-out" style="margin-top:14px"></div>
- <h3>O método prevê alguma coisa?</h3>
- <p id="sim-wf" class="muted"></p>
-</section>
-
-<section role="tabpanel" id="p-evo" aria-labelledby="t-evo" hidden>
- <h2>Evolução</h2>
- <p class="muted">Jogos por dia de início e taxa de Over 2,5 nos jogos com resultado. Os dias com poucos resultados variam muito.</p>
- <div class="scroll" id="evo-chart"></div>
- <div class="scroll"><table><thead><tr><th>Dia</th><th>Jogos</th><th>Com FT</th><th>Over 2,5</th><th>BTTS</th></tr></thead><tbody id="evo-rows"></tbody></table></div>
- <h3>Referências globais</h3>
- <div id="base"></div>
-</section>
-
 <section role="tabpanel" id="p-dis" aria-labelledby="t-dis" hidden>
- <h2>Descobertas</h2>
+ <h2>Hipóteses em teste e resultados contrários</h2>
  <h3>Hipóteses congeladas</h3>
  <p class="muted">Só uma hipótese congelada pode ser validada, e apenas com jogos observados depois de congelada.</p>
  <div class="cards" id="frozen"></div>
@@ -114,16 +96,35 @@ footer{margin-top:48px;font-size:15px;color:var(--soft)}
  <div id="changes"></div>
  <h3>Resultados novos e padrões desses jogos</h3>
  <div class="cards" id="newft"></div>
- <h3>Evidência negativa</h3>
+ <h3>Resultados que enfraquecem os padrões</h3>
  <div id="neg"></div>
 </section>
 
+<section role="tabpanel" id="p-sim" aria-labelledby="t-sim" hidden>
+ <h2>Jogos anteriores com movimentos parecidos</h2>
+ <p class="muted">Para cada jogo recente, os jogos anteriores com comportamento de odds mais parecido, usando só a informação disponível no último alerta antes do início. O marcador final nunca entra na semelhança.</p>
+ <label class="sel" for="sim-pick">Jogo</label>
+ <select id="sim-pick"></select>
+ <div id="sim-out" style="margin-top:14px"></div>
+ <h3>Esta semelhança tem valor preditivo comprovado?</h3>
+ <p id="sim-wf" class="muted"></p>
+</section>
+
+<section role="tabpanel" id="p-evo" aria-labelledby="t-evo" hidden>
+ <h2>Como têm evoluído os resultados</h2>
+ <p class="muted">Jogos por dia de início e taxa de Over 2,5 nos jogos com resultado. Os dias com poucos resultados variam muito.</p>
+ <div class="scroll" id="evo-chart"></div>
+ <div class="scroll"><table><thead><tr><th>Dia</th><th>Jogos</th><th>Com FT</th><th>Over 2,5</th><th>BTTS</th></tr></thead><tbody id="evo-rows"></tbody></table></div>
+ <h3>Referências globais</h3>
+ <div id="base"></div>
+</section>
+
 <section role="tabpanel" id="p-ft" aria-labelledby="t-ft" hidden>
- <h2>Cobertura de resultados</h2>
+ <h2>Quantos jogos têm resultado conhecido?</h2>
  <p class="muted">Situação real de todos os jogos observados, tenham ou não gerado H1.</p>
  <div id="ft-bar"></div>
  <div class="scroll"><table><thead><tr><th>Estado</th><th>Jogos</th></tr></thead><tbody id="ft-rows"></tbody></table></div>
- <h3>Porque continuam pendentes</h3>
+ <h3>Porque faltam resultados de alguns jogos</h3>
  <div class="scroll"><table><thead><tr><th>Motivo</th><th>Jogos</th></tr></thead><tbody id="ft-why"></tbody></table></div>
  <p><a href="./lab-results.html">Ver jogo a jogo</a></p>
 </section>
