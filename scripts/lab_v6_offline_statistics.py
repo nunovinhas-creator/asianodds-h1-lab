@@ -6,6 +6,11 @@ from pathlib import Path
 from h1lab.v6_offline_statistics import build
 
 
+def serialize(report):
+    """The exact published bytes (shared by the producer and the safe publisher)."""
+    return json.dumps(report,ensure_ascii=False,sort_keys=True,indent=1,allow_nan=False)+'\n'
+
+
 def main(argv=None):
     p=argparse.ArgumentParser()
     p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
@@ -17,7 +22,7 @@ def main(argv=None):
     target=a.output or a.root/'docs/lab/llm-statistics.json'
     target.parent.mkdir(parents=True,exist_ok=True)
     tmp=target.with_suffix('.tmp')
-    tmp.write_text(json.dumps(report,ensure_ascii=False,sort_keys=True,indent=1,allow_nan=False)+'\n')
+    tmp.write_text(serialize(report))
     tmp.replace(target)
     print(json.dumps({'hypotheses':len(report['hypotheses']),'coverage':report['coverage'], 'llm_calls':0}))
     return report
