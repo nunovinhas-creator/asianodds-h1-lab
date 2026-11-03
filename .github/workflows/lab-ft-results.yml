@@ -429,3 +429,27 @@ jobs:
     uses: ./.github/workflows/ft-operational-integrity.yml
     with:
       upstream_conclusion: ${{ needs.reconcile.result }}
+
+  # GitHub creates no workflow_run for runs started with GITHUB_TOKEN (watchdog dispatches,
+  # actor github-actions[bot]); workflow_dispatch is the documented exception. Ask V6
+  # explicitly, only then, only after a fully successful FT run. The V6 gate re-verifies
+  # this run, de-duplicates and applies its 6 h window/backoff/mutex. Never force; never
+  # fails FT (the V6 schedule reserve still covers a failed request). No provider calls.
+  request-v6:
+    needs: [reconcile, integrity]
+    if: ${{ needs.reconcile.result == 'success' && needs.integrity.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.triggering_actor == 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Request V6 offline statistics evaluation (workflow_dispatch, ft_source_run_id only)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -m scripts.v6_ft_dispatch_request --receipt "$RUNNER_TEMP/v6-request-receipt.json"

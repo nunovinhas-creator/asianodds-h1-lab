@@ -1,4 +1,8 @@
 name: V6 - Offline LLM statistics (research only)
+# ``ft:<id>`` names the FT run a run is about (workflow_run upstream or FT-requested dispatch):
+# the activation gate refuses a second run for the same FT run (DUPLICATE_FT_SOURCE).
+run-name: >-
+  V6 offline statistics (${{ github.event_name }}${{ github.event.workflow_run.id && format(' ft:{0}', github.event.workflow_run.id) || '' }}${{ inputs.ft_source_run_id && format(' ft:{0}', inputs.ft_source_run_id) || '' }})
 on:
   pull_request:
   # Primary trigger: a SUCCESSFUL FT reconciliation on main (the input that moves the report).
@@ -15,6 +19,14 @@ on:
         default: false
       reason:
         description: "Motivo obrigatorio quando force=true (fica no resumo e numa anotacao)"
+        required: false
+        type: string
+        default: ''
+      # Set only by lab-ft-results.yml (job request-v6) for FT runs started with GITHUB_TOKEN,
+      # whose completion GitHub never turns into a workflow_run. Verified by the gate via the
+      # API (completed, success, main, this repository, github-actions[bot]); never with force.
+      ft_source_run_id:
+        description: "Run ID do FT de origem (pedido automatico do FT; verificado pelo gate)"
         required: false
         type: string
         default: ''
