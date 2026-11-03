@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-03T09:26:48+00:00",
+  "generated_at": "2026-11-03T09:32:07+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,24 +32,24 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 245,
+      "matches": 246,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 61.2
+      "percentage_descriptive": 61.5
     },
     "both_total_and_1x2": {
-      "matches": 258,
+      "matches": 257,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 64.5
+      "percentage_descriptive": 64.2
     },
     "opposing_intra_alert_directions": {
-      "matches": 115,
+      "matches": 117,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 28.8
+      "percentage_descriptive": 29.2
     },
     "with_ambiguous_repeats": {
-      "matches": 52,
+      "matches": 53,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 13.0
+      "percentage_descriptive": 13.2
     },
     "with_identical_total_snapshots": {
       "matches": 49,
@@ -57,9 +57,9 @@
       "percentage_descriptive": 12.2
     },
     "with_mixed_origin_total": {
-      "matches": 11,
+      "matches": 9,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 2.8
+      "percentage_descriptive": 2.2
     },
     "with_only_legacy_total": {
       "matches": 0,
@@ -67,14 +67,14 @@
       "percentage_descriptive": 0.0
     },
     "with_only_v4_total": {
-      "matches": 389,
+      "matches": 391,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 97.2
+      "percentage_descriptive": 97.8
     },
     "with_post_kickoff_alerts": {
-      "matches": 31,
+      "matches": 30,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 7.8
+      "percentage_descriptive": 7.5
     },
     "with_related_alerts": {
       "matches": 60,
@@ -82,9 +82,9 @@
       "percentage_descriptive": 15.0
     },
     "with_unobserved_line_gaps": {
-      "matches": 123,
+      "matches": 122,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 30.8
+      "percentage_descriptive": 30.5
     }
   },
   "opposing_direction_examples": [
@@ -259,63 +259,63 @@
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1291,
+    "all_distinct_matches": 1313,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
-    "events_analysed": 974,
-    "messages_in_source": 1946,
+    "events_analysed": 972,
+    "messages_in_source": 1978,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 459,
-    "repeated_matches_omitted": 59,
+    "repeated_matches_in_source": 467,
+    "repeated_matches_omitted": 67,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "fb0f8a0355049a3cac19abcd603d55e38ba67e95",
-  "source_generated_at": "2026-11-03T09:26:47+00:00",
+  "source_commit": "fa32e1782f50262e020002a200b55c787a274efa",
+  "source_generated_at": "2026-11-03T09:32:05+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
-      "AFTER_KICKOFF": 31,
-      "T_0_TO_60": 205,
-      "T_360_TO_1440": 161,
-      "T_60_TO_360": 149,
-      "T_OVER_1440": 140,
+      "AFTER_KICKOFF": 30,
+      "T_0_TO_60": 202,
+      "T_360_TO_1440": 159,
+      "T_60_TO_360": 147,
+      "T_OVER_1440": 144,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
-      "AFTER_KICKOFF": 35,
-      "T_0_TO_60": 283,
-      "T_360_TO_1440": 228,
-      "T_60_TO_360": 215,
-      "T_OVER_1440": 213,
+      "AFTER_KICKOFF": 34,
+      "T_0_TO_60": 279,
+      "T_360_TO_1440": 224,
+      "T_60_TO_360": 213,
+      "T_OVER_1440": 222,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
   },
   "total_line_within_alert": {
     "by_origin": {
-      "H1_LEGACY_ONLY": 12,
+      "H1_LEGACY_ONLY": 10,
       "V4_EXPLICIT": 961
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.6,
-      "FLAT": 29.7,
-      "UP": 34.7
+      "DOWN": 35.1,
+      "FLAT": 29.6,
+      "UP": 35.3
     },
-    "down": 346,
-    "flat": 289,
-    "messages_with_total": 973,
-    "up": 338,
+    "down": 341,
+    "flat": 287,
+    "messages_with_total": 971,
+    "up": 343,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
-    "ambiguous_repeat_or_reversal": 55,
-    "continuous": 323,
+    "ambiguous_repeat_or_reversal": 56,
+    "continuous": 322,
     "identical_total_pairs": 49,
     "related_pairs": 60,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 11,
     "same_movement_repeat": 60,
-    "unobserved_change": 135
+    "unobserved_change": 133
   }
 }
