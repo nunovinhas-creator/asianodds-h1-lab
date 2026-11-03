@@ -1,16 +1,71 @@
 name: V6 - Offline LLM statistics (research only)
 on:
   pull_request:
+  # Primary trigger: a SUCCESSFUL FT reconciliation on main (the input that moves the report).
+  # Only event metadata is read; nothing from the upstream run is checked out or executed.
+  workflow_run:
+    workflows: ["Lab - Reconcile FT for all observed matches"]
+    types: [completed]
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Excecao manual auditada: ignora a janela de 6 h (exige reason)"
+        required: false
+        type: boolean
+        default: false
+      reason:
+        description: "Motivo obrigatorio quando force=true (fica no resumo e numa anotacao)"
+        required: false
+        type: string
+        default: ''
+  # Reserve only: the activation gate lets it compute when no attempt happened in 6 h.
   schedule:
     - cron: '18 2,8,14,20 * * *'
 permissions:
   contents: read
+# Workflow-level mutex: covers gate -> evaluate -> publish of a run, so the next run's gate
+# decides only after this run has published (or failed). Never cancels an active run.
 concurrency:
   group: v6-offline-statistics-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'main' }}
   cancel-in-progress: false
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      decision: ${{ steps.gate.outputs.decision }}
+      reason: ${{ steps.gate.outputs.reason }}
+    steps:
+      # Trusted code only: the default-branch commit (or the PR merge commit for CI).
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+      - name: Activation gate (inside the mutex; revalidates main and attempt history now)
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -m scripts.v6_activation_gate
+      - name: Non-binding preview of the scheduled decision on main (PR CI only)
+        if: ${{ github.event_name == 'pull_request' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -m scripts.v6_activation_gate --dry-run-as schedule
   evaluate:
+    needs: gate
+    # Second, independent guard on the upstream metadata in addition to the gate decision.
+    if: >-
+      ${{ needs.gate.outputs.run == 'true' &&
+          (github.event_name != 'workflow_run' ||
+           (github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.head_branch == 'main' &&
+            github.event.workflow_run.event != 'pull_request' &&
+            github.event.workflow_run.head_repository.full_name == github.repository)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
