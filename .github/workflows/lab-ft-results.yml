@@ -413,11 +413,31 @@ jobs:
           # DISCOVERY_SEGMENTED_NO_REBASE: transport ONLY sealed FT artifacts
           # across independently verified append-only H1/V4 updates. Never
           # recompute/rebase FT evidence or exceed a bounded Git CAS retry.
+          # Every outcome (published or refused) prints FT_PUBLISH_RECEIPT; a refusal also
+          # keeps a JSON receipt and a verified bundle of the unpublished FT commit.
           python -m scripts.lab_ft_publish_safe \
             --base "$FT_BASE_HEAD" \
             --manifest "$RUNNER_TEMP/publication-seal.json" \
-            --baseline "$RUNNER_TEMP/ft-certified-baseline.json"
+            --baseline "$RUNNER_TEMP/ft-certified-baseline.json" \
+            --receipt "$RUNNER_TEMP/ft-publish-receipt.json" \
+            --bundle "$RUNNER_TEMP/ft-unpublished.bundle"
           echo LAB_FT_PUBLISHED
+      - name: FT publication receipt (verifiable evidence, also on refusal)
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/ft-publish-receipt.json" ]; then
+            { echo '### FT publication receipt'; echo '```json';
+              cat "$RUNNER_TEMP/ft-publish-receipt.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ft-publish-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ft-publish-receipt.json
+            ${{ runner.temp }}/ft-unpublished.bundle
+          if-no-files-found: ignore
+          retention-days: 30
 
   # Direct job dependency also covers watchdog dispatches whose workflow_run
   # completion event may not start a separate monitor. No provider calls.
