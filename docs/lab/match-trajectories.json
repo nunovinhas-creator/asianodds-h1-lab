@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-03T21:37:51+00:00",
+ "generated_at": "2026-11-03T21:47:47+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -22,23 +22,23 @@
  "sampling": {
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
-  "timelines_omitted": 113,
+  "timelines_omitted": 114,
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "47b4a8ff949e317c9f99ab9805123970382dc084",
+ "source_commit": "fb9e38620663165daec6ab1aa5c82b74b7223fc7",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 1445,
+  "matches": 1446,
   "matches_with_identity_inconsistency": 2,
   "max_messages_per_match": 6,
-  "messages": 2175,
+  "messages": 2177,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1243,
+  "messages_on_repeated_matches": 1245,
   "messages_v4_only": 1,
-  "messages_with_v4": 2101,
-  "movement_episodes_upper_bound": 2093,
+  "messages_with_v4": 2103,
+  "movement_episodes_upper_bound": 2095,
   "possibly_redundant_snapshots": 64,
   "post_kickoff_messages": 83,
   "related_message_pairs": 82,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 18
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 513,
+  "repeated_matches": 514,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 116,
-   "V4_EXPLICIT": 3464
+   "V4_EXPLICIT": 3468
   },
-  "total_line_reversals_on_repeated": 290,
+  "total_line_reversals_on_repeated": 291,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 73,
    "CONTINUOUS": 405,
    "SAME_MOVEMENT_REPEAT": 82,
-   "UNOBSERVED_CHANGE": 169
+   "UNOBSERVED_CHANGE": 170
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 695,
-   "one_x_two:AGREE": 668,
-   "total:AGREE": 2098
+   "asian_handicap:AGREE": 696,
+   "one_x_two:AGREE": 669,
+   "total:AGREE": 2100
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:52597",
+    "3571094759:52772"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:52597",
+     "message_id": 52597,
+     "minutes_to_kickoff": 1482.7,
+     "observed_at": "2026-11-03T11:17:17+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.75,
+        "over_price": 1.93,
+        "under_price": 1.77
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 1.92,
+        "under_price": 1.79
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52772",
+     "message_id": 52772,
+     "minutes_to_kickoff": 853.8,
+     "observed_at": "2026-11-03T21:46:15+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.86,
+        "under_price": 1.89
+       },
+       "before": {
+        "line": 3.5,
+        "over_price": 1.9,
+        "under_price": 1.84
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-03T11:17:17+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-04T12:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-03T21:46:15+00:00",
+   "match_key": "2026-11-04,34656,35179",
+   "match_label": "FC do Porto U19 vs SSC Napoli U19",
+   "movement_episodes": [
+    [
+     "3571094759:52597"
+    ],
+    [
+     "3571094759:52772"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    37738.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.5,
+     "last_observed_line": 3.25,
+     "net_observed_change": -0.25,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.75,
+       "before": 3.5,
+       "event_id": "3571094759:52597",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.5,
+       "event_id": "3571094759:52772",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:52597",
+       "at_event": "3571094759:52772",
+       "evidence": "gap",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:52597",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 3.5,
+       "previous_after_line": 3.75,
+       "to": "3571094759:52772",
+       "unobserved_direction": "DOWN"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -94893,159 +95039,6 @@
        "next_before_line": 3.25,
        "previous_after_line": 2.75,
        "to": "3571094759:51149",
-       "unobserved_direction": "UP"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:50897",
-    "3571094759:51147"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50897",
-     "message_id": 50897,
-     "minutes_to_kickoff": 11973.2,
-     "observed_at": "2026-10-28T10:11:45+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 2.75,
-        "over_price": 1.7,
-        "under_price": 1.7
-       },
-       "before": {
-        "line": 3.25,
-        "over_price": 2.16,
-        "under_price": 1.7
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:51147",
-     "message_id": 51147,
-     "minutes_to_kickoff": 10840.8,
-     "observed_at": "2026-10-29T05:04:14+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.0,
-        "over_price": 1.92,
-        "under_price": 1.93
-       },
-       "before": {
-        "line": 3.25,
-        "over_price": 2.16,
-        "under_price": 1.71
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-28T10:11:45+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-11-05T17:45:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-29T05:04:14+00:00",
-   "match_key": "2026-11-05,29,1059",
-   "match_label": "Crystal Palace vs TSG Hoffenheim",
-   "movement_episodes": [
-    [
-     "3571094759:50897"
-    ],
-    [
-     "3571094759:51147"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    67949.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 3.25,
-     "last_observed_line": 3.0,
-     "net_observed_change": -0.25,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 2.75,
-       "before": 3.25,
-       "event_id": "3571094759:50897",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 3.0,
-       "before": 3.25,
-       "event_id": "3571094759:51147",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [
-      {
-       "after_event": "3571094759:50897",
-       "at_event": "3571094759:51147",
-       "evidence": "gap",
-       "from": "DOWN",
-       "to": "UP"
-      },
-      {
-       "after_event": "3571094759:51147",
-       "at_event": "3571094759:51147",
-       "evidence": "intra",
-       "from": "UP",
-       "to": "DOWN"
-      }
-     ],
-     "transitions": [
-      {
-       "from": "3571094759:50897",
-       "line": "UNOBSERVED_CHANGE",
-       "next_before_line": 3.25,
-       "previous_after_line": 2.75,
-       "to": "3571094759:51147",
        "unobserved_direction": "UP"
       }
      ]
