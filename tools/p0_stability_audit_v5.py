@@ -24,7 +24,7 @@ Read-only by construction:
   * No sports-provider calls, no Telegram calls.
 
 Usage (from a clone of the repository, with ``gh`` authenticated):
-  python tools/p0_stability_audit.py --label 24h --start 2026-11-02T09:58:45Z \
+  python tools/p0_stability_audit_v5.py --label 24h --start 2026-11-02T09:58:45Z \
       --hours 24 --out /path/report.md --json /path/report.json [--cache DIR]
 
 Window semantics (half-open): ``[start, start + hours)``, truncated to ``now`` when the
@@ -1363,7 +1363,7 @@ def render(label, start, end, complete, per, lab, integ, hist, verif, commits, p
            tg_sig, head, baseline_problems, gaps, missing, unverifiable):
     L = []
     L.append(f"<!-- MASTER_BRAIN_P0_AUDIT:{label} -->")
-    L.append(f"## MASTER BRAIN — AUDITORIA P0 {label} (leitura apenas)")
+    L.append(f"## MASTER BRAIN — AUDITORIA P0 {label} (leitura apenas · auditor V5)")
     L.append(f"Período (semiaberto): **[{iso(start)}, {iso(end)})** · "
              f"{'janela completa' if complete else '**JANELA INCOMPLETA**'} · fecho "
              f"`{(head or 'INDETERMINADO')[:12]}`")
