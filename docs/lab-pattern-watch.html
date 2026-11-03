@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Jogos futuros — observatório V5 | MASTER BRAIN</title>
+<title>Jogos a acompanhar | MASTER BRAIN</title>
 <meta name="description" content="Jogos futuros com alertas repetidos: golos implícitos a subir, estáveis ou em sentidos opostos. Observação, não prognósticos.">
 <style>
 :root{color-scheme:light;--bg:#eef2f0;--paper:#fff;--ink:#14212b;--muted:#4a5b63;--line:#c2d2ce;--ok:#08715b;--bad:#983b3b;--indigo:#526394}
@@ -11,29 +11,30 @@ p{max-width:78ch} .sub{color:var(--muted)}.cards{display:grid;grid-template-colu
 .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;background:var(--paper);font-size:14px}th,td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{white-space:nowrap}td.score{font-variant-numeric:tabular-nums;white-space:nowrap}select{font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);min-height:44px;padding:6px;border-radius:5px}label{display:block;font-weight:650;margin:14px 0 6px}
 .flag{font-size:12px;font-weight:700;display:inline-block;border-radius:5px;border:1px solid var(--line);padding:2px 7px;white-space:nowrap}.flag.up{color:var(--ok)}.flag.flat{color:var(--indigo)}.flag.bad{color:var(--bad)}.flag.other{color:var(--muted)}
 .note{border-left:3px solid var(--indigo);padding:3px 0 3px 12px;color:var(--muted)}footer{font-size:13px;color:var(--muted);margin-top:36px} :focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
-</style></head><body><div class="wrap">
-<nav><a href="./index.html">MASTER BRAIN</a><a href="./lab-research.html">Cérebro V5</a><a href="./lab.html">Laboratório</a><a href="./h1.html#h1">Arquivo Under H1</a></nav>
-<h1>Movimentos das odds em jogos futuros</h1>
-<p class="sub">Observatório prospectivo V5: <strong>dois ou mais alertas pré-jogo</strong> sem descida relevante de golos implícitos. Separação entre movimentos independentes, mensagens duplicadas, mercado a subir, estável e contraditório. <strong>Não são prognósticos nem apostas recomendadas.</strong></p>
+</style><style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head><body><div class="wrap">
+<nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html" aria-current="page">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
+
+<h1>Jogos futuros com movimentos de odds</h1>
+<p class="sub">Este radar acompanha jogos com <strong>dois ou mais alertas antes do início</strong> e distingue movimentos consistentes, estáveis e contraditórios. Apenas observações independentes e com dados completos cumprem a condição rigorosa. <strong>Não são previsões nem recomendações de aposta.</strong></p>
 <p id="stamp" aria-live="polite" class="sub">A carregar última fotografia publicada…</p>
 <div class="cards">
- <div class="stat"><b id="n-base">—</b><span>Condição original</span></div>
- <div class="stat"><b id="n-strict">—</b><span>Com episódios independentes e Total válido</span></div>
- <div class="stat"><b id="n-excluded">—</b><span>Duplicação / Total incompleto</span></div>
- <div class="stat"><b id="n-opp">—</b><span>Direções opostas (fora da condição original)</span></div>
+ <div class="stat"><b id="n-base">—</b><span>Jogos com a condição inicial</span></div>
+ <div class="stat"><b id="n-strict">—</b><span>Movimentos independentes, dados completos</span></div>
+ <div class="stat"><b id="n-excluded">—</b><span>Repetições ou dados incompletos</span></div>
+ <div class="stat"><b id="n-opp">—</b><span>Movimentos contraditórios</span></div>
 </div>
-<h2>Jogos futuros</h2>
+<h2>Quais os jogos que cumprem a condição?</h2>
 <label for="grp">Selecionar grupo</label>
 <select id="grp">
-<option value="strict">Cumprem a condição rigorosa</option>
-<option value="all">Todos os jogos com a condição original</option>
-<option value="dup">Mensagens repetidas ou dados incompletos</option>
-<option value="opp">Subidas e descidas significativas — comparação</option>
+<option value="strict">Movimentos independentes e dados completos</option>
+<option value="all">Todos com a condição inicial</option>
+<option value="dup">Repetições ou dados incompletos</option>
+<option value="opp">Movimentos em sentidos opostos</option>
 </select>
 <p id="n-view" class="sub"></p>
-<div class="scroll"><table><thead><tr><th>Jogo</th><th>Início (Lisboa)</th><th>Categoria</th><th>Alertas / episódios</th><th>Variações λ por mensagem</th><th>Origem Total</th></tr></thead><tbody id="rows"><tr><td colspan="6">A carregar…</td></tr></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Jogo</th><th>Início (Lisboa)</th><th>Categoria</th><th>Alertas / movimentos independentes</th><th>Mudança dos golos implícitos por alerta (λ)</th><th>Origem Total</th></tr></thead><tbody id="rows"><tr><td colspan="6">A carregar…</td></tr></tbody></table></div>
 <p class="note">O limiar é <strong>±0,05 golos implícitos</strong> por movimento observado. Uma variação −0,049 é classificada como praticamente estável; −0,050 é uma descida relevante. λ é uma estimativa derivada da linha Total, Over e Under após ajuste de margem, não o resultado previsto nem uma cotação executável.</p>
-<h2>Como interpretar</h2>
+<h2>Como interpretar os movimentos</h2>
 <p><span class="flag up">SUBIDAS EM TODOS</span> Todos os episódios independentes mostram aumento de λ ≥0,05. <span class="flag flat">SUBIDAS + ESTÁVEL</span> Há subidas relevantes e pequenas oscilações. <span class="flag flat">PRATICAMENTE ESTÁVEL</span> Nenhuma variação atinge ±0,05. <span class="flag bad">SENTIDOS OPOSTOS</span> Há subida ≥0,05 e descida ≤−0,05, pelo que o jogo <strong>não cumpre</strong> a condição original.</p>
 <p>A observação é congelada quando uma partida cumpre a condição rigorosa pela primeira vez, antes do início. Novos alertas podem alterar o grupo mostrado enquanto o encontro for futuro, mas não reescrevem a primeira deteção. <strong>O Golden Set V4 ainda não está certificado.</strong></p>
 <footer>Fonte: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/pattern-watch.json">pattern-watch.json</a> · Regras: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/h1lab/pattern_watch.py">pattern_watch.py</a>. Atualização no workflow de resultados do LAB, sem pedidos extra às APIs. Sem ROI, EV ou geração de picks.</footer>
