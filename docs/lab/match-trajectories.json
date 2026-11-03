@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-03T18:57:57+00:00",
+ "generated_at": "2026-11-03T19:03:51+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,21 +26,21 @@
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "81bf14f71c3ba4946a2e6dacf00028a8ced28fd8",
+ "source_commit": "27af88ea44409f80cec6c90e319f6556d8c0fac3",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 1433,
+  "matches": 1435,
   "matches_with_identity_inconsistency": 2,
   "max_messages_per_match": 6,
-  "messages": 2151,
+  "messages": 2154,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1224,
+  "messages_on_repeated_matches": 1225,
   "messages_v4_only": 1,
-  "messages_with_v4": 2077,
-  "movement_episodes_upper_bound": 2071,
+  "messages_with_v4": 2080,
+  "movement_episodes_upper_bound": 2074,
   "possibly_redundant_snapshots": 62,
-  "post_kickoff_messages": 77,
+  "post_kickoff_messages": 78,
   "related_message_pairs": 80,
   "related_pairs_by_class": {
    "SAME_MOVEMENT_DIFFERENT_MESSAGE": 80
@@ -53,22 +53,211 @@
   "repeated_matches": 506,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 116,
-   "V4_EXPLICIT": 3414
+   "V4_EXPLICIT": 3419
   },
   "total_line_reversals_on_repeated": 286,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 73,
-   "CONTINUOUS": 398,
+   "CONTINUOUS": 399,
    "SAME_MOVEMENT_REPEAT": 80,
    "UNOBSERVED_CHANGE": 166
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 681,
-   "one_x_two:AGREE": 656,
-   "total:AGREE": 2074
+   "asian_handicap:AGREE": 682,
+   "one_x_two:AGREE": 657,
+   "total:AGREE": 2077
   }
  },
  "timelines": [
+  {
+   "event_count": 3,
+   "event_ids": [
+    "3571094759:52306",
+    "3571094759:52724",
+    "3571094759:52749"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:52306",
+     "message_id": 52306,
+     "minutes_to_kickoff": 2778.9,
+     "observed_at": "2026-11-01T21:26:06+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 1.93,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.77,
+        "under_price": 1.99
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52724",
+     "message_id": 52724,
+     "minutes_to_kickoff": 141.5,
+     "observed_at": "2026-11-03T17:23:30+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.25,
+        "over_price": 2.02,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 1.77,
+        "under_price": 2.0
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:52749",
+     "message_id": 52749,
+     "minutes_to_kickoff": 44.7,
+     "observed_at": "2026-11-03T19:00:17+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.5,
+        "over_price": 1.92,
+        "under_price": 1.83
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 1.92,
+        "under_price": 1.97
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-01T21:26:06+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-03T19:45:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-03T19:00:17+00:00",
+   "match_key": "2026-11-03,128,131",
+   "match_label": "Inverness Caledonian Thistle vs Montrose FC",
+   "movement_episodes": [
+    [
+     "3571094759:52306"
+    ],
+    [
+     "3571094759:52724"
+    ],
+    [
+     "3571094759:52749"
+    ]
+   ],
+   "movement_episodes_upper_bound": 3,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    158244.0,
+    5807.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.0,
+     "last_observed_line": 3.5,
+     "net_observed_change": 0.5,
+     "observations": 3,
+     "origins": {
+      "V4_EXPLICIT": 3
+     },
+     "points": [
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:52306",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.25,
+       "before": 3.0,
+       "event_id": "3571094759:52724",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.5,
+       "before": 3.25,
+       "event_id": "3571094759:52749",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:52306",
+       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.25,
+       "to": "3571094759:52724"
+      },
+      {
+       "from": "3571094759:52724",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.25,
+       "previous_after_line": 3.25,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52749"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -1989,143 +2178,6 @@
        "previous_after_line": 2.5,
        "to": "3571094759:52725",
        "unobserved_direction": "DOWN"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:52306",
-    "3571094759:52724"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:52306",
-     "message_id": 52306,
-     "minutes_to_kickoff": 2778.9,
-     "observed_at": "2026-11-01T21:26:06+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.25,
-        "over_price": 1.93,
-        "under_price": 1.83
-       },
-       "before": {
-        "line": 3.0,
-        "over_price": 1.77,
-        "under_price": 1.99
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:52724",
-     "message_id": 52724,
-     "minutes_to_kickoff": 141.5,
-     "observed_at": "2026-11-03T17:23:30+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.25,
-        "over_price": 2.02,
-        "under_price": 1.81
-       },
-       "before": {
-        "line": 3.0,
-        "over_price": 1.77,
-        "under_price": 2.0
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-11-01T21:26:06+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-11-03T19:45:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-11-03T17:23:30+00:00",
-   "match_key": "2026-11-03,128,131",
-   "match_label": "Inverness Caledonian Thistle vs Montrose FC",
-   "movement_episodes": [
-    [
-     "3571094759:52306"
-    ],
-    [
-     "3571094759:52724"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    158244.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 3.0,
-     "last_observed_line": 3.25,
-     "net_observed_change": 0.25,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 3.25,
-       "before": 3.0,
-       "event_id": "3571094759:52306",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 3.25,
-       "before": 3.0,
-       "event_id": "3571094759:52724",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [],
-     "transitions": [
-      {
-       "from": "3571094759:52306",
-       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
-       "next_before_line": 3.0,
-       "previous_after_line": 3.25,
-       "to": "3571094759:52724"
       }
      ]
     }
