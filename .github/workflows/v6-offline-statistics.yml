@@ -49,26 +49,59 @@ jobs:
     needs: evaluate
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     permissions:
       contents: write
     steps:
+      # Pinned to the exact commit the evaluate job computed on (the report's input commit).
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: actions/download-artifact@v4
         with:
           name: offline-llm-statistics-${{ github.run_id }}
           path: ${{ runner.temp }}/statistics
-      - name: Publish research report and immutable run history only
+      - name: Publish research report and immutable run history (no rebase, no force push)
         env:
           RUN_ID: ${{ github.run_id }}
+          V6_INPUT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cp "$RUNNER_TEMP/statistics/llm-statistics.json" docs/lab/llm-statistics.json
-          mkdir -p docs/lab/llm-statistics-runs
-          test ! -e "docs/lab/llm-statistics-runs/$RUN_ID.json"
-          cp docs/lab/llm-statistics.json "docs/lab/llm-statistics-runs/$RUN_ID.json"
+          test "$(git rev-parse HEAD)" = "$V6_INPUT_SHA"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p docs/lab/llm-statistics-runs
+          if [ -e "docs/lab/llm-statistics-runs/$RUN_ID.json" ]; then
+            echo "::notice title=V6_OFFLINE_STATS_ALREADY_PUBLISHED::run history $RUN_ID already on the input commit; never overwritten"
+            exit 0
+          fi
+          cp "$RUNNER_TEMP/statistics/llm-statistics.json" docs/lab/llm-statistics.json
+          cp docs/lab/llm-statistics.json "docs/lab/llm-statistics-runs/$RUN_ID.json"
           git add docs/lab/llm-statistics.json "docs/lab/llm-statistics-runs/$RUN_ID.json"
-          git commit -m "data(llm): offline statistical audit $RUN_ID [skip ci]"
-          git push origin HEAD:main
+          git commit -q -m "data(llm): offline statistical audit $RUN_ID [skip ci]" -m "V6-Input-Commit: $V6_INPUT_SHA"
+          # Concurrent collector/H1/FT/V4/LLM commits are classified path by path: unrelated
+          # paths are kept byte-for-byte, a valid change of a V6 input triggers an offline
+          # recomputation on the exact remote inputs, incompatible changes refuse, program
+          # changes supersede safely. Bounded CAS retries; never rebase, never force push.
+          python -m scripts.lab_v6_offline_publish_safe --base "$V6_INPUT_SHA" --run-id "$RUN_ID" \
+            --receipt "$RUNNER_TEMP/v6-offline-publish-receipt.json" \
+            --bundle "$RUNNER_TEMP/v6-offline-unpublished.bundle"
+      - name: Verifiable publication receipt
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/v6-offline-publish-receipt.json" ]; then
+            { echo '### V6 offline statistics publication receipt'; echo '```json';
+              cat "$RUNNER_TEMP/v6-offline-publish-receipt.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v6-offline-publish-receipt-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/v6-offline-publish-receipt.json
+            ${{ runner.temp }}/v6-offline-unpublished.bundle
+          if-no-files-found: ignore
+          retention-days: 30
