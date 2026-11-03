@@ -657,7 +657,8 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(self.ft["name"], g.FT_WORKFLOW_NAME)
         self.assertEqual(on["schedule"], [{"cron": "18 2,8,14,20 * * *"}])   # reserve unchanged
         self.assertIn("pull_request", on)
-        self.assertEqual(set(on["workflow_dispatch"]["inputs"]), {"force", "reason"})
+        self.assertEqual(set(on["workflow_dispatch"]["inputs"]), {"force", "reason", "ft_source_run_id"})
+        self.assertEqual(on["workflow_dispatch"]["inputs"]["ft_source_run_id"]["default"], "")
         self.assertIs(on["workflow_dispatch"]["inputs"]["force"]["default"], False)
 
     def test_gate_is_inside_the_workflow_level_mutex(self):

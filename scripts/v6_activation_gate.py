@@ -6,7 +6,22 @@
   that actually changes the report);
 * ``schedule``: the historical 02/08/14/20 h cron, kept as a reserve if FT stops;
 * ``workflow_dispatch``: manual, optionally ``force`` with an audited ``reason``;
+* ``workflow_dispatch`` with ``ft_source_run_id``: requested by the FT workflow itself
+  (``scripts/v6_ft_dispatch_request.py``) when that FT run was started with ``GITHUB_TOKEN``.
+  GitHub creates no ``workflow_run`` for such runs (only ``workflow_dispatch`` and
+  ``repository_dispatch`` are exempt), so without it V6 only ran on the schedule reserve;
 * ``pull_request``: CI only (never publishes, never gated).
+
+FT-requested dispatch
+---------------------
+Never trusted on its word. Inside the mutex the gate reads the named FT run from the Actions
+API (bounded wait for it to complete) and requires: the FT workflow file and name, this
+repository, ``main``, not a pull request, conclusion ``success``, started by
+``github-actions[bot]`` (otherwise ``workflow_run`` already covered it) and at most
+``FT_SOURCE_MAX_AGE`` old. ``force`` together with ``ft_source_run_id`` is refused. Every V6 run
+carries ``ft:<id>`` of its FT source in its run name (``workflow_run`` and dispatch alike), so a
+second run for the same FT run is refused as ``DUPLICATE_FT_SOURCE`` whichever trigger came
+first. All cadence rules below then apply unchanged.
 
 Mutual exclusion
 ----------------
@@ -53,6 +68,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.parse
@@ -76,6 +92,13 @@ MAX_JOB_LOOKUPS = 120                   # bounded API use (GITHUB_TOKEN quota is
 FAILED = "FAILED"
 SUCCEEDED = "SUCCEEDED"
 IN_PROGRESS = "IN_PROGRESS"
+FT_WORKFLOW_PATH = ".github/workflows/lab-ft-results.yml"
+FT_SOURCE_INPUT = "ft_source_run_id"
+TOKEN_ACTOR = "github-actions[bot]"
+FT_SOURCE_MAX_AGE = timedelta(hours=2)
+FT_SOURCE_POLLS = 18                    # bounded wait for the requesting FT run to complete
+FT_SOURCE_POLL_SECONDS = 10
+FT_SOURCE_TAG = re.compile(r"\bft:(\d+)\b")
 
 
 class GateStateUnavailable(RuntimeError):
@@ -155,15 +178,70 @@ def validate_trigger(event):
         if repo != event.get("repository"):
             return "UPSTREAM_FOREIGN_REPOSITORY:%s" % repo
         return None
-    if name in ("schedule", "workflow_dispatch"):
+    if name == "workflow_dispatch":
+        requested = requested_ft_source(event)
+        if requested is None:
+            return None
+        if not requested.isdigit():
+            return "FT_SOURCE_INVALID:%s" % requested[:40]
+        if _truthy((event.get("inputs") or {}).get("force")):
+            return "FT_SOURCE_WITH_FORCE_REFUSED"
+        return None
+    if name == "schedule":
         return None
     return "UNSUPPORTED_EVENT:%s" % name
 
 
-def decide(event, *, now, report, attempts, state_error=None, history_truncated=False):
+def requested_ft_source(event):
+    """The ``ft_source_run_id`` input of a dispatch (stripped), or None when absent/empty."""
+    value = str((event.get("inputs") or {}).get(FT_SOURCE_INPUT) or "").strip()
+    return value or None
+
+
+def ft_source_id(event):
+    """FT run this V6 run is about: the upstream of a workflow_run or the dispatch input."""
+    if event.get("event_name") == "workflow_run":
+        upstream = (event.get("workflow_run") or {}).get("id")
+        return str(upstream) if upstream is not None else None
+    if event.get("event_name") == "workflow_dispatch":
+        return requested_ft_source(event)
+    return None
+
+
+def validate_ft_source(run, *, repository, now):
+    """None when the FT run named by a dispatch is a valid source, else the SKIP reason."""
+    if not isinstance(run, dict):
+        return "FT_SOURCE_UNREADABLE"
+    if run.get("status") != "completed":
+        return "FT_SOURCE_NOT_COMPLETED:%s" % run.get("status")
+    if run.get("name") != FT_WORKFLOW_NAME or run.get("path") != FT_WORKFLOW_PATH:
+        return "FT_SOURCE_NOT_FT_WORKFLOW:%s" % (run.get("path") or run.get("name"))
+    if (run.get("head_repository") or {}).get("full_name") != repository or \
+            (run.get("repository") or {}).get("full_name") != repository:
+        return "FT_SOURCE_FOREIGN_REPOSITORY"
+    if run.get("head_branch") != "main":
+        return "FT_SOURCE_NOT_MAIN:%s" % run.get("head_branch")
+    if run.get("event") == "pull_request":
+        return "FT_SOURCE_FROM_PULL_REQUEST"
+    if run.get("conclusion") != "success":
+        return "FT_SOURCE_NOT_SUCCESS:%s" % run.get("conclusion")
+    actor = (run.get("triggering_actor") or {}).get("login")
+    if actor != TOKEN_ACTOR:
+        # Started by a person/schedule/push: its workflow_run already reaches V6.
+        return "FT_SOURCE_COVERED_BY_WORKFLOW_RUN:%s" % actor
+    finished = parse_time(run.get("updated_at"))
+    if finished is None or now - finished > FT_SOURCE_MAX_AGE or finished - now > timedelta(minutes=5):
+        return "FT_SOURCE_STALE_OR_UNDATED:%s" % run.get("updated_at")
+    return None
+
+
+def decide(event, *, now, report, attempts, state_error=None, history_truncated=False,
+           ft_source_error=None, ft_source_run=None, duplicates=None):
     """Pure decision. ``report``: {generated_at, published_at, published_commit, sha256}.
     ``attempts``: earlier non-PR attempts, newest first, each {run_id, event, started_at,
-    outcome, conclusion}. Returns the full, auditable decision document."""
+    outcome, conclusion}. ``ft_source_error``: why the FT run named by a dispatch is not a
+    valid source (None = valid or not applicable). ``duplicates``: earlier V6 runs that carry
+    the same ``ft:<id>``. Returns the full, auditable decision document."""
     name = event.get("event_name")
     doc = {
         "gate": NAME, "schema_version": 1, "trigger": name, "now": iso(now),
@@ -174,6 +252,7 @@ def decide(event, *, now, report, attempts, state_error=None, history_truncated=
         "last_published_age_h": None, "last_attempt": None, "last_attempt_age_h": None,
         "consecutive_failures": None, "required_gap_h": None, "attempts_considered": None,
         "last_attempt_unpublished": None, "mode": None,
+        "ft_source_run_id": ft_source_id(event), "ft_source_duplicates": None,
         "llm_calls": 0, "provider_requests": 0, "telegram_requests": 0,
     }
     if name == "workflow_run":
@@ -181,6 +260,12 @@ def decide(event, *, now, report, attempts, state_error=None, history_truncated=
         doc["upstream"] = {k: up.get(k) for k in ("id", "name", "conclusion", "head_branch",
                                                     "head_sha", "event")}
         doc["upstream"]["repository"] = (up.get("head_repository") or {}).get("full_name")
+    elif isinstance(ft_source_run, dict):
+        doc["upstream"] = {k: ft_source_run.get(k) for k in ("id", "name", "conclusion", "head_branch",
+                                                             "head_sha", "event", "status",
+                                                             "updated_at")}
+        doc["upstream"]["repository"] = (ft_source_run.get("head_repository") or {}).get("full_name")
+        doc["upstream"]["triggering_actor"] = (ft_source_run.get("triggering_actor") or {}).get("login")
     report = report or {}
     generated = parse_time(report.get("generated_at"))
     published = parse_time(report.get("published_at"))
@@ -199,6 +284,16 @@ def decide(event, *, now, report, attempts, state_error=None, history_truncated=
     invalid = validate_trigger(event)
     if invalid:
         return finish("SKIPPED", invalid, False)
+    from_ft_dispatch = name == "workflow_dispatch" and requested_ft_source(event) is not None
+    if from_ft_dispatch:
+        # Fail closed: an unreadable or invalid FT source never computes.
+        if state_error is not None:
+            return finish("SKIPPED", "GATE_STATE_UNAVAILABLE:%s" % str(state_error)[:200], False)
+        if ft_source_error or not isinstance(ft_source_run, dict):
+            return finish("SKIPPED", ft_source_error or "FT_SOURCE_UNREADABLE", False)
+    if duplicates:
+        doc["ft_source_duplicates"] = sorted(duplicates)
+        return finish("SKIPPED", "DUPLICATE_FT_SOURCE:%s" % sorted(duplicates)[0], False)
 
     inputs = event.get("inputs") or {}
     forced = name == "workflow_dispatch" and _truthy(inputs.get("force"))
@@ -308,6 +403,16 @@ def read_attempts(api, *, now, current_run_id, workflow=WORKFLOW_FILE, meta=None
                  "pagination_truncated": listing["pagination_truncated"],
                  "history_truncated": listing["pagination_truncated"]})
     current = int(current_run_id) if str(current_run_id or "").isdigit() else None
+    # Every earlier non-PR V6 run, by the FT run it was started for (``ft:<id>`` in its name).
+    sources = {}
+    for run in runs:
+        if str(run.get("id")) == str(current_run_id) or run.get("event") == "pull_request":
+            continue
+        if current is not None and int(run.get("id") or 0) > current:
+            continue
+        for ft_id in FT_SOURCE_TAG.findall(str(run.get("display_title") or "")):
+            sources.setdefault(ft_id, []).append(run.get("id"))
+    meta["ft_source_runs"] = sources
     for run in runs:
         if str(run.get("id")) == str(current_run_id) or run.get("event") == "pull_request":
             continue
@@ -391,24 +496,50 @@ def summary_markdown(doc):
     return "\n".join(lines) + "\n"
 
 
-def run(env=os.environ, root=Path.cwd(), now=None, api=None, dry_run_event=None):
+def read_ft_source(api, run_id, *, repository, clock, sleep, polls=FT_SOURCE_POLLS,
+                   interval=FT_SOURCE_POLL_SECONDS):
+    """(run, error) for the FT run named by a dispatch. The requesting FT job is the last one
+    of its run, so the run normally completes within seconds; the wait is bounded."""
+    source = None
+    for attempt in range(max(1, polls)):
+        source = api.get("actions/runs/%s" % run_id)
+        if not isinstance(source, dict) or source.get("status") == "completed":
+            break
+        if attempt + 1 < polls:
+            sleep(interval)
+    return source, validate_ft_source(source, repository=repository, now=clock())
+
+
+def run(env=os.environ, root=Path.cwd(), now=None, api=None, dry_run_event=None,
+        sleep=None, clock=None):
+    import time
     event = event_from_env(env)
     if dry_run_event:
         # Non-binding preview (PR CI): what this gate would decide right now on main.
         event.update({"event_name": dry_run_event, "ref": MAIN_REF, "inputs": {}})
     now = now or datetime.now(timezone.utc)
+    clock = clock or (lambda: datetime.now(timezone.utc))
     api = api or GitHubApi(env.get("GITHUB_REPOSITORY", ""), env.get("GITHUB_TOKEN"))
     report, attempts, error, meta = {}, [], None, {}
+    source_run, source_error = None, None
     if event["event_name"] != "pull_request" and validate_trigger(event) is None:
         try:
+            requested = requested_ft_source(event) if event["event_name"] == "workflow_dispatch" else None
+            if requested is not None:
+                source_run, source_error = read_ft_source(
+                    api, requested, repository=event.get("repository"), clock=clock,
+                    sleep=sleep or time.sleep)
             report = read_published_report(root, api)
             attempts = read_attempts(api, now=now, current_run_id=event["run_id"], meta=meta)
         except GateStateUnavailable as exc:
             error = exc
         except Exception as exc:  # noqa: BLE001 - unexpected state: fail closed, auditable
             error = GateStateUnavailable("%s: %s" % (type(exc).__name__, str(exc)[:120]))
+    ft_id = ft_source_id(event)
+    duplicates = (meta.get("ft_source_runs") or {}).get(ft_id) if ft_id else None
     doc = decide(event, now=now, report=report, attempts=attempts, state_error=error,
-                 history_truncated=bool(meta.get("history_truncated")))
+                 history_truncated=bool(meta.get("history_truncated")),
+                 ft_source_error=source_error, ft_source_run=source_run, duplicates=duplicates)
     doc["main_head_at_decision"] = report.get("main_head")
     doc["history"] = meta or None
     doc["dry_run"] = bool(dry_run_event)
