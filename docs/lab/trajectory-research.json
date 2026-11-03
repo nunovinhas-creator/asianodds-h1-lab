@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-03T19:13:16+00:00",
+  "generated_at": "2026-11-03T19:18:34+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,14 +32,14 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 252,
+      "matches": 253,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 63.0
+      "percentage_descriptive": 63.2
     },
     "both_total_and_1x2": {
-      "matches": 248,
+      "matches": 249,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 62.0
+      "percentage_descriptive": 62.2
     },
     "opposing_intra_alert_directions": {
       "matches": 123,
@@ -52,9 +52,9 @@
       "percentage_descriptive": 14.0
     },
     "with_identical_total_snapshots": {
-      "matches": 48,
+      "matches": 50,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 12.0
+      "percentage_descriptive": 12.5
     },
     "with_mixed_origin_total": {
       "matches": 2,
@@ -77,14 +77,14 @@
       "percentage_descriptive": 7.0
     },
     "with_related_alerts": {
-      "matches": 59,
+      "matches": 61,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 14.8
+      "percentage_descriptive": 15.2
     },
     "with_unobserved_line_gaps": {
-      "matches": 118,
+      "matches": 119,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 29.5
+      "percentage_descriptive": 29.8
     }
   },
   "opposing_direction_examples": [
@@ -255,35 +255,35 @@
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1436,
+    "all_distinct_matches": 1438,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
     "events_analysed": 967,
-    "messages_in_source": 2156,
+    "messages_in_source": 2162,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 507,
-    "repeated_matches_omitted": 107,
+    "repeated_matches_in_source": 510,
+    "repeated_matches_omitted": 110,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "0eec29a67eb361ad3544082af62d8b93103f135d",
-  "source_generated_at": "2026-11-03T19:13:14+00:00",
+  "source_commit": "30e55af3f4e6c5b9ab3df07cb3d17aeb2a535e84",
+  "source_generated_at": "2026-11-03T19:18:31+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 28,
-      "T_0_TO_60": 181,
-      "T_360_TO_1440": 152,
+      "T_0_TO_60": 180,
+      "T_360_TO_1440": 151,
       "T_60_TO_360": 149,
-      "T_OVER_1440": 158,
+      "T_OVER_1440": 159,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 32,
-      "T_0_TO_60": 247,
-      "T_360_TO_1440": 211,
+      "T_0_TO_60": 246,
+      "T_360_TO_1440": 209,
       "T_60_TO_360": 219,
-      "T_OVER_1440": 258,
+      "T_OVER_1440": 261,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
@@ -294,24 +294,24 @@
       "V4_EXPLICIT": 964
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 36.1,
-      "FLAT": 28.5,
-      "UP": 35.4
+      "DOWN": 36.0,
+      "FLAT": 28.2,
+      "UP": 35.8
     },
-    "down": 349,
-    "flat": 275,
+    "down": 348,
+    "flat": 272,
     "messages_with_total": 966,
-    "up": 342,
+    "up": 346,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 59,
-    "continuous": 317,
-    "identical_total_pairs": 48,
-    "related_pairs": 59,
+    "continuous": 314,
+    "identical_total_pairs": 50,
+    "related_pairs": 61,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 11,
-    "same_movement_repeat": 59,
-    "unobserved_change": 131
+    "same_movement_repeat": 61,
+    "unobserved_change": 132
   }
 }
