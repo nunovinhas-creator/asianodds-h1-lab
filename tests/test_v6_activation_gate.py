@@ -45,7 +45,8 @@ def attempt(hours_ago, outcome=g.SUCCEEDED, now=T0, run_id=1):
 
 def report(hours_ago, now=T0):
     t = g.iso(now - timedelta(hours=hours_ago))
-    return {"generated_at": t, "published_at": t, "published_commit": "c" * 40, "sha256": "s" * 64}
+    return {"generated_at": t, "published_at": t, "published_commit": "c" * 40, "sha256": "s" * 64,
+            "main_head": "d" * 40}
 
 
 class DecisionTests(unittest.TestCase):
@@ -175,6 +176,59 @@ class ManualExceptionTests(unittest.TestCase):
         doc = g.decide(simple("workflow_dispatch", force="true", reason="x", actor="github-actions[bot]"),
                        now=T0, report=report(0.5), attempts=[])
         self.assertTrue(doc["reason"].startswith("FORCE_BY_AUTOMATION_REFUSED"))
+
+    FORCE = dict(force="true", reason="republish after fix")
+
+    def test_force_bypasses_window_and_backoff_when_state_is_valid(self):
+        backoff = [attempt(1, g.FAILED, run_id=3), attempt(7, g.FAILED, run_id=2),
+                   attempt(19, g.FAILED, run_id=1)]
+        doc = g.decide(simple("workflow_dispatch", **self.FORCE), now=T0, report=report(0.2),
+                       attempts=backoff)
+        self.assertEqual((doc["decision"], doc["mode"], doc["run"]),
+                         ("RUN_FORCED_MANUAL", "FORCED_MANUAL_EXCEPTION", True))
+        self.assertEqual(doc["consecutive_failures"], 3)        # still fully observed
+        self.assertEqual(doc["last_attempt"]["run_id"], 3)
+
+    def test_force_never_bypasses_unavailable_api(self):
+        doc = g.decide(simple("workflow_dispatch", **self.FORCE), now=T0, report=report(9),
+                       attempts=[], state_error=g.GateStateUnavailable("actions/runs HTTPError"))
+        self.assertEqual((doc["decision"], doc["run"]), ("SKIPPED", False))
+        self.assertEqual(doc["reason"], "GATE_STATE_UNAVAILABLE:actions/runs HTTPError")
+        self.assertTrue(doc["force"])                           # the refused request stays audited
+
+    def test_force_never_bypasses_inaccessible_history_end_to_end(self):
+        env = {"GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_REF": g.MAIN_REF,
+               "GITHUB_REPOSITORY": REPO, "GITHUB_RUN_ID": "5", "GITHUB_ACTOR": "nunovinhas"}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "event.json"
+            path.write_text(json.dumps({"inputs": self.FORCE}))
+            env["GITHUB_EVENT_PATH"] = str(path)
+
+            def no_history(*a, **k):
+                raise OSError("connection reset")
+            api = g.GitHubApi(REPO, "t", opener=no_history)
+            with mock.patch.object(g, "read_published_report", return_value=report(9)):
+                doc = g.run(env, Path(tmp), now=T0, api=api)
+            self.assertEqual((doc["decision"], doc["force"]), ("SKIPPED", True))
+            self.assertTrue(doc["reason"].startswith("GATE_STATE_UNAVAILABLE:actions/workflows/"))
+            with mock.patch.object(g, "read_published_report", side_effect=ValueError("bad")):
+                doc = g.run(env, Path(tmp), now=T0, api=api)
+            self.assertEqual(doc["reason"], "GATE_STATE_UNAVAILABLE:ValueError: bad")
+
+    def test_force_requires_main_verified_now(self):
+        doc = g.decide(simple("workflow_dispatch", **self.FORCE), now=T0, report={}, attempts=[])
+        self.assertEqual(doc["reason"], "GATE_STATE_UNAVAILABLE:MAIN_NOT_VERIFIED")
+
+    def test_force_never_bypasses_an_earlier_run_still_active(self):
+        doc = g.decide(simple("workflow_dispatch", **self.FORCE), now=T0, report=report(9),
+                       attempts=[attempt(0.1, g.IN_PROGRESS)])
+        self.assertEqual((doc["decision"], doc["reason"]), ("SKIPPED", "CONCURRENT_ATTEMPT_IN_PROGRESS"))
+
+    def test_force_never_bypasses_security(self):
+        event = simple("workflow_dispatch", **self.FORCE)
+        event["ref"] = "refs/heads/feature"
+        self.assertEqual(g.decide(event, now=T0, report=report(9), attempts=[])["reason"],
+                         "NOT_MAIN_REF:refs/heads/feature")
 
     def test_unforced_dispatch_obeys_the_window(self):
         doc = g.decide(simple("workflow_dispatch", force=False, reason=""), now=T0,
@@ -411,6 +465,84 @@ class CadenceSimulationTests(unittest.TestCase):
             doc = gh.workflow(ft_event(conclusion="failure"), T0 + timedelta(minutes=minutes), mutex=mutex)
             self.assertEqual(doc["reason"], "UPSTREAM_NOT_SUCCESS:failure")
         self.assertEqual(gh.computes, [])
+
+
+class ForcedConcurrencyTests(unittest.TestCase):
+    def test_forced_dispatch_with_an_older_run_active_does_not_compute(self):
+        gh = FakeActions(report_hours_ago=0.5)
+        gh.report["main_head"] = "d" * 40
+        gh.create_run("workflow_run", T0)                   # older run still active
+        doc = gh.workflow(simple("workflow_dispatch", force="true", reason="fix"), T0,
+                          mutex=threading.Lock())
+        self.assertEqual(doc["reason"], "CONCURRENT_ATTEMPT_IN_PROGRESS")
+        self.assertEqual(gh.computes, [])
+
+    def test_forced_dispatch_runs_inside_the_mutex_when_state_is_valid(self):
+        gh = FakeActions(report_hours_ago=0.5)
+        gh.report["main_head"] = "d" * 40
+        doc = gh.workflow(simple("workflow_dispatch", force="true", reason="fix"), T0,
+                          mutex=threading.Lock())
+        self.assertEqual(doc["decision"], "RUN_FORCED_MANUAL")
+        self.assertEqual(len(gh.computes), 1)
+
+
+class PaginationTruncationTests(unittest.TestCase):
+    class PagedApi:
+        def __init__(self, total, failed_every=1):
+            self.total, self.calls = total, []
+
+        def get(self, endpoint, **query):
+            self.calls.append((endpoint, query))
+            if endpoint.startswith("actions/workflows/"):
+                start = (query["page"] - 1) * query["per_page"]
+                ids = list(range(self.total, 0, -1))[start:start + query["per_page"]]
+                return {"workflow_runs": [{"id": i, "event": "workflow_run", "status": "completed",
+                                           "conclusion": "failure", "created_at": g.iso(T0)}
+                                          for i in ids]}
+            run_id = int(endpoint.split("/")[2])
+            executed = run_id % 50 == 0                     # a failed compute every 50 runs
+            return {"jobs": [{"name": "evaluate", "conclusion": "failure" if executed else "skipped",
+                              "started_at": g.iso(T0 - timedelta(minutes=10 * (self.total - run_id)))
+                              if executed else None,
+                              "steps": [{"conclusion": "failure"}] if executed else []}]}
+
+    def test_page_limit_is_detected_as_truncation(self):
+        api = self.PagedApi(total=g.RUNS_PER_PAGE * g.MAX_PAGES + 40)
+        meta = {}
+        g.list_runs(api, since="x", meta=meta)
+        self.assertTrue(meta["pagination_truncated"])
+        self.assertEqual(sum(1 for e, _ in api.calls if e.startswith("actions/workflows/")), g.MAX_PAGES)
+
+    def test_short_last_page_is_not_truncation(self):
+        for total in (0, 5, g.RUNS_PER_PAGE * g.MAX_PAGES - 1):
+            meta = {}
+            g.list_runs(self.PagedApi(total=total), since="x", meta=meta)
+            self.assertFalse(meta["pagination_truncated"], total)
+
+    def test_truncated_pagination_never_reduces_the_backoff(self):
+        api = self.PagedApi(total=g.RUNS_PER_PAGE * g.MAX_PAGES + 40)
+        meta = {}
+        with mock.patch.object(g, "MAX_JOB_LOOKUPS", 10_000), \
+                mock.patch.object(g, "BACKOFF_CAP_FAILURES", 99):
+            attempts = g.read_attempts(api, now=T0, current_run_id=str(10 ** 6), meta=meta)
+        self.assertTrue(meta["pagination_truncated"] and meta["history_truncated"])
+        self.assertTrue(attempts and all(a["outcome"] == g.FAILED for a in attempts))
+        doc = g.decide(ft_event(), now=T0 + timedelta(hours=13), report=report(40),
+                       attempts=attempts[:1], history_truncated=meta["history_truncated"])
+        self.assertEqual((doc["consecutive_failures"], doc["required_gap_h"], doc["run"]),
+                         (g.BACKOFF_CAP_FAILURES, 24.0, False))
+        untruncated = g.decide(ft_event(), now=T0 + timedelta(hours=13), report=report(40),
+                               attempts=attempts[:1])
+        self.assertTrue(untruncated["run"])                 # the same history without truncation
+
+    def test_run_records_truncation_in_the_audit_document(self):
+        api = self.PagedApi(total=g.RUNS_PER_PAGE * g.MAX_PAGES + 40)
+        env = {"GITHUB_EVENT_NAME": "schedule", "GITHUB_REF": g.MAIN_REF, "GITHUB_REPOSITORY": REPO,
+               "GITHUB_RUN_ID": str(10 ** 6)}
+        with mock.patch.object(g, "read_published_report", return_value=report(40)):
+            doc = g.run(env, ROOT, now=T0, api=api)
+        self.assertTrue(doc["history"]["pagination_truncated"])
+        self.assertTrue(doc["history"]["history_truncated"])
 
 
 class AttemptReaderTests(unittest.TestCase):

@@ -33,8 +33,11 @@ skipped, whatever its trigger and outcome (published, failed, cancelled or
   but successful run is not a failure; it still consumes its six-hour window.
 
 A ``workflow_dispatch`` with ``force=true`` and a non-empty ``reason`` by a human actor is
-the only exception (``RUN_FORCED_MANUAL``); it is announced as a warning annotation and in
-the job summary, and it counts as an attempt for the next windows.
+the only exception (``RUN_FORCED_MANUAL``). It bypasses ONLY the six-hour window and the
+failure backoff: unavailable state, an unverified ``main``, an earlier run still active and
+every security rule refuse it exactly as they refuse automatic triggers. It is announced
+as a warning annotation and in the job summary, and it counts as an attempt for the next
+windows.
 
 Security
 --------
@@ -198,7 +201,8 @@ def decide(event, *, now, report, attempts, state_error=None, history_truncated=
         return finish("SKIPPED", invalid, False)
 
     inputs = event.get("inputs") or {}
-    if name == "workflow_dispatch" and _truthy(inputs.get("force")):
+    forced = name == "workflow_dispatch" and _truthy(inputs.get("force"))
+    if forced:
         reason = (inputs.get("reason") or "").strip()
         actor = event.get("actor") or ""
         doc.update({"force": True, "force_reason": reason[:300] or None})
@@ -206,11 +210,13 @@ def decide(event, *, now, report, attempts, state_error=None, history_truncated=
             return finish("SKIPPED", "FORCE_WITHOUT_REASON", False)
         if not actor or actor.endswith("[bot]"):
             return finish("SKIPPED", "FORCE_BY_AUTOMATION_REFUSED:%s" % actor, False)
-        doc["mode"] = "FORCED_MANUAL_EXCEPTION"
-        return finish("RUN_FORCED_MANUAL", "MANUAL_FORCE_BY:%s" % actor, True)
 
+    # Operational safety: never bypassed, not even by force=true.
     if state_error is not None:
         return finish("SKIPPED", "GATE_STATE_UNAVAILABLE:%s" % str(state_error)[:200], False)
+    if forced and not report.get("main_head"):
+        # The forced exception requires main to have been fetched and verified just now.
+        return finish("SKIPPED", "GATE_STATE_UNAVAILABLE:MAIN_NOT_VERIFIED", False)
 
     attempts = list(attempts or [])
     doc["attempts_considered"] = len(attempts)
@@ -231,6 +237,10 @@ def decide(event, *, now, report, attempts, state_error=None, history_truncated=
         doc["last_attempt_unpublished"] = bool(
             last["outcome"] == SUCCEEDED and (fresh_anchor is None or fresh_anchor < started))
 
+    if forced:
+        # The ONLY things force=true bypasses: the six-hour window and the failure backoff.
+        doc["mode"] = "FORCED_MANUAL_EXCEPTION"
+        return finish("RUN_FORCED_MANUAL", "MANUAL_FORCE_BY:%s" % event.get("actor"), True)
     if fresh_anchor is not None and now - fresh_anchor < WINDOW:
         return finish("SKIPPED", "REPORT_FRESH", False)
     if last and now - parse_time(last["started_at"]) < gap:
@@ -265,8 +275,12 @@ class GitHubApi:
             raise GateStateUnavailable("%s %s" % (endpoint, type(exc).__name__)) from exc
 
 
-def list_runs(api, *, since, workflow=WORKFLOW_FILE):
+def list_runs(api, *, since, workflow=WORKFLOW_FILE, meta=None):
+    """Newest runs first. A full last page means older runs exist beyond MAX_PAGES:
+    recorded as ``pagination_truncated`` (and therefore ``history_truncated``)."""
     runs = []
+    meta = meta if meta is not None else {}
+    meta["pagination_truncated"] = False
     for page in range(1, MAX_PAGES + 1):
         data = api.get("actions/workflows/%s/runs" % workflow, branch="main", per_page=RUNS_PER_PAGE,
                        page=page, created=">=" + since)
@@ -275,6 +289,8 @@ def list_runs(api, *, since, workflow=WORKFLOW_FILE):
         runs += data["workflow_runs"]
         if len(data["workflow_runs"]) < RUNS_PER_PAGE:
             break
+    else:
+        meta["pagination_truncated"] = True
     return sorted(runs, key=lambda r: int(r.get("id") or 0), reverse=True)
 
 
@@ -285,9 +301,12 @@ def read_attempts(api, *, now, current_run_id, workflow=WORKFLOW_FILE, meta=None
     the first successful attempt or at the backoff cap; ``meta`` records truncation."""
     meta = meta if meta is not None else {}
     since = (now - LOOKBACK).strftime("%Y-%m-%dT%H:%M:%SZ")
-    runs = list_runs(api, since=since, workflow=workflow)
+    listing = {}
+    runs = list_runs(api, since=since, workflow=workflow, meta=listing)
     attempts, lookups = [], 0
-    meta.update({"runs_listed": len(runs), "job_lookups": 0, "history_truncated": False})
+    meta.update({"runs_listed": len(runs), "job_lookups": 0,
+                 "pagination_truncated": listing["pagination_truncated"],
+                 "history_truncated": listing["pagination_truncated"]})
     current = int(current_run_id) if str(current_run_id or "").isdigit() else None
     for run in runs:
         if str(run.get("id")) == str(current_run_id) or run.get("event") == "pull_request":

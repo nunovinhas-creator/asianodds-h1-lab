@@ -9,7 +9,7 @@ Estado: **PR sem merge** (aguarda nova autorização). Âmbito: apenas `v6-offli
 | V6 só por `schedule` (02/08/14/20 h UTC, muitas vezes atrasado pelo GitHub) | Disparo principal: `workflow_run` após `lab-ft-results.yml` **concluído com `success` na `main`**; o `schedule` mantém-se igual, como reserva |
 | Sem controlo de cadência | No máximo **1 cálculo por janela móvel de 6 h**, para `workflow_run`, `schedule` e `workflow_dispatch` |
 | Uma falha só voltava a ser tentada no cron seguinte | Recuperação limitada: backoff de 6 h → 12 h → 24 h (teto de 1 tentativa/dia), sempre visível |
-| `workflow_dispatch` sem regras | `force=true` + `reason` obrigatório + ator humano = exceção explícita (`RUN_FORCED_MANUAL`, anotação `warning`) |
+| `workflow_dispatch` sem regras | `force=true` + `reason` obrigatório + ator humano = exceção explícita (`RUN_FORCED_MANUAL`, anotação `warning`). Ignora **apenas** a janela de 6 h e o backoff; nunca `GATE_STATE_UNAVAILABLE`, `main` não verificada, execução anterior ativa ou regras de segurança |
 
 ## Correção ao risco de concorrência
 
@@ -48,7 +48,7 @@ Motivos de `SKIPPED`: `REPORT_FRESH`, `RECENT_ATTEMPT`, `RECENT_FAILED_ATTEMPT`,
 `UPSTREAM_FOREIGN_REPOSITORY:*`, `UPSTREAM_NOT_FT_WORKFLOW:*`, `NOT_MAIN_REF:*`,
 `FORCE_WITHOUT_REASON`, `FORCE_BY_AUTOMATION_REFUSED:*`.
 
-## Provas (`tests/test_v6_activation_gate.py`, 42 testes, sem rede)
+## Provas (`tests/test_v6_activation_gate.py`, 54 testes, sem rede)
 
 | Requisito | Prova |
 |---|---|
@@ -61,6 +61,8 @@ Motivos de `SKIPPED`: `REPORT_FRESH`, `RECENT_ATTEMPT`, `RECENT_FAILED_ATTEMPT`,
 | Tempestade de falhas | V6 a falhar sempre durante 96 h: cerca de 200 eventos FT dão 6 cálculos, com intervalos de 6, 12, 24, 24 e 24 h |
 | `SUPERSEDED` sem publicação | 24 h: 4 cálculos (não 48), modo `RECOVERY_AFTER_UNPUBLISHED` |
 | Leitura de `main` atual | Repositório git real: um checkout desatualizado lê o relatório novo de `origin/main` |
+| `force=true` limitado | Regressões: API indisponível, histórico inacessível (fim a fim), `main` não verificada, execução anterior ativa (unitário e com mutex) → `SKIPPED`; estado válido → `RUN_FORCED_MANUAL` mesmo em backoff |
+| Limite de paginação | 3 páginas cheias → `pagination_truncated`/`history_truncated`; com só falhas visíveis o backoff sobe para 24 h (nunca desce) |
 | Contrato do YAML | Gate no mutex, `needs`/`if`, permissões, cron de reserva e cron FT inalterados, sem `head_sha` nem artefactos |
 
 Teste real só de leitura contra a API do repositório (2026-11-03 09:40 UTC):
@@ -74,7 +76,7 @@ Suite completa: 1486 testes OK antes das correções finais, que só acrescentar
 
 - LLM pagos: 0. Pedidos desportivos: 0. Telegram: 0. O gate não importa nenhum desses módulos.
 - Runners: um job `gate` de cerca de 15 s por cada FT concluído (cerca de 48 por dia) e pelo cron de reserva. O repositório é público, por isso os minutos são gratuitos. O número de cálculos V6 completos fica em ≤ 4 por dia, igual ao teto atual.
-- API (`GITHUB_TOKEN`): em regime normal, 3 a 15 pedidos por gate (≈ 30/h). No pior caso, durante uma tempestade de falhas, há um teto de 3 páginas e 120 consultas de jobs por gate. Se a consulta for truncada, o gate assume o backoff máximo, o que é seguro.
+- API (`GITHUB_TOKEN`): em regime normal, 3 a 15 pedidos por gate (≈ 30/h). No pior caso, durante uma tempestade de falhas, há um teto de 3 páginas e 120 consultas de jobs por gate. Se a consulta for truncada (limite de páginas ou de consultas de jobs), o gate assume o backoff máximo, o que é seguro.
 
 ## Limitações conhecidas
 
