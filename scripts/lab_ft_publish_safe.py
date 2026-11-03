@@ -8,6 +8,14 @@ The original FT commit is transplanted byte-for-byte over the current remote
 tree with an isolated Git index. The new tree is *fully* verified before an
 ordinary fast-forward Git push. Changed FT files, mutated identities, rewritten
 journals, code, or unknown remote paths always abort.
+
+Every exit leaves an ``FT_PUBLISH_RECEIPT`` log line. Refusals and failures
+(``UnsafeFTPublication`` and any unexpected error) emit status ``REFUSED``,
+``PUSH_REFUSED``, ``RETRY_EXHAUSTED`` or ``OUTCOME_UNRESOLVED`` with the exact
+reason, its classified ``reason_kind`` and the context reached (base, source
+commit, remote head, attempt), optionally a JSON receipt file and a verified
+Git bundle of the unpublished FT commit -- and then still fail. A receipt never
+publishes anything.
 """
 from __future__ import annotations
 
@@ -602,13 +610,85 @@ def retriable_main_push_race(stderr: str) -> bool:
     return outcome.classify_push_failure(stderr, "main") == outcome.CAS_REJECTED
 
 
-def _receipt(status, **fields):
-    print("FT_PUBLISH_RECEIPT", json.dumps({"status": status, "provider_requeries": 0,
-                                            **fields}, sort_keys=True))
+def _receipt(status, context=None, **fields):
+    doc = {"status": status, "provider_requeries": 0, **fields}
+    print("FT_PUBLISH_RECEIPT", json.dumps(doc, sort_keys=True))
+    if context is not None:
+        context["receipt"] = doc
+    return doc
+
+
+# (message prefix, receipt status, reason_kind). Statuses are the ones the receipt
+# report and the P0 auditor already classify; first match wins.
+REFUSAL_KINDS = (
+    ("Push failed for reason other than a Git race", "PUSH_REFUSED", "PUSH_REFUSED"),
+    ("FT push transport failed", "RETRY_EXHAUSTED", "TRANSPORT_RETRIES_EXHAUSTED"),
+    ("Remote advanced during all bounded", "RETRY_EXHAUSTED", "CAS_RETRIES_EXHAUSTED"),
+    ("FT push outcome unknown", "OUTCOME_UNRESOLVED", "OUTCOME_UNRESOLVED"),
+    ("FT dependency or program changed", "REFUSED", "INCOMPATIBLE_PROGRAM"),
+    ("Unknown concurrent path", "REFUSED", "UNKNOWN_CONCURRENT_PATH"),
+    ("H1 notification receipt invalid", "REFUSED", "H1_NOTIFICATION_RECEIPT_INVALID"),
+    ("Telegram", "REFUSED", "TELEGRAM_STATE_INVALID"),
+    ("H1 ", "REFUSED", "H1_ARTIFACT_INVALID"),
+    ("V4/H1 journal rewritten", "REFUSED", "JOURNAL_REWRITTEN"),
+    ("Immutable V6 run history rewritten", "REFUSED", "JOURNAL_REWRITTEN"),
+    ("V4 source archive index changed", "REFUSED", "ARCHIVE_INDEX_CHANGED"),
+    ("Concurrent report deleted", "REFUSED", "CONCURRENT_DELETION"),
+    ("Remote main no longer descends", "REFUSED", "BASE_NOT_ANCESTOR"),
+    ("Unsealed FT output", "REFUSED", "UNSEALED_OUTPUT"),
+    ("Missing authoritative FT publication seal", "REFUSED", "SEAL_MISSING"),
+)
+
+
+def classify_refusal(exc):
+    """(status, reason_kind) for an exception that stopped the FT publication."""
+    if not isinstance(exc, UnsafeFTPublication):
+        return "REFUSED", "UNEXPECTED_ERROR:" + type(exc).__name__
+    message = str(exc)
+    for prefix, status, kind in REFUSAL_KINDS:
+        if message.startswith(prefix):
+            return status, kind
+    return "REFUSED", "INTEGRITY_REFUSAL"
+
+
+def write_bundle(root, context, bundle):
+    """Verified Git bundle of the unpublished FT source commit (evidence only)."""
+    import hashlib
+    source, base = context.get("source_commit"), context.get("base")
+    if not source or not SHA.fullmatch(str(source)):
+        return {"bundle": None, "bundle_error": "NO_SOURCE_COMMIT"}
+    ref = "refs/ft-unpublished/source"
+    try:
+        git(root, "update-ref", ref, source)
+        spec = [ref] if not base or base == source else ["^" + base, ref]
+        git(root, "bundle", "create", str(bundle), *spec)
+        git(root, "bundle", "verify", str(bundle))
+        digest = hashlib.sha256(Path(bundle).read_bytes()).hexdigest()
+        return {"bundle": str(bundle), "bundle_sha256": digest, "bundle_ref": ref,
+                "bundle_commit": source}
+    except Exception as exc:  # noqa: BLE001 - evidence is best effort, refusal stands
+        return {"bundle": None, "bundle_error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
+    finally:
+        run(root, "update-ref", "-d", ref, check=False)
+
+
+def refusal_receipt(exc, context, *, root=None, bundle=None, env=None):
+    """Emit (and return) the receipt of a refused/failed FT publication."""
+    env = os.environ if env is None else env
+    status, kind = classify_refusal(exc)
+    fields = {k: context.get(k) for k in ("attempt", "base", "remote", "source_commit",
+                                          "produced_files", "sealed_files",
+                                          "transport_failures") if context.get(k) is not None}
+    fields.update(reason=str(exc)[:500], reason_kind=kind, published_commit=None,
+                  publication="NOT_PUBLISHED", run_id=env.get("GITHUB_RUN_ID"),
+                  telegram_requests=0)
+    if bundle is not None and root is not None:
+        fields.update(write_bundle(root, context, bundle))
+    return _receipt(status, context, **fields)
 
 
 def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_failures=3,
-            sleep=None):
+            sleep=None, context=None):
     """Publish the sealed FT commit; idempotent across transport errors and crashes.
 
     Push outcomes: PUBLISHED, CAS_REJECTED (retry after full revalidation),
@@ -618,11 +698,14 @@ def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_fai
     """
     import time as _time
     sleep = sleep or _time.sleep
+    context = {} if context is None else context
+    context["base"] = base
     root, manifest, baseline = Path(root), Path(manifest), Path(baseline)
     if (not SHA.fullmatch(base) or not 1 <= max_attempts <= 10
             or not 0 <= max_transport_failures <= 5):
         raise UnsafeFTPublication("Invalid original run base or bounded retry count")
     source = sha(root, "HEAD")
+    context["source_commit"] = source
     if sha(root, "HEAD^") != base:
         raise UnsafeFTPublication("FT source commit is not based on the pinned checkout")
     if git(root, "status", "--porcelain", "--untracked-files=no").strip():
@@ -632,6 +715,7 @@ def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_fai
         raise UnsafeFTPublication("Missing authoritative FT publication seal")
     sealed = set(proof["sha256"])
     produced = changed_paths(root, base, source)
+    context.update(sealed_files=len(sealed), produced_files=len(produced))
     live_produced = {name for name in produced
                      if tree_entry(root, source, name) is not None}
     deleted = produced - live_produced
@@ -656,13 +740,14 @@ def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_fai
     for attempt in range(1, max_attempts+1):
         git(root, "fetch", "--no-tags", "origin", "main")
         remote = sha(root, "FETCH_HEAD")
+        context.update(attempt=attempt, remote=remote, transport_failures=transport_failures)
         if run(root, "merge-base", "--is-ancestor", base, remote, check=False).returncode:
             raise UnsafeFTPublication("Remote main no longer descends from the FT input base")
         # Idempotence: an earlier attempt (lost response, crash after push, or a
         # concurrent identical publisher) already put these exact FT bytes on main.
         if remote != base and outcome.same_paths(root, source, remote, produced):
             git(root, "reset", "--hard", remote)
-            _receipt("ALREADY_PUBLISHED_EQUIVALENT", attempt=attempt, remote=remote,
+            _receipt("ALREADY_PUBLISHED_EQUIVALENT", context, attempt=attempt, remote=remote,
                      source_commit=source, transport_failures=transport_failures)
             return remote
         allowed = allowed_remote_changes(root, base, remote, sealed, produced)
@@ -682,7 +767,7 @@ def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_fai
                 "source_commit": source, "published_commit": candidate,
                 "unrelated_paths": len(allowed), "sealed_files": len(sealed),
                 "provider_requeries": 0}, sort_keys=True))
-            _receipt("PUBLISHED", attempt=attempt, published_commit=candidate,
+            _receipt("PUBLISHED", context, attempt=attempt, published_commit=candidate,
                      remote_base=remote, source_commit=source)
             return candidate
         last_remote = remote
@@ -693,13 +778,14 @@ def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_fai
             continue
         if kind in (outcome.UNCERTAIN, outcome.TRANSIENT):
             transport_failures += 1
+            context["transport_failures"] = transport_failures
             state, now = outcome.probe_remote(root, candidate, "main", sleep=sleep)
             print("FT_PUSH_OUTCOME_PROBE", json.dumps({
                 "attempt": attempt, "kind": kind, "candidate": candidate,
                 "remote_before_push": remote, "remote_after": now, "state": state},
                 sort_keys=True))
             if state == outcome.PUBLISHED:
-                _receipt("PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR", attempt=attempt,
+                _receipt("PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR", context, attempt=attempt,
                          published_commit=candidate, remote_after=now, source_commit=source)
                 return candidate
             if state == outcome.UNRESOLVED:
@@ -723,9 +809,26 @@ def main(argv=None):
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--max-attempts", type=int, default=6)
+    parser.add_argument("--receipt", type=Path, help="also write the receipt JSON here")
+    parser.add_argument("--bundle", type=Path,
+                        help="on refusal, write a verified Git bundle of the unpublished FT commit")
     args = parser.parse_args(argv)
-    publish(args.root, base=args.base, manifest=args.manifest,
-            baseline=args.baseline, max_attempts=args.max_attempts)
+    context = {"base": args.base}
+    try:
+        publish(args.root, base=args.base, manifest=args.manifest,
+                baseline=args.baseline, max_attempts=args.max_attempts, context=context)
+    except BaseException as exc:
+        if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+            raise
+        doc = refusal_receipt(exc, context, root=args.root, bundle=args.bundle)
+        print("::error title=FT_PUBLISH_%s::%s %s" % (doc["status"], doc["reason_kind"],
+                                                      doc["reason"].replace("\n", " ")[:300]))
+        if args.receipt:
+            args.receipt.write_text(json.dumps(doc, sort_keys=True) + "\n", encoding="utf-8")
+        raise
+    if args.receipt and context.get("receipt"):
+        args.receipt.write_text(json.dumps(context["receipt"], sort_keys=True) + "\n",
+                                encoding="utf-8")
 
 
 if __name__ == "__main__":
