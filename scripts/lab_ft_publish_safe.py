@@ -22,6 +22,7 @@ from pathlib import Path
 
 from scripts import git_publish_outcome as outcome
 from scripts import publication_guard
+from scripts import publication_ownership as own
 from scripts.lab_discovery_authoritative_release import main as discovery_verify
 from h1lab.lab_ft_final_guard import verify_files
 
@@ -493,6 +494,25 @@ def _check_remote_path(root, base, remote, path):
     elif path == "data/lab/v6-archive-index.json":
         # Archive index changes can invalidate V4 origin provenance.
         raise UnsafeFTPublication("V4 source archive index changed")
+    elif own.LAB_V4_JOURNALS.fullmatch(path):
+        # Every append-only LAB V4 journal of the ownership matrix (V6 forecasts and ALL memory
+        # kinds -- evidence/decisions/hypotheses included -- weekly snapshots, run checks, any
+        # -partNNNN file). No FT producer reads them; they may only grow (incident FT #41476501130:
+        # data/lab/v6-memory-evidence-2026-11.jsonl was refused as "unknown").
+        if not append_only_jsonl(blob_or_none(root, base, path),
+                                 blob_or_none(root, remote, path) or b""):
+            raise UnsafeFTPublication("V4/H1 journal rewritten: " + path)
+    elif own.owner_of(path) == own.OFFLINE_STATS:
+        # V6 offline statistics (research only, not an FT input). Immutable run history may only be
+        # added; the latest report may be replaced but never deleted.
+        current = blob_or_none(root, remote, path)
+        if current is None:
+            raise UnsafeFTPublication("Concurrent report deleted: " + path)
+        if path != "docs/lab/llm-statistics.json" and blob_or_none(root, base, path) is not None:
+            raise UnsafeFTPublication("Immutable V6 run history rewritten: " + path)
+    elif path == own.QUALITY:
+        if blob_or_none(root, remote, path) is None:
+            raise UnsafeFTPublication("Concurrent report deleted: " + path)
     else:
         raise UnsafeFTPublication("Unknown concurrent path: " + path)
 
