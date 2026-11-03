@@ -302,6 +302,61 @@ class GitFTPublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(p.UnsafeFTPublication,"journal rewritten"):
             self.publish()
 
+    def test_incident_41476501130_v4_memory_evidence_append_is_kept(self):
+        # Reproduces FT #41476501130: LAB V4 appended V6 memory evidence while FT reconciled.
+        journals = {"data/lab/v6-memory-evidence-2026-11.jsonl": '{"e":1}\n',
+                    "data/lab/v6-memory-decisions-2026-11.jsonl": '{"d":1}\n',
+                    "data/lab/v6-memory-hypotheses-2026-11.jsonl": '{"h":1}\n',
+                    "data/lab/v6-forecasts-2026-11-part0001.jsonl": '{"f":1}\n'}
+        self.collector_commit(journals)
+        latest_before = git(self.other, "rev-parse", "HEAD")
+        self.publish()
+        self.assertEqual(git(self.root, "rev-parse", "HEAD^"), latest_before)
+        for path, content in journals.items():
+            self.assertEqual(git(self.root, "show", "HEAD:" + path), content.strip())
+        self.assertEqual(git(self.root, "show", "HEAD:data/lab/ft-ledger.json"), ft(2).strip())
+
+    def test_v4_memory_journal_rewrite_still_blocks(self):
+        self.collector_commit({"data/lab/v6-memory-evidence-2026-11.jsonl": '{"e":1}\n'})
+        git(self.root, "fetch", "-q", "origin", "main")
+        self.base = git(self.root, "rev-parse", "origin/main")
+        git(self.root, "reset", "-q", "--hard", self.base)
+        write(self.root, "data/lab/ft-ledger.json", ft(2))
+        write(self.root, "docs/lab/ft-results.json", '{"final":2}\n')
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "FT")
+        self.collector_commit({"data/lab/v6-memory-evidence-2026-11.jsonl": '{"e":"rewritten"}\n'})
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "journal rewritten"):
+            self.publish()
+
+    def test_v6_offline_statistics_and_quality_reports_are_kept(self):
+        self.collector_commit({"docs/lab/llm-statistics.json": '{"status":"x"}\n',
+                               "docs/lab/llm-statistics-runs/41540018891.json": '{"status":"x"}\n',
+                               "docs/lab/quality.json": '{"q":1}\n'})
+        latest_before = git(self.other, "rev-parse", "HEAD")
+        self.publish()
+        self.assertEqual(git(self.root, "rev-parse", "HEAD^"), latest_before)
+        self.assertEqual(git(self.root, "show", "HEAD:docs/lab/quality.json"), '{"q":1}')
+
+    def test_v6_run_history_rewrite_or_report_deletion_blocks(self):
+        self.collector_commit({"docs/lab/llm-statistics-runs/1.json": '{"a":1}\n',
+                               "docs/lab/llm-statistics.json": '{"a":1}\n'})
+        git(self.root, "fetch", "-q", "origin", "main")
+        self.base = git(self.root, "rev-parse", "origin/main")
+        git(self.root, "reset", "-q", "--hard", self.base)
+        write(self.root, "data/lab/ft-ledger.json", ft(2))
+        write(self.root, "docs/lab/ft-results.json", '{"final":2}\n')
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "FT")
+        self.collector_commit({"docs/lab/llm-statistics-runs/1.json": '{"a":2}\n'})
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "Immutable V6 run history"):
+            self.publish()
+        git(self.other, "rm", "-q", "docs/lab/llm-statistics.json")
+        git(self.other, "commit", "-qm", "delete")
+        git(self.other, "push", "-q", "origin", "main")
+        with self.assertRaisesRegex(p.UnsafeFTPublication, "Concurrent report deleted"):
+            self.publish()
+
     def test_unknown_or_code_change_blocks(self):
         self.collector_commit({"h1lab/lab_results.py":"# unexpected code\n"})
         with self.assertRaisesRegex(p.UnsafeFTPublication,"program changed"):
