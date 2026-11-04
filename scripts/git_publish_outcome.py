@@ -59,6 +59,12 @@ _UNCERTAIN_MARKERS = (
     # may not have been applied, so the remote is read before any retry.
     "(internal server error)", "(bad gateway)", "(service unavailable)",
     "(gateway timeout)", "(failed to update ref)",
+    # GitHub server-side failure while applying the ref update (runs 41808825267,
+    # 41813625818 on 2026-11-04): "remote: fatal error in commit_refs" followed by
+    # "! [remote rejected] <sha> -> main (failure)". It is reported by the same 5xx wave
+    # that produced "(Internal Server Error)" in the neighbouring runs; whether the ref
+    # moved is unknown, so the remote is read before any retry (never assumed absent).
+    "fatal error in commit_refs",
 )
 _TRANSIENT_MARKERS = (
     "could not resolve host", "failed to connect", "connection refused",
@@ -88,6 +94,18 @@ def classify_push_failure(stderr: str, branch: str = "main") -> str:
     if any(marker in text for marker in _TRANSIENT_MARKERS):
         return TRANSIENT
     return "UNKNOWN"
+
+
+# Bounded wait (seconds) after the n-th uncertain/transient push failure. GitHub 5xx waves
+# observed on 2026-11-04 lasted longer than the former 2/4/8 s schedule (14 s in total).
+# The publishers still stop after ``max_transport_failures`` (default 3: 4+12+36 = 52 s).
+TRANSPORT_BACKOFF = (4, 12, 36, 60, 60)
+
+
+def transport_backoff(failures: int) -> int:
+    """Seconds to wait after ``failures`` (>= 1) consecutive transport failures."""
+    index = min(max(int(failures), 1), len(TRANSPORT_BACKOFF)) - 1
+    return TRANSPORT_BACKOFF[index]
 
 
 def _git(root, *args):

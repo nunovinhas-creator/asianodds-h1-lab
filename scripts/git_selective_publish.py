@@ -24,8 +24,9 @@ attempts:
 7. pushes ``<candidate>:refs/heads/main`` as an ordinary fast-forward and
    classifies a failure with ``git_publish_outcome``:
    CAS_REJECTED -> next attempt (full revalidation); UNCERTAIN/TRANSIENT -> read
-   the remote first, accept a confirmed publication, otherwise a bounded retry;
-   AUTH/UNKNOWN -> stop.
+   the remote first, accept a confirmed publication, otherwise a bounded retry
+   (``git_publish_outcome.transport_backoff``); UNKNOWN -> read the remote once (a
+   confirmed publication is accepted), then stop; AUTH -> stop.
 
 A Git conflict is only a Git problem: the publisher never re-runs producers,
 never contacts a provider and never sends a Telegram message.
@@ -364,7 +365,20 @@ def _publish(root, base, policy, receipt, trace, max_attempts, max_transport_fai
             if transport_failures > max_transport_failures:
                 raise OutcomeUnresolved("Transport failed %d times; candidate not on remote: %s"
                                         % (transport_failures, err[-200:]))
-            sleep(2 ** transport_failures)
+            sleep(outcome.transport_backoff(transport_failures))
             continue
+        if kind != outcome.AUTH:
+            # An unclassified refusal is not proof that nothing was published: read the remote
+            # once (read only, no retry) so the receipt never reports a published commit as lost.
+            state, now = outcome.probe_remote(root, candidate, branch, sleep=sleep)
+            if state == outcome.PUBLISHED:
+                emit(policy, receipt, {**doc, "status": "PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR",
+                                       "path": "CONFIRMED_AFTER_TRANSPORT_ERROR",
+                                       "attempt": attempt, "published_commit": candidate,
+                                       "remote_after": now, "cas_retries": cas,
+                                       "transport_failures": transport_failures,
+                                       "unclassified_push_error": kind,
+                                       "remote_heads": trace["remote_heads"]})
+                return candidate
         raise PushRefused("Push refused (%s): %s" % (kind, err[-300:]))
     raise RetryExhausted("Remote advanced during all %d bounded publication attempts" % max_attempts)
