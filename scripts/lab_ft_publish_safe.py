@@ -795,9 +795,16 @@ def publish(root, *, base, manifest, baseline, max_attempts=6, max_transport_fai
                 raise UnsafeFTPublication(
                     "FT push transport failed %d times; commit not on remote: %s"
                     % (transport_failures, err[-200:]))
-            sleep(2 ** transport_failures)
+            sleep(outcome.transport_backoff(transport_failures))
             continue
-        # Auth, protection, hooks and unknown errors are never silently hidden.
+        # Auth, protection, hooks and unknown errors are never silently hidden. An unknown
+        # refusal is still checked against the remote once (read only) before it is reported.
+        if kind != outcome.AUTH:
+            state, now = outcome.probe_remote(root, candidate, "main", sleep=sleep)
+            if state == outcome.PUBLISHED:
+                _receipt("PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR", context, attempt=attempt,
+                         published_commit=candidate, remote_after=now, source_commit=source)
+                return candidate
         raise UnsafeFTPublication("Push failed for reason other than a Git race: " + err[-300:])
     raise UnsafeFTPublication("Remote advanced during all bounded FT publication attempts")
 

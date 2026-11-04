@@ -339,8 +339,16 @@ def _publish(root, *, base, receipt, trace, max_attempts=6, max_transport_failur
                 return candidate
             if state == outcome.UNRESOLVED or transport_failures > max_transport_failures:
                 raise UnsafeH1Publication("H1 push outcome unresolved: " + err[-200:])
-            sleep(2 ** transport_failures)
+            sleep(outcome.transport_backoff(transport_failures))
             continue
+        if kind != outcome.AUTH:
+            # Unknown refusal: read the remote once (no retry) before reporting it as lost.
+            state, now = outcome.probe_remote(root, candidate, "main", sleep=sleep)
+            if state == outcome.PUBLISHED:
+                write_receipt(receipt, {**doc, "status": "PUBLISHED_CONFIRMED_AFTER_TRANSPORT_ERROR",
+                                        "attempt": attempt, "published_commit": candidate,
+                                        "remote_after": now, "unclassified_push_error": kind})
+                return candidate
         raise UnsafeH1Publication("H1 push refused (%s): %s" % (kind, err[-300:]))
     raise UnsafeH1Publication("Remote advanced during all bounded H1 publication attempts")
 
