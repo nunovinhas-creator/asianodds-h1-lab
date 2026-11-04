@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T17:02:06+00:00",
+  "generated_at": "2026-11-04T17:07:13+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -37,14 +37,14 @@
       "percentage_descriptive": 63.5
     },
     "both_total_and_1x2": {
-      "matches": 258,
+      "matches": 257,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 64.5
+      "percentage_descriptive": 64.2
     },
     "opposing_intra_alert_directions": {
-      "matches": 120,
+      "matches": 121,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 30.0
+      "percentage_descriptive": 30.2
     },
     "with_ambiguous_repeats": {
       "matches": 51,
@@ -52,9 +52,9 @@
       "percentage_descriptive": 12.8
     },
     "with_identical_total_snapshots": {
-      "matches": 51,
+      "matches": 50,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 12.8
+      "percentage_descriptive": 12.5
     },
     "with_mixed_origin_total": {
       "matches": 0,
@@ -77,9 +77,9 @@
       "percentage_descriptive": 8.2
     },
     "with_related_alerts": {
-      "matches": 64,
+      "matches": 63,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 16.0
+      "percentage_descriptive": 15.8
     },
     "with_unobserved_line_gaps": {
       "matches": 124,
@@ -211,6 +211,19 @@
     },
     {
       "directions": [
+        "DOWN",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:52775",
+        "3571094759:52878"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-11-04,36058,27343",
+      "match_label": "Al Taawon (KSA) vs Al Faisaly Amman (JOR)"
+    },
+    {
+      "directions": [
         "FLAT",
         "DOWN",
         "UP"
@@ -238,51 +251,38 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-31,48236,66854",
       "match_label": "Arema (ISL) vs Bali United Pusam"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:52155",
-        "3571094759:52188"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-11-01,22200,839",
-      "match_label": "Aris Limassol vs Anorthosis Famagusta FC"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1500,
+    "all_distinct_matches": 1502,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
     "events_analysed": 988,
-    "messages_in_source": 2281,
+    "messages_in_source": 2284,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 538,
-    "repeated_matches_omitted": 138,
+    "repeated_matches_in_source": 539,
+    "repeated_matches_omitted": 139,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "324532553c4c8fe0614ef2d00d84443d5ce6f10e",
-  "source_generated_at": "2026-11-04T17:02:04+00:00",
+  "source_commit": "f6484d7dde3d033aba1eafe621194a84de882493",
+  "source_generated_at": "2026-11-04T17:07:11+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 33,
-      "T_0_TO_60": 191,
-      "T_360_TO_1440": 163,
-      "T_60_TO_360": 150,
+      "T_0_TO_60": 190,
+      "T_360_TO_1440": 164,
+      "T_60_TO_360": 151,
       "T_OVER_1440": 146,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 37,
-      "T_0_TO_60": 263,
-      "T_360_TO_1440": 229,
-      "T_60_TO_360": 224,
+      "T_0_TO_60": 261,
+      "T_360_TO_1440": 230,
+      "T_60_TO_360": 225,
       "T_OVER_1440": 235,
       "UNKNOWN": 0
     },
@@ -293,24 +293,24 @@
       "V4_EXPLICIT": 987
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.6,
+      "DOWN": 35.7,
       "FLAT": 29.2,
-      "UP": 35.3
+      "UP": 35.2
     },
-    "down": 351,
+    "down": 352,
     "flat": 288,
     "messages_with_total": 987,
-    "up": 348,
+    "up": 347,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 54,
-    "continuous": 329,
-    "identical_total_pairs": 51,
-    "related_pairs": 64,
+    "continuous": 330,
+    "identical_total_pairs": 50,
+    "related_pairs": 63,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 13,
-    "same_movement_repeat": 64,
+    "same_movement_repeat": 63,
     "unobserved_change": 140
   }
 }
