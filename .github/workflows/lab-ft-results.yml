@@ -90,7 +90,9 @@ on:
       - 'h1lab/similarity.py'
       - 'h1lab/lab_stats.py'
       - 'scripts/lab_pattern_research.py'
+      - 'h1lab/pattern_report_layout.py'
       - 'tests/test_pattern_engine.py'
+      - 'tests/test_pattern_report_layout.py'
       - 'h1lab/discovery_timeline.py'
       - 'scripts/lab_discoveries.py'
       - 'h1lab/discovery_public_pages.py'
@@ -295,6 +297,7 @@ jobs:
           LAB_SOURCE_SHA: ${{ github.sha }}
         run: |
           python -m unittest discover -s tests -p 'test_pattern_engine.py'
+          python -m unittest discover -s tests -p 'test_pattern_report_layout.py'
           python -m scripts.lab_pattern_research
           python - <<'PY'
           import json
@@ -305,6 +308,10 @@ jobs:
           assert set(d['state_counts'])<=set(['EXPLORATORIO','CANDIDATO','EM_VALIDACAO','VALIDADO','REJEITADO'])
           assert {f['id'] for f in d['frozen']}<= {e['id'] for e in reg['entries']}
           assert Path('docs/lab/pattern-research.json').stat().st_size < 350000
+          # Summary + checksum-referenced per-day detail rebuild the full engine report.
+          from h1lab import pattern_report_layout as layout
+          full=layout.join(d, Path(layout.PERIODS_PATH).read_text(encoding='utf-8'))
+          assert len(full['patterns'])==len(d['patterns'])
           print('LAB_PATTERN_SUMMARY_VALID', d['scope']['ft_confirmed'], d['state_counts'])
           PY
       - name: Save research feature cache
@@ -392,6 +399,7 @@ jobs:
           fi
           if [ -f data/lab/ft-api-audit.json ]; then git add data/lab/ft-api-audit.json; fi
           if [ -f docs/lab/pattern-research.json ]; then git add docs/lab/pattern-research.json; fi
+          if [ -f docs/lab/pattern-research-periods.json ]; then git add docs/lab/pattern-research-periods.json; fi
           if [ -f docs/lab/v6-residual-research.json ]; then git add docs/lab/v6-residual-research.json; fi
           if [ "${{ steps.v6_pruning.outcome }}" = "success" ]; then
             git add -f data/lab/v6-pruning-selection-v1.json

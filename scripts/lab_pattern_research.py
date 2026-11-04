@@ -2,7 +2,9 @@
 
 Inputs (never modified): data/state.json, data/lab/markets-*.jsonl,
 data/lab/ft-ledger.json, docs/lab/ft-results.json, data/results.csv.
-Outputs: docs/lab/pattern-research.json, data/lab/pattern-registry.json
+Outputs: docs/lab/pattern-research.json (summary, <= 350 000 bytes),
+docs/lab/pattern-research-periods.json (per-day series, checksum-referenced by the summary;
+see h1lab.pattern_report_layout), data/lab/pattern-registry.json
 (append-only frozen hypotheses) and a feature cache outside git
 (data/lab/.cache/, restored by actions/cache).
 """
@@ -15,11 +17,12 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+from h1lab import pattern_report_layout as layout
 from h1lab.pattern_engine import run
 from h1lab.timeline import collect_timelines, read_sources
 
 ROOT = Path(__file__).resolve().parents[1]
-MAX_REPORT_BYTES = 350_000
+MAX_REPORT_BYTES = layout.MAX_SUMMARY_BYTES   # public contract, unchanged
 
 
 def _load(path, default):
@@ -43,6 +46,17 @@ def _write(path, data, *, compare_without=(), compact=False):
                     return False
             except ValueError:
                 pass
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+    return True
+
+
+def _write_text(path, text):
+    """Atomic write of an exact text (content-addressed detail file); False when unchanged."""
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
@@ -76,13 +90,26 @@ def main(argv=None):
     report, registry, cache = run(timelines, ledger, registry, now=now, previous=previous,
                                   cache=cache, h1_results=h1_rows, ft_report=ft_report,
                                   source_commit=os.environ.get("LAB_SOURCE_SHA", "unknown"))
-    size = len(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode())
+    full_size = layout.size(report)
+    summary, periods_text = layout.split(report)
+    if layout.dumps(layout.join(summary, periods_text)) != layout.dumps(report):  # lossless
+        raise SystemExit("LAB_PATTERN_REPORT_SPLIT_NOT_LOSSLESS")
+    size = layout.size(summary)
+    periods_size = len(periods_text.encode("utf-8"))
     if size > MAX_REPORT_BYTES:
         raise SystemExit("LAB_PATTERN_REPORT_TOO_LARGE %d" % size)
+    if periods_size > layout.MAX_PERIODS_BYTES:
+        raise SystemExit("LAB_PATTERN_PERIODS_TOO_LARGE %d" % periods_size)
+    if size > layout.WARN_SUMMARY_BYTES:
+        print("::warning title=LAB_PATTERN_REPORT_NEAR_LIMIT::%d of %d bytes" % (size, MAX_REPORT_BYTES))
     # Registry first: a report must never cite a frozen hypothesis that is not stored.
     reg_changed = _write(reg_path, registry)
-    wrote = _write(out_path, report, compare_without=("generated_at", "source_commit", "incremental"),
+    # Detail before summary: the summary only ever references a detail file already on disk.
+    periods_path = root / layout.PERIODS_PATH
+    periods_written = _write_text(periods_path, periods_text)
+    wrote = _write(out_path, summary, compare_without=("generated_at", "source_commit", "incremental"),
                    compact=True)
+    layout.verify(_load(out_path, None), periods_path.read_text(encoding="utf-8"))
     _write(cache_path, cache, compact=True)
     s, g = report["scope"], report["generation"]
     print("LAB_PATTERN_RESEARCH", "matches", s["research_eligible"], "ft", s["ft_confirmed"],
@@ -91,7 +118,9 @@ def main(argv=None):
           "tests", g["tests_performed"], "states", report["state_counts"],
           "new_frozen", len(report["changes"]["new_frozen_candidates"]),
           "reused", report["incremental"]["reused"], "recomputed", report["incremental"]["recomputed"],
-          "report_written", wrote, "registry_written", reg_changed, "bytes", size)
+          "report_written", wrote, "registry_written", reg_changed, "bytes", size,
+          "periods_written", periods_written, "periods_bytes", periods_size,
+          "unsplit_bytes", full_size)
     return report
 
 
