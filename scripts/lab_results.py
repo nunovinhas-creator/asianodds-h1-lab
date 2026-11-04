@@ -512,7 +512,7 @@ def main():
         score_hold_keys=bsd_official_hold_keys,
         source_version=(11 if goal_enabled or openfoot_enabled else
                         10 if api_football_poll else 9),
-        priority_hints=research_hints)
+        priority_hints=research_hints, horizon=LIVE_HORIZON)
     for key, proofs in fresh_dual.captured.items():
         dual.captured.setdefault(key, {}).update(proofs)
     dual.confirmations.update(fresh_dual.confirmations)
