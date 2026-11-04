@@ -119,13 +119,17 @@ def _gate_counts(gate, name):
     if denominator != frozen + missing:
         raise ValueError('Inconsistent prospective coverage')
     ratio = gate.get('ratio')
-    if ratio is None:
-        if denominator:
-            raise ValueError('Invalid metric: ' + name + ' coverage ratio')
-    else:
-        ratio = _number(ratio, name + ' coverage ratio')
-        if ratio > 1:
-            raise ValueError('Coverage over 100%')
+    # Exactly as h1lab.v6_readiness writes it: round(frozen / eligible, 4), and None when
+    # there is no eligible opportunity. Any other value is corruption, never a gate state.
+    if denominator == 0:
+        if ratio is not None:
+            raise ValueError('Inconsistent prospective coverage ratio: ' + name)
+        return denominator, frozen, missing, None
+    ratio = _number(ratio, name + ' coverage ratio')
+    if ratio > 1:
+        raise ValueError('Coverage over 100%')
+    if ratio != round(frozen / denominator, 4):
+        raise ValueError('Inconsistent prospective coverage ratio: ' + name)
     return denominator, frozen, missing, ratio
 
 

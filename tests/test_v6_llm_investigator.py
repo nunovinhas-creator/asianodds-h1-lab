@@ -526,6 +526,51 @@ class GateRequiresHumanReviewTests(unittest.TestCase):
                     mod.scientific_gate(self.root)
                 self.assertNotIsInstance(ctx.exception, mod.ScientificGateBlocked)
 
+    def test_ratio_inconsistent_with_counts_is_an_error(self):
+        # A ratio that disagrees with round(frozen / eligible, 4), as written by
+        # h1lab.v6_readiness, is corruption: never an AUTHORISED or BLOCKED gate.
+        cases = (
+            ('BELOW_99_PERCENT', {'ratio': 0.99, 'source_eligible': 1089,
+                                  'frozen_pre_kickoff': 1060, 'missing_count': 29}),
+            ('WARMUP', {'ratio': 0.9, 'source_eligible': 20,
+                        'frozen_pre_kickoff': 19, 'missing_count': 1}),
+            ('BELOW_99_PERCENT', {'ratio': 0.9733, 'source_eligible': 1089,
+                                  'frozen_pre_kickoff': 1060, 'missing_count': 29}),
+            ('WARMUP', {'ratio': 1.0, 'source_eligible': 0,
+                        'frozen_pre_kickoff': 0, 'missing_count': 0}),
+            ('NO_SOURCE_OPPORTUNITIES', {'ratio': 0.0, 'source_eligible': 0,
+                                         'frozen_pre_kickoff': 0, 'missing_count': 0}),
+            ('WARMUP', {'ratio': '0.95', 'source_eligible': 20,
+                        'frozen_pre_kickoff': 19, 'missing_count': 1}),
+            ('WARMUP', {'ratio': True, 'source_eligible': 1,
+                        'frozen_pre_kickoff': 1, 'missing_count': 0}),
+        )
+        for status, fields in cases:
+            with self.subTest(status=status, fields=fields):
+                self.set_gate('7_days', status=status, **fields)
+                with self.assertRaises(ValueError) as ctx:
+                    mod.scientific_gate(self.root)
+                self.assertNotIsInstance(ctx.exception, mod.ScientificGateBlocked)
+                with self.assertRaises(ValueError) as ctx:
+                    mod.build_packet(self.root)
+                self.assertNotIsInstance(ctx.exception, mod.ScientificGateBlocked)
+
+    def test_ratio_consistent_with_counts_is_accepted(self):
+        for status, fields, expected in (
+                ('BELOW_99_PERCENT', {'ratio': 0.9734, 'source_eligible': 1089,
+                                      'frozen_pre_kickoff': 1060, 'missing_count': 29},
+                 'SCIENTIFICALLY_BLOCKED'),
+                ('NO_SOURCE_OPPORTUNITIES', {'ratio': None, 'source_eligible': 0,
+                                             'frozen_pre_kickoff': 0, 'missing_count': 0},
+                 'SCIENTIFICALLY_BLOCKED'),
+                ('WARMUP', {'ratio': 0.95, 'source_eligible': 20,
+                            'frozen_pre_kickoff': 19, 'missing_count': 1}, 'AUTHORISED'),
+                ('WARMUP', {'ratio': 1, 'source_eligible': 3,
+                            'frozen_pre_kickoff': 3, 'missing_count': 0}, 'AUTHORISED')):
+            with self.subTest(status=status, fields=fields):
+                self.set_gate('7_days', status=status, **fields)
+                self.assertEqual(mod.scientific_gate(self.root)['state'], expected)
+
     def test_non_inconclusive_science_is_an_error(self):
         target = self.root / mod.SOURCES[0]
         body = json.loads(target.read_text())
