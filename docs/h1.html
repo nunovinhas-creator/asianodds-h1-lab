@@ -8,7 +8,21 @@
   <title>Arquivo H1 — Sinais Under e simulações | MASTER BRAIN</title>
   <link rel="stylesheet" href="./dashboard.css">
   <script defer src="./dashboard.js"></script>
-<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
+<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style><style>
+.ux-status-guide{display:block;margin:12px 0 20px;padding:13px 15px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:12px;background:color-mix(in srgb,currentColor 4%,transparent);font:inherit;color:inherit}
+.ux-status-guide .ux-status-caption{margin:0 0 10px;font:750 11px/1.35 system-ui,sans-serif;letter-spacing:.09em;opacity:.76}
+.ux-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.ux-status-item{display:flex;flex-direction:column;gap:6px;border-left:3px solid color-mix(in srgb,currentColor 38%,transparent);padding:2px 10px;min-width:0;font-size:13px;line-height:1.5}
+.ux-status-item .ux-evidence{display:inline-block;align-self:flex-start;font-size:12px;line-height:1.35;font-weight:800;padding:4px 7px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 24%,transparent)}
+.ux-status-item .ux-validated{border-color:#3a936e;color:#26915f}.ux-status-item .ux-testing{border-color:#b58d48;color:#ad873d}.ux-status-item .ux-proposal{border-color:#618cad;color:#609fca}
+.ux-status-note{margin:12px 0 0;font-size:12px;line-height:1.5;opacity:.9}
+.ux-home-state{display:flex;flex-wrap:wrap;align-items:center;gap:9px 18px;margin:13px 0;padding:13px 16px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-left:4px solid #4baf9c;border-radius:11px;background:color-mix(in srgb,currentColor 5%,transparent)}
+.ux-home-state-title{font-size:13px;font-weight:800}.ux-home-stat{font-size:13px}.ux-home-stat strong{font-size:19px;padding-left:5px;font-variant-numeric:tabular-nums}
+.ux-home-state a{font-size:13px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}.ux-helper{font-size:13px;line-height:1.5;opacity:.86;margin:6px 0 13px}
+.llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
+@media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
+</style>
+</head>
 <body>
 <a class="skip-link" href="#content">Saltar para os dados</a>
 <div class="app-shell">
@@ -51,6 +65,7 @@
     </div>
 
     <nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1" aria-current="page">Arquivo H1</a></nav>
+<section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
 <div class="system-strip" role="status" aria-live="polite">
       <div><span class="system-dot" id="h1-dot"></span><strong>H1 · Produção</strong><span id="h1-health">A verificar…</span></div>
       <span class="strip-divider" aria-hidden="true"></span>
@@ -92,7 +107,7 @@
       </div>
 
       <div class="two-column top-section">
-        <section class="panel status-panel"><div class="panel-head"><div><h2>Qualidade dos registos</h2><p>Regras de validação independentes do desempenho H1.</p></div><button class="text-link" type="button" data-go="quality">Ver auditoria →</button></div><div id="overview-quality" class="quality-preview"></div></section>
+        <section class="panel status-panel"><div class="panel-head"><div><h2>Qualidade dos registos · Não valida padrões</h2><p>Regras de validação independentes do desempenho H1.</p></div><button class="text-link" type="button" data-go="quality">Ver auditoria →</button></div><div id="overview-quality" class="quality-preview"></div></section>
         <section class="panel"><div class="panel-head"><div><h2>Últimas triplas simuladas</h2><p>Odds teóricas, sem garantia de execução real.</p></div><button class="text-link" type="button" data-go="triples">Ver triplas →</button></div><div id="overview-triples" class="compact-list"></div></section>
       </div>
     </section>
