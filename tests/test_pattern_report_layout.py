@@ -171,10 +171,24 @@ class ConsumersAreUnaffected(unittest.TestCase):
 
 
 class WriterEndToEnd(unittest.TestCase):
-    """scripts.lab_pattern_research over a copy of the real inputs (offline, temp dir)."""
+    """scripts.lab_pattern_research over a copy of the real inputs (offline, temp dir).
 
-    def test_writer_publishes_a_verified_pair_inside_the_contract(self):
-        from scripts import lab_pattern_research as writer
+    ``changes`` (state transitions, new FT, new frozen) is by definition relative to the
+    previously published report, so it legitimately differs between the first replay and the
+    second one whenever new FT results move a frozen hypothesis across a threshold (FT runs
+    41886312794 and 41892036736: P5-68bdd763e2 reached OOS_MIN_EVAL, CANDIDATO -> EM_VALIDACAO).
+    Idempotence is therefore asserted at the fixed point: the second and third runs are
+    byte-identical, and every other field is identical from the first run on.
+    """
+
+    VOLATILE = ("generated_at", "source_commit", "incremental")
+
+    @classmethod
+    def stable(cls, doc, *, without_changes=False):
+        drop = cls.VOLATILE + (("changes",) if without_changes else ())
+        return layout.dumps({k: v for k, v in doc.items() if k not in drop})
+
+    def copy_inputs(self):
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
         for rel in ("data/state.json", "data/results.csv", "data/lab/ft-ledger.json",
@@ -185,31 +199,85 @@ class WriterEndToEnd(unittest.TestCase):
                 shutil.copy2(REPO / rel, tmp / rel)
         for path in (REPO / "data/lab").glob("markets-*.jsonl"):
             shutil.copy2(path, tmp / "data/lab" / path.name)
+        return tmp
+
+    def on_disk(self, tmp):
+        return ((tmp / layout.SUMMARY_PATH).read_bytes(),
+                (tmp / layout.PERIODS_PATH).read_text(encoding="utf-8"))
+
+    def assert_replays_converge(self, tmp):
+        """Run the writer three times; return the three in-memory reports."""
+        from scripts import lab_pattern_research as writer
         registry_before = (tmp / "data/lab/pattern-registry.json").read_bytes()
-        report = writer.main(["--root", str(tmp), "--now", self.now()])
+        first = writer.main(["--root", str(tmp), "--now", self.now()])
         summary = json.loads((tmp / layout.SUMMARY_PATH).read_text(encoding="utf-8"))
         detail = (tmp / layout.PERIODS_PATH).read_text(encoding="utf-8")
         self.assertLess((tmp / layout.SUMMARY_PATH).stat().st_size, layout.MAX_SUMMARY_BYTES)
-        # The writer deliberately keeps the published summary when only these run-metadata
-        # fields differ (scripts/lab_pattern_research.py, compare_without). Since main carries
-        # an already split summary (f703ae07), replaying the committed inputs hits exactly that
-        # no-rewrite path, so the on-disk pair is compared without them; every hypothesis,
-        # statistic and per-day series must still be identical.
-        volatile = ("generated_at", "source_commit", "incremental")
-
-        def stable(doc):
-            return layout.dumps({k: v for k, v in doc.items() if k not in volatile})
-
-        self.assertEqual(stable(layout.join(summary, detail)), stable(report))
+        # The writer deliberately keeps the published summary when only run metadata differs
+        # (scripts/lab_pattern_research.py, compare_without): compare without those fields.
+        self.assertEqual(self.stable(layout.join(summary, detail)), self.stable(first))
         self.assertFalse(list(tmp.rglob("*.tmp")), "atomic writes leave no temp file")
-        # A second run with identical inputs rewrites nothing (idempotent).
-        before = ((tmp / layout.SUMMARY_PATH).read_bytes(), detail)
-        writer.main(["--root", str(tmp), "--now", self.now()])
-        self.assertEqual(((tmp / layout.SUMMARY_PATH).read_bytes(),
-                          (tmp / layout.PERIODS_PATH).read_text(encoding="utf-8")), before)
+        second = writer.main(["--root", str(tmp), "--now", self.now()])
+        # Same inputs: every hypothesis, state, statistic and per-day series is unchanged; only
+        # the "changes since the previous report" section may differ, and it must now be empty.
+        self.assertEqual(self.stable(second, without_changes=True),
+                         self.stable(first, without_changes=True))
+        self.assertEqual(second["changes"]["state_transitions"], [])
+        self.assertEqual(second["changes"]["new_frozen_candidates"], [])
+        settled = self.on_disk(tmp)
+        third = writer.main(["--root", str(tmp), "--now", self.now()])
+        self.assertEqual(self.on_disk(tmp), settled, "idempotent once settled")
         registry_after = (tmp / "data/lab/pattern-registry.json").read_bytes()
         self.assertTrue(registry_after.startswith(registry_before[:-2]) or
                         registry_after == registry_before, "registry stays append-only")
+        return first, second, third
+
+    def test_writer_publishes_a_verified_pair_inside_the_contract(self):
+        self.assert_replays_converge(self.copy_inputs())
+
+    def test_threshold_crossing_is_reported_once_and_then_settles(self):
+        """Deterministic version of the production case, on a copy of the real inputs."""
+        from h1lab import pattern_engine as pe
+        from h1lab.pattern_features import match_features
+        from h1lab.timeline import collect_timelines, read_sources
+        tmp = self.copy_inputs()
+        alerts, rows, errors = read_sources(tmp)
+        timelines, _, _ = collect_timelines(alerts, rows, source_errors=errors)
+        feats = {t["match_key"]: match_features(t) for t in timelines}
+        registry = json.loads((tmp / "data/lab/pattern-registry.json").read_text())
+        ledger = json.loads((tmp / "data/lab/ft-ledger.json").read_text())
+        matches = ledger["matches"]
+        now = datetime.fromisoformat(self.now().replace("Z", "+00:00"))
+        final = lambda k: (matches.get(k) or {}).get("status") == "FINAL"
+        for entry in registry["entries"]:
+            frozen_at = pe._utc(entry["frozen_at"])
+            members = sorted(k for k, f in feats.items() if "excluded" not in f
+                             and pe.holds(entry["definition"], f)
+                             and pe._utc(f["first_observed_at"]) > frozen_at)
+            known = [k for k in members if final(k)]
+            past = [k for k in members if not final(k) and k in matches
+                    and pe._utc(feats[k].get("kickoff_utc")) and pe._utc(feats[k]["kickoff_utc"]) < now]
+            if entry.get("decisions"):
+                continue
+            if len(known) < pe.OOS_MIN_EVAL and len(known) + len(past) >= pe.OOS_MIN_EVAL:
+                for key in past[:pe.OOS_MIN_EVAL - len(known)]:      # synthetic FT, temp copy only
+                    matches[key].update(status="FINAL", checked_at=self.now(), result={
+                        "home_goals": 2, "away_goals": 1, "identity_match": "EXACT",
+                        "source": "SYNTHETIC_TEST"})
+                expected = ("CANDIDATO", "EM_VALIDACAO")
+                break
+            if pe.OOS_MIN_EVAL <= len(known) < pe.EARLY_REJECT_N:
+                for key in known[:len(known) - pe.OOS_MIN_EVAL + 1]:  # withdraw FT, temp copy only
+                    matches[key].update(status="PENDING", result=None)
+                expected = ("EM_VALIDACAO", "CANDIDATO")
+                break
+        else:
+            self.fail("no frozen hypothesis can cross OOS_MIN_EVAL in the real inputs")
+        (tmp / "data/lab/ft-ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
+        first, second, _ = self.assert_replays_converge(tmp)
+        moved = [t for t in first["changes"]["state_transitions"] if t["id"] == entry["id"]]
+        self.assertEqual([(t["from"], t["to"]) for t in moved], [expected])
+        self.assertEqual(second["hypothesis_states"].get(entry["id"]), expected[1])
 
     @staticmethod
     def now():
