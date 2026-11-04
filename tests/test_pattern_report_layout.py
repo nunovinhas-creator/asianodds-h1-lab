@@ -205,11 +205,12 @@ class WriterEndToEnd(unittest.TestCase):
         return ((tmp / layout.SUMMARY_PATH).read_bytes(),
                 (tmp / layout.PERIODS_PATH).read_text(encoding="utf-8"))
 
-    def assert_replays_converge(self, tmp):
+    def assert_replays_converge(self, tmp, now=None):
         """Run the writer three times; return the three in-memory reports."""
         from scripts import lab_pattern_research as writer
+        now = now or self.now()
         registry_before = (tmp / "data/lab/pattern-registry.json").read_bytes()
-        first = writer.main(["--root", str(tmp), "--now", self.now()])
+        first = writer.main(["--root", str(tmp), "--now", now])
         summary = json.loads((tmp / layout.SUMMARY_PATH).read_text(encoding="utf-8"))
         detail = (tmp / layout.PERIODS_PATH).read_text(encoding="utf-8")
         self.assertLess((tmp / layout.SUMMARY_PATH).stat().st_size, layout.MAX_SUMMARY_BYTES)
@@ -217,7 +218,7 @@ class WriterEndToEnd(unittest.TestCase):
         # (scripts/lab_pattern_research.py, compare_without): compare without those fields.
         self.assertEqual(self.stable(layout.join(summary, detail)), self.stable(first))
         self.assertFalse(list(tmp.rglob("*.tmp")), "atomic writes leave no temp file")
-        second = writer.main(["--root", str(tmp), "--now", self.now()])
+        second = writer.main(["--root", str(tmp), "--now", now])
         # Same inputs: every hypothesis, state, statistic and per-day series is unchanged; only
         # the "changes since the previous report" section may differ, and it must now be empty.
         self.assertEqual(self.stable(second, without_changes=True),
@@ -225,7 +226,7 @@ class WriterEndToEnd(unittest.TestCase):
         self.assertEqual(second["changes"]["state_transitions"], [])
         self.assertEqual(second["changes"]["new_frozen_candidates"], [])
         settled = self.on_disk(tmp)
-        third = writer.main(["--root", str(tmp), "--now", self.now()])
+        third = writer.main(["--root", str(tmp), "--now", now])
         self.assertEqual(self.on_disk(tmp), settled, "idempotent once settled")
         registry_after = (tmp / "data/lab/pattern-registry.json").read_bytes()
         self.assertTrue(registry_after.startswith(registry_before[:-2]) or
@@ -236,78 +237,74 @@ class WriterEndToEnd(unittest.TestCase):
         self.assert_replays_converge(self.copy_inputs())
 
     def test_threshold_crossing_is_reported_once_and_then_settles(self):
-        """Deterministic version of the production case, on a copy of the real inputs.
+        """A frozen hypothesis crossing OOS_MIN_EVAL, on a synthetic deterministic root.
 
-        A transition is reported relative to the PUBLISHED report (the writer's ``previous``),
-        so the expected move is derived from the published state of the hypothesis, and the
-        OOS sample is counted exactly as the engine counts it (``outcomes_from``: LAB ledger
-        plus H1 results.csv). Two cases are real-data-dependent and both must hold:
-        - the reconciled inputs already cross OOS_MIN_EVAL (production FT run 41904198005:
-          one new FT moved frozen candidates to EM_VALIDACAO) -> no synthetic change at all;
-        - otherwise a synthetic FT is added (or a ledger-only FT withdrawn) in the temp copy
-          so that the state flips relative to the published one.
+        No production data: the writer runs on a temporary root built from the engine's own
+        synthetic fixtures, so the regression cannot depend on which hypotheses exist on main
+        or on how many real FT results happen to be reconciled. Transitions are reported
+        relative to the PUBLISHED report (the writer's ``previous``): the 10th OOS FT moves
+        CANDIDATO -> EM_VALIDACAO exactly once and then settles; withdrawing it moves back
+        exactly once and settles again. The registry stays append-only throughout.
         """
-        import csv
         from h1lab import pattern_engine as pe
         from h1lab.pattern_features import match_features
-        from h1lab.timeline import collect_timelines, read_sources
-        tmp = self.copy_inputs()
-        alerts, rows, errors = read_sources(tmp)
-        timelines, _, _ = collect_timelines(alerts, rows, source_errors=errors)
-        feats = {t["match_key"]: match_features(t) for t in timelines}
-        feats = {k: f for k, f in feats.items() if "excluded" not in f}
+        from scripts import lab_pattern_research as writer
+        try:                                   # discover -s tests (CI) or -m tests.<module>
+            from test_pattern_engine import T0, iso, synthetic, timelines
+        except ImportError:
+            from tests.test_pattern_engine import T0, iso, synthetic, timelines
+
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "data/lab").mkdir(parents=True)
+        state_path, ledger_path = tmp / "data/state.json", tmp / "data/lab/ft-ledger.json"
+        write = lambda path, doc: path.write_text(json.dumps(doc), encoding="utf-8")
+        (tmp / "data/lab/pattern-registry.json").write_text(
+            json.dumps({"schema_version": 1, "entries": []}), encoding="utf-8")
+
+        # 1. Discovery sample -> the engine freezes candidates (frozen_at = freeze_now).
+        alerts, ledger = synthetic(60, T0)
+        freeze_now = T0 + timedelta(days=12)
+        write(state_path, {"alerts": alerts})
+        write(ledger_path, {"schema_version": 1, "matches": ledger})
+        writer.main(["--root", str(tmp), "--now", iso(freeze_now)])
         registry = json.loads((tmp / "data/lab/pattern-registry.json").read_text())
-        ledger = json.loads((tmp / "data/lab/ft-ledger.json").read_text())
-        h1_csv = tmp / "data/results.csv"
-        h1_rows = list(csv.DictReader(h1_csv.open(encoding="utf-8"))) if h1_csv.exists() else []
-        h1_keys = {r.get("match_key") for r in h1_rows}
+        self.assertTrue(registry["entries"], "synthetic discovery sample must freeze a candidate")
+
+        # 2. Prospective sample, all kicked off and past RESULT_DELAY; FT still pending.
+        more, more_ledger = synthetic(40, freeze_now + timedelta(hours=4), first_id=100)
+        feats = {t["match_key"]: match_features(t) for t in timelines(alerts + more)}
+        now = iso(max(pe._utc(f["kickoff_utc"]) for f in feats.values())
+                  + pe.RESULT_DELAY + timedelta(hours=1))
+        entry = registry["entries"][0]
+        oos = sorted(k for k, f in feats.items() if "excluded" not in f
+                     and pe.holds(entry["definition"], f)
+                     and pe._utc(f["first_observed_at"]) > pe._utc(entry["frozen_at"]))
+        self.assertGreater(len(oos), pe.OOS_MIN_EVAL, "fixture must be able to cross")
+        matches = dict(ledger)
+        matches.update({k: {"status": "PENDING"} for k in more_ledger})
+        for k in oos[:pe.OOS_MIN_EVAL - 1]:                  # one FT short of the threshold
+            matches[k] = more_ledger[k]
+        write(state_path, {"alerts": alerts + more})
+        write(ledger_path, {"schema_version": 1, "matches": matches})
+        self.assert_replays_converge(tmp, now)
         published = json.loads((tmp / layout.SUMMARY_PATH).read_text(encoding="utf-8"))
-        published_states = published.get("hypothesis_states") or {}
-        matches = ledger["matches"]
-        outcomes, _, _ = pe.outcomes_from(ledger, h1_rows)
-        now = datetime.fromisoformat(self.now().replace("Z", "+00:00"))
-        for entry in registry["entries"]:
-            before = published_states.get(entry["id"])
-            if entry.get("decisions") or before not in ("CANDIDATO", "EM_VALIDACAO"):
-                continue
-            frozen_at = pe._utc(entry["frozen_at"])
-            members = sorted(k for k, f in feats.items() if pe.holds(entry["definition"], f)
-                             and pe._utc(f["first_observed_at"]) > frozen_at)
-            known = [k for k in members if k in outcomes]
-            if len(known) >= pe.EARLY_REJECT_N:
-                continue
-            now_state = "EM_VALIDACAO" if len(known) >= pe.OOS_MIN_EVAL else "CANDIDATO"
-            if now_state != before:                      # the real inputs already cross
-                expected = (before, now_state)
-                break
-            if before == "CANDIDATO":
-                past = [k for k in members if k not in outcomes and k in matches
-                        and pe._utc(feats[k].get("kickoff_utc"))
-                        and pe._utc(feats[k]["kickoff_utc"]) + pe.RESULT_DELAY <= now]
-                need = pe.OOS_MIN_EVAL - len(known)
-                if len(past) < need:
-                    continue
-                for key in past[:need]:                  # synthetic FT, temp copy only
-                    matches[key].update(status="FINAL", checked_at=self.now(), result={
-                        "home_goals": 2, "away_goals": 1, "identity_match": "EXACT",
-                        "source": "SYNTHETIC_TEST"})
-                expected = ("CANDIDATO", "EM_VALIDACAO")
-                break
-            ledger_only = [k for k in known if k not in h1_keys]
-            drop = len(known) - pe.OOS_MIN_EVAL + 1
-            if len(ledger_only) < drop:
-                continue
-            for key in ledger_only[:drop]:               # withdraw FT, temp copy only
-                matches[key].update(status="PENDING", result=None)
-            expected = ("EM_VALIDACAO", "CANDIDATO")
-            break
-        else:
-            self.fail("no frozen hypothesis can cross OOS_MIN_EVAL in the real inputs")
-        (tmp / "data/lab/ft-ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
-        first, second, _ = self.assert_replays_converge(tmp)
-        moved = [t for t in first["changes"]["state_transitions"] if t["id"] == entry["id"]]
-        self.assertEqual([(t["from"], t["to"]) for t in moved], [expected])
-        self.assertEqual(second["hypothesis_states"].get(entry["id"]), expected[1])
+        self.assertEqual(published["hypothesis_states"][entry["id"]], "CANDIDATO")
+
+        def crossing(expected):
+            first, second, _ = self.assert_replays_converge(tmp, now)
+            moved = [(t["from"], t["to"]) for t in first["changes"]["state_transitions"]
+                     if t["id"] == entry["id"]]
+            self.assertEqual(moved, [expected])
+            self.assertEqual(second["hypothesis_states"][entry["id"]], expected[1])
+
+        tenth = oos[pe.OOS_MIN_EVAL - 1]
+        matches[tenth] = more_ledger[tenth]                  # the 10th OOS FT arrives
+        write(ledger_path, {"schema_version": 1, "matches": matches})
+        crossing(("CANDIDATO", "EM_VALIDACAO"))
+        matches[tenth] = {"status": "PENDING"}               # and is withdrawn again
+        write(ledger_path, {"schema_version": 1, "matches": matches})
+        crossing(("EM_VALIDACAO", "CANDIDATO"))
 
     @staticmethod
     def now():
