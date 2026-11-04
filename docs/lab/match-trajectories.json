@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-04T11:07:13+00:00",
+ "generated_at": "2026-11-04T11:12:17+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -26,19 +26,19 @@
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "7c6165349225985fe4d4d69c540eb355e2ec71f2",
+ "source_commit": "6da40dbeb95eacfecfce4b734ab53e954984ce19",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 1477,
   "matches_with_identity_inconsistency": 2,
   "max_messages_per_match": 7,
-  "messages": 2238,
+  "messages": 2239,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1291,
+  "messages_on_repeated_matches": 1292,
   "messages_v4_only": 1,
-  "messages_with_v4": 2164,
-  "movement_episodes_upper_bound": 2151,
+  "messages_with_v4": 2165,
+  "movement_episodes_upper_bound": 2152,
   "possibly_redundant_snapshots": 67,
   "post_kickoff_messages": 84,
   "related_message_pairs": 87,
@@ -53,27 +53,28 @@
   "repeated_matches": 530,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 116,
-   "V4_EXPLICIT": 3574
+   "V4_EXPLICIT": 3577
   },
   "total_line_reversals_on_repeated": 300,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 76,
-   "CONTINUOUS": 419,
+   "CONTINUOUS": 420,
    "SAME_MOVEMENT_REPEAT": 87,
    "UNOBSERVED_CHANGE": 178
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 719,
-   "one_x_two:AGREE": 691,
-   "total:AGREE": 2161
+   "asian_handicap:AGREE": 720,
+   "one_x_two:AGREE": 692,
+   "total:AGREE": 2162
   }
  },
  "timelines": [
   {
-   "event_count": 2,
+   "event_count": 3,
    "event_ids": [
     "3571094759:52625",
-    "3571094759:52830"
+    "3571094759:52830",
+    "3571094759:52834"
    ],
    "events": [
     {
@@ -139,6 +140,76 @@
        "status": "AGREE"
       }
      }
+    },
+    {
+     "event_id": "3571094759:52834",
+     "message_id": 52834,
+     "minutes_to_kickoff": 78.0,
+     "observed_at": "2026-11-04T10:57:02+00:00",
+     "snapshots": {
+      "asian_handicap": {
+       "after": {
+        "away_price": 2.1,
+        "home_price": 1.98,
+        "line": 0.5
+       },
+       "before": {
+        "away_price": 1.94,
+        "home_price": 1.98,
+        "line": 0.5
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "one_x_two": {
+       "1": {
+        "after": 3.54,
+        "before": 3.76
+       },
+       "2": {
+        "after": 2.08,
+        "before": 1.95
+       },
+       "X": {
+        "after": 3.72,
+        "before": 3.96
+       },
+       "origin": "V4_EXPLICIT"
+      },
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 2.04,
+        "under_price": 1.92
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.04,
+        "under_price": 1.92
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_displayed_pct_unvalidated": 13.7,
+     "trigger_market": "1x2",
+     "trigger_selection": "2",
+     "v4_vs_h1_record": {
+      "asian_handicap": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "one_x_two": {
+       "fields": [],
+       "status": "AGREE"
+      },
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
     }
    ],
    "first_observed_at": "2026-11-03T14:54:07+00:00",
@@ -150,7 +221,7 @@
     "per_message_conflicts": [],
     "team_names_consistent": true
    },
-   "last_observed_at": "2026-11-04T09:58:01+00:00",
+   "last_observed_at": "2026-11-04T10:57:02+00:00",
    "match_key": "2026-11-04,38202,795",
    "match_label": "Buriram United FC vs Kashima Antlers",
    "movement_episodes": [
@@ -159,23 +230,72 @@
     ],
     [
      "3571094759:52830"
+    ],
+    [
+     "3571094759:52834"
     ]
    ],
-   "movement_episodes_upper_bound": 2,
+   "movement_episodes_upper_bound": 3,
    "possibly_redundant_event_ids": [],
    "post_kickoff_messages": 0,
    "related_messages": [],
    "seconds_between_messages": [
-    68634.0
+    68634.0,
+    3541.0
    ],
    "trajectory": {
+    "asian_handicap": {
+     "first_observed_line": 0.5,
+     "last_observed_line": 0.5,
+     "net_observed_change": 0.0,
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "after": 0.5,
+       "before": 0.5,
+       "event_id": "3571094759:52834",
+       "move": "FLAT",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": []
+    },
+    "one_x_two": {
+     "observations": 1,
+     "origins": {
+      "V4_EXPLICIT": 1
+     },
+     "points": [
+      {
+       "1": [
+        3.76,
+        3.54
+       ],
+       "2": [
+        1.95,
+        2.08
+       ],
+       "X": [
+        3.96,
+        3.72
+       ],
+       "event_id": "3571094759:52834",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "transitions": []
+    },
     "total": {
      "first_observed_line": 2.75,
      "last_observed_line": 3.0,
      "net_observed_change": 0.25,
-     "observations": 2,
+     "observations": 3,
      "origins": {
-      "V4_EXPLICIT": 2
+      "V4_EXPLICIT": 3
      },
      "points": [
       {
@@ -190,6 +310,13 @@
        "before": 2.75,
        "event_id": "3571094759:52830",
        "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 3.0,
+       "before": 3.0,
+       "event_id": "3571094759:52834",
+       "move": "FLAT",
        "origin": "V4_EXPLICIT"
       }
      ],
@@ -210,6 +337,14 @@
        "previous_after_line": 2.5,
        "to": "3571094759:52830",
        "unobserved_direction": "UP"
+      },
+      {
+       "from": "3571094759:52830",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:52834"
       }
      ]
     }
