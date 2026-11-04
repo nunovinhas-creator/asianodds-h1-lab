@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Laboratório MASTER BRAIN</title>
+<title>Qualidade dos dados · MASTER BRAIN</title>
 <meta name="description" content="Entrada única do laboratório em modo sombra: saúde V4, qualidade, Golden Set, cronologias e limitações. Não altera o H1.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -47,12 +47,12 @@ ul.plain{padding-left:20px;max-width:70ch}ul.plain li{margin:5px 0}
 details{margin:10px 0}summary{cursor:pointer;font-weight:700}
 footer{margin-top:56px;font-size:15px;color:var(--soft)}
 @media (prefers-reduced-motion:no-preference){.chain b{transition:opacity .4s}.loading .chain b{opacity:.25}}
-</style></head>
+</style><style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
 <body class="loading"><div class="wrap">
 <header>
 <div class="top"><a href="./index.html">MASTER BRAIN · Início</a><a href="./lab-pattern-watch.html">Jogos futuros</a><a href="./h1.html#h1">Under H1</a><a href="./lab-research.html">Investigação de padrões</a><a href="./lab-results.html">Resultados dos jogos</a><a href="./lab-v4-audit.html">Auditoria V4</a><a href="./golden-review.html">Golden Set — revisão</a></div>
-<h1 id="headline">Nada está certificado ainda.</h1>
-<p class="lede">Este laboratório observa os alertas AsianOdds em modo sombra. Mede se os dados são fiáveis antes de qualquer estudo de vantagem. Não altera o H1 e não cria apostas.</p>
+<h1 id="headline">Até onde podemos confiar nos dados?</h1>
+<p class="lede">Esta página mostra a cobertura dos alertas, as verificações efetuadas e os problemas pendentes. Qualidade dos dados e validação dos padrões são questões diferentes. Nenhuma aposta é executada.</p>
 <ol class="chain" aria-label="Cadeia de evidência, da mensagem ao resultado">
  <li><span class="step">1</span><span class="what">Mensagens</span><b id="c-msg">—</b><span class="state" id="s-msg">a carregar</span></li>
  <li><span class="step">2</span><span class="what">Snapshots V4</span><b id="c-snap">—</b><span class="state" id="s-snap">a carregar</span></li>
@@ -62,22 +62,17 @@ footer{margin-top:56px;font-size:15px;color:var(--soft)}
 </ol>
 <p class="muted" id="chain-note">A unidade de avaliação de uma aposta é o jogo, não cada notificação.</p>
 </header>
-<nav class="toc" aria-label="Secções"><a href="#investigacao">Investigação de padrões</a><a href="#saude">Saúde e cobertura V4</a><a href="#qualidade">Qualidade e confiança</a><a href="#golden">Golden Set</a><a href="#cronologias">Cronologias</a><a href="#prioridades">Prioridades</a><a href="#limites">Limitações e documentação</a></nav>
+<nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html" aria-current="page">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
+<nav class="toc" aria-label="Secções"><a href="#saude">Cobertura</a><a href="#qualidade">Verificações</a><a href="#golden">Revisão manual</a><a href="#prioridades">Pendentes</a><a href="#cronologias">Alertas repetidos</a><a href="#investigacao">Investigação</a><a href="#limites">Limitações</a></nav>
 
-<section id="investigacao" aria-labelledby="h-inv"><h2 id="h-inv">Investigação de padrões</h2>
-<p class="stamp" id="r-stamp"></p>
-<p id="r-summary"></p>
-<p><a href="./lab-research.html">Abrir a investigação</a>: padrões, combinações, jogos semelhantes, evolução, descobertas e cobertura FT.</p>
-</section>
-
-<section id="saude" aria-labelledby="h-saude"><h2 id="h-saude">Saúde e cobertura V4</h2>
+<section id="saude" aria-labelledby="h-saude"><h2 id="h-saude">Cobertura e consistência dos dados</h2>
 <p class="stamp" id="v4-stamp"></p>
 <div class="scroll"><table><thead><tr><th>Critério oficial (primeiras 24 h)</th><th>Estado</th><th>Porquê</th></tr></thead><tbody id="gates"></tbody></table></div>
 <h3>Concordância V4 com o registo H1</h3>
 <div class="scroll"><table><thead><tr><th>Mercado</th><th>Campos comparados</th><th>Concordantes</th><th>Divergências</th><th>Ausentes</th></tr></thead><tbody id="markets"></tbody></table></div>
 </section>
 
-<section id="qualidade" aria-labelledby="h-qual"><h2 id="h-qual">Qualidade e confiança estatística</h2>
+<section id="qualidade" aria-labelledby="h-qual"><h2 id="h-qual">Até onde chegam as verificações?</h2>
 <p>Cada dimensão responde a uma pergunta diferente. Concordância entre parsers não é exatidão: os dois leem o mesmo texto. A unidade é a mensagem; um alerta 1X2 com 18 campos conta uma vez.</p>
 <div class="scroll"><table><thead><tr><th>Dimensão</th><th>Medida</th><th>Limite inferior 95%</th></tr></thead><tbody id="dims"></tbody></table></div>
 <h3>Por família e período do parser</h3>
@@ -89,7 +84,7 @@ footer{margin-top:56px;font-size:15px;color:var(--soft)}
 <p class="muted">Agregado do protótipo V2, executado só manualmente. Fica como registo; a cobertura atual vem da auditoria V4.</p>
 </section>
 
-<section id="golden" aria-labelledby="h-golden"><h2 id="h-golden">Golden Set</h2>
+<section id="golden" aria-labelledby="h-golden"><h2 id="h-golden">Mensagens revistas manualmente</h2>
 <p class="stamp" id="g-stamp"></p>
 <p id="g-summary"></p>
 <div class="scroll"><table><thead><tr><th>Família</th><th>Revistas</th><th>Confirmadas pelo utilizador</th><th>Duas revisões</th><th>Campos concordantes</th><th>Com divergências</th></tr></thead><tbody id="g-fam"></tbody></table></div>
@@ -99,7 +94,11 @@ footer{margin-top:56px;font-size:15px;color:var(--soft)}
 <p><a href="./golden-review.html">Abrir a página de revisão</a> para transcrever uma mensagem original.</p>
 </section>
 
-<section id="cronologias" aria-labelledby="h-tl"><h2 id="h-tl">Cronologias e alertas repetidos</h2>
+<section id="prioridades" aria-labelledby="h-prio"><h2 id="h-prio">Problemas e verificações pendentes</h2>
+<ol class="prio" id="prio"></ol>
+</section>
+
+<section id="cronologias" aria-labelledby="h-tl"><h2 id="h-tl">Alertas repetidos e histórico dos movimentos</h2>
 <p class="stamp" id="t-stamp"></p>
 <p id="t-summary"></p>
 <h3>Mensagens possivelmente do mesmo movimento</h3>
@@ -109,11 +108,13 @@ footer{margin-top:56px;font-size:15px;color:var(--soft)}
 <div id="t-games"></div>
 </section>
 
-<section id="prioridades" aria-labelledby="h-prio"><h2 id="h-prio">Prioridades de investigação</h2>
-<ol class="prio" id="prio"></ol>
+<section id="investigacao" aria-labelledby="h-inv"><h2 id="h-inv">Aceder à investigação de padrões</h2>
+<p class="stamp" id="r-stamp"></p>
+<p id="r-summary"></p>
+<p><a href="./lab-research.html">Abrir a investigação</a>: padrões, combinações, jogos semelhantes, evolução, descobertas e cobertura FT.</p>
 </section>
 
-<section id="limites" aria-labelledby="h-lim"><h2 id="h-lim">Limitações e documentação</h2>
+<section id="limites" aria-labelledby="h-lim"><h2 id="h-lim">O que os dados ainda não permitem concluir</h2>
 <ul class="plain">
 <li>O canal só publica alguns movimentos; não existe série contínua de preços.</li>
 <li>Uma diferença de linha entre dois alertas é uma mudança não observada, nunca interpolada.</li>

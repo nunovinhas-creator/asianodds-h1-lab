@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#090f19">
   <meta name="description" content="MASTER BRAIN — inteligência de mercados de futebol. Descobertas do cérebro V5, padrões observados em jogos futuros, testes e validação. H1 Under em arquivo secundário.">
-  <title>MASTER BRAIN — Inteligência de mercados</title>
+  <title>MASTER BRAIN — Jogos, padrões e resultados</title>
   <link rel="stylesheet" href="./master-brain.css">
   <script defer src="./master-brain.js"></script>
-</head>
+<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}.ux-status-guide{margin:15px 0;padding:13px;border:1px solid color-mix(in srgb,currentColor 23%,transparent);border-radius:9px;line-height:1.6;font-size:14px}.ux-status-guide span{display:inline-block;font-weight:700;margin:2px 5px 2px 8px;padding:3px 6px;border-radius:5px;background:color-mix(in srgb,currentColor 10%,transparent)}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
 <body>
 <a class="skip-link" href="#main">Saltar para o conteúdo</a>
 <div class="app">
@@ -39,58 +39,60 @@
 
  <main class="work" id="main">
   <div class="topbar">
-   <div class="breadcrumb"><b>MASTER BRAIN</b><em>/</em><span id="breadcrumb-page">Radar do Cérebro</span></div>
+   <div class="breadcrumb"><b>MASTER BRAIN</b><em>/</em><span id="breadcrumb-page">Visão geral</span></div>
    <div class="tools"><span class="stamp" id="last-sync">A carregar relatórios…</span><button id="refresh" class="refresh" type="button" title="Voltar a consultar os relatórios" aria-label="Atualizar dados">↻</button></div>
   </div>
-  <div id="error-box" class="wide-message" role="alert" hidden></div>
+  <nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html" aria-current="page">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
+<div id="error-box" class="wide-message" role="alert" hidden></div>
 
   <section class="page" id="page-radar" aria-labelledby="radar-heading">
    <div class="hero">
     <div class="kicker">CENTRO DE INTELIGÊNCIA · INVESTIGAÇÃO V5</div>
-    <h1 id="radar-heading">O que o cérebro está a descobrir.</h1>
-    <p>Movimentos de odds, sinais contraditórios e padrões cruzados com resultados reais. O foco não é apostar mais — é encontrar evidência que resista a testes.</p>
+    <h1 id="radar-heading">O que sabemos sobre os movimentos das odds?</h1>
+    <p>Acompanhamos movimentos das odds antes dos jogos, confrontamos padrões com resultados reais e distinguimos observações de conclusões comprovadas.</p>
     <div class="hero-actions">
-      <button class="button primary" type="button" data-go="futuros">Explorar jogos futuros <span aria-hidden="true">↗</span></button>
-      <button class="button" type="button" data-go="padroes">Ver hipóteses e cruzamentos</button>
+      <button class="button primary" type="button" data-go="futuros">Ver jogos a acompanhar <span aria-hidden="true">↗</span></button>
+      <button class="button" type="button" data-go="padroes">Explorar padrões em teste</button>
     </div>
    </div>
 
-   <div class="panel science-radar-promo" style="margin:18px 0;border-left:3px solid var(--aqua)">
-    <div class="section-head" style="margin:0"><div><div class="kicker">V6.2 · NOVO RADAR CIENTÍFICO</div>
-    <h2>Segue a prova, não apenas o padrão.</h2><p>Hipótese formal → observação original → previsão congelada → resultado FT e falsificações. Registos com SHA, lacunas identificadas e estado INCONCLUSIVO até existir validação fora da amostra.</p></div>
-    <a class="button primary" href="./scientific-radar.html">Abrir Radar Científico V6 ↗</a>
-    <a class="button" href="./llm-investigator.html">Acompanhar Investigador LLM ↗</a></div>
-   </div>
    <div class="metrics" aria-label="Indicadores do cérebro">
     <div class="metric"><span class="metric-title">Jogos futuros sob observação rigorosa</span><strong class="mint" id="r-future">—</strong><small id="r-future-sub">Episódios independentes · Total válido</small></div>
     <div class="metric"><span class="metric-title">Hipóteses avaliadas</span><strong id="r-hyp">—</strong><small>Cruzamentos e padrões V5</small></div>
     <div class="metric"><span class="metric-title">Padrões validados</span><strong class="amber" id="r-valid">—</strong><small>Depois de correção estatística e OOS</small></div>
-    <div class="metric"><span class="metric-title">Resultados FT no cérebro</span><strong class="blue" id="r-ft">—</strong><small id="r-ft-sub">Uma observação por jogo</small></div>
+    <div class="metric"><span class="metric-title">Resultados finais recolhidos</span><strong class="blue" id="r-ft">—</strong><small id="r-ft-sub">Uma observação por jogo</small></div>
    </div>
 
-   <div class="section-head"><div><h2>O que mudou desde a última análise?</h2><p>Cronologia auditável desde a primeira baseline. Novos FT não são automaticamente novas descobertas.</p></div><a class="text-action" href="./lab/discoveries.json">Ver dados e proveniência →</a></div>
+   <div class="ux-status-guide" role="note"><strong>Como interpretar:</strong><span>Validado</span> cumpriu os testes exigidos; <span>Em teste</span> padrão ainda sem vantagem demonstrada; <span>Proposta da IA</span> ideia que precisa de testes. Um resultado final verificado não valida automaticamente um padrão.</div>
+<div class="section-head"><div><h2>O que está confirmado e o que falta provar?</h2><p>Separação deliberada entre dados recolhidos, hipóteses e validação independente.</p></div><button class="text-action" type="button" data-go="validacao">Ver critérios →</button></div>
+   <div class="columns half">
+     <div class="panel"><h3>Um padrão observado não é uma previsão validada</h3><div id="r-proof" class="gate-list"></div><p class="note warning">Uma taxa elevada em poucos jogos pode ser coincidência. O valor-q corrigido e o desempenho fora da amostra são decisivos.</p></div>
+     <div class="panel"><h3>De onde vêm os dados</h3><div id="r-feeds" class="gate-list"></div><button class="text-action" data-go="dados" type="button">Ver qualidade e cobertura →</button></div>
+   </div>
+  <div class="section-head"><div><h2>Jogos a acompanhar e padrões em teste</h2><p>Ordenadas por evidência exploratória; não são previsões nem apostas.</p></div><button class="text-action" type="button" data-go="padroes">Analisar hipóteses →</button></div>
+   <div class="columns">
+    <div class="panel"><div class="panel-head"><h3>Jogos futuros com movimentos observados</h3><button class="text-action" type="button" data-go="futuros">Todos os jogos →</button></div><p>Dois ou mais movimentos independentes, sem uma descida observada de λ ≥ 0,05.</p><div id="r-watch"><div class="empty">A consultar jogos futuros…</div></div></div>
+    <div class="panel"><div class="panel-head"><h3>Padrões encontrados nos jogos anteriores</h3><span class="tag">V5 · EXPLORATÓRIO</span></div><div id="r-insights" class="card-stack"><div class="empty">A carregar hipóteses…</div></div></div>
+   </div>
+
+   <div class="section-head"><div><h2>Como terminaram os jogos acompanhados?</h2><p>Categorias registadas antes do início e resultados finais verificados depois. Jogos sem resultado não contam como derrotas.</p></div></div>
+   <div class="panel"><div id="r-prospective" class="card-stack"><div class="empty">A consultar o histórico prospetivo…</div></div></div>
+
+   <div class="section-head"><div><h2>O que mudou na investigação?</h2><p>Novos resultados e alterações às hipóteses, com histórico verificável. Um novo resultado não significa uma nova descoberta.</p></div><a class="text-action" href="./lab/discoveries.json">Ver dados e proveniência →</a></div>
    <div class="toolbar"><label>Filtrar acontecimentos<select id="discovery-filter"><option value="all">Todas as alterações relevantes</option><option value="NEW_EVIDENCE">Novos resultados FT</option><option value="IMPROVED">Mais consistentes</option><option value="DEGRADED">Menos consistentes</option><option value="states">Candidatas / validadas / rejeitadas</option><option value="RECALCULATED">Revisão estatística</option></select></label><span class="count" id="discovery-count">—</span></div>
    <div id="r-discovery" class="discovery-stream" aria-live="polite"><div class="empty">A consultar a cronologia…</div></div>
    <div class="panel discovery-detail" id="r-detail" hidden aria-live="polite"></div>
 
-   <div class="section-head"><div><h2>Resultados dos jogos detetados antes do início</h2><p>Categorias congeladas no momento da primeira deteção; FT confirmados associados posteriormente, sem considerar pendentes como reds.</p></div></div>
-   <div class="panel"><div id="r-prospective" class="card-stack"><div class="empty">A consultar o histórico prospetivo…</div></div></div>
-
-   <div class="section-head"><div><h2>Descobertas sob investigação</h2><p>Ordenadas por evidência exploratória; não são previsões nem apostas.</p></div><button class="text-action" type="button" data-go="padroes">Analisar hipóteses →</button></div>
-   <div class="columns">
-    <div class="panel"><div class="panel-head"><h3>Relações que merecem acompanhamento</h3><span class="tag">V5 · EXPLORATÓRIO</span></div><div id="r-insights" class="card-stack"><div class="empty">A carregar hipóteses…</div></div></div>
-    <div class="panel"><div class="panel-head"><h3>Radar de jogos futuros</h3><button class="text-action" type="button" data-go="futuros">Todos os jogos →</button></div><p>Dois ou mais movimentos independentes, sem uma descida observada de λ ≥ 0,05.</p><div id="r-watch"><div class="empty">A consultar jogos futuros…</div></div></div>
+   <div class="panel science-radar-promo" style="margin:18px 0;border-left:3px solid var(--aqua)">
+    <div class="section-head" style="margin:0"><div><div class="kicker">V6.2 · NOVO RADAR CIENTÍFICO</div>
+    <h2>Como confirmamos ou rejeitamos um padrão</h2><p>Cada hipótese é registada antes do resultado e confrontada com jogos posteriores. Os detalhes técnicos e as fontes continuam disponíveis.</p></div>
+    <a class="button primary" href="./scientific-radar.html">Abrir Radar Científico V6 ↗</a>
+    <a class="button" href="./llm-investigator.html">Acompanhar Investigador LLM ↗</a></div>
    </div>
-
-   <div class="section-head"><div><h2>O que já está provado?</h2><p>Separação deliberada entre dados recolhidos, hipóteses e validação independente.</p></div><button class="text-action" type="button" data-go="validacao">Ver critérios →</button></div>
-   <div class="columns half">
-     <div class="panel"><h3>Descoberta não é validação</h3><div id="r-proof" class="gate-list"></div><p class="note warning">Uma taxa elevada em poucos jogos pode ser coincidência. O valor-q corrigido e o desempenho fora da amostra são decisivos.</p></div>
-     <div class="panel"><h3>Alimentação do cérebro</h3><div id="r-feeds" class="gate-list"></div><button class="text-action" data-go="dados" type="button">Ver qualidade e cobertura →</button></div>
-   </div>
-  </section>
+   </section>
 
   <section class="page" id="page-futuros" hidden aria-labelledby="fut-heading">
-    <div class="page-heading"><div><div class="kicker">OBSERVATÓRIO PROSPETIVO · V5</div><h1 id="fut-heading">Jogos que o cérebro está a seguir.</h1><p class="lead">Classificação automática com dados anteriores ao início. Mostra movimentos efetivamente observados; não simula odds entre mensagens nem utiliza resultados futuros.</p></div><span class="pill">Observação, não prognóstico</span></div>
+    <div class="page-heading"><div><div class="kicker">OBSERVATÓRIO PROSPETIVO · V5</div><h1 id="fut-heading">Jogos futuros com movimentos de odds.</h1><p class="lead">Classificação automática com dados anteriores ao início. Mostra movimentos efetivamente observados; não simula odds entre mensagens nem utiliza resultados futuros.</p></div><span class="pill">Observação, não prognóstico</span></div>
     <div class="metrics">
       <div class="metric"><span class="metric-title">Condição original</span><strong id="f-original">—</strong><small>≥2 alertas sem descida relevante</small></div>
       <div class="metric"><span class="metric-title">Rigorosos</span><strong class="mint" id="f-strict">—</strong><small>≥2 episódios + Total válido</small></div>
@@ -112,7 +114,7 @@
   </section>
 
   <section class="page" id="page-padroes" hidden aria-labelledby="pat-heading">
-    <div class="page-heading"><div><div class="kicker">MOTOR DE HIPÓTESES · CROSS-MARKET</div><h1 id="pat-heading">Padrões, cruzamentos e resultados.</h1><p class="lead">Compara movimentos de Total, 1X2 e handicap asiático com Over 2,5 e BTTS. As associações são exploratórias até serem validadas em novos jogos.</p></div><span class="pill">Sem hipótese validada assumida</span></div>
+    <div class="page-heading"><div><div class="kicker">MOTOR DE HIPÓTESES · CROSS-MARKET</div><h1 id="pat-heading">Padrões encontrados e respetivas amostras.</h1><p class="lead">Compara movimentos de Total, 1X2 e handicap asiático com Over 2,5 e BTTS. As associações são exploratórias até serem validadas em novos jogos.</p></div><span class="pill">Sem hipótese validada assumida</span></div>
     <div class="metrics">
       <div class="metric"><span class="metric-title">Hipóteses avaliadas</span><strong id="p-count">—</strong><small>Inclui combinações</small></div>
       <div class="metric"><span class="metric-title">Padrões individuais com suporte</span><strong id="p-individual">—</strong><small>Catálogo pré-definido</small></div>
@@ -132,7 +134,7 @@
   </section>
 
   <section class="page" id="page-validacao" hidden aria-labelledby="val-heading">
-    <div class="page-heading"><div><div class="kicker">EVIDÊNCIA · CIÊNCIA DE DADOS</div><h1 id="val-heading">Da hipótese à validação real.</h1><p class="lead">Não basta encontrar taxas elevadas. Cada ideia deve sobreviver a correção estatística, congelamento prévio e jogos que não participaram na descoberta.</p></div><span class="pill">Validação fora da amostra</span></div>
+    <div class="page-heading"><div><div class="kicker">EVIDÊNCIA · CIÊNCIA DE DADOS</div><h1 id="val-heading">Que padrões passaram nos testes?</h1><p class="lead">Não basta encontrar taxas elevadas. Cada ideia deve sobreviver a correção estatística, congelamento prévio e jogos que não participaram na descoberta.</p></div><span class="pill">Validação fora da amostra</span></div>
     <div class="metrics">
       <div class="metric"><span class="metric-title">Hipóteses exploratórias</span><strong id="v-explore">—</strong><small>Ainda em descoberta</small></div>
       <div class="metric"><span class="metric-title">Candidatas</span><strong id="v-candidates">—</strong><small>Regras pré-congeladas</small></div>
@@ -141,7 +143,7 @@
     </div>
     <div class="columns">
      <div class="panel"><h3>Funil científico das hipóteses</h3><p>As quantidades vêm do relatório publicado; etapas vazias são mostradas explicitamente.</p><div id="v-funnel" class="bar-funnel"></div><p class="note">O histórico de primeiro alerta dos jogos futuros é um registo de observação, <strong>não</strong> equivale a uma hipótese estatística congelada.</p></div>
-     <div class="panel"><h3>O cérebro é melhor que o mercado?</h3><p>Erro de Brier nos mesmos jogos: <strong>menor é melhor</strong>.</p><div id="v-brier" class="bar-funnel"></div><p class="note warning" id="v-brier-note">A carregar comparação…</p></div>
+     <div class="panel"><h3>A previsão compara-se favoravelmente ao mercado?</h3><p>Erro de Brier nos mesmos jogos: <strong>menor é melhor</strong>.</p><div id="v-brier" class="bar-funnel"></div><p class="note warning" id="v-brier-note">A carregar comparação…</p></div>
     </div>
     <div class="columns half" style="margin-top:16px">
      <div class="panel"><h3>Hipóteses congeladas e mudanças</h3><div id="v-frozen" class="card-stack"></div></div>
@@ -151,7 +153,7 @@
   </section>
 
   <section class="page" id="page-dados" hidden aria-labelledby="dat-heading">
-    <div class="page-heading"><div><div class="kicker">CONFIANÇA · QUALIDADE DAS FONTES</div><h1 id="dat-heading">O que alimenta o cérebro.</h1><p class="lead">Resultados verificados, cobertura e limites de observação. Um alerta recebido não significa que a interpretação V4 esteja certificada.</p></div></div>
+    <div class="page-heading"><div><div class="kicker">CONFIANÇA · QUALIDADE DAS FONTES</div><h1 id="dat-heading">Qualidade e origem dos dados.</h1><p class="lead">Resultados verificados, cobertura e limites de observação. Um alerta recebido não significa que a interpretação V4 esteja certificada.</p></div></div>
     <div class="metrics">
       <div class="metric"><span class="metric-title">Jogos observados no LAB</span><strong id="d-games">—</strong><small>Universo de partidas distintas</small></div>
       <div class="metric"><span class="metric-title">FT confirmados</span><strong class="mint" id="d-ft">—</strong><small>Resultados rigorosamente identificados</small></div>
