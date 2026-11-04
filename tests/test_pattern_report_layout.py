@@ -190,7 +190,17 @@ class WriterEndToEnd(unittest.TestCase):
         summary = json.loads((tmp / layout.SUMMARY_PATH).read_text(encoding="utf-8"))
         detail = (tmp / layout.PERIODS_PATH).read_text(encoding="utf-8")
         self.assertLess((tmp / layout.SUMMARY_PATH).stat().st_size, layout.MAX_SUMMARY_BYTES)
-        self.assertEqual(layout.dumps(layout.join(summary, detail)), layout.dumps(report))
+        # The writer deliberately keeps the published summary when only these run-metadata
+        # fields differ (scripts/lab_pattern_research.py, compare_without). Since main carries
+        # an already split summary (f703ae07), replaying the committed inputs hits exactly that
+        # no-rewrite path, so the on-disk pair is compared without them; every hypothesis,
+        # statistic and per-day series must still be identical.
+        volatile = ("generated_at", "source_commit", "incremental")
+
+        def stable(doc):
+            return layout.dumps({k: v for k, v in doc.items() if k not in volatile})
+
+        self.assertEqual(stable(layout.join(summary, detail)), stable(report))
         self.assertFalse(list(tmp.rglob("*.tmp")), "atomic writes leave no temp file")
         # A second run with identical inputs rewrites nothing (idempotent).
         before = ((tmp / layout.SUMMARY_PATH).read_bytes(), detail)
