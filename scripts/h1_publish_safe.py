@@ -185,6 +185,12 @@ def check_remote_path(root, base, remote, path):
     if path == FT_LEDGER:
         verify_ft_inputs(blob_or_none(root, base, path), blob_or_none(root, remote, path))
         return "keep"
+    if ft_publisher.is_collector_v4_path(path):
+        try:
+            ft_publisher.check_collector_v4_path(root, base, remote, path)
+        except UnsafeFTPublication as exc:
+            raise UnsafeH1Publication(str(exc))
+        return "keep"
     if JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
         if not append_only_jsonl(blob_or_none(root, base, path),
                                  blob_or_none(root, remote, path) or b""):

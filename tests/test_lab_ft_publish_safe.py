@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from h1lab.lab_ft_final_guard import final_snapshot
 from scripts import lab_ft_publish_safe as p
+from tests.git_writers import observe
 
 def git(root, *args):
     return subprocess.check_output(["git","-C",str(root),*args],
@@ -101,7 +102,7 @@ class GitFTPublicationTests(unittest.TestCase):
                          "status":"sent"}}})+"\n")
         write(self.root,"data/lab/ft-ledger.json",ft(1))
         write(self.root,"docs/lab/ft-results.json",'{"final":1}\n')
-        write(self.root,"data/lab/markets-2026-10.jsonl",'{"id":"market1"}\n')
+        observe(self.root,1)   # genuine V4 journal + latest views (production stores)
         self.retired="data/lab/discovery-segmented/"+("a"*64)+"/state-0000.json"
         write(self.root,self.retired,'[]\n')
         git(self.root,"add",".")
@@ -128,9 +129,11 @@ class GitFTPublicationTests(unittest.TestCase):
         self.manifest=home/"sealed.json"
         self.manifest.write_text(json.dumps({"pipeline":"ft","segmented":{"backend":"segmented"},"sha256":hashes}))
 
-    def collector_commit(self, changes):
+    def collector_commit(self, changes, action=None):
         for path,contents in changes.items():
             write(self.other,path,contents)
+        if action:
+            action(self.other)
         git(self.other,"add",".")
         git(self.other,"commit","-qm","unrelated collector update")
         git(self.other,"push","-q","origin","main")
@@ -150,8 +153,8 @@ class GitFTPublicationTests(unittest.TestCase):
         self.collector_commit({
             "docs/data.json":'{"version":2}\n',
             "data/state.json":state(extra=True),
-            "data/lab/markets-2026-10.jsonl":'{"id":"market1"}\n{"id":"market2"}\n',
-            "docs/lab/v4-audit.json":'{"updated":1}\n'})
+            "docs/lab/v4-audit.json":'{"updated":1}\n'},
+            action=lambda r: observe(r,2,observed="2026-11-02T07:00:00+00:00"))
         latest_before=git(self.other,"rev-parse","HEAD")
         result=self.publish()
         self.assertEqual(result,git(self.root,"rev-parse","HEAD"))
@@ -298,8 +301,10 @@ class GitFTPublicationTests(unittest.TestCase):
             self.publish()
 
     def test_historical_v4_rewrite_blocks(self):
-        self.collector_commit({"data/lab/markets-2026-10.jsonl":'{"id":"changed"}\n'})
-        with self.assertRaisesRegex(p.UnsafeFTPublication,"journal rewritten"):
+        self.collector_commit({"data/lab/markets-2026-11.jsonl":'{"id":"changed"}\n'})
+        # markets-* is a mutable latest view: a non-append change needs the collector's full
+        # V4 replay, which this unjournalled rewrite cannot pass (tests/test_ft_collector_v4_partitions).
+        with self.assertRaisesRegex(p.UnsafeFTPublication,"Collector V4 change not proven"):
             self.publish()
 
     def test_incident_41476501130_v4_memory_evidence_append_is_kept(self):

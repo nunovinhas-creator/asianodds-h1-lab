@@ -374,9 +374,11 @@ class KnownCrossProducerRefusals(unittest.TestCase):
         self.assert_ft_refused({"data/lab/v6-archive-index.json": {"schema_version": 1, "sealed": [
             {"path": "x"}]}}, "V4 source archive index changed")
 
-    def test_repartitioned_market_view_is_unknown_to_ft(self):
+    def test_unjournalled_market_view_partition_is_refused_by_ft(self):
+        # Formerly "Unknown concurrent path" for every -partNNNN view. Genuine partitions are
+        # now accepted (tests/test_ft_collector_v4_partitions.py); this row has no V4 revision.
         self.assert_ft_refused({"data/lab/markets-2026-11-part0001.jsonl": jline(event_id="c:3")},
-                               "Unknown concurrent path")
+                               "Collector V4 change not proven")
 
 
 def results_message(name):

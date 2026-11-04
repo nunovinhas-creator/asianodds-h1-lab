@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts import h1_publish_safe as h
+from tests.git_writers import observe
 
 HEADER = "match_key,status,home_goals,away_goals,source\n"
 ROW_A = '"2026-11-01,1,2",final,1,0,https://bsd/1/\n'
@@ -73,7 +74,7 @@ class H1PublishTests(unittest.TestCase):
         write(self.root, h.RENDERED, '{"roi":1}\n')
         write(self.root, h.STATE, state())
         write(self.root, "data/lab/ft-ledger.json", ledger())
-        write(self.root, "data/lab/markets-2026-11.jsonl", '{"id":1}\n')
+        observe(self.root, 1)   # genuine V4 journal + latest views (production stores)
         write(self.root, "h1lab/results.py", "# code\n")
         git(self.root, "add", ".")
         git(self.root, "commit", "-qm", "baseline")
@@ -93,10 +94,12 @@ class H1PublishTests(unittest.TestCase):
         self.source = git(self.root, "rev-parse", "HEAD")
         self.renders = []
 
-    def lab_commit(self, changes, message="LAB V4 refresh"):
+    def lab_commit(self, changes, message="LAB V4 refresh", action=None):
         git(self.other, "pull", "-q", "--ff-only", "origin", "main")
         for path, content in changes.items():
             write(self.other, path, content)
+        if action:
+            action(self.other)
         git(self.other, "add", ".")
         git(self.other, "commit", "-qm", message)
         git(self.other, "push", "-q", "origin", "main")
@@ -131,8 +134,8 @@ class H1PublishTests(unittest.TestCase):
     def test_lab_commit_between_rebase_and_push_is_preserved(self):
         def hook(n, real, args):
             if n == 1:
-                self.lab_commit({"docs/lab/v4-audit.json": '{"v4":2}\n',
-                                 "data/lab/markets-2026-11.jsonl": '{"id":1}\n{"id":2}\n'})
+                self.lab_commit({"docs/lab/v4-audit.json": '{"v4":2}\n'}, action=lambda r: observe(
+                    r, 2, observed="2026-11-02T07:00:00+00:00"))
             return real()
         published, pushes = self.publish(hook)
         self.assertEqual(len(pushes), 2)
