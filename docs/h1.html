@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0c1425">
-  <meta name="description" content="MASTER BRAIN: centro de acompanhamento do H1 e do laboratório de mercados V4, com cronologias, validações e resultados simulados.">
+  <meta name="description" content="MASTER BRAIN: arquivo de sinais H1 e movimentos de mercado, com registos, verificações e resultados simulados.">
   <title>Arquivo H1 — Sinais Under e simulações | MASTER BRAIN</title>
   <link rel="stylesheet" href="./dashboard.css">
   <script defer src="./dashboard.js"></script>
@@ -21,6 +21,17 @@
 .ux-home-state a{font-size:13px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}.ux-helper{font-size:13px;line-height:1.5;opacity:.86;margin:6px 0 13px}
 .llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
 @media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
+</style>
+<style>
+/* Secções técnicas discretas, preservando os dados e os IDs carregados pelos scripts */
+.ux-technical,.ux-history-archive{margin:10px 0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:9px;padding:9px 12px;font-size:13px}
+.ux-technical>summary,.ux-history-archive>summary{cursor:pointer;font-weight:650;line-height:1.5;min-height:25px}
+.ux-technical p,.ux-history-archive p{margin:9px 0}
+.ux-history-archive .llm-panel{margin:12px 0 0}
+.ux-archive-intro{font-size:13px;opacity:.8;margin:7px 0 12px}
+.ux-proof-inline{margin:10px 0 18px;border-left:3px solid currentColor;padding:4px 0 4px 12px;font-size:14px;line-height:1.5}
+.ux-version-footer{display:inline-block;vertical-align:middle;margin:0 3px}
+.ux-version-footer summary{font-size:12px}
 </style>
 </head>
 <body>
@@ -42,7 +53,7 @@
     <div class="nav-label secondary-label">NAVEGAÇÃO PRINCIPAL</div>
     <div class="side-links">
       <a href="./index.html">← Abrir MASTER BRAIN</a>
-      <a href="./lab-research.html">Cérebro V5</a>
+      <a href="./lab-research.html">Padrões em estudo</a>
       <a href="./lab-pattern-watch.html">Jogos futuros</a>
       <a href="./lab.html">Análise técnica LAB <span aria-hidden="true">↗</span></a>
       <a href="./golden-review.html">Rever mensagens <span aria-hidden="true">↗</span></a>
@@ -69,7 +80,7 @@
 <div class="system-strip" role="status" aria-live="polite">
       <div><span class="system-dot" id="h1-dot"></span><strong>H1 · Produção</strong><span id="h1-health">A verificar…</span></div>
       <span class="strip-divider" aria-hidden="true"></span>
-      <div><span class="system-dot" id="lab-dot"></span><strong>V4 · Observação</strong><span id="lab-health">A verificar…</span></div>
+      <div><span class="system-dot" id="lab-dot"></span><strong title="Módulo técnico V4">Dados de mercado</strong><span id="lab-health">A verificar…</span></div>
       <span class="strip-spacer"></span>
       <small id="system-note">Os indicadores referem-se à última recolha publicada.</small>
     </div>
@@ -98,7 +109,7 @@
         <div class="metric lab-metric"><span class="metric-icon">▥</span><span class="metric-label">Mensagens</span><strong id="k-lab-messages">—</strong><small>Alertas históricos</small></div>
         <div class="metric lab-metric"><span class="metric-icon">⬡</span><span class="metric-label">Jogos distintos</span><strong id="k-lab-games">—</strong><small>Identificados por match_key</small></div>
         <div class="metric lab-metric"><span class="metric-icon">⤨</span><span class="metric-label">Jogos com repetição</span><strong id="k-lab-repeated">—</strong><small id="k-lab-repeated-sub">Vários alertas do mesmo jogo</small></div>
-        <div class="metric lab-metric"><span class="metric-icon">✓</span><span class="metric-label">Cobertura de alertas V4</span><strong id="k-lab-capture">—</strong><small>Janela auditada, não exatidão</small></div>
+        <div class="metric lab-metric"><span class="metric-icon">✓</span><span class="metric-label">Cobertura de alertas</span><strong id="k-lab-capture">—</strong><small>Janela auditada, não exatidão</small></div>
       </div>
 
       <div class="two-column top-section">
@@ -135,16 +146,16 @@
     </section>
 
     <section class="view" id="view-market" aria-labelledby="market-heading" hidden>
-      <div class="heading-row"><div><div class="eyebrow">LAB V4 · LEITURA OBSERVACIONAL</div><h1 id="market-heading">Como evoluíram os alertas de cada jogo</h1><p class="lead">Vê quando as linhas mudaram, onde houve repetição e quais os movimentos apenas parcialmente observados.</p></div><span class="pill lab-pill">Não é sinal de aposta</span></div>
+      <div class="heading-row"><div><div class="eyebrow">HISTÓRICO DE MOVIMENTOS</div><h1 id="market-heading">Como evoluíram os alertas de cada jogo</h1><p class="lead">Vê quando as linhas mudaram, onde houve repetição e quais os movimentos apenas parcialmente observados.</p></div><span class="pill lab-pill">Não é sinal de aposta</span></div>
       <div class="metric-grid three">
         <div class="metric"><span class="metric-label">Jogos com vários alertas</span><strong id="mk-repeat">—</strong><small>Uma trajetória por jogo</small></div>
         <div class="metric"><span class="metric-label">Pares de mensagens relacionadas</span><strong id="mk-pairs">—</strong><small>Podem refletir o mesmo movimento</small></div>
         <div class="metric"><span class="metric-label">Snapshots possivelmente repetidos</span><strong id="mk-duplicate">—</strong><small>Não são apagados</small></div>
       </div>
       <div class="legend"><span><i class="legend-line solid"></i> Alteração dentro de uma mensagem</span><span><i class="legend-line dashed"></i> Intervalo sem observação</span><span><i class="legend-dot"></i> Valor comunicado</span></div>
-      <div class="toolbar"><label class="search-label">Procurar jogo<input id="market-query" type="search" autocomplete="off" placeholder="Equipa…"></label><label class="filter-label">Mostrar<select id="market-filter"><option value="all">Todos os repetidos</option><option value="related">Movimentos relacionados</option><option value="reversals">Com reversões assinaladas</option><option value="v4">Com observações V4</option></select></label><span id="market-count" class="results-label">—</span></div>
+      <div class="toolbar"><label class="search-label">Procurar jogo<input id="market-query" type="search" autocomplete="off" placeholder="Equipa…"></label><label class="filter-label">Mostrar<select id="market-filter"><option value="all">Todos os repetidos</option><option value="related">Movimentos relacionados</option><option value="reversals">Com reversões assinaladas</option><option value="v4">Com registos de odds</option></select></label><span id="market-count" class="results-label">—</span></div>
       <div id="market-list" class="market-grid"></div>
-      <p class="method-note">O painel Telegram apresenta o número de movimentos V4 efetivamente aceites em cada regra, os motivos de exclusão e os recibos publicados. Três alertas não significam três movimentos independentes. Um possível falso negativo exige revisão e não desencadeia envios. As linhas ligam observações existentes, não representam preços recolhidos continuamente. Os dados anteriores ao V4 podem ter origem apenas no registo H1 e aparecem identificados.</p>
+      <p class="method-note">O painel Telegram apresenta o número de movimentos efetivamente aceites em cada regra, os motivos de exclusão e os recibos publicados. Três alertas não significam três movimentos independentes. Um possível falso negativo exige revisão e não desencadeia envios. As linhas ligam observações existentes, não representam preços recolhidos continuamente. Os registos mais antigos podem ter origem apenas nos sinais H1 e aparecem identificados.</p>
     </section>
 
     <section class="view" id="view-quality" aria-labelledby="quality-heading" hidden>
@@ -155,7 +166,7 @@
         <div class="metric"><span class="metric-label">Referências ainda pendentes</span><strong id="q-pending">—</strong><small>Falta texto/captura original</small></div>
       </div>
       <div class="two-column top-section">
-        <section class="panel"><div class="panel-head"><div><h2>Critérios de aceitação V4</h2><p>Portas de aceitação oficiais.</p></div></div><div id="quality-gates" class="gate-list"></div></section>
+        <section class="panel"><div class="panel-head"><div><h2>Critérios de qualidade dos dados</h2><p>Verificações necessárias para aceitar os registos.</p></div></div><div id="quality-gates" class="gate-list"></div></section>
         <section class="panel"><div class="panel-head"><div><h2>Mensagens revistas manualmente por mercado</h2><p>Referências humanas, não previsões.</p></div></div><div id="quality-families" class="gate-list"></div><a class="panel-action" href="./golden-review.html">Abrir revisão de mensagens →</a></section>
       </div>
       <div class="panel top-section"><div class="panel-head"><div><h2>Verificações ainda pendentes</h2><p>Transparência antes de qualquer afirmação estatística.</p></div></div><ul class="limitations"><li>Uma amostra com concordância total não demonstra que o parser tem 99% de exatidão.</li><li>Os campos de uma mesma mensagem não são observações independentes.</li><li>A fórmula da percentagem de disparo 1X2 no Telegram ainda não está confirmada.</li><li>Um jogo com vários alertas não cria vários resultados de apostas independentes.</li></ul><a class="panel-action" href="./lab.html">Consultar a auditoria técnica detalhada →</a></div>

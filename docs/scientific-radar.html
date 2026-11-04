@@ -4,7 +4,7 @@
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1">
  <meta name="theme-color" content="#090f19">
- <meta name="description" content="MASTER BRAIN: Radar Científico V6.2. Da hipótese formal até à observação, previsão e resultado verificado.">
+ <meta name="description" content="MASTER BRAIN: validação de padrões, registo das hipóteses, previsões anteriores ao jogo e resultados verificados.">
  <title>Validação dos padrões · MASTER BRAIN</title>
  <link rel="stylesheet" href="./master-brain.css">
  <link rel="stylesheet" href="./scientific-radar.css">
@@ -23,6 +23,17 @@
 .llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
 @media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
+<style>
+/* Secções técnicas discretas, preservando os dados e os IDs carregados pelos scripts */
+.ux-technical,.ux-history-archive{margin:10px 0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:9px;padding:9px 12px;font-size:13px}
+.ux-technical>summary,.ux-history-archive>summary{cursor:pointer;font-weight:650;line-height:1.5;min-height:25px}
+.ux-technical p,.ux-history-archive p{margin:9px 0}
+.ux-history-archive .llm-panel{margin:12px 0 0}
+.ux-archive-intro{font-size:13px;opacity:.8;margin:7px 0 12px}
+.ux-proof-inline{margin:10px 0 18px;border-left:3px solid currentColor;padding:4px 0 4px 12px;font-size:14px;line-height:1.5}
+.ux-version-footer{display:inline-block;vertical-align:middle;margin:0 3px}
+.ux-version-footer summary{font-size:12px}
+</style>
 </head>
 <body>
  <a class="skip-link" href="#main">Saltar para o conteúdo</a>
@@ -31,25 +42,26 @@
    <a class="brand" href="./index.html"><span class="brain-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><span class="brand-name">MASTER <span>BRAIN</span></span><small class="brand-caption">FOOTBALL INTELLIGENCE LAB</small></span></a>
    <div class="rail-tag">INTELIGÊNCIA · INVESTIGAÇÃO</div>
    <nav class="rail-nav" aria-label="Páginas principais">
-    <a class="nav-link active" aria-current="page" href="./scientific-radar.html"><span class="nav-symbol">◉</span>Radar Científico V6</a>
+    <a class="nav-link active" aria-current="page" href="./scientific-radar.html"><span class="nav-symbol">◉</span>Validação dos padrões</a>
     <a class="nav-link" href="./index.html"><span class="nav-symbol">⌘</span>Descobertas do Cérebro</a>
     <a class="nav-link" href="./index.html#futuros"><span class="nav-symbol">↗</span>Jogos futuros</a>
-    <a class="nav-link" href="./index.html#padroes"><span class="nav-symbol">◇</span>Pesquisa exploratória V5</a>
+    <a class="nav-link" href="./index.html#padroes"><span class="nav-symbol">◇</span>Padrões em estudo</a>
     <a class="nav-link" href="./lab-results.html"><span class="nav-symbol">▥</span>Resultados FT do LAB</a>
    </nav>
    <div class="rail-tag side-archive">SISTEMAS SECUNDÁRIOS</div>
    <nav class="rail-nav archive-nav">
     <a class="nav-link" href="./h1.html#h1">Under / H1</a>
     <a class="nav-link" href="./h1.html#triples">Triplas H1</a>
-    <a class="nav-link" href="./lab.html">Auditoria LAB V4</a>
+    <a class="nav-link" href="./lab.html">Qualidade dos dados</a>
    </nav>
    <div class="rail-bottom"><strong>INVESTIGAÇÃO · NÃO É UMA APOSTA</strong><p>Uma previsão congelada não é uma previsão vencedora. FT em falta não contam como derrotas.</p></div>
   </aside>
   <main class="work" id="main">
-   <div class="topbar"><div class="breadcrumb"><b>MASTER BRAIN</b><em>/</em><span>Radar Científico V6.2</span></div><div class="tools"><span class="stamp" id="radar-updated">A verificar memórias…</span><button type="button" class="refresh" id="radar-refresh" title="Atualizar" aria-label="Atualizar relatório">↻</button></div></div>
+   <div class="topbar"><div class="breadcrumb"><b>MASTER BRAIN</b><em>/</em><span>Validação dos padrões</span></div><div class="tools"><span class="stamp" id="radar-updated">A verificar memórias…</span><button type="button" class="refresh" id="radar-refresh" title="Atualizar" aria-label="Atualizar relatório">↻</button></div></div>
    <nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html" aria-current="page">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
-<div class="hero scientific-hero"><div class="kicker">VALIDAÇÃO · V6.2</div><h1>O que já foi comprovado nos testes?</h1><p>Aqui vês hipóteses que já têm registo formal. Um resultado final (FT) confirma o jogo, não valida o padrão. Os testes mostram o que ainda precisa de ser provado.</p><div class="science-flag" id="science-flag">Em observação · validação pendente</div></div>
+<div class="hero scientific-hero"><div class="kicker" title="Módulo técnico V6.2">VALIDAÇÃO DOS PADRÕES</div><h1>O que já foi comprovado nos testes?</h1><p>Aqui vês hipóteses que já têm registo formal. Um resultado final (FT) confirma o jogo, não valida o padrão. Os testes mostram o que ainda precisa de ser provado.</p><div class="science-flag" id="science-flag">Em observação · validação pendente</div></div>
    <section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
+<p class="ux-proof-inline" role="note"><strong>Um resultado confirmado não valida um padrão.</strong> Para ser validado, o padrão precisa de passar os testes exigidos em jogos posteriores.</p>
 <div id="science-error" class="wide-message" role="alert" hidden></div>
    <div class="metrics" aria-label="Cobertura do Radar">
      <div class="metric"><span class="metric-title">Hipóteses formalizadas</span><strong id="sc-hyp">—</strong><small>Máximo 10 ativas</small></div>
@@ -64,27 +76,27 @@
      <div class="science-layout">
        <div class="panel science-list-panel">
          <label class="science-search-label" for="science-query">Procurar jogo ou identificador</label><input type="search" id="science-query" placeholder="Equipa, jogo ou match_key…" autocomplete="off">
-         <label class="science-search-label" for="science-filter">Filtrar evidência</label><select id="science-filter"><option value="all">Todos os jogos congelados</option><option value="selected">Condição original presente</option><option value="strict">Condição rigorosa</option><option value="ft">FT com verificação temporal</option><option value="missing">Sem FT verificado</option><option value="source">Mensagem V4 historicamente comprovada</option></select>
+         <label class="science-search-label" for="science-filter">Filtrar evidência</label><select id="science-filter"><option value="all">Todos os jogos registados antes do início</option><option value="selected">Condição original presente</option><option value="strict">Condição rigorosa</option><option value="ft">Jogos com resultado final confirmado</option><option value="missing">Sem FT verificado</option><option value="source">Mensagem com fonte histórica verificada</option></select>
          <p class="science-count" id="science-visible">—</p>
          <div class="science-games" id="science-games" aria-label="Jogos associados à hipótese"></div>
        </div>
        <div class="panel science-detail" id="science-detail" aria-live="polite"><p class="empty">Seleciona um jogo para ver as três etapas da prova.</p></div>
      </div>
-     <div class="section-head"><div><h2>Dez verificações que podem rejeitar a hipótese</h2><p>PASS/FAIL são verificações descritivas. Sem amostra adequada, fica INSUFFICIENT_N.</p></div></div>
+     <div class="section-head"><div><h2>Testes que podem invalidar este padrão</h2><p>PASS/FAIL são verificações descritivas. Sem amostra adequada, fica INSUFFICIENT_N.</p></div></div>
      <div class="panel" id="science-tests"></div>
      <div class="section-head"><div><h2>Origem dos dados e registos</h2><p>O JSON é uma projeção. Os diários encadeados com hashes continuam a ser a fonte de verdade.</p></div></div>
-     <div class="panel"><div id="science-sources" class="science-sources"></div><p class="note">Algumas versões antigas V4 não estavam preservadas antes da previsão. Nesses casos a ligação histórica fica assinalada como não comprovada. Os links do GitHub apontam à versão atual do diário; o SHA identifica cada registo.</p></div>
+     <div class="panel"><div id="science-sources" class="science-sources"></div><p class="note">Alguns registos antigos não estavam preservados antes da previsão. Nesses casos a ligação histórica fica assinalada como não comprovada. Os links do GitHub apontam à versão atual do diário; o SHA identifica cada registo.</p></div>
    </section>
    <div class="section-head"><div><h2>Alterações semanais na qualidade dos sinais</h2><p>Drift do mercado, formatos Telegram, cotações suspeitas e calibração dos resultados FT. Só duas semanas <strong>completas</strong> e com amostra suficiente podem justificar revisão.</p></div></div>
-   <section id="weekly-monitor" class="panel weekly-monitor" aria-label="Monitor semanal V6.2" aria-live="polite">
+   <section id="weekly-monitor" class="panel weekly-monitor" aria-label="Monitor semanal da qualidade" aria-live="polite">
       <p id="weekly-status" class="science-small">A carregar o histórico semanal…</p>
       <div id="weekly-signals" class="weekly-signals"></div>
       <div id="weekly-weeks" class="weekly-weeks"></div>
       <p class="science-note">A monitorização é descritiva, não valida padrões nem demonstra vantagem nas apostas. A semana atual e FT por liquidar não podem gerar alertas de drift.</p>
    </section>
-   <div class="section-head"><div><h2>Como foram selecionadas as hipóteses V5</h2><p>Seleção pela diversidade de condições observadas, nunca pelos resultados FT. A dimensão efetiva é descritiva, não constitui validação.</p></div></div>
-   <section class="panel" id="pruning-panel" aria-label="Redundâncias entre hipóteses" aria-live="polite"><p id="pruning-status">A verificar a auditoria de redundâncias…</p><div id="pruning-details"></div><p class="science-note">O catálogo e histórico V5 são preservados. <a href="./lab/v6-pruning.json">Ver correspondência integral das 800 hipóteses (JSON)</a>.</p></section>
-   <footer class="footer">MASTER BRAIN · Radar Científico V6.2 · <a href="./index.html">Radar e descobertas V5</a> · <a href="./lab.html">Auditoria</a> · Sem apostas automáticas.</footer>
+   <div class="section-head"><div><h2>Seleção dos padrões mais distintos</h2><p>Seleção pela diversidade de condições observadas, nunca pelos resultados FT. A dimensão efetiva é descritiva, não constitui validação.</p></div></div>
+   <section class="panel" id="pruning-panel" aria-label="Redundâncias entre hipóteses" aria-live="polite"><p id="pruning-status">A verificar a auditoria de redundâncias…</p><div id="pruning-details"></div><p class="science-note">O catálogo e o histórico original são preservados. <a href="./lab/v6-pruning.json">Ver correspondência integral das 800 hipóteses (JSON)</a>.</p></section>
+   <footer class="footer">MASTER BRAIN · Validação dos padrões · <a href="./index.html">Visão geral e padrões</a> · <a href="./lab.html">Auditoria</a> · Sem apostas automáticas.</footer>
   </main>
  </div>
 </body>

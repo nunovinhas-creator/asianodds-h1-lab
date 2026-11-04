@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#090f19">
-  <meta name="description" content="MASTER BRAIN — Investigador LLM autónomo controlado, cruzamentos, consumo e propostas DRAFT auditáveis.">
+  <meta name="description" content="MASTER BRAIN — Investigador IA: propostas de padrões, testes estatísticos e registos auditáveis.">
   <title>Investigador IA — Hipóteses em estudo | MASTER BRAIN</title>
   <link rel="stylesheet" href="./master-brain.css">
   <link rel="stylesheet" href="./llm-investigator.css">
@@ -23,6 +23,17 @@
 .llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
 @media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
+<style>
+/* Secções técnicas discretas, preservando os dados e os IDs carregados pelos scripts */
+.ux-technical,.ux-history-archive{margin:10px 0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:9px;padding:9px 12px;font-size:13px}
+.ux-technical>summary,.ux-history-archive>summary{cursor:pointer;font-weight:650;line-height:1.5;min-height:25px}
+.ux-technical p,.ux-history-archive p{margin:9px 0}
+.ux-history-archive .llm-panel{margin:12px 0 0}
+.ux-archive-intro{font-size:13px;opacity:.8;margin:7px 0 12px}
+.ux-proof-inline{margin:10px 0 18px;border-left:3px solid currentColor;padding:4px 0 4px 12px;font-size:14px;line-height:1.5}
+.ux-version-footer{display:inline-block;vertical-align:middle;margin:0 3px}
+.ux-version-footer summary{font-size:12px}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Saltar para a investigação</a>
@@ -30,9 +41,9 @@
   <header class="llm-top">
     <a class="llm-brand" href="./index.html">◉ MASTER <strong>BRAIN</strong></a>
     <nav aria-label="Outros painéis">
-      <a href="./index.html">Radar principal</a>
-      <a href="./scientific-radar.html">Radar científico</a>
-      <a href="./lab-research.html">Investigação V5</a>
+      <a href="./index.html">Visão geral</a>
+      <a href="./scientific-radar.html">Validação dos padrões</a>
+      <a href="./lab-research.html">Padrões em estudo</a>
     </nav>
   </header>
   <main id="main">
@@ -52,26 +63,26 @@
     </section>
     <section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
 <section class="llm-metrics" aria-label="Indicadores">
-      <article class="llm-card"><div>Propostas da IA</div><strong id="runs-count">—</strong><small>Não inclui o primeiro ensaio histórico; não são jogos testados</small></article>
+      <article class="llm-card"><div>Propostas da IA</div><strong id="runs-count">—</strong><small>Contagem de propostas registadas, não de jogos testados</small></article>
       <article class="llm-card"><div>Padrões validados</div><strong id="validated-count">0</strong><small>Não promover sem testes prospetivos</small></article>
-      <article class="llm-card"><div>Variáveis disponíveis no catálogo</div><strong id="features-count">—</strong><small>Fonte: definições V5 verificadas</small></article>
+      <article class="llm-card"><div>Variáveis disponíveis no catálogo</div><strong id="features-count">—</strong><small>Fonte: catálogo documentado de variáveis</small></article>
       <article class="llm-card"><div>Combinações teóricas</div><strong id="combos-count">—</strong><small>Pares de famílias diferentes e triplos de três famílias diferentes. Universo teórico, não experiências realizadas</small></article>
     </section>
     <div class="llm-columns ux-llm-priority">
       <section class="llm-panel" aria-labelledby="latest-heading">
         <div class="llm-panel-heading"><div><div class="eyebrow">ÚLTIMA INVESTIGAÇÃO PUBLICADA</div><h2 id="latest-heading">Última hipótese sugerida pela IA</h2></div><span class="llm-chip">Proposta da IA · Ainda sem teste suficiente</span></div>
-        <p class="llm-muted" id="latest-meta">A verificar a primeira experiência real e as propostas do novo contrato…</p>
+        <p class="llm-muted" id="latest-meta">A carregar a última proposta registada…</p>
         <div id="latest-detail" class="llm-detail" aria-live="polite"><p>A recuperar o histórico da investigação; novos registos só após chamadas válidas e publicação.</p></div>
       </section>
-      <section class="llm-panel" id="python-statistics" aria-live="polite"><h2>O que os testes estatísticos já mostram</h2><p>A carregar a fotografia dos dados reais…</p><p class="ux-helper">Esta análise mostra os testes disponíveis; não confirma automaticamente a última proposta da IA.</p></section>
+      <section class="llm-panel" id="python-statistics" aria-live="polite"><h2>O que os testes estatísticos já mostram</h2><p>A carregar a fotografia dos dados reais…</p><p class="ux-helper">Os testes abaixo são gerais. Não confirmam automaticamente a proposta da IA apresentada acima.</p></section>
 <aside class="llm-panel" aria-labelledby="limits-heading">
         <div class="eyebrow">FONTE E MÉTODO</div>
         <h2 id="limits-heading">Como a IA propõe e os dados testam</h2>
         <div class="llm-timeline">
-          <div><b>01 · Explorar</b><span>49 variáveis potenciais V5, incluindo Total, 1X2, handicap, tempo e movimentos. Não significa que todos os cruzamentos tenham sido testados.</span></div>
-          <div><b>02 · Propor</b><span>Quatro oportunidades por dia (01h43, 07h43, 13h43 e 19h43 UTC), uma única chamada no máximo por execução. A LLM desenvolve e critica a hipótese; não inventa resultados.</span></div>
+          <div><b>01 · Explorar</b><span>49 variáveis potenciais do catálogo, incluindo Total, 1X2, handicap, tempo e movimentos. Não significa que todos os cruzamentos tenham sido testados.</span></div>
+          <div><b>02 · Propor</b><span>Quatro oportunidades por dia (01h43, 07h43, 13h43 e 19h43 UTC), uma única chamada no máximo por execução. A IA desenvolve e critica a hipótese; não inventa resultados.</span></div>
           <div><b>03 · Rever</b><span>Requer cruzamento concreto, hipótese nula, grupo de controlo e dados necessários para um teste futuro.</span></div>
-          <div><b>04 · Testar</b><span>Gates V6 e resultados FT prospetivos verificados; nenhuma promoção automática para Telegram ou apostas.</span></div>
+          <div><b>04 · Testar</b><span>Critérios de validação e resultados finais verificados em jogos posteriores; nenhuma promoção automática para Telegram ou apostas.</span></div>
         </div>
         <p class="llm-warning">A autonomia é limitada a quatro oportunidades diárias e pode falhar ou ser atrasada pelo GitHub Actions. A quota real da conta e os neurons por chamada não são medidos automaticamente; acompanhar na Cloudflare. Ver o painel não faz chamadas à IA. Nenhuma hipótese é uma aposta validada.</p>
       </aside>
@@ -79,25 +90,26 @@
     
     <script src="./llm-statistics.js?v=20261030-stats1" defer></script>
     <section class="llm-panel" aria-labelledby="history-heading">
-      <div class="llm-panel-heading"><div><div class="eyebrow">RASTREABILIDADE</div><h2 id="history-heading">Investigações já publicadas</h2></div></div>
+      <div class="llm-panel-heading"><div><div class="eyebrow">HISTÓRICO DAS INVESTIGAÇÕES</div><h2 id="history-heading">Investigações já publicadas</h2></div></div>
       <div class="llm-table-wrap"><table><thead><tr><th>Data UTC</th><th>Cruzamento investigado</th><th>Métrica</th><th>Execução</th></tr></thead><tbody id="llm-history"><tr><td colspan="4">Ainda sem histórico publicado.</td></tr></tbody></table></div>
-      <p class="llm-muted">A primeira linha pode mostrar o ensaio histórico anterior ao painel, devidamente assinalado. As propostas do contrato atual ficam num arquivo individual por run e o índice mostra até 20 publicações recentes. Falhas permanecem visíveis em GitHub Actions.</p>
+      <p class="llm-muted">O histórico liga cada proposta publicada à respetiva execução. O primeiro registo experimental encontra-se no arquivo no final da página. As falhas continuam disponíveis no GitHub Actions.</p>
     </section>
-    <section class="llm-panel" aria-label="Primeiro ensaio histórico antes do novo painel">
-      <div class="eyebrow">PRIMEIRO ENSAIO REAL · ANTES DO CONTRATO ATUAL</div>
-      <h2>Primeiro ensaio da IA — 30/10/2026</h2>
-      <p class="llm-muted">Execução #41039239732 · <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41039239732">Ver prova na Action</a>. Registo histórico de formato anterior, não contado como cruzamento testado nem como hipótese validada.</p>
-      <p><strong>T02 — Alertas repetidos.</strong> A IA propôs verificar se episódios repetidos acrescentavam informação relativamente ao primeiro alerta. Não apresentou variáveis cruzadas concretas nem evidência de vantagem estatística; motivou o novo contrato de investigação.</p>
-    </section>
+    
     <section class="llm-panel" aria-labelledby="offline-heading">
-      <h2 id="offline-heading">Cruzamentos possíveis ainda não propostos pela IA</h2>
+      <h2 id="offline-heading">Combinações ainda não analisadas pela IA</h2>
       <p id="offline-state" role="status">A carregar fotografia do planeador offline…</p>
       <p>Enumeração com uma variável por família. Ordem determinística, sem seleção por ROI. Candidatos ainda não são hipóteses propostas, testadas ou validadas.</p>
       <ul id="offline-queue"></ul>
     </section>
-    <script src="./llm-discovery-plan.js?v=20261030-autonomous-v1" defer></script>
+    <details class="ux-history-archive"><summary>Arquivo histórico · Primeiro registo da IA (30/10/2026)</summary><p class="ux-archive-intro">Registo inicial mantido para consulta, separado das propostas atuais.</p><section class="llm-panel" aria-label="Primeiro ensaio histórico antes do novo painel">
+      <div class="eyebrow">REGISTO HISTÓRICO · NÃO VALIDADO</div>
+      <h2>Primeiro registo experimental — 30/10/2026</h2>
+      <p class="llm-muted">Execução #41039239732 · <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/41039239732">Ver prova na Action</a>. Experiência inicial de formato diferente, não contada como cruzamento testado nem como hipótese validada.</p>
+      <p><strong>T02 — Alertas repetidos.</strong> A IA propôs verificar se episódios repetidos acrescentavam informação relativamente ao primeiro alerta. Não apresentou variáveis cruzadas concretas nem evidência de vantagem estatística; motivou o novo contrato de investigação.</p>
+    </section></details>
+<script src="./llm-discovery-plan.js?v=20261030-autonomous-v1" defer></script>
   </main>
-  <footer>MASTER BRAIN · PROPOSTAS EXPLORATÓRIAS · SEM PROVAS DE RENTABILIDADE · <span title="Versão dos recursos estáticos">Painel v20261030.STATS1</span> ·  <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/issues/63">Gate científico V6</a></footer>
+  <footer>MASTER BRAIN · PROPOSTAS EXPLORATÓRIAS · SEM PROVAS DE RENTABILIDADE · <details class="ux-technical ux-version-footer"><summary>Versão técnica</summary><span>Interface v20261030.STATS1</span></details> ·  <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/issues/63">Critérios de validação</a></footer>
 </div>
 </body>
 </html>

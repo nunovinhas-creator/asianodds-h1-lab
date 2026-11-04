@@ -63,6 +63,17 @@ footer{margin-top:48px;font-size:15px;color:var(--soft)}
 .llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
 @media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
+<style>
+/* Secções técnicas discretas, preservando os dados e os IDs carregados pelos scripts */
+.ux-technical,.ux-history-archive{margin:10px 0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:9px;padding:9px 12px;font-size:13px}
+.ux-technical>summary,.ux-history-archive>summary{cursor:pointer;font-weight:650;line-height:1.5;min-height:25px}
+.ux-technical p,.ux-history-archive p{margin:9px 0}
+.ux-history-archive .llm-panel{margin:12px 0 0}
+.ux-archive-intro{font-size:13px;opacity:.8;margin:7px 0 12px}
+.ux-proof-inline{margin:10px 0 18px;border-left:3px solid currentColor;padding:4px 0 4px 12px;font-size:14px;line-height:1.5}
+.ux-version-footer{display:inline-block;vertical-align:middle;margin:0 3px}
+.ux-version-footer summary{font-size:12px}
+</style>
 </head>
 <body><div class="wrap">
 <nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html" aria-current="page">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
@@ -74,8 +85,8 @@ footer{margin-top:48px;font-size:15px;color:var(--soft)}
 <div class="kpis" aria-label="Resumo">
  <div><b id="k-games">—</b><span>jogos em estudo</span></div>
  <div><b id="k-ft">—</b><span>com resultado confirmado</span></div>
- <div><b id="k-hyp">—</b><span>hipóteses avaliadas (inclui não validadas)</span></div>
- <div><b id="k-val">—</b><span>padrões validados fora da amostra</span></div>
+ <div><b id="k-hyp">—</b><span>padrões já analisados (inclui não validados)</span></div>
+ <div><b id="k-val">—</b><span>padrões validados em testes independentes</span></div>
 </div>
 <p class="note" id="verdict"></p>
 
@@ -97,7 +108,7 @@ footer{margin-top:48px;font-size:15px;color:var(--soft)}
 </section>
 
 <section role="tabpanel" id="p-com" aria-labelledby="t-com" hidden>
- <h2>Quando aparecem vários sinais no mesmo jogo</h2>
+ <h2>Quando aparecem vários padrões no mesmo jogo</h2>
  <p class="muted">Pares (A e B), exclusões (A sem B), ordem (A antes de B, noutro episódio) e trios (A e B sem C), geradas só a partir dos padrões, sem olhar para os resultados. Mostra-se uma por amostra de resultados idêntica.</p>
  <div class="cards" id="com-list"></div>
 </section>

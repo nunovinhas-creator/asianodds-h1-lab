@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#090f19">
-  <meta name="description" content="MASTER BRAIN — inteligência de mercados de futebol. Descobertas do cérebro V5, padrões observados em jogos futuros, testes e validação. H1 Under em arquivo secundário.">
+  <meta name="description" content="MASTER BRAIN — inteligência de mercados de futebol. Descobertas do cérebro, padrões observados em jogos futuros, testes e validação. H1 Under em arquivo secundário.">
   <title>MASTER BRAIN — Jogos, padrões e resultados</title>
   <link rel="stylesheet" href="./master-brain.css">
   <script defer src="./master-brain.js"></script>
@@ -22,6 +22,17 @@
 .llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
 @media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
+<style>
+/* Secções técnicas discretas, preservando os dados e os IDs carregados pelos scripts */
+.ux-technical,.ux-history-archive{margin:10px 0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:9px;padding:9px 12px;font-size:13px}
+.ux-technical>summary,.ux-history-archive>summary{cursor:pointer;font-weight:650;line-height:1.5;min-height:25px}
+.ux-technical p,.ux-history-archive p{margin:9px 0}
+.ux-history-archive .llm-panel{margin:12px 0 0}
+.ux-archive-intro{font-size:13px;opacity:.8;margin:7px 0 12px}
+.ux-proof-inline{margin:10px 0 18px;border-left:3px solid currentColor;padding:4px 0 4px 12px;font-size:14px;line-height:1.5}
+.ux-version-footer{display:inline-block;vertical-align:middle;margin:0 3px}
+.ux-version-footer summary{font-size:12px}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Saltar para o conteúdo</a>
@@ -33,8 +44,8 @@
    </a>
    <div class="rail-tag">INTELIGÊNCIA · PAINÉIS PRINCIPAIS</div>
    <nav class="rail-nav" aria-label="Separadores do cérebro" id="primary-nav">
-    <a class="nav-link" href="./scientific-radar.html"><span class="nav-symbol">◎</span>Radar Científico V6 <span class="nav-count">NOVO</span></a>
-    <a class="nav-link" href="./llm-investigator.html"><span class="nav-symbol">✦</span>Propostas da IA <span class="nav-count">LAB</span></a>
+    <a class="nav-link" href="./scientific-radar.html"><span class="nav-symbol">◎</span>Validação dos padrões</a>
+    <a class="nav-link" href="./llm-investigator.html"><span class="nav-symbol">✦</span>Investigador IA</a>
     <button class="nav-btn active" type="button" data-page="radar" aria-current="page"><span class="nav-symbol">◉</span>Radar do Cérebro</button>
     <button class="nav-btn" type="button" data-page="futuros"><span class="nav-symbol">↗</span>Jogos futuros <span class="nav-count" id="nav-future">—</span></button>
     <button class="nav-btn" type="button" data-page="padroes"><span class="nav-symbol">⌘</span>Padrões em teste</button>
@@ -46,7 +57,7 @@
     <a class="nav-link" href="./h1.html#h1"><span class="nav-symbol">◎</span>Under / Sinais H1</a>
     <a class="nav-link" href="./h1.html#triples"><span class="nav-symbol">▤</span>Triplas H1</a>
     <a class="nav-link" href="./ft-recovery.html"><span class="nav-symbol">▣</span>Recuperação FT · Fila</a>
-    <a class="nav-link" href="./lab.html"><span class="nav-symbol">◈</span>Auditoria LAB V4</a>
+    <a class="nav-link" href="./lab.html"><span class="nav-symbol">◈</span>Qualidade dos dados</a>
    </nav>
    <div class="rail-bottom"><strong>MASTER BRAIN · MODO INVESTIGAÇÃO</strong><p>Padrões ainda não validados não são recomendações. Nenhuma aposta real é executada.</p></div>
  </aside>
@@ -61,7 +72,7 @@
 
   <section class="page" id="page-radar" aria-labelledby="radar-heading">
    <div class="hero">
-    <div class="kicker">CENTRO DE INTELIGÊNCIA · INVESTIGAÇÃO V5</div>
+    <div class="kicker">CENTRO DE INTELIGÊNCIA · JOGOS E PADRÕES</div>
     <h1 id="radar-heading">O que sabemos sobre os movimentos das odds?</h1>
     <p>Acompanhamos movimentos das odds antes dos jogos, confrontamos padrões com resultados reais e distinguimos observações de conclusões comprovadas.</p>
     <div class="hero-actions">
@@ -70,7 +81,7 @@
     </div>
    </div>
 
-   <div class="ux-home-state" role="group" aria-label="Estado atual da investigação"><strong class="ux-home-state-title">Estado atual</strong><span class="ux-home-stat">Padrões validados: <strong class="amber" id="r-valid">—</strong></span><span class="ux-home-stat">Hipóteses avaliadas: <strong id="r-hyp">—</strong></span><a href="./llm-investigator.html">Propostas da IA: consultar contador no Investigador IA</a></div><p class="ux-helper">«Hipóteses avaliadas» inclui estados diferentes; não corresponde necessariamente a padrões ainda em teste.</p><section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
+   <div class="ux-home-state" role="group" aria-label="Estado atual da investigação"><strong class="ux-home-state-title">Estado atual</strong><span class="ux-home-stat">Padrões validados: <strong class="amber" id="r-valid">—</strong></span><span class="ux-home-stat">Padrões já analisados: <strong id="r-hyp">—</strong></span><a href="./llm-investigator.html">Propostas da IA: consultar contador no Investigador IA</a></div><p class="ux-helper">«Padrões já analisados» é o total de hipóteses avaliadas, incluindo rejeitadas. Não corresponde necessariamente aos padrões ainda em teste.</p><section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
 <div class="metrics" aria-label="Indicadores do cérebro">
     <div class="metric"><span class="metric-title">Jogos futuros sob observação rigorosa</span><strong class="mint" id="r-future">—</strong><small id="r-future-sub">Episódios independentes · Total válido</small></div>
     
@@ -79,35 +90,35 @@
    </div>
 
    
-<div class="section-head"><div><h2>Jogos a acompanhar e padrões em teste</h2><p>Observações e padrões exploratórios; a presença nesta lista não equivale a uma aposta validada.</p></div><button class="text-action" type="button" data-go="padroes">Analisar hipóteses →</button></div>
+<div class="section-head"><div><h2>Jogos a acompanhar agora</h2><p>Observações e padrões exploratórios; a presença nesta lista não equivale a uma aposta validada.</p></div><button class="text-action" type="button" data-go="padroes">Analisar hipóteses →</button></div>
    <div class="columns">
     <div class="panel"><div class="panel-head"><h3>Jogos futuros com movimentos observados</h3><button class="text-action" type="button" data-go="futuros">Todos os jogos →</button></div><p>Dois ou mais movimentos independentes, sem uma descida observada de λ ≥ 0,05.</p><div id="r-watch"><div class="empty">A consultar jogos futuros…</div></div></div>
-    <div class="panel"><div class="panel-head"><h3>Padrões encontrados nos jogos anteriores</h3><span class="tag">EM TESTE · V5</span></div><div id="r-insights" class="card-stack"><div class="empty">A carregar hipóteses…</div></div></div>
+    <div class="panel"><div class="panel-head"><h3>Padrões em estudo mais relevantes</h3><span class="tag">EM TESTE · NÃO VALIDADO</span></div><div id="r-insights" class="card-stack"><div class="empty">A carregar hipóteses…</div></div></div>
    </div>
+
+   <div class="section-head"><div><h2>Resultados dos jogos acompanhados</h2><p>Categorias registadas antes do início e resultados finais verificados depois. Jogos sem resultado não contam como derrotas.</p></div></div>
+   <div class="panel"><div id="r-prospective" class="card-stack"><div class="empty">A consultar o histórico prospetivo…</div></div></div>
 
    <div class="section-head"><div><h2>O que está confirmado e o que falta provar?</h2><p>Separação deliberada entre dados recolhidos, hipóteses e validação independente.</p></div><button class="text-action" type="button" data-go="validacao">Ver critérios →</button></div>
    <div class="columns half">
      <div class="panel"><h3>Padrões validados exigem provas fora da amostra</h3><div id="r-proof" class="gate-list"></div><p class="note warning">Uma taxa elevada em poucos jogos pode ser coincidência. O valor-q corrigido e o desempenho fora da amostra são decisivos.</p></div>
      <div class="panel"><h3>De onde vêm os dados</h3><div id="r-feeds" class="gate-list"></div><button class="text-action" data-go="dados" type="button">Ver qualidade e cobertura →</button></div>
    </div>
-  <div class="section-head"><div><h2>Como terminaram os jogos acompanhados?</h2><p>Categorias registadas antes do início e resultados finais verificados depois. Jogos sem resultado não contam como derrotas.</p></div></div>
-   <div class="panel"><div id="r-prospective" class="card-stack"><div class="empty">A consultar o histórico prospetivo…</div></div></div>
-
-   <div class="section-head"><div><h2>O que mudou na investigação?</h2><p>Novos resultados e alterações às hipóteses, com histórico verificável. Um novo resultado não significa uma nova descoberta.</p></div><a class="text-action" href="./lab/discoveries.json">Ver dados e proveniência →</a></div>
+  <div class="section-head"><div><h2>O que mudou na investigação?</h2><p>Novos resultados e alterações às hipóteses, com histórico verificável. Um novo resultado não significa uma nova descoberta.</p></div><a class="text-action" href="./lab/discoveries.json">Ver dados e proveniência →</a></div>
    <div class="toolbar"><label>Filtrar acontecimentos<select id="discovery-filter"><option value="all">Todas as alterações relevantes</option><option value="NEW_EVIDENCE">Novos resultados FT</option><option value="IMPROVED">Mais consistentes</option><option value="DEGRADED">Menos consistentes</option><option value="states">Candidatas / validadas / rejeitadas</option><option value="RECALCULATED">Revisão estatística</option></select></label><span class="count" id="discovery-count">—</span></div>
    <div id="r-discovery" class="discovery-stream" aria-live="polite"><div class="empty">A consultar a cronologia…</div></div>
    <div class="panel discovery-detail" id="r-detail" hidden aria-live="polite"></div>
 
    <div class="panel science-radar-promo" style="margin:18px 0;border-left:3px solid var(--aqua)">
-    <div class="section-head" style="margin:0"><div><div class="kicker">V6.2 · NOVO RADAR CIENTÍFICO</div>
+    <div class="section-head" style="margin:0"><div><div class="kicker">COMO VERIFICAMOS OS PADRÕES</div>
     <h2>Como confirmamos ou rejeitamos um padrão</h2><p>Cada hipótese é registada antes do resultado e confrontada com jogos posteriores. Os detalhes técnicos e as fontes continuam disponíveis.</p></div>
-    <a class="button primary" href="./scientific-radar.html">Abrir Radar Científico V6 ↗</a>
-    <a class="button" href="./llm-investigator.html">Acompanhar Investigador LLM ↗</a></div>
+    <a class="button primary" href="./scientific-radar.html">Ver validação dos padrões ↗</a>
+    <a class="button" href="./llm-investigator.html">Abrir Investigador IA ↗</a></div>
    </div>
    </section>
 
   <section class="page" id="page-futuros" hidden aria-labelledby="fut-heading">
-    <div class="page-heading"><div><div class="kicker">OBSERVATÓRIO PROSPETIVO · V5</div><h1 id="fut-heading">Jogos futuros com movimentos de odds.</h1><p class="lead">Classificação automática com dados anteriores ao início. Mostra movimentos efetivamente observados; não simula odds entre mensagens nem utiliza resultados futuros.</p></div><span class="pill">Observação, não prognóstico</span></div>
+    <div class="page-heading"><div><div class="kicker">JOGOS FUTUROS · MOVIMENTOS OBSERVADOS</div><h1 id="fut-heading">Jogos futuros com movimentos de odds.</h1><p class="lead">Classificação automática com dados anteriores ao início. Mostra movimentos efetivamente observados; não simula odds entre mensagens nem utiliza resultados futuros.</p></div><span class="pill">Observação, não prognóstico</span></div>
     <div class="metrics">
       <div class="metric"><span class="metric-title">Condição original</span><strong id="f-original">—</strong><small>≥2 alertas sem descida relevante</small></div>
       <div class="metric"><span class="metric-title">Rigorosos</span><strong class="mint" id="f-strict">—</strong><small>≥2 episódios + Total válido</small></div>
@@ -131,10 +142,10 @@
   <section class="page" id="page-padroes" hidden aria-labelledby="pat-heading">
     <div class="page-heading"><div><div class="kicker">MOTOR DE HIPÓTESES · CROSS-MARKET</div><h1 id="pat-heading">Padrões encontrados e respetivas amostras.</h1><p class="lead">Compara movimentos de Total, 1X2 e handicap asiático com Over 2,5 e BTTS. As associações são exploratórias até serem validadas em novos jogos.</p></div><span class="pill">Sem hipótese validada assumida</span></div>
     <div class="metrics">
-      <div class="metric"><span class="metric-title">Hipóteses avaliadas</span><strong id="p-count">—</strong><small>Inclui combinações</small></div>
+      <div class="metric"><span class="metric-title">Padrões já analisados</span><strong id="p-count">—</strong><small>Inclui combinações</small></div>
       <div class="metric"><span class="metric-title">Padrões individuais com suporte</span><strong id="p-individual">—</strong><small>Catálogo pré-definido</small></div>
       <div class="metric"><span class="metric-title">Testes realizados</span><strong id="p-tests">—</strong><small>Inclui correção múltipla</small></div>
-      <div class="metric"><span class="metric-title">Candidatos congelados</span><strong id="p-frozen">—</strong><small>Exigem descoberta robusta</small></div>
+      <div class="metric"><span class="metric-title">Padrões selecionados para teste futuro</span><strong id="p-frozen">—</strong><small>Exigem descoberta robusta</small></div>
     </div>
     <div class="toolbar">
       <label>Procurar padrão<input id="p-query" type="search" placeholder="Ex.: duas mensagens, Total…" autocomplete="off"></label>
@@ -145,7 +156,7 @@
     </div>
     <div class="card-grid" id="p-cards"><div class="empty">A carregar hipóteses…</div></div>
     <p class="note warning">As posições são apenas de exploração. Um valor-p pequeno **não valida** uma hipótese quando o valor-q após testes múltiplos não passa os critérios. O motor não envia estes padrões para apostas.</p>
-    <div class="link-grid"><a class="link-card" href="./lab-research.html"><strong>Investigação V5 completa ↗</strong><small>Combinações, amostras, vizinhos e evolução</small></a><a class="link-card" href="./lab/pattern-research.json"><strong>Dados das hipóteses ↗</strong><small>Relatório com valores-p, valores-q, intervalos e estados</small></a></div>
+    <div class="link-grid"><a class="link-card" href="./lab-research.html"><strong>Explorar o catálogo de padrões ↗</strong><small>Combinações, amostras, vizinhos e evolução</small></a><a class="link-card" href="./lab/pattern-research.json"><strong>Dados das hipóteses ↗</strong><small>Relatório com valores-p, valores-q, intervalos e estados</small></a></div>
   </section>
 
   <section class="page" id="page-validacao" hidden aria-labelledby="val-heading">
@@ -154,7 +165,7 @@
       <div class="metric"><span class="metric-title">Hipóteses exploratórias</span><strong id="v-explore">—</strong><small>Ainda em descoberta</small></div>
       <div class="metric"><span class="metric-title">Candidatas</span><strong id="v-candidates">—</strong><small>Regras pré-congeladas</small></div>
       <div class="metric"><span class="metric-title">Em validação</span><strong id="v-oos">—</strong><small>Jogos posteriores ao congelamento</small></div>
-      <div class="metric"><span class="metric-title">Validadas</span><strong class="mint" id="v-validated">—</strong><small>Gates de replicação</small></div>
+      <div class="metric"><span class="metric-title">Padrões validados</span><strong class="mint" id="v-validated">—</strong><small>Testes independentes</small></div>
     </div>
     <div class="columns">
      <div class="panel"><h3>Funil científico das hipóteses</h3><p>As quantidades vêm do relatório publicado; etapas vazias são mostradas explicitamente.</p><div id="v-funnel" class="bar-funnel"></div><p class="note">O histórico de primeiro alerta dos jogos futuros é um registo de observação, <strong>não</strong> equivale a uma hipótese estatística congelada.</p></div>
@@ -168,7 +179,7 @@
   </section>
 
   <section class="page" id="page-dados" hidden aria-labelledby="dat-heading">
-    <div class="page-heading"><div><div class="kicker">CONFIANÇA · QUALIDADE DAS FONTES</div><h1 id="dat-heading">Qualidade e origem dos dados.</h1><p class="lead">Resultados verificados, cobertura e limites de observação. Um alerta recebido não significa que a interpretação V4 esteja certificada.</p></div></div>
+    <div class="page-heading"><div><div class="kicker">CONFIANÇA · QUALIDADE DAS FONTES</div><h1 id="dat-heading">Qualidade e origem dos dados.</h1><p class="lead">Resultados verificados, cobertura e limites de observação. Um alerta recebido não significa que a interpretação dos alertas esteja certificada.</p></div></div>
     <div class="metrics">
       <div class="metric"><span class="metric-title">Jogos observados no LAB</span><strong id="d-games">—</strong><small>Universo de partidas distintas</small></div>
       <div class="metric"><span class="metric-title">FT confirmados</span><strong class="mint" id="d-ft">—</strong><small>Resultados rigorosamente identificados</small></div>
@@ -176,10 +187,10 @@
       <div class="metric"><span class="metric-title">Sem FT após prazo</span><strong class="amber" id="d-pending">—</strong><small>Não tratados como resultados errados</small></div>
     </div>
     <div class="columns">
-      <div class="panel"><h3>Gates de auditoria V4</h3><p>Integridade e cobertura não substituem revisão humana das mensagens.</p><div class="gate-list" id="d-gates"></div></div>
-      <div class="panel"><h3>Condição das fontes</h3><div class="gate-list" id="d-feeds"></div><p class="note">O Golden Set mantém-se um requisito independente para certificação do parser. O motor V5 é exploratório.</p></div>
+      <div class="panel"><h3>Critérios de qualidade dos dados</h3><p>Integridade e cobertura não substituem revisão humana das mensagens.</p><div class="gate-list" id="d-gates"></div></div>
+      <div class="panel"><h3>Condição das fontes</h3><div class="gate-list" id="d-feeds"></div><p class="note">O Golden Set mantém-se um requisito independente para certificação do parser. Os padrões continuam em estudo.</p></div>
     </div>
-    <div class="link-grid"><a class="link-card" href="./lab-results.html"><strong>Todos os resultados FT ↗</strong><small>Estado, fontes e identificação por jogo</small></a><a class="link-card" href="./ft-identity-review.html"><strong>Revisão de identidades FT ↗</strong><small>Jogos atrasados, candidatos de APIs e conflitos, sem liquidação automática</small></a><a class="link-card" href="./lab.html"><strong>Auditoria e Golden Set ↗</strong><small>Integridade dos parsers e revisão humana</small></a><a class="link-card" href="./lab-v4-audit.html"><strong>Comparação V4 ↗</strong><small>Gates e divergências por mercado</small></a><a class="link-card" href="./h1.html#h1"><strong>Arquivo H1 / Under ↗</strong><small>Histórico de sinais e triplas simuladas</small></a></div>
+    <div class="link-grid"><a class="link-card" href="./lab-results.html"><strong>Todos os resultados FT ↗</strong><small>Estado, fontes e identificação por jogo</small></a><a class="link-card" href="./ft-identity-review.html"><strong>Revisão de identidades FT ↗</strong><small>Jogos atrasados, candidatos de APIs e conflitos, sem liquidação automática</small></a><a class="link-card" href="./lab.html"><strong>Auditoria e Golden Set ↗</strong><small>Integridade dos parsers e revisão humana</small></a><a class="link-card" href="./lab-v4-audit.html"><strong>Comparar fontes e divergências ↗</strong><small>Critérios e divergências por mercado</small></a><a class="link-card" href="./h1.html#h1"><strong>Arquivo H1 / Under ↗</strong><small>Histórico de sinais e triplas simuladas</small></a></div>
   </section>
   <footer class="footer"><strong>MASTER BRAIN</strong> · Laboratório exploratório de movimentos de mercado e resultados. Sem recomendações de apostas, sem execução real. Fontes: relatórios publicados automaticamente no GitHub. <a href="./lab.html">Metodologia</a> · <a href="./h1.html#h1">Arquivo Under H1</a></footer>
  </main>
