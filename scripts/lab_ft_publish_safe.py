@@ -445,6 +445,53 @@ def valid_telegram_block_update(previous, current, now=None):
 _MAX_REPORTED_REFUSALS = 7
 
 
+def is_collector_v4_path(path):
+    """Collector V4 files of the ownership matrix, including every ``-partNNNN`` partition."""
+    return bool(own.V4_REVISIONS.fullmatch(path) or own.MARKETS_VIEW.fullmatch(path)
+                or own.FORMATS_VIEW.fullmatch(path))
+
+
+_V4_FAMILY_PROOFS = {}
+
+
+def _v4_family_proven(root, base, remote):
+    """The collector's own replay of the whole V4 family, once per (base, remote) pair."""
+    key = (str(Path(root).resolve()), base, remote)
+    if key not in _V4_FAMILY_PROOFS:
+        from scripts import git_selective_publish as sel
+        from scripts.collect_publish_safe import verify_v4
+        try:
+            verify_v4(root, base, remote)
+            _V4_FAMILY_PROOFS[key] = None
+        except sel.PublicationRefused as exc:
+            _V4_FAMILY_PROOFS[key] = str(exc)
+        if len(_V4_FAMILY_PROOFS) > 64:
+            _V4_FAMILY_PROOFS.pop(next(iter(_V4_FAMILY_PROOFS)))
+    return _V4_FAMILY_PROOFS[key]
+
+
+def check_collector_v4_path(root, base, remote, path):
+    """Validate a concurrent collector V4 change; raise UnsafeFTPublication when unsafe.
+
+    * ``v4-revisions-YYYY-MM[-partNNNN]`` is an append-only SHA journal: every file only grows
+      (a new part starts empty); a rewritten, truncated or deleted part is refused.
+    * ``markets-``/``formats-YYYY-MM[-partNNNN]`` are mutable latest views that
+      ``write_monthly_view`` repartitions: rows may be revised in place, files may be split,
+      merged or removed. Byte growth proves nothing about a view, so ANY change is accepted
+      only with the collector's own full replay of the family
+      (``collect_publish_safe.verify_v4``: valid chain, exact projection of every row, no lost
+      event, original Telegram time kept, rows change only through an audited revision).
+    The same replay is also required for every journal change.
+    """
+    if own.V4_REVISIONS.fullmatch(path):
+        current = blob_or_none(root, remote, path)
+        if current is None or not append_only_jsonl(blob_or_none(root, base, path), current):
+            raise UnsafeFTPublication("V4 revision journal rewritten: " + path)
+    reason = _v4_family_proven(root, base, remote)
+    if reason is not None:
+        raise UnsafeFTPublication("Collector V4 change not proven: %s (%s)" % (path, reason))
+
+
 def _check_remote_path(root, base, remote, path):
     """Raise UnsafeFTPublication unless this concurrent remote change is provably unrelated to FT."""
     if (path.startswith(("h1lab/", "scripts/", ".github/", "tests/"))
@@ -492,6 +539,8 @@ def _check_remote_path(root, base, remote, path):
                 blob_or_none(root, base, path),
                 blob_or_none(root, remote, path)):
             raise UnsafeFTPublication("H1 notification receipt invalid: " + path)
+    elif is_collector_v4_path(path):
+        check_collector_v4_path(root, base, remote, path)
     elif JOURNAL.fullmatch(path) or V4_ARCHIVE.fullmatch(path):
         if not append_only_jsonl(blob_or_none(root, base, path),
                                  blob_or_none(root, remote, path) or b""):
