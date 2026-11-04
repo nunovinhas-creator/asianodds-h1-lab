@@ -236,7 +236,18 @@ class WriterEndToEnd(unittest.TestCase):
         self.assert_replays_converge(self.copy_inputs())
 
     def test_threshold_crossing_is_reported_once_and_then_settles(self):
-        """Deterministic version of the production case, on a copy of the real inputs."""
+        """Deterministic version of the production case, on a copy of the real inputs.
+
+        A transition is reported relative to the PUBLISHED report (the writer's ``previous``),
+        so the expected move is derived from the published state of the hypothesis, and the
+        OOS sample is counted exactly as the engine counts it (``outcomes_from``: LAB ledger
+        plus H1 results.csv). Two cases are real-data-dependent and both must hold:
+        - the reconciled inputs already cross OOS_MIN_EVAL (production FT run 41904198005:
+          one new FT moved frozen candidates to EM_VALIDACAO) -> no synthetic change at all;
+        - otherwise a synthetic FT is added (or a ledger-only FT withdrawn) in the temp copy
+          so that the state flips relative to the published one.
+        """
+        import csv
         from h1lab import pattern_engine as pe
         from h1lab.pattern_features import match_features
         from h1lab.timeline import collect_timelines, read_sources
@@ -244,33 +255,52 @@ class WriterEndToEnd(unittest.TestCase):
         alerts, rows, errors = read_sources(tmp)
         timelines, _, _ = collect_timelines(alerts, rows, source_errors=errors)
         feats = {t["match_key"]: match_features(t) for t in timelines}
+        feats = {k: f for k, f in feats.items() if "excluded" not in f}
         registry = json.loads((tmp / "data/lab/pattern-registry.json").read_text())
         ledger = json.loads((tmp / "data/lab/ft-ledger.json").read_text())
+        h1_csv = tmp / "data/results.csv"
+        h1_rows = list(csv.DictReader(h1_csv.open(encoding="utf-8"))) if h1_csv.exists() else []
+        h1_keys = {r.get("match_key") for r in h1_rows}
+        published = json.loads((tmp / layout.SUMMARY_PATH).read_text(encoding="utf-8"))
+        published_states = published.get("hypothesis_states") or {}
         matches = ledger["matches"]
+        outcomes, _, _ = pe.outcomes_from(ledger, h1_rows)
         now = datetime.fromisoformat(self.now().replace("Z", "+00:00"))
-        final = lambda k: (matches.get(k) or {}).get("status") == "FINAL"
         for entry in registry["entries"]:
-            frozen_at = pe._utc(entry["frozen_at"])
-            members = sorted(k for k, f in feats.items() if "excluded" not in f
-                             and pe.holds(entry["definition"], f)
-                             and pe._utc(f["first_observed_at"]) > frozen_at)
-            known = [k for k in members if final(k)]
-            past = [k for k in members if not final(k) and k in matches
-                    and pe._utc(feats[k].get("kickoff_utc")) and pe._utc(feats[k]["kickoff_utc"]) < now]
-            if entry.get("decisions"):
+            before = published_states.get(entry["id"])
+            if entry.get("decisions") or before not in ("CANDIDATO", "EM_VALIDACAO"):
                 continue
-            if len(known) < pe.OOS_MIN_EVAL and len(known) + len(past) >= pe.OOS_MIN_EVAL:
-                for key in past[:pe.OOS_MIN_EVAL - len(known)]:      # synthetic FT, temp copy only
+            frozen_at = pe._utc(entry["frozen_at"])
+            members = sorted(k for k, f in feats.items() if pe.holds(entry["definition"], f)
+                             and pe._utc(f["first_observed_at"]) > frozen_at)
+            known = [k for k in members if k in outcomes]
+            if len(known) >= pe.EARLY_REJECT_N:
+                continue
+            now_state = "EM_VALIDACAO" if len(known) >= pe.OOS_MIN_EVAL else "CANDIDATO"
+            if now_state != before:                      # the real inputs already cross
+                expected = (before, now_state)
+                break
+            if before == "CANDIDATO":
+                past = [k for k in members if k not in outcomes and k in matches
+                        and pe._utc(feats[k].get("kickoff_utc"))
+                        and pe._utc(feats[k]["kickoff_utc"]) + pe.RESULT_DELAY <= now]
+                need = pe.OOS_MIN_EVAL - len(known)
+                if len(past) < need:
+                    continue
+                for key in past[:need]:                  # synthetic FT, temp copy only
                     matches[key].update(status="FINAL", checked_at=self.now(), result={
                         "home_goals": 2, "away_goals": 1, "identity_match": "EXACT",
                         "source": "SYNTHETIC_TEST"})
                 expected = ("CANDIDATO", "EM_VALIDACAO")
                 break
-            if pe.OOS_MIN_EVAL <= len(known) < pe.EARLY_REJECT_N:
-                for key in known[:len(known) - pe.OOS_MIN_EVAL + 1]:  # withdraw FT, temp copy only
-                    matches[key].update(status="PENDING", result=None)
-                expected = ("EM_VALIDACAO", "CANDIDATO")
-                break
+            ledger_only = [k for k in known if k not in h1_keys]
+            drop = len(known) - pe.OOS_MIN_EVAL + 1
+            if len(ledger_only) < drop:
+                continue
+            for key in ledger_only[:drop]:               # withdraw FT, temp copy only
+                matches[key].update(status="PENDING", result=None)
+            expected = ("EM_VALIDACAO", "CANDIDATO")
+            break
         else:
             self.fail("no frozen hypothesis can cross OOS_MIN_EVAL in the real inputs")
         (tmp / "data/lab/ft-ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
