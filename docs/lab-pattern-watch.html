@@ -25,6 +25,17 @@ p{max-width:78ch} .sub{color:var(--muted)}.cards{display:grid;grid-template-colu
 .llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
 @media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
+<style>
+/* Secções técnicas discretas, preservando os dados e os IDs carregados pelos scripts */
+.ux-technical,.ux-history-archive{margin:10px 0;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:9px;padding:9px 12px;font-size:13px}
+.ux-technical>summary,.ux-history-archive>summary{cursor:pointer;font-weight:650;line-height:1.5;min-height:25px}
+.ux-technical p,.ux-history-archive p{margin:9px 0}
+.ux-history-archive .llm-panel{margin:12px 0 0}
+.ux-archive-intro{font-size:13px;opacity:.8;margin:7px 0 12px}
+.ux-proof-inline{margin:10px 0 18px;border-left:3px solid currentColor;padding:4px 0 4px 12px;font-size:14px;line-height:1.5}
+.ux-version-footer{display:inline-block;vertical-align:middle;margin:0 3px}
+.ux-version-footer summary{font-size:12px}
+</style>
 </head><body><div class="wrap">
 <nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html" aria-current="page">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
 
@@ -51,7 +62,7 @@ p{max-width:78ch} .sub{color:var(--muted)}.cards{display:grid;grid-template-colu
 <p class="note">O limiar é <strong>±0,05 golos implícitos</strong> por movimento observado. Uma variação −0,049 é classificada como praticamente estável; −0,050 é uma descida relevante. λ é uma estimativa derivada da linha Total, Over e Under após ajuste de margem, não o resultado previsto nem uma cotação executável.</p>
 <h2>Como interpretar os movimentos</h2>
 <p><span class="flag up">SUBIDAS EM TODOS</span> Todos os episódios independentes mostram aumento de λ ≥0,05. <span class="flag flat">SUBIDAS + ESTÁVEL</span> Há subidas relevantes e pequenas oscilações. <span class="flag flat">PRATICAMENTE ESTÁVEL</span> Nenhuma variação atinge ±0,05. <span class="flag bad">SENTIDOS OPOSTOS</span> Há subida ≥0,05 e descida ≤−0,05, pelo que o jogo <strong>não cumpre</strong> a condição original.</p>
-<p>A observação é congelada quando uma partida cumpre a condição rigorosa pela primeira vez, antes do início. Novos alertas podem alterar o grupo mostrado enquanto o encontro for futuro, mas não reescrevem a primeira deteção. <strong>O Golden Set V4 ainda não está certificado.</strong></p>
+<p>A observação é congelada quando uma partida cumpre a condição rigorosa pela primeira vez, antes do início. Novos alertas podem alterar o grupo mostrado enquanto o encontro for futuro, mas não reescrevem a primeira deteção. <strong>A revisão manual das mensagens ainda não está certificada.</strong></p>
 <footer>Fonte: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/docs/lab/pattern-watch.json">pattern-watch.json</a> · Regras: <a href="https://github.com/nunovinhas-creator/asianodds-h1-lab/blob/main/h1lab/pattern_watch.py">pattern_watch.py</a>. Atualização no workflow de resultados do LAB, sem pedidos extra às APIs. Sem ROI, EV ou geração de picks.</footer>
 </div>
 <script>
