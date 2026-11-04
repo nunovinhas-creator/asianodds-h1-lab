@@ -447,8 +447,7 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), self.before)
 
 
-HUMAN_REVIEW = 'Scientific gate requires explicit human review'
-LIVE_REFUSALS = (HUMAN_REVIEW, 'Unexpected scientific state; review this version before using LLM')
+HUMAN_REVIEW = mod.HUMAN_REVIEW
 
 
 class GateRequiresHumanReviewTests(unittest.TestCase):
@@ -456,6 +455,8 @@ class GateRequiresHumanReviewTests(unittest.TestCase):
 
     Production case 2026-11-04 14:37 UTC: the 7-day window closed with 1060/1089 frozen
     pre-kickoff captures (97.34 %), status BELOW_99_PERCENT, scientific_acceptance BLOCKED.
+    Known blocking states raise ScientificGateBlocked (reported, not an error); unknown,
+    accepted or corrupt states raise plain ValueError (an error, never a quiet skip).
     """
 
     def setUp(self):
@@ -471,57 +472,180 @@ class GateRequiresHumanReviewTests(unittest.TestCase):
         target.write_text(json.dumps(body))
         return self.fixtures.snapshot()
 
-    def assert_refused_without_side_effects(self, before):
+    def assert_refused_without_side_effects(self, before, text=HUMAN_REVIEW, blocked=True):
         from h1lab.v6_discovery_planner import plan
         from scripts import lab_v6_llm_autonomous as autonomy
         with patch('urllib.request.urlopen', side_effect=AssertionError('provider called')):
             for call in (lambda: mod.build_packet(self.root), lambda: plan(self.root, limit=20),
                          lambda: autonomy.choose_candidates(self.root)):
-                with self.assertRaisesRegex(ValueError, HUMAN_REVIEW):
+                with self.assertRaisesRegex(ValueError, text) as ctx:
                     call()
+                self.assertIs(isinstance(ctx.exception, mod.ScientificGateBlocked), blocked)
         self.assertEqual(self.fixtures.snapshot(), before, 'refusal writes nothing')
 
     def test_production_7_day_below_99_percent_is_refused(self):
         before = self.set_gate('7_days', status='BELOW_99_PERCENT', ratio=0.9734,
                                source_eligible=1089, frozen_pre_kickoff=1060, missing_count=29)
         self.assert_refused_without_side_effects(before)
+        state = mod.scientific_gate(self.root)
+        self.assertEqual(state['state'], 'SCIENTIFICALLY_BLOCKED')
+        self.assertEqual(state['blocked_gates'], {'7_days': 'BELOW_99_PERCENT'})
 
     def test_14_day_below_99_percent_is_refused(self):
         before = self.set_gate('14_days', status='BELOW_99_PERCENT', ratio=0.98,
                                source_eligible=50, frozen_pre_kickoff=49, missing_count=1)
         self.assert_refused_without_side_effects(before)
 
-    def test_unknown_or_passing_gate_states_are_refused(self):
-        for status in ('PASS', 'AT_LEAST_99_PERCENT', 'UNKNOWN'):
+    def test_every_known_blocking_producer_state_is_blocked(self):
+        for status in mod.SCIENTIFICALLY_BLOCKED_GATE_STATES:
             with self.subTest(status=status):
                 self.assert_refused_without_side_effects(self.set_gate('7_days', status=status))
 
-    def test_accepted_scientific_gate_is_refused_even_if_warmup(self):
+    def test_unknown_or_passing_gate_states_are_errors_not_blocks(self):
+        for status in ('PASS', 'AT_LEAST_99_PERCENT', 'UNKNOWN', None):
+            with self.subTest(status=status):
+                before = self.set_gate('7_days', status=status)
+                self.assert_refused_without_side_effects(before, 'Unknown scientific gate state',
+                                                         blocked=False)
+                with self.assertRaisesRegex(ValueError, 'Unknown scientific gate state'):
+                    mod.scientific_gate(self.root)
+
+    def test_accepted_scientific_gate_is_an_error_even_if_warmup(self):
         before = self.set_gate('7_days', status='WARMUP', scientific_acceptance='ACCEPTED')
-        self.assert_refused_without_side_effects(before)
+        self.assert_refused_without_side_effects(before, 'Unexpected scientific acceptance',
+                                                 blocked=False)
+
+    def test_corrupt_counts_are_errors_even_when_blocked(self):
+        for fields in ({'missing_count': 30}, {'ratio': 1.5}, {'source_eligible': -1},
+                       {'frozen_pre_kickoff': 1060.5}, {'ratio': None}):
+            with self.subTest(fields=fields):
+                self.set_gate('7_days', status='BELOW_99_PERCENT', ratio=0.9734,
+                              source_eligible=1089, frozen_pre_kickoff=1060, missing_count=29)
+                self.set_gate('7_days', **fields)
+                with self.assertRaises(ValueError) as ctx:
+                    mod.scientific_gate(self.root)
+                self.assertNotIsInstance(ctx.exception, mod.ScientificGateBlocked)
+
+    def test_non_inconclusive_science_is_an_error(self):
+        target = self.root / mod.SOURCES[0]
+        body = json.loads(target.read_text())
+        body['scientific_state'] = 'VALIDATED'
+        target.write_text(json.dumps(body))
+        with self.assertRaises(ValueError) as ctx:
+            mod.scientific_gate(self.root)
+        self.assertNotIsInstance(ctx.exception, mod.ScientificGateBlocked)
 
     def test_authorised_fixture_still_builds(self):
-        for status in ('WARMUP', 'INSUFFICIENT_N', 'BLOCKED'):
+        for status in mod.AUTHORISED_GATE_STATES:
             with self.subTest(status=status):
                 self.set_gate('7_days', status=status, scientific_acceptance='BLOCKED')
+                self.assertEqual(mod.scientific_gate(self.root)['state'], 'AUTHORISED')
                 self.assertEqual(mod.build_packet(self.root)['facts']['scientific_state'],
                                  'INCONCLUSIVO')
 
-    def test_real_gate_state_is_accepted_or_refused_for_human_review(self):
-        """Live data: either an authorised state or a fail-closed refusal, never anything else."""
+    def test_real_gate_state_is_authorised_or_scientifically_blocked(self):
+        """Live data: an authorised state or a known block, never an unknown/corrupt state."""
         real = Path(__file__).resolve().parents[1]
-        gates = json.loads((real / mod.SOURCES[0]).read_text())['gates']
-        authorised = all(g.get('status') in ('WARMUP', 'INSUFFICIENT_N', 'BLOCKED')
-                         and g.get('scientific_acceptance') == 'BLOCKED'
-                         for g in (gates['7_days'], gates['14_days']))
-        if authorised:
+        state = mod.scientific_gate(real)['state']
+        if state == 'AUTHORISED':
             self.assertEqual(mod.build_packet(real)['status'],
                              'SHADOW_RESEARCH_DOSSIER_NOT_VALIDATION')
             return
+        self.assertEqual(state, 'SCIENTIFICALLY_BLOCKED')
         with patch('urllib.request.urlopen', side_effect=AssertionError('provider called')):
-            with self.assertRaises(ValueError) as ctx:
+            with self.assertRaises(mod.ScientificGateBlocked):
                 mod.build_packet(real)
-        self.assertIn(str(ctx.exception), LIVE_REFUSALS)
+
+
+class ScientificGateWorkflowTests(unittest.TestCase):
+    """v6-offline-statistics.yml: a blocked science ends cleanly, never publishes."""
+
+    def setUp(self):
+        import yaml
+        root = Path(__file__).resolve().parents[1]
+        self.text = (root / '.github/workflows/v6-offline-statistics.yml').read_text()
+        self.jobs = yaml.safe_load(self.text)['jobs']
+
+    def steps(self, job):
+        return {s.get('name') or s.get('uses'): s for s in self.jobs[job]['steps']}
+
+    def test_evaluate_classifies_before_any_replay(self):
+        names = [s.get('name') or s.get('uses') for s in self.jobs['evaluate']['steps']]
+        gate = names.index('Scientific gate (technical integrity; unknown states fail)')
+        self.assertLess(gate, names.index('Real historical replay and source immutability'))
+        steps = self.steps('evaluate')
+        self.assertEqual(steps['Scientific gate (technical integrity; unknown states fail)']['run'],
+                         'python -m scripts.v6_scientific_gate --github-output')
+        self.assertIn("steps.science.outputs.state == 'AUTHORISED'",
+                      steps['Real historical replay and source immutability']['if'])
+        blocked = steps['SCIENTIFICALLY_BLOCKED - verify no evaluation and no writes']
+        self.assertIn("== 'SCIENTIFICALLY_BLOCKED'", blocked['if'])
+        self.assertIn('--verify-blocked', blocked['run'])
+
+    def test_no_error_is_hidden_in_evaluate(self):
+        for step in self.jobs['evaluate']['steps']:
+            self.assertNotIn('continue-on-error', step)
+        self.assertNotIn('continue-on-error', self.jobs['evaluate'])
+        self.assertNotIn('|| true', json.dumps(self.jobs['evaluate']))
+
+    def test_publish_requires_a_real_evaluation(self):
+        self.assertIn("needs.evaluate.outputs.evaluated == 'true'", self.jobs['publish']['if'])
+        evaluated = self.jobs['evaluate']['outputs']['evaluated']
+        self.assertIn("steps.replay.outcome == 'success'", evaluated)
+        self.assertIn("steps.science.outputs.state == 'AUTHORISED'", evaluated)
+        upload = [s for s in self.jobs['evaluate']['steps']
+                  if str(s.get('uses', '')).startswith('actions/upload-artifact')]
+        self.assertEqual(len(upload), 1)
+        self.assertIn("steps.replay.outcome == 'success'", upload[0]['if'])
+
+
+class ScientificGateCliTests(unittest.TestCase):
+    def setUp(self):
+        self.fixtures = InvestigatorTests()
+        self.fixtures.setUp()
+        self.addCleanup(self.fixtures.doCleanups)
+        self.root = self.fixtures.root
+
+    def run_cli(self, *args):
+        from scripts import v6_scientific_gate as gate_cli
+        out = self.root / 'github-output.txt'
+        with patch.dict(os.environ, {'GITHUB_OUTPUT': str(out)}), redirect_stdout(StringIO()):
+            result = gate_cli.main(['--root', str(self.root), '--github-output', *args])
+        return result, out.read_text()
+
+    def test_authorised_and_blocked_outputs(self):
+        self.assertEqual(self.run_cli()[1], 'state=AUTHORISED\n')
+        target = self.root / mod.SOURCES[0]
+        body = json.loads(target.read_text())
+        body['gates']['7_days']['status'] = 'BELOW_99_PERCENT'
+        target.write_text(json.dumps(body))
+        self.assertEqual(self.run_cli()[1].splitlines()[-1], 'state=SCIENTIFICALLY_BLOCKED')
+
+    def test_verify_blocked_refuses_on_an_authorised_gate(self):
+        with self.assertRaises(SystemExit):
+            self.run_cli('--verify-blocked')
+
+    def test_unknown_state_exits_with_error_and_writes_no_output(self):
+        target = self.root / mod.SOURCES[0]
+        body = json.loads(target.read_text())
+        body['gates']['7_days']['status'] = 'MYSTERY'
+        target.write_text(json.dumps(body))
+        with self.assertRaisesRegex(ValueError, 'Unknown scientific gate state'):
+            self.run_cli()
+        self.assertFalse((self.root / 'github-output.txt').exists())
+
+    def test_real_blocked_snapshot_build_refuses_and_writes_nothing(self):
+        real = Path(__file__).resolve().parents[1]
+        from scripts import v6_scientific_gate as gate_cli
+        if mod.scientific_gate(real)['state'] != 'SCIENTIFICALLY_BLOCKED':
+            with self.assertRaises(SystemExit):
+                gate_cli.main(['--root', str(real), '--verify-blocked'])
+            return
+        with redirect_stdout(StringIO()):
+            result = gate_cli.main(['--root', str(real), '--verify-blocked'])
+        self.assertEqual(result['integrity']['build_refused'], 'ScientificGateBlocked')
+        self.assertFalse(result['integrity']['evaluation_performed'])
+        self.assertFalse(result['integrity']['publishable_report'])
 
 
 if __name__ == '__main__':
