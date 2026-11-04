@@ -254,6 +254,25 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
             new_keys += 1
         row = entries[key]
         identity = {k: game[k] for k in ("home", "away", "kickoff_utc")}
+        if row.get("status") == "EXPIRED_UNVERIFIED":
+            # Terminal and idempotent (P0 #107, 2026-11-01,1009,964): an expired fixture is never
+            # re-opened by old H1/V4 observations, its tombstone identity and expired_at are never
+            # re-stamped, and nothing is turned into a result. A contradictory identity seen after
+            # expiry is recorded once (append-only evidence) instead of flipping the status.
+            row["sources"] = sorted(game["sources"])
+            row["observed_alerts"] = game["alerts"]
+            changed = [k for k in identity
+                       if identity[k] is not None and row.get(k) not in (None, identity[k])]
+            if (game["identity_conflict"] or changed) and \
+                    "post_expiry_identity_conflict" not in row:
+                row["post_expiry_identity_conflict"] = {
+                    "first_observed_at": now.isoformat(timespec="seconds"),
+                    "reason": ("conflicting_observed_identity" if game["identity_conflict"]
+                               else "identity_changed_after_expiry"),
+                    "changed_fields": sorted(changed),
+                    "status_kept": "EXPIRED_UNVERIFIED",
+                }
+            continue
         old_identity = {k: row.get(k) for k in identity}
         identity_changed = any(old_identity[k] not in (None, identity[k])
                                for k in identity)
@@ -318,6 +337,12 @@ def reconcile(state, v4rows, previous, *, now, bsd_lookup, tsdb_lookup, max_chec
                 "expiry_reason": "ft_24h_window_elapsed",
                 "expired_at": now.isoformat(timespec="seconds"),
             }
+            # Closing a quarantined fixture must not hide why it was quarantined.
+            if row.get("status") in ("IDENTITY_CONFLICT", "SCORE_CONFLICT",
+                                     "INSUFFICIENT_IDENTITY", "SOURCE_ORDER_CONFLICT"):
+                tombstone["status_before_expiry"] = row["status"]
+                if row.get("reason"):
+                    tombstone["reason_before_expiry"] = _safe_reason(row["reason"])
             # Keep only what was really recorded; never back-fill history that
             # older tombstones already lost (they carry no audit_trail at all).
             trail = {}
