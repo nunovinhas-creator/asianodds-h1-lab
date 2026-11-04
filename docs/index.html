@@ -8,7 +8,21 @@
   <title>MASTER BRAIN — Jogos, padrões e resultados</title>
   <link rel="stylesheet" href="./master-brain.css">
   <script defer src="./master-brain.js"></script>
-<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}.ux-status-guide{margin:15px 0;padding:13px;border:1px solid color-mix(in srgb,currentColor 23%,transparent);border-radius:9px;line-height:1.6;font-size:14px}.ux-status-guide span{display:inline-block;font-weight:700;margin:2px 5px 2px 8px;padding:3px 6px;border-radius:5px;background:color-mix(in srgb,currentColor 10%,transparent)}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
+<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}.ux-status-guide{margin:15px 0;padding:13px;border:1px solid color-mix(in srgb,currentColor 23%,transparent);border-radius:9px;line-height:1.6;font-size:14px}.ux-status-guide span{display:inline-block;font-weight:700;margin:2px 5px 2px 8px;padding:3px 6px;border-radius:5px;background:color-mix(in srgb,currentColor 10%,transparent)}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style><style>
+.ux-status-guide{display:block;margin:12px 0 20px;padding:13px 15px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:12px;background:color-mix(in srgb,currentColor 4%,transparent);font:inherit;color:inherit}
+.ux-status-guide .ux-status-caption{margin:0 0 10px;font:750 11px/1.35 system-ui,sans-serif;letter-spacing:.09em;opacity:.76}
+.ux-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.ux-status-item{display:flex;flex-direction:column;gap:6px;border-left:3px solid color-mix(in srgb,currentColor 38%,transparent);padding:2px 10px;min-width:0;font-size:13px;line-height:1.5}
+.ux-status-item .ux-evidence{display:inline-block;align-self:flex-start;font-size:12px;line-height:1.35;font-weight:800;padding:4px 7px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 24%,transparent)}
+.ux-status-item .ux-validated{border-color:#3a936e;color:#26915f}.ux-status-item .ux-testing{border-color:#b58d48;color:#ad873d}.ux-status-item .ux-proposal{border-color:#618cad;color:#609fca}
+.ux-status-note{margin:12px 0 0;font-size:12px;line-height:1.5;opacity:.9}
+.ux-home-state{display:flex;flex-wrap:wrap;align-items:center;gap:9px 18px;margin:13px 0;padding:13px 16px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-left:4px solid #4baf9c;border-radius:11px;background:color-mix(in srgb,currentColor 5%,transparent)}
+.ux-home-state-title{font-size:13px;font-weight:800}.ux-home-stat{font-size:13px}.ux-home-stat strong{font-size:19px;padding-left:5px;font-variant-numeric:tabular-nums}
+.ux-home-state a{font-size:13px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}.ux-helper{font-size:13px;line-height:1.5;opacity:.86;margin:6px 0 13px}
+.llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
+@media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
+</style>
+</head>
 <body>
 <a class="skip-link" href="#main">Saltar para o conteúdo</a>
 <div class="app">
@@ -20,10 +34,10 @@
    <div class="rail-tag">INTELIGÊNCIA · PAINÉIS PRINCIPAIS</div>
    <nav class="rail-nav" aria-label="Separadores do cérebro" id="primary-nav">
     <a class="nav-link" href="./scientific-radar.html"><span class="nav-symbol">◎</span>Radar Científico V6 <span class="nav-count">NOVO</span></a>
-    <a class="nav-link" href="./llm-investigator.html"><span class="nav-symbol">✦</span>Investigador LLM <span class="nav-count">LAB</span></a>
+    <a class="nav-link" href="./llm-investigator.html"><span class="nav-symbol">✦</span>Propostas da IA <span class="nav-count">LAB</span></a>
     <button class="nav-btn active" type="button" data-page="radar" aria-current="page"><span class="nav-symbol">◉</span>Radar do Cérebro</button>
     <button class="nav-btn" type="button" data-page="futuros"><span class="nav-symbol">↗</span>Jogos futuros <span class="nav-count" id="nav-future">—</span></button>
-    <button class="nav-btn" type="button" data-page="padroes"><span class="nav-symbol">⌘</span>Padrões e cruzamentos</button>
+    <button class="nav-btn" type="button" data-page="padroes"><span class="nav-symbol">⌘</span>Padrões em teste</button>
     <button class="nav-btn" type="button" data-page="validacao"><span class="nav-symbol">◇</span>Validação e evolução</button>
     <button class="nav-btn" type="button" data-page="dados"><span class="nav-symbol">▥</span>Dados e qualidade</button>
    </nav>
@@ -56,26 +70,27 @@
     </div>
    </div>
 
-   <div class="metrics" aria-label="Indicadores do cérebro">
+   <div class="ux-home-state" role="group" aria-label="Estado atual da investigação"><strong class="ux-home-state-title">Estado atual</strong><span class="ux-home-stat">Padrões validados: <strong class="amber" id="r-valid">—</strong></span><span class="ux-home-stat">Hipóteses avaliadas: <strong id="r-hyp">—</strong></span><a href="./llm-investigator.html">Propostas da IA: consultar contador no Investigador IA</a></div><p class="ux-helper">«Hipóteses avaliadas» inclui estados diferentes; não corresponde necessariamente a padrões ainda em teste.</p><section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
+<div class="metrics" aria-label="Indicadores do cérebro">
     <div class="metric"><span class="metric-title">Jogos futuros sob observação rigorosa</span><strong class="mint" id="r-future">—</strong><small id="r-future-sub">Episódios independentes · Total válido</small></div>
-    <div class="metric"><span class="metric-title">Hipóteses avaliadas</span><strong id="r-hyp">—</strong><small>Cruzamentos e padrões V5</small></div>
-    <div class="metric"><span class="metric-title">Padrões validados</span><strong class="amber" id="r-valid">—</strong><small>Depois de correção estatística e OOS</small></div>
+    
+    
     <div class="metric"><span class="metric-title">Resultados finais recolhidos</span><strong class="blue" id="r-ft">—</strong><small id="r-ft-sub">Uma observação por jogo</small></div>
    </div>
 
-   <div class="ux-status-guide" role="note"><strong>Como interpretar:</strong><span>Validado</span> cumpriu os testes exigidos; <span>Em teste</span> padrão ainda sem vantagem demonstrada; <span>Proposta da IA</span> ideia que precisa de testes. Um resultado final verificado não valida automaticamente um padrão.</div>
-<div class="section-head"><div><h2>O que está confirmado e o que falta provar?</h2><p>Separação deliberada entre dados recolhidos, hipóteses e validação independente.</p></div><button class="text-action" type="button" data-go="validacao">Ver critérios →</button></div>
-   <div class="columns half">
-     <div class="panel"><h3>Um padrão observado não é uma previsão validada</h3><div id="r-proof" class="gate-list"></div><p class="note warning">Uma taxa elevada em poucos jogos pode ser coincidência. O valor-q corrigido e o desempenho fora da amostra são decisivos.</p></div>
-     <div class="panel"><h3>De onde vêm os dados</h3><div id="r-feeds" class="gate-list"></div><button class="text-action" data-go="dados" type="button">Ver qualidade e cobertura →</button></div>
-   </div>
-  <div class="section-head"><div><h2>Jogos a acompanhar e padrões em teste</h2><p>Ordenadas por evidência exploratória; não são previsões nem apostas.</p></div><button class="text-action" type="button" data-go="padroes">Analisar hipóteses →</button></div>
+   
+<div class="section-head"><div><h2>Jogos a acompanhar e padrões em teste</h2><p>Observações e padrões exploratórios; a presença nesta lista não equivale a uma aposta validada.</p></div><button class="text-action" type="button" data-go="padroes">Analisar hipóteses →</button></div>
    <div class="columns">
     <div class="panel"><div class="panel-head"><h3>Jogos futuros com movimentos observados</h3><button class="text-action" type="button" data-go="futuros">Todos os jogos →</button></div><p>Dois ou mais movimentos independentes, sem uma descida observada de λ ≥ 0,05.</p><div id="r-watch"><div class="empty">A consultar jogos futuros…</div></div></div>
-    <div class="panel"><div class="panel-head"><h3>Padrões encontrados nos jogos anteriores</h3><span class="tag">V5 · EXPLORATÓRIO</span></div><div id="r-insights" class="card-stack"><div class="empty">A carregar hipóteses…</div></div></div>
+    <div class="panel"><div class="panel-head"><h3>Padrões encontrados nos jogos anteriores</h3><span class="tag">EM TESTE · V5</span></div><div id="r-insights" class="card-stack"><div class="empty">A carregar hipóteses…</div></div></div>
    </div>
 
-   <div class="section-head"><div><h2>Como terminaram os jogos acompanhados?</h2><p>Categorias registadas antes do início e resultados finais verificados depois. Jogos sem resultado não contam como derrotas.</p></div></div>
+   <div class="section-head"><div><h2>O que está confirmado e o que falta provar?</h2><p>Separação deliberada entre dados recolhidos, hipóteses e validação independente.</p></div><button class="text-action" type="button" data-go="validacao">Ver critérios →</button></div>
+   <div class="columns half">
+     <div class="panel"><h3>Padrões validados exigem provas fora da amostra</h3><div id="r-proof" class="gate-list"></div><p class="note warning">Uma taxa elevada em poucos jogos pode ser coincidência. O valor-q corrigido e o desempenho fora da amostra são decisivos.</p></div>
+     <div class="panel"><h3>De onde vêm os dados</h3><div id="r-feeds" class="gate-list"></div><button class="text-action" data-go="dados" type="button">Ver qualidade e cobertura →</button></div>
+   </div>
+  <div class="section-head"><div><h2>Como terminaram os jogos acompanhados?</h2><p>Categorias registadas antes do início e resultados finais verificados depois. Jogos sem resultado não contam como derrotas.</p></div></div>
    <div class="panel"><div id="r-prospective" class="card-stack"><div class="empty">A consultar o histórico prospetivo…</div></div></div>
 
    <div class="section-head"><div><h2>O que mudou na investigação?</h2><p>Novos resultados e alterações às hipóteses, com histórico verificável. Um novo resultado não significa uma nova descoberta.</p></div><a class="text-action" href="./lab/discoveries.json">Ver dados e proveniência →</a></div>
