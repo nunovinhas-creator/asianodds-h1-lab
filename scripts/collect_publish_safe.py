@@ -434,7 +434,17 @@ def e5_receipt_publisher(root, *, publish=None, policy=None):
             sel.git(root, "-c", "user.name=github-actions[bot]",
                     "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
                     "commit", "-q", "-m", E5_MESSAGE, "--", *present)
-            return publish(root, base=base, policy=policy)
+            try:
+                return publish(root, base=base, policy=policy)
+            except BaseException:
+                # The local receipt commit did NOT reach main. Never compose the next
+                # publication on top of it: put HEAD back on the published base and keep the
+                # ledger bytes in the working tree (the notifier rolls an undurable intent back
+                # in memory and rewrites the file). Without this, run 41809284355 built its
+                # final flush on the unpublished intent commit df83ac4c and the rollback looked
+                # like "Telegram receipt removed" (PERSISTENT_INCOMPATIBILITY).
+                sel.run(root, "reset", "-q", "--mixed", base, check=False)
+                raise
         except IntentNotDurable:
             raise
         except Exception as exc:  # any Git/publication failure = not durable: fail closed
