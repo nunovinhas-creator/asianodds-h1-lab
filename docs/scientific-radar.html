@@ -9,7 +9,21 @@
  <link rel="stylesheet" href="./master-brain.css">
  <link rel="stylesheet" href="./scientific-radar.css">
  <script defer src="./scientific-radar.js"></script>
-<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
+<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style><style>
+.ux-status-guide{display:block;margin:12px 0 20px;padding:13px 15px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:12px;background:color-mix(in srgb,currentColor 4%,transparent);font:inherit;color:inherit}
+.ux-status-guide .ux-status-caption{margin:0 0 10px;font:750 11px/1.35 system-ui,sans-serif;letter-spacing:.09em;opacity:.76}
+.ux-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.ux-status-item{display:flex;flex-direction:column;gap:6px;border-left:3px solid color-mix(in srgb,currentColor 38%,transparent);padding:2px 10px;min-width:0;font-size:13px;line-height:1.5}
+.ux-status-item .ux-evidence{display:inline-block;align-self:flex-start;font-size:12px;line-height:1.35;font-weight:800;padding:4px 7px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 24%,transparent)}
+.ux-status-item .ux-validated{border-color:#3a936e;color:#26915f}.ux-status-item .ux-testing{border-color:#b58d48;color:#ad873d}.ux-status-item .ux-proposal{border-color:#618cad;color:#609fca}
+.ux-status-note{margin:12px 0 0;font-size:12px;line-height:1.5;opacity:.9}
+.ux-home-state{display:flex;flex-wrap:wrap;align-items:center;gap:9px 18px;margin:13px 0;padding:13px 16px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-left:4px solid #4baf9c;border-radius:11px;background:color-mix(in srgb,currentColor 5%,transparent)}
+.ux-home-state-title{font-size:13px;font-weight:800}.ux-home-stat{font-size:13px}.ux-home-stat strong{font-size:19px;padding-left:5px;font-variant-numeric:tabular-nums}
+.ux-home-state a{font-size:13px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}.ux-helper{font-size:13px;line-height:1.5;opacity:.86;margin:6px 0 13px}
+.llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
+@media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
+</style>
+</head>
 <body>
  <a class="skip-link" href="#main">Saltar para o conteúdo</a>
  <div class="app">
@@ -34,18 +48,19 @@
   <main class="work" id="main">
    <div class="topbar"><div class="breadcrumb"><b>MASTER BRAIN</b><em>/</em><span>Radar Científico V6.2</span></div><div class="tools"><span class="stamp" id="radar-updated">A verificar memórias…</span><button type="button" class="refresh" id="radar-refresh" title="Atualizar" aria-label="Atualizar relatório">↻</button></div></div>
    <nav class="ux-site-nav" aria-label="Navegação MASTER BRAIN"><a href="./index.html">Visão geral</a><a href="./lab-pattern-watch.html">Jogos a acompanhar</a><a href="./lab-research.html">Padrões e estatísticas</a><a href="./lab-results.html">Resultados</a><a href="./scientific-radar.html" aria-current="page">Validação</a><a href="./llm-investigator.html">Investigador IA</a><a href="./lab.html">Qualidade</a><a href="./h1.html#h1">Arquivo H1</a></nav>
-<div class="hero scientific-hero"><div class="kicker">V6.2 · RASTREABILIDADE CIENTÍFICA</div><h1>O que já foi comprovado nos testes?</h1><p>Acompanha hipóteses registadas antes dos jogos, resultados finais com fonte e testes que podem confirmar ou contrariar cada padrão. Um marcador verificado não prova vantagem nas apostas.</p><div class="science-flag" id="science-flag">Em observação · validação pendente</div></div>
-   <div id="science-error" class="wide-message" role="alert" hidden></div>
+<div class="hero scientific-hero"><div class="kicker">VALIDAÇÃO · V6.2</div><h1>O que já foi comprovado nos testes?</h1><p>Aqui vês hipóteses que já têm registo formal. Um resultado final (FT) confirma o jogo, não valida o padrão. Os testes mostram o que ainda precisa de ser provado.</p><div class="science-flag" id="science-flag">Em observação · validação pendente</div></div>
+   <section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
+<div id="science-error" class="wide-message" role="alert" hidden></div>
    <div class="metrics" aria-label="Cobertura do Radar">
      <div class="metric"><span class="metric-title">Hipóteses formalizadas</span><strong id="sc-hyp">—</strong><small>Máximo 10 ativas</small></div>
      <div class="metric"><span class="metric-title">Previsões registadas antes do jogo</span><strong id="sc-frozen">—</strong><small>SHA verificável, pré-jogo</small></div>
      <div class="metric"><span class="metric-title">Jogos distintos</span><strong id="sc-games">—</strong><small>Unidade de análise</small></div>
      <div class="metric"><span class="metric-title">Jogos com resultado final verificado</span><strong id="sc-ft">—</strong><small>Depois do início, com fonte</small></div>
    </div>
-   <div class="section-head"><div><h2>Padrões à espera de confirmação</h2><p>Aqui surgem apenas hipóteses formalmente registadas. Os restantes padrões exploratórios não são apresentados como validados.</p></div></div>
+   <div class="section-head"><div><h2>Hipóteses formalizadas · Em teste</h2><p>Aqui surgem apenas hipóteses formalmente registadas. Os restantes padrões exploratórios não são apresentados como validados.</p></div></div>
    <div id="science-hypotheses" class="science-hypotheses" aria-live="polite"><p class="empty">A carregar registo científico…</p></div>
    <section id="science-workspace" hidden aria-labelledby="science-workspace-title">
-     <div class="section-head"><div><h2 id="science-workspace-title">Como foi testada cada hipótese</h2><p>Seleciona um jogo: observação → previsão congelada → resultados e falsificação. A cadeia completa cabe em dois passos.</p></div></div>
+     <div class="section-head"><div><h2 id="science-workspace-title">O que os jogos mostram sobre a hipótese</h2><p>Seleciona um jogo para ver o sinal registado antes do início, o resultado final e os testes que podem contrariar a hipótese.</p></div></div>
      <div class="science-layout">
        <div class="panel science-list-panel">
          <label class="science-search-label" for="science-query">Procurar jogo ou identificador</label><input type="search" id="science-query" placeholder="Equipa, jogo ou match_key…" autocomplete="off">

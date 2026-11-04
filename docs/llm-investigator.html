@@ -9,7 +9,21 @@
   <link rel="stylesheet" href="./master-brain.css">
   <link rel="stylesheet" href="./llm-investigator.css">
   <script defer src="./llm-investigator.js?v=20261030-autonomous-v1"></script>
-<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style></head>
+<style>.ux-site-nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px;padding:9px;border-radius:12px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:color-mix(in srgb,currentColor 4%,transparent);font:600 13px/1.35 system-ui}.ux-site-nav a{display:inline-block;padding:8px 10px;border-radius:7px;color:inherit;text-decoration:none}.ux-site-nav a:hover{text-decoration:underline}.ux-site-nav a[aria-current=page]{background:color-mix(in srgb,currentColor 13%,transparent);font-weight:800}@media(max-width:600px){.ux-site-nav a{padding:8px 6px;font-size:12px}}</style><style>
+.ux-status-guide{display:block;margin:12px 0 20px;padding:13px 15px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:12px;background:color-mix(in srgb,currentColor 4%,transparent);font:inherit;color:inherit}
+.ux-status-guide .ux-status-caption{margin:0 0 10px;font:750 11px/1.35 system-ui,sans-serif;letter-spacing:.09em;opacity:.76}
+.ux-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.ux-status-item{display:flex;flex-direction:column;gap:6px;border-left:3px solid color-mix(in srgb,currentColor 38%,transparent);padding:2px 10px;min-width:0;font-size:13px;line-height:1.5}
+.ux-status-item .ux-evidence{display:inline-block;align-self:flex-start;font-size:12px;line-height:1.35;font-weight:800;padding:4px 7px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 24%,transparent)}
+.ux-status-item .ux-validated{border-color:#3a936e;color:#26915f}.ux-status-item .ux-testing{border-color:#b58d48;color:#ad873d}.ux-status-item .ux-proposal{border-color:#618cad;color:#609fca}
+.ux-status-note{margin:12px 0 0;font-size:12px;line-height:1.5;opacity:.9}
+.ux-home-state{display:flex;flex-wrap:wrap;align-items:center;gap:9px 18px;margin:13px 0;padding:13px 16px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-left:4px solid #4baf9c;border-radius:11px;background:color-mix(in srgb,currentColor 5%,transparent)}
+.ux-home-state-title{font-size:13px;font-weight:800}.ux-home-stat{font-size:13px}.ux-home-stat strong{font-size:19px;padding-left:5px;font-variant-numeric:tabular-nums}
+.ux-home-state a{font-size:13px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}.ux-helper{font-size:13px;line-height:1.5;opacity:.86;margin:6px 0 13px}
+.llm-columns.ux-llm-priority{display:block}.llm-columns.ux-llm-priority>.llm-panel{max-width:none;width:100%;margin-bottom:14px}
+@media(max-width:760px){.ux-status-grid{grid-template-columns:1fr;gap:10px}.ux-status-guide{padding:11px}.ux-home-state{align-items:flex-start;flex-direction:column;gap:6px}}
+</style>
+</head>
 <body>
 <a class="skip-link" href="#main">Saltar para a investigação</a>
 <div class="llm-shell">
@@ -36,21 +50,23 @@
         <button id="refresh-llm" type="button">Atualizar painel</button>
       </div>
     </section>
-    <section class="llm-metrics" aria-label="Indicadores">
-      <article class="llm-card"><div>Propostas formalizadas pela IA</div><strong id="runs-count">—</strong><small>Não inclui o primeiro ensaio histórico; não são jogos testados</small></article>
-      <article class="llm-card"><div>Hipóteses que passaram a validação</div><strong id="validated-count">0</strong><small>Não promover sem testes prospetivos</small></article>
+    <section class="ux-status-guide" aria-label="Níveis de evidência"><p class="ux-status-caption">COMO LER AS CONCLUSÕES</p><div class="ux-status-grid"><div class="ux-status-item"><strong class="ux-evidence ux-validated">Validado</strong><span>Passou os testes exigidos e tem evidência suficiente.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-testing">Em teste</strong><span>Padrão observado com hipótese definida, mas provas insuficientes.</span></div><div class="ux-status-item"><strong class="ux-evidence ux-proposal">Proposta da IA</strong><span>Ideia sugerida, ainda sem teste suficiente; não é uma descoberta.</span></div></div><p class="ux-status-note">Um resultado final comprovado certifica apenas aquele jogo. Não prova que o padrão tenha capacidade de previsão.</p></section>
+<section class="llm-metrics" aria-label="Indicadores">
+      <article class="llm-card"><div>Propostas da IA</div><strong id="runs-count">—</strong><small>Não inclui o primeiro ensaio histórico; não são jogos testados</small></article>
+      <article class="llm-card"><div>Padrões validados</div><strong id="validated-count">0</strong><small>Não promover sem testes prospetivos</small></article>
       <article class="llm-card"><div>Variáveis disponíveis no catálogo</div><strong id="features-count">—</strong><small>Fonte: definições V5 verificadas</small></article>
       <article class="llm-card"><div>Combinações teóricas</div><strong id="combos-count">—</strong><small>Pares de famílias diferentes e triplos de três famílias diferentes. Universo teórico, não experiências realizadas</small></article>
     </section>
-    <div class="llm-columns">
+    <div class="llm-columns ux-llm-priority">
       <section class="llm-panel" aria-labelledby="latest-heading">
-        <div class="llm-panel-heading"><div><div class="eyebrow">ÚLTIMA INVESTIGAÇÃO PUBLICADA</div><h2 id="latest-heading">Última hipótese sugerida pela IA</h2></div><span class="llm-chip">DRAFT · NÃO VALIDADO</span></div>
+        <div class="llm-panel-heading"><div><div class="eyebrow">ÚLTIMA INVESTIGAÇÃO PUBLICADA</div><h2 id="latest-heading">Última hipótese sugerida pela IA</h2></div><span class="llm-chip">Proposta da IA · Ainda sem teste suficiente</span></div>
         <p class="llm-muted" id="latest-meta">A verificar a primeira experiência real e as propostas do novo contrato…</p>
         <div id="latest-detail" class="llm-detail" aria-live="polite"><p>A recuperar o histórico da investigação; novos registos só após chamadas válidas e publicação.</p></div>
       </section>
-      <aside class="llm-panel" aria-labelledby="limits-heading">
+      <section class="llm-panel" id="python-statistics" aria-live="polite"><h2>O que os testes estatísticos já mostram</h2><p>A carregar a fotografia dos dados reais…</p><p class="ux-helper">Esta análise mostra os testes disponíveis; não confirma automaticamente a última proposta da IA.</p></section>
+<aside class="llm-panel" aria-labelledby="limits-heading">
         <div class="eyebrow">FONTE E MÉTODO</div>
-        <h2 id="limits-heading">Como funciona a investigação</h2>
+        <h2 id="limits-heading">Como a IA propõe e os dados testam</h2>
         <div class="llm-timeline">
           <div><b>01 · Explorar</b><span>49 variáveis potenciais V5, incluindo Total, 1X2, handicap, tempo e movimentos. Não significa que todos os cruzamentos tenham sido testados.</span></div>
           <div><b>02 · Propor</b><span>Quatro oportunidades por dia (01h43, 07h43, 13h43 e 19h43 UTC), uma única chamada no máximo por execução. A LLM desenvolve e critica a hipótese; não inventa resultados.</span></div>
@@ -60,7 +76,7 @@
         <p class="llm-warning">A autonomia é limitada a quatro oportunidades diárias e pode falhar ou ser atrasada pelo GitHub Actions. A quota real da conta e os neurons por chamada não são medidos automaticamente; acompanhar na Cloudflare. Ver o painel não faz chamadas à IA. Nenhuma hipótese é uma aposta validada.</p>
       </aside>
     </div>
-    <section class="llm-panel" id="python-statistics" aria-live="polite"><h2>O que mostram os testes estatísticos</h2><p>A carregar a fotografia dos dados reais…</p></section>
+    
     <script src="./llm-statistics.js?v=20261030-stats1" defer></script>
     <section class="llm-panel" aria-labelledby="history-heading">
       <div class="llm-panel-heading"><div><div class="eyebrow">RASTREABILIDADE</div><h2 id="history-heading">Investigações já publicadas</h2></div></div>
