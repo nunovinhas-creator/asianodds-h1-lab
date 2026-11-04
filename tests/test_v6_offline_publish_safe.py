@@ -338,6 +338,24 @@ class V6PublishTests(unittest.TestCase):
         self.assert_nothing_pushed(head)
         self.assertIn("RECOMPUTE_FAILED", self.receipt_doc()["reason_kind"])
 
+    def test_gate_blocked_during_publication_refuses_and_pushes_nothing(self):
+        # The P0 gate turns SCIENTIFICALLY_BLOCKED between evaluate and publish: the offline
+        # recomputation on the newer inputs refuses, so no stale or empty report is published.
+        from h1lab.v6_llm_investigator import HUMAN_REVIEW, ScientificGateBlocked
+        self.produce()
+        head = self.v4_race()
+
+        def blocked(root, now):
+            raise ScientificGateBlocked(HUMAN_REVIEW)
+
+        policy = v6.V6OfflineStatsPolicy(RUN, builder=blocked, clock=Clock())
+        with self.assertRaises(sel.PublicationRefused) as ctx:
+            v6.publish(self.root, base=self.fx.base, run_id=RUN, receipt=self.receipt,
+                       bundle=self.bundle, policy=policy, sleep=lambda s: None)
+        self.assertEqual(ctx.exception.kind, "RECOMPUTE_FAILED")
+        self.assertIn(HUMAN_REVIEW, str(ctx.exception))
+        self.assert_nothing_pushed(head)
+
     def test_report_not_matching_its_base_is_refused_before_any_push(self):
         report = fake_build(self.root, NOW)
         report["source_sha256"]["data/state.json"] = "0" * 64
@@ -442,13 +460,23 @@ class RealRepositoryInputContractTests(unittest.TestCase):
 
         sys.addaudithook(hook)
         from h1lab.v6_offline_statistics import build
+        from h1lab.v6_llm_investigator import ScientificGateBlocked
         state["on"] = True
+        refused = None
         try:
             report = build(root, now=datetime.now(timezone.utc).replace(microsecond=0))
+        except ScientificGateBlocked as exc:
+            # A known blocking P0 gate (e.g. 7-day BELOW_99_PERCENT): the production build must
+            # then fail closed, and what it read until then must still be declared inputs. Any
+            # other error (unknown state, corruption) is NOT caught and stays a failure.
+            refused = str(exc)
         finally:
             state["on"] = False
         undeclared = sorted(p for p in seen if not v6.is_input(p))
         self.assertEqual(undeclared, [])
+        if refused:
+            self.assertIn("docs/lab/v6-p0-gates.json", seen)
+            return
         self.assertTrue(any(p.startswith("data/lab/ft-ledger") for p in seen))
         self.assertEqual(report["source_sha256"], v6.source_hashes(root, "HEAD"))
 

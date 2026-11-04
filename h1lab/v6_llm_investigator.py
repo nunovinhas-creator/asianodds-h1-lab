@@ -97,11 +97,89 @@ def _load(root, name):
     return data, hashlib.sha256(raw).hexdigest()
 
 
+# P0 gate states (h1lab.v6_p0_gates). Only these let the research dossier be built.
+AUTHORISED_GATE_STATES = ('WARMUP', 'INSUFFICIENT_N', 'BLOCKED')
+# Known producer states that are scientifically blocking: nothing is researched, evaluated or
+# published, and consumers may stop cleanly as SCIENTIFICALLY_BLOCKED. Any other state, any
+# scientific_acceptance other than BLOCKED and any corrupt count still fails as an error.
+SCIENTIFICALLY_BLOCKED_GATE_STATES = (
+    'BELOW_99_PERCENT', 'NO_SOURCE_OPPORTUNITIES',
+    'SOURCE_COVERAGE_PASSED_EXTERNAL_RUN_AUDIT_REQUIRED')
+HUMAN_REVIEW = 'Scientific gate requires explicit human review'
+
+
+class ScientificGateBlocked(ValueError):
+    """A known, technically valid gate state that forbids research use (never an error)."""
+
+
+def _gate_counts(gate, name):
+    denominator = _number(gate.get('source_eligible'), name + ' eligible', whole=True)
+    frozen = _number(gate.get('frozen_pre_kickoff'), name + ' frozen', whole=True)
+    missing = _number(gate.get('missing_count'), name + ' missing', whole=True)
+    if denominator != frozen + missing:
+        raise ValueError('Inconsistent prospective coverage')
+    ratio = gate.get('ratio')
+    # Exactly as h1lab.v6_readiness writes it: round(frozen / eligible, 4), and None when
+    # there is no eligible opportunity. Any other value is corruption, never a gate state.
+    if denominator == 0:
+        if ratio is not None:
+            raise ValueError('Inconsistent prospective coverage ratio: ' + name)
+        return denominator, frozen, missing, None
+    ratio = _number(ratio, name + ' coverage ratio')
+    if ratio > 1:
+        raise ValueError('Coverage over 100%')
+    if ratio != round(frozen / denominator, 4):
+        raise ValueError('Inconsistent prospective coverage ratio: ' + name)
+    return denominator, frozen, missing, ratio
+
+
+def scientific_gate(root, source_data=None):
+    """Technical integrity of the scientific sources plus the P0 gate classification.
+
+    Returns {'state': 'AUTHORISED' | 'SCIENTIFICALLY_BLOCKED', ...}. Raises ValueError for any
+    unknown, accepted or corrupt state: a blocked science is reported, never hidden as an error,
+    and an error is never reported as a blocked science.
+    """
+    digests = {}
+    if source_data is None:
+        source_data = {}
+        for name in SOURCES:
+            source_data[name], digests[name] = _load(root, name)
+    gates = source_data[SOURCES[0]]
+    fals = source_data[SOURCES[1]]
+    if gates.get('scientific_state') != 'INCONCLUSIVO' or fals.get('overall') != 'INCONCLUSIVO':
+        raise ValueError('Unexpected scientific state; review this version before using LLM')
+    if not isinstance(gates.get('gates'), dict):
+        raise ValueError('Missing P0 gates')
+    blocked = {}
+    for name in ('7_days', '14_days'):
+        gate = gates['gates'].get(name)
+        if not isinstance(gate, dict):
+            raise ValueError('Missing P0 gate: ' + name)
+        if gate.get('scientific_acceptance') != 'BLOCKED':
+            raise ValueError('Unexpected scientific acceptance: %s %r'
+                             % (name, gate.get('scientific_acceptance')))
+        status = gate.get('status')
+        if status in SCIENTIFICALLY_BLOCKED_GATE_STATES:
+            blocked[name] = status
+        elif status not in AUTHORISED_GATE_STATES:
+            raise ValueError('Unknown scientific gate state: %s %r' % (name, status))
+        _gate_counts(gate, name)
+    return {'state': 'SCIENTIFICALLY_BLOCKED' if blocked else 'AUTHORISED',
+            'blocked_gates': blocked,
+            'gates': {k: {f: gates['gates'][k].get(f) for f in (
+                'status', 'scientific_acceptance', 'source_eligible', 'frozen_pre_kickoff',
+                'missing_count', 'ratio')} for k in ('7_days', '14_days')},
+            'scientific_state': 'INCONCLUSIVO', 'source_sha256': digests}
+
+
 def build_packet(root):
     source_data = {}
     digests = {}
     for name in SOURCES:
         source_data[name], digests[name] = _load(root, name)
+    if scientific_gate(root, source_data)['state'] != 'AUTHORISED':
+        raise ScientificGateBlocked(HUMAN_REVIEW)
     gates = source_data[SOURCES[0]]
     fals = source_data[SOURCES[1]]
     readiness = source_data[SOURCES[2]]
@@ -123,13 +201,8 @@ def build_packet(root):
         features.append({'code': code, 'family': family, 'description': description})
     if len(features) > 60:
         raise ValueError('Unexpected unbounded feature catalogue')
-    if gates.get('scientific_state') != 'INCONCLUSIVO' or fals.get('overall') != 'INCONCLUSIVO':
-        raise ValueError('Unexpected scientific state; review this version before using LLM')
     seven = gates['gates']['7_days']
     fourteen = gates['gates']['14_days']
-    for gate in (seven, fourteen):
-        if gate.get('status') not in ('WARMUP', 'INSUFFICIENT_N', 'BLOCKED') or gate.get('scientific_acceptance') != 'BLOCKED':
-            raise ValueError('Scientific gate requires explicit human review')
     ratio = _number(seven['ratio'], 'coverage ratio')
     if ratio > 1:
         raise ValueError('Coverage over 100%')
