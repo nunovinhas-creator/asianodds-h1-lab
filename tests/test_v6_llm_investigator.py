@@ -447,5 +447,82 @@ class InvestigatorTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), self.before)
 
 
+HUMAN_REVIEW = 'Scientific gate requires explicit human review'
+LIVE_REFUSALS = (HUMAN_REVIEW, 'Unexpected scientific state; review this version before using LLM')
+
+
+class GateRequiresHumanReviewTests(unittest.TestCase):
+    """The investigator never runs on a P0 gate state outside WARMUP/INSUFFICIENT_N/BLOCKED.
+
+    Production case 2026-11-04 14:37 UTC: the 7-day window closed with 1060/1089 frozen
+    pre-kickoff captures (97.34 %), status BELOW_99_PERCENT, scientific_acceptance BLOCKED.
+    """
+
+    def setUp(self):
+        self.fixtures = InvestigatorTests()
+        self.fixtures.setUp()
+        self.addCleanup(self.fixtures.doCleanups)
+        self.root = self.fixtures.root
+
+    def set_gate(self, name, **fields):
+        target = self.root / mod.SOURCES[0]
+        body = json.loads(target.read_text())
+        body['gates'][name].update(fields)
+        target.write_text(json.dumps(body))
+        return self.fixtures.snapshot()
+
+    def assert_refused_without_side_effects(self, before):
+        from h1lab.v6_discovery_planner import plan
+        from scripts import lab_v6_llm_autonomous as autonomy
+        with patch('urllib.request.urlopen', side_effect=AssertionError('provider called')):
+            for call in (lambda: mod.build_packet(self.root), lambda: plan(self.root, limit=20),
+                         lambda: autonomy.choose_candidates(self.root)):
+                with self.assertRaisesRegex(ValueError, HUMAN_REVIEW):
+                    call()
+        self.assertEqual(self.fixtures.snapshot(), before, 'refusal writes nothing')
+
+    def test_production_7_day_below_99_percent_is_refused(self):
+        before = self.set_gate('7_days', status='BELOW_99_PERCENT', ratio=0.9734,
+                               source_eligible=1089, frozen_pre_kickoff=1060, missing_count=29)
+        self.assert_refused_without_side_effects(before)
+
+    def test_14_day_below_99_percent_is_refused(self):
+        before = self.set_gate('14_days', status='BELOW_99_PERCENT', ratio=0.98,
+                               source_eligible=50, frozen_pre_kickoff=49, missing_count=1)
+        self.assert_refused_without_side_effects(before)
+
+    def test_unknown_or_passing_gate_states_are_refused(self):
+        for status in ('PASS', 'AT_LEAST_99_PERCENT', 'UNKNOWN'):
+            with self.subTest(status=status):
+                self.assert_refused_without_side_effects(self.set_gate('7_days', status=status))
+
+    def test_accepted_scientific_gate_is_refused_even_if_warmup(self):
+        before = self.set_gate('7_days', status='WARMUP', scientific_acceptance='ACCEPTED')
+        self.assert_refused_without_side_effects(before)
+
+    def test_authorised_fixture_still_builds(self):
+        for status in ('WARMUP', 'INSUFFICIENT_N', 'BLOCKED'):
+            with self.subTest(status=status):
+                self.set_gate('7_days', status=status, scientific_acceptance='BLOCKED')
+                self.assertEqual(mod.build_packet(self.root)['facts']['scientific_state'],
+                                 'INCONCLUSIVO')
+
+    def test_real_gate_state_is_accepted_or_refused_for_human_review(self):
+        """Live data: either an authorised state or a fail-closed refusal, never anything else."""
+        real = Path(__file__).resolve().parents[1]
+        gates = json.loads((real / mod.SOURCES[0]).read_text())['gates']
+        authorised = all(g.get('status') in ('WARMUP', 'INSUFFICIENT_N', 'BLOCKED')
+                         and g.get('scientific_acceptance') == 'BLOCKED'
+                         for g in (gates['7_days'], gates['14_days']))
+        if authorised:
+            self.assertEqual(mod.build_packet(real)['status'],
+                             'SHADOW_RESEARCH_DOSSIER_NOT_VALIDATION')
+            return
+        with patch('urllib.request.urlopen', side_effect=AssertionError('provider called')):
+            with self.assertRaises(ValueError) as ctx:
+                mod.build_packet(real)
+        self.assertIn(str(ctx.exception), LIVE_REFUSALS)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -184,8 +184,28 @@ class AutonomousResearchTests(TestCase):
             publisher.publish(self.root, data, run_id='41046486112',
                         commit_sha='b' * 40, when='2026-10-30T13:44:00Z')
 
+    def real_catalogue_root(self):
+        """The REAL V5 catalogue and REAL proposal archive with the deterministic, authorised
+        scientific fixture of InvestigatorTests (gates WARMUP/BLOCKED, INCONCLUSIVO).
+
+        The live gates are a scientific state that changes with production data (e.g. the 7-day
+        P0 gate becomes BELOW_99_PERCENT after its window closes); this test checks only the
+        prompt bound, so it must not depend on them. The live gates are covered separately by
+        test_real_gate_state_is_accepted_or_refused_for_human_review.
+        """
+        real = Path(__file__).resolve().parents[1]
+        root = self.root      # synthetic gates/falsification/readiness/drift already written
+        catalogue = investigator.SOURCES[4]
+        (root / catalogue).write_bytes((real / catalogue).read_bytes())
+        runs = real / 'docs/lab/llm-investigator-runs'
+        target = root / 'docs/lab/llm-investigator-runs'
+        target.mkdir(parents=True, exist_ok=True)
+        for path in sorted(runs.glob('*.json')):
+            (target / path.name).write_bytes(path.read_bytes())
+        return root
+
     def test_real_catalogue_prompt_stays_bounded_without_network(self):
-        root = Path(__file__).resolve().parents[1]
+        root = self.real_catalogue_root()
         packet = investigator.build_packet(root)
         pool = autonomy.choose_candidates(root)['choices']
         codes = pool[0]['feature_codes']

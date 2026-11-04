@@ -443,12 +443,24 @@ class RealRepositoryInputContractTests(unittest.TestCase):
         sys.addaudithook(hook)
         from h1lab.v6_offline_statistics import build
         state["on"] = True
+        refused = None
         try:
             report = build(root, now=datetime.now(timezone.utc).replace(microsecond=0))
+        except ValueError as exc:
+            # The live P0 gate can require human review (e.g. 7-day BELOW_99_PERCENT): the
+            # production build must then fail closed, and what it read until then must still be
+            # declared inputs. Any other error stays a failure.
+            from tests.test_v6_llm_investigator import LIVE_REFUSALS
+            if str(exc) not in LIVE_REFUSALS:
+                raise
+            refused = str(exc)
         finally:
             state["on"] = False
         undeclared = sorted(p for p in seen if not v6.is_input(p))
         self.assertEqual(undeclared, [])
+        if refused:
+            self.assertIn("docs/lab/v6-p0-gates.json", seen)
+            return
         self.assertTrue(any(p.startswith("data/lab/ft-ledger") for p in seen))
         self.assertEqual(report["source_sha256"], v6.source_hashes(root, "HEAD"))
 
