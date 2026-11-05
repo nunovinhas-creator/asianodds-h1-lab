@@ -16,7 +16,7 @@ import math
 import re
 from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 DAILY_NEURON_BUDGET = 8_000
 MAX_NEURONS_PER_CALL = 1_000
@@ -26,6 +26,16 @@ PATH = 'data/research/quota-ledger.json'
 MAX_BYTES = 900_000
 WORKFLOWS = ('v6-llm-autonomous.yml', 'v6-llm-investigator.yml')
 MARKERS = ('LLM call', 'Cloudflare Workers AI')
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def no_redirect_open(req, timeout):
+    """Never replay a request or forward credentials through an HTTP redirect."""
+    return build_opener(_NoRedirect()).open(req, timeout=timeout)
 
 
 def stamp(value):
@@ -122,7 +132,8 @@ class GitHubStore:
         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo or '') or not token:
             raise ValueError('QUOTA_GITHUB_IDENTITY_REQUIRED')
         self.base = 'https://api.github.com/repos/' + repo
-        self.token, self.opener, self.clock = token, opener, clock
+        self.token, self.clock = token, clock
+        self.opener = no_redirect_open if opener is urlopen else opener
 
     def api(self, path, data=None):
         body = None if data is None else canonical(data).encode()

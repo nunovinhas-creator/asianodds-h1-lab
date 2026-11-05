@@ -75,7 +75,7 @@ MAX_TRAJECTORY_EXAMPLES = 4
 #   src/content/workers-ai-models/<model>.json            (context_window, input schema)
 # Neither the account plan nor the remaining allocation can be read here
 # (``account_quota_verified=false``): the bound below is on OUR worst case.
-from .research_quota import FREE_NEURONS_PER_DAY, DAILY_NEURON_BUDGET, MAX_NEURONS_PER_CALL
+from .research_quota import FREE_NEURONS_PER_DAY, DAILY_NEURON_BUDGET, MAX_NEURONS_PER_CALL, no_redirect_open
 MAX_CALLS_PER_DAY = DAILY_NEURON_BUDGET // MAX_NEURONS_PER_CALL  # unmetered capacity, not a call-count cap
 # Byte-fallback tokenizers emit no more than one token per UTF-8 byte. Count
 # the ENTIRE serialized request, plus 512 tokens for provider chat framing.
@@ -670,7 +670,8 @@ def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint
         quota.consume_http(model, len(body))
     started = clock()
     try:
-        resp_cm = opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=timeout_s)
+        transport = no_redirect_open if opener is urlopen else opener
+        resp_cm = transport(Request(endpoint, data=body, headers=headers, method='POST'), timeout=timeout_s)
     except HTTPError as exc:
         diag = provider_error_diagnostic(exc, secrets=secrets)
         diag.update(llm_calls=1, request_bytes=len(body), json_mode=json_mode, endpoint_kind=endpoint_kind,

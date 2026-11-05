@@ -203,6 +203,10 @@ class Quota(unittest.TestCase):
 
 
 class Api(unittest.TestCase):
+    def test_redirects_never_forward_or_replay_credentials(self):
+        from h1lab.research_quota import _NoRedirect
+        self.assertIsNone(_NoRedirect().redirect_request(None, None, 302, 'redirect', {}, 'https://other.invalid'))
+
     def test_cas_payload_and_ack_checked(self):
         calls = []
         class Resp(io.BytesIO):
