@@ -4,6 +4,7 @@
 (function (root) {
   "use strict";
   const SOURCE = "./research/autonomous-research.json";
+  const DEMO_SOURCE = "./research/demo/panel.json";
   const STATE_LABEL = {
     PROMISING_EXPLORATORY: "Promissor (exploratório)",
     NO_SUPPORT_IN_DATA: "Sem suporte nos dados",
@@ -66,10 +67,28 @@
     if (!items.length) { host.appendChild(el(doc, "p", empty, "llm-muted")); return; }
     items.forEach(c => host.appendChild(card(doc, c)));
   }
+  const KIND_LABEL = {
+    OPERATIONAL: "INVESTIGAÇÃO OPERACIONAL",
+    DEMONSTRATION: "DEMONSTRAÇÃO — NÃO É INVESTIGAÇÃO AUTÓNOMA ATUAL",
+    TEST: "TESTE — DADOS SINTÉTICOS"
+  };
+  function provenanceText(p) {
+    const parts = [KIND_LABEL[p.kind]];
+    parts.push("Data de referência: " + (p.reference_time || "—"));
+    parts.push("Origem das hipóteses: " + (Array.isArray(p.cycle_origins) ? p.cycle_origins.join(", ") : "—"));
+    parts.push(p.real_llm_calls > 0 ? "Chamadas reais ao LLM: " + p.real_llm_calls
+                                    : "Sem chamadas reais ao LLM");
+    return parts.join(" · ");
+  }
   function render(doc, data) {
-    if (!data || data.schema_version !== 1 || data.status !== "EXPLORATORY_RESEARCH_NOT_VALIDATION") {
+    if (!data || data.schema_version !== 2 || data.status !== "EXPLORATORY_RESEARCH_NOT_VALIDATION"
+        || !data.provenance || !KIND_LABEL[data.provenance.kind]) {
       throw new Error("Formato de relatório não reconhecido");
     }
+    const pv = doc.getElementById("ra-provenance");
+    pv.textContent = provenanceText(data.provenance);
+    pv.className = "ra-provenance ra-kind-" + data.provenance.kind;
+    doc.getElementById("ra-provenance-note").textContent = data.provenance.note || "";
     const m = data.memory || {};
     doc.getElementById("ra-experiments").textContent = m.experiments ?? "—";
     doc.getElementById("ra-questions").textContent = m.distinct_questions ?? "—";
@@ -98,16 +117,29 @@
     doc.getElementById("ra-validated-note").textContent = data.validated_note || "Nenhuma estratégia validada.";
     doc.getElementById("ra-state").textContent = "Memória com " + (m.records ?? 0) + " registos · gerado em " + data.generated_at;
   }
+  function get(fetchFn, url) {
+    return fetchFn(url + "?t=" + Date.now(), { cache: "no-store" })
+      .then(r => { if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; } return r.json(); });
+  }
   function load(doc, fetchFn) {
     const s = doc.getElementById("ra-state");
     s.textContent = "A carregar a memória de investigação…";
-    return fetchFn(SOURCE + "?t=" + Date.now(), { cache: "no-store" })
-      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    // Operational report first. Only a 404 (never published) falls back to the
+    // clearly labelled demonstration; other failures are shown as failures.
+    return get(fetchFn, SOURCE)
       .then(d => render(doc, d))
+      .catch(e => {
+        if (e.status !== 404) throw e;
+        return get(fetchFn, DEMO_SOURCE).then(d => {
+          if (!d || !d.provenance || d.provenance.kind !== "DEMONSTRATION") throw new Error("demonstração inválida");
+          render(doc, d);
+          s.textContent = "Ainda não existe investigação operacional publicada. A mostrar a DEMONSTRAÇÃO. " + s.textContent;
+        });
+      })
       .catch(e => { s.textContent = "Dados indisponíveis (" + e.message + "). Não significa ausência de investigação."; });
   }
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { render, card, STATE_LABEL };
+    module.exports = { render, card, load, STATE_LABEL, provenanceText };
   } else {
     root.document.addEventListener("DOMContentLoaded", () => {
       load(root.document, root.fetch.bind(root));

@@ -33,8 +33,8 @@ class Memory(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_chain_and_tamper_detection(self):
-        append(self.path, [{'record_type': 'NOTE', 'x': i} for i in range(3)])
-        append(self.path, [{'record_type': 'NOTE', 'x': 3}])
+        append(self.path, [{'record_type': 'NOTE', 'x': i} for i in range(3)], run_kind='TEST')
+        append(self.path, [{'record_type': 'NOTE', 'x': 3}], run_kind='TEST')
         self.assertEqual([r['seq'] for r in read_memory(self.path)], [1, 2, 3, 4])
         lines = self.path.read_text().splitlines()
         for mutate in (lambda l: [l[0], l[2], l[1], l[3]],                   # reorder
@@ -48,7 +48,7 @@ class Memory(unittest.TestCase):
 
     def test_record_size_bound(self):
         with self.assertRaises(MemoryError_):
-            append(self.path, [{'record_type': 'NOTE', 'blob': 'x' * 70000}])
+            append(self.path, [{'record_type': 'NOTE', 'blob': 'x' * 70000}], run_kind='TEST')
         self.assertFalse(self.path.exists())
 
 
@@ -70,8 +70,8 @@ class EndToEnd(unittest.TestCase):
                                         'new_questions': ['E se o AH se mover contra o Total?']}))
         reply = invoke_once(packet, endpoint='https://llm.invalid/v1', model='fake', opener=opener)
         llm = parse_response(reply['content'])
-        llm.update(origin='LLM_FAKE', llm_calls=reply['llm_calls'], packet_sha256=packet['packet_sha256'])
-        res = run_cycle(gate=self.g, dataset=self.ds, memory_path=self.mem, now=now,
+        llm.update(origin='SIMULATED_LLM', llm_calls=reply['llm_calls'], packet_sha256=packet['packet_sha256'])
+        res = run_cycle(run_kind='TEST', gate=self.g, dataset=self.ds, memory_path=self.mem, now=now,
                         cycle_label='e2e', llm=llm, offline_budget=0)
         return packet, opener, res
 
@@ -86,7 +86,7 @@ class EndToEnd(unittest.TestCase):
         mem = read_memory(self.mem)
         exp = [r for r in mem if r['record_type'] == 'EXPERIMENT'][0]
         # memory holds hypothesis, test, result and limitations
-        self.assertEqual(exp['origin'], 'LLM_FAKE')
+        self.assertEqual(exp['origin'], 'SIMULATED_LLM')
         self.assertEqual(exp['plan']['indicators'][0]['name'], 'X_STRONG_LAMBDA_RISE')
         self.assertIn('lambda_net', exp['variables'])
         self.assertEqual(exp['data']['dataset_sha256'], self.ds['digest'])
@@ -123,25 +123,25 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(before, protected_hashes(), 'production data untouched')
 
     def test_offline_cycle_many_experiments_zero_llm_calls(self):
-        res = run_cycle(gate=self.g, dataset=self.ds, memory_path=self.mem, now=NOW, offline_budget=25)
+        res = run_cycle(run_kind='TEST', gate=self.g, dataset=self.ds, memory_path=self.mem, now=NOW, offline_budget=25)
         self.assertGreater(res['experiments'], 10)
         cyc = read_memory(self.mem)[-1]
         self.assertEqual(cyc['llm_calls'], 0)
-        res2 = run_cycle(gate=self.g, dataset=self.ds, memory_path=self.mem, now=NOW + timedelta(hours=1),
+        res2 = run_cycle(run_kind='TEST', gate=self.g, dataset=self.ds, memory_path=self.mem, now=NOW + timedelta(hours=1),
                          offline_budget=25)
         fps = [r['fingerprint'] for r in read_memory(self.mem) if r['record_type'] == 'EXPERIMENT']
         self.assertEqual(len(fps), len(set(fps)), 'memory prevents repeats')
         self.assertEqual(res2['memory_records_before'], res['written'])
 
     def test_disabled_offline_cycle_writes_nothing(self):
-        res = run_cycle(gate=gate(offline_cycle_enabled=False), dataset=self.ds, memory_path=self.mem, now=NOW)
+        res = run_cycle(run_kind='TEST', gate=gate(offline_cycle_enabled=False), dataset=self.ds, memory_path=self.mem, now=NOW)
         self.assertEqual(res['status'], 'NOT_RUN')
         self.assertFalse(self.mem.exists())
 
     def test_blocked_ft_operation_refuses_cycle(self):
         g = gate()
         g['allowed_operations'] = [o for o in g['allowed_operations'] if o != 'ft_outcomes']
-        res = run_cycle(gate=g, dataset=self.ds, memory_path=self.mem, now=NOW)
+        res = run_cycle(run_kind='TEST', gate=g, dataset=self.ds, memory_path=self.mem, now=NOW)
         self.assertEqual(res, {'status': 'NOT_RUN', 'reason': 'FT_OUTCOMES_BLOCKED', 'experiments': 0, 'written': 0})
         self.assertFalse(self.mem.exists())
 

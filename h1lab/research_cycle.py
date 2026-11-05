@@ -22,11 +22,17 @@ from pathlib import Path
 from .research_dataset import OUTCOMES, VARIABLES, catalogue, describe
 from .research_executor import assign_states, execute, membership
 from .research_gates import EXPLORATION_ALLOWED, promotion_guard
-from .research_memory import (agenda, append, digest_for_llm, experiment_record, experiments,
-                              jaccard, novelty, read_memory, rejected_record)
+from .research_memory import (RUN_KINDS, agenda, append, digest_for_llm, experiment_record,
+                              experiments, jaccard, memory_kind, novelty, read_memory,
+                              rejected_record, tip)
 from .research_plan import PlanError, validate_plan
 
-CYCLE_VERSION = 1
+CYCLE_VERSION = 2
+LLM_ORIGINS = ('LLM_LIVE', 'RESPONSE_FILE_NOT_LIVE_LLM', 'SIMULATED_LLM')
+# Operational memory only accepts hypotheses from a real bounded call or the offline proposer.
+ORIGINS_ALLOWED = {'OPERATIONAL': ('LLM_LIVE',),
+                   'DEMONSTRATION': ('RESPONSE_FILE_NOT_LIVE_LLM', 'SIMULATED_LLM'),
+                   'TEST': LLM_ORIGINS}
 VAR_OUTCOMES = {'TOTAL': ['OVER_2_5', 'BTTS_YES'], 'ANY': ['OVER_2_5'], 'CROSS': ['OVER_2_5'],
                 'CONTEXT': ['OVER_2_5'], '1X2': ['HOME_WIN', 'AWAY_WIN'], 'AH': ['AH_HOME_COVER']}
 MARKET_OF = {o: m for m, outs in OUTCOMES.items() for o in outs}
@@ -121,11 +127,13 @@ def rank_offline(rows, memory, dataset_digest, budget, *, exclude=()):
     return [(p, n, s) for _, p, n, s in chosen]
 
 
-def run_cycle(*, gate, dataset, memory_path, now, cycle_label='offline', llm=None,
+def run_cycle(*, gate, dataset, memory_path, now, run_kind, cycle_label='offline', llm=None,
               offline_budget=None, write=True):
     """Run one cycle. ``llm``: None or {'plans','rejected','new_questions','origin', ...}."""
     if now.tzinfo is None:
         raise ValueError('AWARE_NOW_REQUIRED')
+    if run_kind not in RUN_KINDS:
+        raise ValueError('RUN_KIND_REQUIRED')
     if gate['state'] != EXPLORATION_ALLOWED:
         return {'status': 'NOT_RUN', 'reason': gate['state'], 'experiments': 0, 'written': 0}
     cfg = gate['config']
@@ -137,13 +145,18 @@ def run_cycle(*, gate, dataset, memory_path, now, cycle_label='offline', llm=Non
     budget = cfg['max_experiments_per_cycle'] if offline_budget is None else min(
         offline_budget, cfg['max_experiments_per_cycle'])
     memory = read_memory(memory_path)
+    if memory and memory_kind(memory) != run_kind:
+        return {'status': 'NOT_RUN', 'reason': 'MEMORY_RUN_KIND_MISMATCH', 'experiments': 0, 'written': 0}
+    base_tip = tip(memory)
     rows = dataset['rows']
     cycle_id = 'C' + hashlib.sha256((now.isoformat() + dataset['digest'] + cycle_label).encode()).hexdigest()[:15]
     ft_now = sum(r['ft_status'] == 'VERIFIED_FT' for r in rows)
     work, records, skipped = [], [], {'duplicates': 0}
     seen = set()
     if llm:
-        origin = llm.get('origin', 'LLM')
+        origin = llm.get('origin')
+        if origin not in ORIGINS_ALLOWED[run_kind]:
+            raise ValueError('LLM_ORIGIN_NOT_ALLOWED_FOR_%s:%s' % (run_kind, origin))
         for rej in llm.get('rejected', []):
             records.append(rejected_record(rej['index'], rej['reason'], origin=origin,
                                            cycle_id=cycle_id, now=now))
@@ -178,6 +191,8 @@ def run_cycle(*, gate, dataset, memory_path, now, cycle_label='offline', llm=Non
     future = agenda(memory + exp_records, dataset)
     cycle = {'record_type': 'CYCLE', 'recorded_at': now.isoformat(), 'cycle_id': cycle_id,
              'cycle_version': CYCLE_VERSION, 'label': cycle_label,
+             'llm_origin': (llm or {}).get('origin'),
+             'reference_time': now.isoformat(),
              'llm_calls': (llm or {}).get('llm_calls', 0),
              'llm_packet_sha256': (llm or {}).get('packet_sha256'),
              'new_questions_from_llm': (llm or {}).get('new_questions', []),
@@ -190,7 +205,8 @@ def run_cycle(*, gate, dataset, memory_path, now, cycle_label='offline', llm=Non
              'next_priorities': future[:20],
              'scientific_status': 'EXPLORATORY_NOT_VALIDATED'}
     records.append(cycle)
-    sealed = append(memory_path, records, existing=memory) if write else records
+    sealed = (append(memory_path, records, run_kind=run_kind, expected_tip=base_tip)
+              if write else records)
     return {'status': 'RUN', 'cycle_id': cycle_id, 'experiments': len(exp_records),
             'rejected_plans': len(records) - len(exp_records) - 1, 'states': states,
             'written': len(sealed) if write else 0, 'records': sealed,
@@ -198,11 +214,13 @@ def run_cycle(*, gate, dataset, memory_path, now, cycle_label='offline', llm=Non
 
 
 def llm_packet(gate, dataset, memory, max_plans=3):
+    from .research_context import trajectory_examples
     from .research_llm import build_packet
     return build_packet(gate=gate, dataset_description=describe(dataset),
                         variable_catalogue=catalogue(dataset['rows']),
                         memory_digest=digest_for_llm(memory), agenda_items=agenda(memory, dataset),
-                        max_plans=max_plans)
+                        max_plans=max_plans,
+                        trajectory_examples=trajectory_examples(dataset, gate.get('source_sha256')))
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +245,28 @@ def _card(r):
             'next_question': r['next_question'], 'scientific_status': r['scientific_status']}
 
 
+PROVENANCE_NOTE = {
+    'OPERATIONAL': 'Investigação operacional: ciclos executados pelo sistema sobre os dados publicados.',
+    'DEMONSTRATION': ('DEMONSTRAÇÃO: fotografia de referência gerada para revisão. Não é investigação '
+                      'autónoma atual; as hipóteses "LLM" vieram de um ficheiro ou de um LLM simulado, '
+                      'sem chamadas reais a fornecedores.'),
+    'TEST': 'TESTE: dados sintéticos de teste automático.',
+}
+
+
+def provenance(memory):
+    kind = memory_kind(memory) or 'OPERATIONAL'
+    cycles = [r for r in memory if r.get('record_type') == 'CYCLE']
+    origins = sorted({c.get('llm_origin') or 'OFFLINE_PROPOSER_ONLY' for c in cycles})
+    real_calls = sum(c.get('llm_calls', 0) for c in cycles if c.get('llm_origin') == 'LLM_LIVE')
+    return {'kind': kind, 'note': PROVENANCE_NOTE[kind],
+            'reference_time': cycles[-1]['recorded_at'] if cycles else None,
+            'first_cycle_at': cycles[0]['recorded_at'] if cycles else None,
+            'cycle_origins': origins, 'real_llm_calls': real_calls,
+            'simulated_or_file_llm_cycles': sum(1 for c in cycles if c.get('llm_origin') not in (None, 'LLM_LIVE')),
+            'is_current_autonomous_research': kind == 'OPERATIONAL' and real_calls > 0}
+
+
 def build_panel(memory, gate, *, now):
     latest = {}
     for r in experiments(memory):
@@ -238,8 +278,9 @@ def build_panel(memory, gate, *, now):
     last = cycles[-1] if cycles else None
     by = lambda *states: [c for c in cards if c['state'] in states]
     return {
-        'schema_version': 1, 'generated_at': now.astimezone(timezone.utc).isoformat(),
+        'schema_version': 2, 'generated_at': now.astimezone(timezone.utc).isoformat(),
         'status': 'EXPLORATORY_RESEARCH_NOT_VALIDATION',
+        'provenance': provenance(memory),
         'gates': {'exploration': gate['state'],
                   'scientific_validation': gate['scientific_validation_gate']['state'],
                   'limitations': gate.get('limitations', [])},

@@ -78,7 +78,11 @@ FT_PATTERNS = (
 
 # --- LLM / statistics / quality --------------------------------------------------------------
 LLM_PATTERNS = (re.compile(r"docs/lab/(?:llm-discovery-plan|llm-investigator-index)\.json\Z"),
-                re.compile(r"docs/lab/llm-investigator-runs/\d+\.json\Z"))
+                re.compile(r"docs/lab/llm-investigator-runs/\d+\.json\Z"),
+                # Operational exploratory research (same v6-llm-global workflow slot; no writer
+                # until the prepared migration is approved and activated).
+                re.compile(r"data/research/memory\.jsonl\Z"),
+                re.compile(r"docs/research/autonomous-research\.json\Z"))
 OFFLINE_PATTERNS = (re.compile(r"docs/lab/llm-statistics\.json\Z"),
                     re.compile(r"docs/lab/llm-statistics-runs/\d+\.json\Z"))
 QUALITY = "docs/lab/quality.json"
@@ -93,6 +97,8 @@ PROGRAM_FILES = frozenset({"requirements.txt", "requirements-test.txt", ".gitign
 DOC_PATTERNS = (re.compile(r"tests/.+\Z"), re.compile(r"(?:docs|reports)/(?:[^/]+/)*[^/]+\.md\Z"),
                 re.compile(r"[A-Za-z0-9_-]+\.md\Z"))
 SITE_PATTERN = re.compile(r"docs/[A-Za-z0-9_.-]+\.(?:html|js|css)\Z")
+# Static, human-merged DEMONSTRATION snapshot of the research panel (never written by a job).
+SITE_DEMO_PATTERN = re.compile(r"docs/research/demo/[A-Za-z0-9_.-]+\.(?:json|jsonl)\Z")
 MANUAL_PATTERN = re.compile(r"(?:data/lab/golden|reports)/.+\Z")
 
 
@@ -129,7 +135,7 @@ def owner_of(path):
         return LEGACY
     if any(p.fullmatch(path) for p in DOC_PATTERNS):
         return DOCUMENTATION
-    if SITE_PATTERN.fullmatch(path):
+    if SITE_PATTERN.fullmatch(path) or SITE_DEMO_PATTERN.fullmatch(path):
         return SITE
     if MANUAL_PATTERN.fullmatch(path):
         return MANUAL_REVIEW

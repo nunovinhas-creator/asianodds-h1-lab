@@ -2,7 +2,10 @@
 
 Every record carries ``seq``, ``prev_sha256`` and ``sha256`` (of the canonical record
 without ``sha256``). Reading verifies the whole chain; any edit, deletion, reorder or
-truncation in the middle fails closed. Writing only appends.
+truncation in the middle fails closed. Writing only appends, under an exclusive
+lock, with an atomic replace (temp file + fsync + rename) and an optimistic
+``expected_tip`` check, so concurrent cycles cannot interleave or lose updates and
+an interrupted write leaves the previous file intact.
 
 Learning here is operational: the memory decides what to investigate next (novelty,
 re-tests when data grew, follow-ups), it never changes model weights, scientific
@@ -14,9 +17,12 @@ selected by results.
 """
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
+import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from .research_dsl import canonical_json, variables_used
@@ -27,10 +33,20 @@ DEFAULT_PATH = 'data/research/memory.jsonl'
 MAX_BYTES = 19_000_000          # below the 20 MB LAB file contract
 MAX_RECORD_BYTES = 64_000
 GENESIS = '0' * 64
+RUN_KINDS = ('OPERATIONAL', 'DEMONSTRATION', 'TEST')
+LOCK_TIMEOUT_S = 10.0
 
 
 class MemoryError_(ValueError):
     pass
+
+
+class MemoryConflict(MemoryError_):
+    """Another writer extended the memory after this cycle read it (lost-update guard)."""
+
+
+class MemoryTornTail(MemoryError_):
+    """The last line has no terminating newline: an interrupted foreign write."""
 
 
 def _hash(record):
@@ -39,7 +55,29 @@ def _hash(record):
                                      allow_nan=False).encode()).hexdigest()
 
 
+def _parse(raw, *, where='memory'):
+    out, prev = [], GENESIS
+    for n, line in enumerate(raw.decode('utf-8').split('\n')[:-1], 1):
+        if not line.strip():
+            raise MemoryError_('BLANK_MEMORY_LINE:%d' % n)
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            raise MemoryError_('MEMORY_LINE_NOT_JSON:%d' % n) from None
+        if (not isinstance(rec, dict) or rec.get('schema_version') != MEMORY_SCHEMA
+                or rec.get('seq') != n or rec.get('prev_sha256') != prev
+                or rec.get('sha256') != _hash(rec) or rec.get('run_kind') not in RUN_KINDS):
+            raise MemoryError_('MEMORY_CHAIN_INVALID_AT_LINE:%d' % n)
+        prev = rec['sha256']
+        out.append(rec)
+    kinds = {r['run_kind'] for r in out}
+    if len(kinds) > 1:
+        raise MemoryError_('MEMORY_RUN_KIND_MIXED')
+    return out
+
+
 def read_memory(path):
+    """Strict read. Any defect fails closed; a torn tail is reported, never truncated."""
     path = Path(path)
     if not path.exists():
         return []
@@ -47,47 +85,122 @@ def read_memory(path):
         raise MemoryError_('UNSAFE_MEMORY_PATH')
     if path.stat().st_size > MAX_BYTES:
         raise MemoryError_('MEMORY_SIZE_LIMIT_REVIEW_REQUIRED')
-    out, prev = [], GENESIS
-    for n, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
-        if not line.strip():
-            raise MemoryError_('BLANK_MEMORY_LINE:%d' % n)
-        rec = json.loads(line)
-        if (not isinstance(rec, dict) or rec.get('schema_version') != MEMORY_SCHEMA
-                or rec.get('seq') != n or rec.get('prev_sha256') != prev
-                or rec.get('sha256') != _hash(rec)):
-            raise MemoryError_('MEMORY_CHAIN_INVALID_AT_LINE:%d' % n)
-        prev = rec['sha256']
-        out.append(rec)
-    return out
+    raw = path.read_bytes()
+    if raw and not raw.endswith(b'\n'):
+        raise MemoryTornTail('MEMORY_TORN_TAIL')
+    return _parse(raw)
 
 
-def append(path, records, *, existing=None):
-    """Append records atomically-enough (single write + fsync). Returns sealed records."""
+def tip(records):
+    return records[-1]['sha256'] if records else GENESIS
+
+
+@contextmanager
+def _locked(path, timeout=LOCK_TIMEOUT_S):
+    """Exclusive advisory lock on a sidecar file; bounded wait, then fail (no hang)."""
     path = Path(path)
-    current = read_memory(path) if existing is None else existing
-    prev = current[-1]['sha256'] if current else GENESIS
-    seq = len(current)
-    sealed, lines = [], []
-    for rec in records:
-        seq += 1
-        r = dict(rec, schema_version=MEMORY_SCHEMA, seq=seq, prev_sha256=prev)
-        r['sha256'] = _hash(r)
-        line = json.dumps(r, sort_keys=True, ensure_ascii=False, allow_nan=False)
-        if len(line.encode()) > MAX_RECORD_BYTES:
-            raise MemoryError_('MEMORY_RECORD_TOO_LARGE')
-        lines.append(line)
-        sealed.append(r)
-        prev = r['sha256']
-    data = ''.join(line + '\n' for line in lines).encode()
-    size = path.stat().st_size if path.exists() else 0
-    if size + len(data) > MAX_BYTES:
-        raise MemoryError_('MEMORY_SIZE_LIMIT_REVIEW_REQUIRED')
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, 'ab') as fh:
-        fh.write(data)
-        fh.flush()
-        os.fsync(fh.fileno())
+    lock = path.with_name(path.name + '.lock')
+    fd = os.open(lock, os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise MemoryError_('MEMORY_LOCK_TIMEOUT') from None
+                time.sleep(0.02)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
+def _atomic_write(path, data):
+    """Write-to-temp, fsync, rename, fsync dir: readers see old or new, never partial."""
+    path = Path(path)
+    tmp = path.with_name('.%s.tmp-%d-%s' % (path.name, os.getpid(), os.urandom(4).hex()))
+    try:
+        with open(tmp, 'wb') as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+        dfd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(dfd)
+        finally:
+            os.close(dfd)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
+def append(path, records, *, run_kind, expected_tip=None, lock_timeout=LOCK_TIMEOUT_S):
+    """Append under an exclusive lock, re-reading the chain inside the lock.
+
+    ``expected_tip``: the last sha256 the caller based its computation on (novelty,
+    multiplicity). If the memory moved meanwhile, raise MemoryConflict and write
+    nothing, rather than appending results computed against a stale memory.
+    """
+    if run_kind not in RUN_KINDS:
+        raise MemoryError_('INVALID_RUN_KIND')
+    path = Path(path)
+    with _locked(path, lock_timeout):
+        current = read_memory(path)
+        if expected_tip is not None and tip(current) != expected_tip:
+            raise MemoryConflict('MEMORY_CHANGED_DURING_CYCLE')
+        if current and current[0]['run_kind'] != run_kind:
+            raise MemoryError_('MEMORY_RUN_KIND_MIXING_FORBIDDEN')
+        prev, seq = tip(current), len(current)
+        sealed, lines = [], []
+        for rec in records:
+            seq += 1
+            r = dict(rec, schema_version=MEMORY_SCHEMA, seq=seq, prev_sha256=prev, run_kind=run_kind)
+            r['sha256'] = _hash(r)
+            line = json.dumps(r, sort_keys=True, ensure_ascii=False, allow_nan=False)
+            if len(line.encode()) > MAX_RECORD_BYTES:
+                raise MemoryError_('MEMORY_RECORD_TOO_LARGE')
+            lines.append(line)
+            sealed.append(r)
+            prev = r['sha256']
+        old = path.read_bytes() if path.exists() else b''
+        data = old + ''.join(line + '\n' for line in lines).encode()
+        if len(data) > MAX_BYTES:
+            raise MemoryError_('MEMORY_SIZE_LIMIT_REVIEW_REQUIRED')
+        _atomic_write(path, data)
     return sealed
+
+
+def recover_torn_tail(path, *, lock_timeout=LOCK_TIMEOUT_S):
+    """Explicit, human-invoked recovery of an interrupted foreign write.
+
+    Only a final fragment WITHOUT newline is removed, and only if every complete line
+    before it forms a valid chain. The fragment is preserved in a quarantine file.
+    Mid-file corruption is never repaired.
+    """
+    path = Path(path)
+    with _locked(path, lock_timeout):
+        raw = path.read_bytes()
+        if not raw or raw.endswith(b'\n'):
+            return {'status': 'NOTHING_TO_RECOVER', 'records': len(read_memory(path))}
+        cut = raw.rfind(b'\n') + 1
+        prefix, tail = raw[:cut], raw[cut:]
+        records = _parse(prefix)
+        digest = hashlib.sha256(tail).hexdigest()
+        quarantine = path.with_name('%s.torn-%s' % (path.name, digest[:12]))
+        _atomic_write(quarantine, tail)
+        _atomic_write(path, prefix)
+    return {'status': 'TORN_TAIL_QUARANTINED', 'records': len(records),
+            'quarantine': quarantine.name, 'tail_bytes': len(tail), 'tail_sha256': digest}
+
+
+def memory_kind(records):
+    return records[0]['run_kind'] if records else None
 
 
 # ---------------------------------------------------------------------------
