@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T18:57:08+00:00",
+  "generated_at": "2026-11-05T19:02:13+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -82,9 +82,9 @@
       "percentage_descriptive": 13.8
     },
     "with_unobserved_line_gaps": {
-      "matches": 130,
+      "matches": 131,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 32.5
+      "percentage_descriptive": 32.8
     }
   },
   "opposing_direction_examples": [
@@ -204,19 +204,6 @@
     },
     {
       "directions": [
-        "DOWN",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:51450",
-        "3571094759:51462"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-30,10064585,10066534",
-      "match_label": "Ajman Club U23 vs Al Ain U23"
-    },
-    {
-      "directions": [
         "UP",
         "FLAT",
         "DOWN"
@@ -255,56 +242,73 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-10-31,10066604,10063395",
       "match_label": "Al Ittihad Kalba U23 vs Shabab Al Ahli U23"
+    },
+    {
+      "directions": [
+        "DOWN",
+        "UP",
+        "FLAT",
+        "UP"
+      ],
+      "event_ids": [
+        "3571094759:52775",
+        "3571094759:52878",
+        "3571094759:52883",
+        "3571094759:52884"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-11-04,36058,27343",
+      "match_label": "Al Taawon (KSA) vs Al Faisaly Amman (JOR)"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1605,
+    "all_distinct_matches": 1606,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
-    "events_analysed": 1003,
-    "messages_in_source": 2464,
+    "events_analysed": 1004,
+    "messages_in_source": 2467,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 582,
-    "repeated_matches_omitted": 182,
+    "repeated_matches_in_source": 583,
+    "repeated_matches_omitted": 183,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "1eefc085ee97591cdf20b668e087aa9545a7f449",
-  "source_generated_at": "2026-11-05T18:57:06+00:00",
+  "source_commit": "dd378d79c50c87a7a86b983ffca6319c93b10a47",
+  "source_generated_at": "2026-11-05T19:02:10+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 32,
-      "T_0_TO_60": 193,
+      "T_0_TO_60": 194,
       "T_360_TO_1440": 159,
-      "T_60_TO_360": 155,
-      "T_OVER_1440": 155,
+      "T_60_TO_360": 154,
+      "T_OVER_1440": 156,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 35,
-      "T_0_TO_60": 267,
+      "T_0_TO_60": 268,
       "T_360_TO_1440": 217,
-      "T_60_TO_360": 236,
-      "T_OVER_1440": 248,
+      "T_60_TO_360": 235,
+      "T_OVER_1440": 249,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
   },
   "total_line_within_alert": {
     "by_origin": {
-      "V4_EXPLICIT": 1002
+      "V4_EXPLICIT": 1003
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 35.5,
       "FLAT": 28.7,
-      "UP": 35.7
+      "UP": 35.8
     },
     "down": 356,
     "flat": 288,
-    "messages_with_total": 1002,
-    "up": 358,
+    "messages_with_total": 1003,
+    "up": 359,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
@@ -315,6 +319,6 @@
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 12,
     "same_movement_repeat": 55,
-    "unobserved_change": 148
+    "unobserved_change": 149
   }
 }
