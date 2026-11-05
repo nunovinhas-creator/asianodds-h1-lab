@@ -236,6 +236,9 @@ def llm_provenance(llm, exp_records, duplicates):
                        if k in ('prompt_tokens', 'completion_tokens', 'total_tokens')} or None,
         'llm_tokens_measurement': usage.get('measurement') if llm else None,
         'llm_contract_version': llm.get('contract_version'),
+        'llm_json_mode': llm.get('json_mode'),
+        'llm_neurons_bound': llm.get('neurons_bound'),
+        'llm_neurons_from_tokens': llm.get('neurons_from_tokens'),
         'llm_plans_received': received or 0,
         'llm_plans_accepted': len(llm.get('plans', [])),
         'llm_plans_rejected': len(llm.get('rejected', [])),
@@ -246,13 +249,13 @@ def llm_provenance(llm, exp_records, duplicates):
     }
 
 
-def llm_packet(gate, dataset, memory, max_plans=3):
+def llm_packet(gate, dataset, memory, max_plans=3, *, budget_bytes=None):
     from .research_context import trajectory_examples
-    from .research_llm import build_packet
+    from .research_llm import PACKET_BUDGET_BYTES, build_packet
     return build_packet(gate=gate, dataset_description=describe(dataset),
                         variable_catalogue=catalogue(dataset['rows']),
                         memory_digest=digest_for_llm(memory), agenda_items=agenda(memory, dataset),
-                        max_plans=max_plans,
+                        max_plans=max_plans, budget_bytes=budget_bytes or PACKET_BUDGET_BYTES,
                         trajectory_examples=trajectory_examples(dataset, gate.get('source_sha256')))
 
 

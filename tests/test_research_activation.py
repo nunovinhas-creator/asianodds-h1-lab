@@ -76,13 +76,22 @@ class SingleActiveSchedule(unittest.TestCase):
         from h1lab import research_llm
         from scripts import lab_research_cycle as cyc
         from scripts import lab_v6_llm_autonomous as old
-        self.assertEqual(cyc.MODEL, old.MODEL, 'same provider model as the retired workflow')
+        # Contract v3: the model changed on purpose (the 8B alias produced 0 valid plans in
+        # runs 42021728675 and 42030138637). It must be a profiled model with documented JSON
+        # Mode, known neuron rates and a worst case inside the per-call neuron cap.
+        self.assertNotEqual(cyc.MODEL, old.MODEL)
+        prof = research_llm.MODEL_PROFILES[cyc.MODEL]
+        self.assertTrue(prof['json_mode_documented'])
+        self.assertEqual(prof['status'], 'RECOMMENDED')
+        self.assertLessEqual(research_llm.neuron_bound(cyc.MODEL, prof['max_request_bytes'])['neurons_max'],
+                             research_llm.MAX_NEURONS_PER_CALL)
         self.assertEqual(cyc.SCHEDULE, old.SCHEDULE)
         self.assertEqual(cyc.MAX_DAILY_LIVE_CALLS, 4)
         self.assertEqual(budget.MAX_DAILY_LLM_ATTEMPTS, 4)
         self.assertEqual(research_llm.MAX_REQUEST_BYTES, 48_000)
         src = Path(research_llm.__file__).read_text()
-        self.assertIn("'max_tokens': 2400", src)
+        self.assertEqual(research_llm.MAX_OUTPUT_TOKENS, 2400)
+        self.assertIn("'max_tokens': MAX_OUTPUT_TOKENS", src)
         self.assertNotRegex(src, r'for .* in range\(|while .*retry', 'no retry loop around the request')
 
 

@@ -1,4 +1,4 @@
-"""LLM -> Python contract after the first live call (run 42021728675: 3 plans, 0 accepted).
+"""LLM -> Python contract v3 (live runs 42021728675 and 42030138637: 6 plans, 0 accepted).
 
 Proves, fully offline (fake HTTP openers, zero provider calls):
   * every example and rule sent to the model is accepted by the REAL validator;
@@ -23,10 +23,13 @@ from h1lab import research_cycle  # noqa: E402
 from h1lab.research_cycle import build_panel, cycle_funnels, run_cycle  # noqa: E402
 from h1lab.research_dataset import OUTCOMES, VARIABLES  # noqa: E402
 from h1lab.research_dsl import NAME_RE, DSLError, validate_indicator  # noqa: E402
-from h1lab.research_llm import (MAX_REQUEST_BYTES, SYSTEM, build_packet, contract_spec,  # noqa: E402
-                                invoke_once, parse_response, response_example, verified_example)
+from h1lab import research_llm  # noqa: E402
+from h1lab.research_llm import (LEGACY_EXAMPLE_V2, MAX_NEURONS_PER_CALL, MAX_REQUEST_BYTES,  # noqa: E402
+                                MODEL_PROFILES, SYSTEM, build_packet, contract_spec, grammar, invoke_once,
+                                neuron_bound, parse_response, plan_template, request_body, response_schema)
+from h1lab.research_dsl import OPS  # noqa: E402
 from h1lab.research_memory import read_memory  # noqa: E402
-from h1lab.research_plan import REQUIRED, STRATA, base_types, validate_plan  # noqa: E402
+from h1lab.research_plan import REQUIRED, STRATA, PlanError, base_types, validate_plan  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -93,28 +96,127 @@ def small_packet():
                         memory_digest=[], agenda_items=[])
 
 
-def through_model(content):
+class NativeOpener:
+    """Fake Workers AI native endpoint (/ai/run/{model}); JSON Mode returns the parsed object."""
+
+    def __init__(self, content, *, as_object=True, success=True):
+        from research_fixtures import FakeResponse
+        self._resp = FakeResponse
+        self.calls = []
+        obj = json.loads(content) if as_object else content
+        self.body = json.dumps({'result': {'response': obj, 'usage': {
+            'prompt_tokens': 7000, 'completion_tokens': 900, 'total_tokens': 7900}},
+            'success': success, 'errors': [], 'messages': []}).encode()
+
+    def __call__(self, req, timeout=None):
+        self.calls.append(req)
+        return self._resp(self.body)
+
+
+def guard_kw(packet):
+    return {'example_fingerprints': packet['copy_guard_fingerprints'],
+            'copied_expressions': packet['copy_guard_expressions']}
+
+
+def through_model(content, *, native=True):
     """Simulated model through the REAL request path (invoke_once) and parser."""
     packet = small_packet()
-    opener = FakeOpener(content)
-    out = invoke_once(packet, endpoint='https://simulated.invalid/v1/chat/completions', model='SIM', opener=opener)
+    if native:
+        opener = NativeOpener(content) if _is_json(content) else FakeOpener(content)
+        out = invoke_once(packet, endpoint='https://simulated.invalid/ai/run/M', model='M', opener=opener,
+                          endpoint_kind='native', json_mode='json_schema')
+    else:
+        opener = FakeOpener(content)
+        out = invoke_once(packet, endpoint='https://simulated.invalid/v1/chat/completions', model='SIM',
+                          opener=opener)
     assert len(opener.calls) == 1
-    return parse_response(out['content'], example_fingerprints=packet['response_example_fingerprints']), opener
+    return parse_response(out['content'], **guard_kw(packet)), opener
+
+
+def _is_json(content):
+    try:
+        json.loads(content)
+        return True
+    except ValueError:
+        return False
+
+
+def schema_ok(value, schema):
+    """Minimal JSON Schema checker for the keywords response_schema() uses (no dependency)."""
+    t = schema.get('type')
+    types = t if isinstance(t, list) else [t] if t else []
+    pyt = {'object': dict, 'array': list, 'string': str, 'integer': int, 'number': (int, float), 'boolean': bool}
+    if types and not any(isinstance(value, pyt[x]) and not (x in ('integer', 'number') and isinstance(value, bool))
+                         for x in types):
+        return False
+    if 'enum' in schema and value not in schema['enum']:
+        return False
+    if isinstance(value, str):
+        import re
+        if len(value) < schema.get('minLength', 0) or len(value) > schema.get('maxLength', 10 ** 9):
+            return False
+        if 'pattern' in schema and not re.search(schema['pattern'], value):
+            return False
+    if isinstance(value, list):
+        if len(value) < schema.get('minItems', 0) or len(value) > schema.get('maxItems', 10 ** 9):
+            return False
+        if schema.get('uniqueItems') and len({json.dumps(x, sort_keys=True) for x in value}) != len(value):
+            return False
+        return all(schema_ok(x, schema.get('items', {})) for x in value)
+    if isinstance(value, dict):
+        props = schema.get('properties', {})
+        if any(k not in value for k in schema.get('required', [])):
+            return False
+        if schema.get('additionalProperties') is False and set(value) - set(props):
+            return False
+        return all(schema_ok(v, props[k]) for k, v in value.items() if k in props)
+    return True
 
 
 class ContractSentToModel(unittest.TestCase):
-    def test_example_in_packet_is_accepted_by_the_real_validator(self):
-        ex, fp = verified_example()
-        plan = validate_plan(copy.deepcopy(ex))
-        self.assertEqual(plan['fingerprint'], fp)
-        # Every indicator of the example is referenced (the rule the live model broke).
-        used = json.dumps([plan['condition'], plan['control_condition']])
-        for i in plan['indicators']:
-            self.assertIn('"%s"' % i['name'], used)
+    def test_no_complete_example_is_sent_and_the_template_cannot_validate(self):
         packet = small_packet()
-        for raw in packet['response_example']['experiments']:
-            validate_plan(copy.deepcopy(raw))
-        self.assertEqual(packet['response_example_fingerprints'], [fp])
+        self.assertNotIn('response_example', packet)
+        body = json.loads(request_body(packet, 'M', endpoint_kind='native', json_mode='json_schema'))
+        user = json.loads(body['messages'][1]['content'])
+        self.assertNotIn('copy_guard_fingerprints', user, 'internal guard not sent to the model')
+        tpl = plan_template()
+        with self.assertRaises(PlanError):
+            validate_plan(copy.deepcopy(tpl))
+        self.assertFalse(schema_ok({'schema_version': 1, 'experiments': [tpl]}, response_schema()),
+                         'a copied template is refused by the JSON Schema too')
+
+    def test_grammar_is_generated_from_ops_with_exact_types(self):
+        g = grammar()
+        text = {'BOOL_EXPR': ' '.join(g['BOOL_EXPR']), 'NUM_EXPR': ' '.join(g['NUM_EXPR'])}
+        for op, (args, out) in OPS.items():
+            side = 'BOOL_EXPR' if out == 'bool' else 'NUM_EXPR'
+            line = [r for r in g[side] if ('"%s"' % op in r or '|%s|' % op in r or '"%s|' % op in r
+                                          or '|%s"' % op in r)]
+            self.assertEqual(len(line), 1, op)
+            if op in ('and', 'or', 'not'):
+                self.assertIn('args": [BOOL_EXPR', line[0])
+                self.assertNotIn('NUM_EXPR', line[0])
+            if op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne', 'between'):
+                self.assertIn('args": [NUM_EXPR', line[0])
+        self.assertIn('and, or e not so aceitam BOOL_EXPR', g['type_rules'][0])
+        wrong, right = g['type_fragments']['ERRADO (TYPE_ERROR)'], g['type_fragments']['CERTO']
+        from h1lab.research_dsl import validate
+        with self.assertRaisesRegex(DSLError, 'TYPE_ERROR:and expects bool'):
+            validate(wrong, base_types(), expect='bool')
+        validate(right, base_types(), expect='bool')
+
+    def test_json_schema_accepts_valid_plans_and_mirrors_the_contract(self):
+        sch = response_schema()
+        self.assertTrue(schema_ok(json.loads(reply(*VALID)), sch))
+        plan = sch['properties']['experiments']['items']
+        self.assertEqual(set(plan['required']), REQUIRED)
+        self.assertEqual(set(plan['properties']['market']['enum']), set(OUTCOMES))
+        self.assertEqual(plan['properties']['indicators']['items']['properties']['name']['pattern'],
+                         '^' + NAME_RE.pattern + '$')
+        self.assertEqual(set(plan['properties']['condition']['properties']['op']['enum']), set(OPS))
+        bad = json.loads(reply(BAD_NAME))
+        self.assertFalse(schema_ok(bad, sch), 'lowercase indicator name violates the schema pattern')
 
     def test_contract_is_derived_from_validator_constants(self):
         k = contract_spec()
@@ -128,20 +230,65 @@ class ContractSentToModel(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(DSLError):
                 validate_indicator(ind(name, v('lambda_net')), base_types())
 
-    def test_system_prompt_states_the_rules_that_caused_the_rejections(self):
-        self.assertIn('MAIUSCULAS', SYSTEM)
-        self.assertIn('TODO o indicador definido tem de aparecer', SYSTEM)
-        self.assertIn('variables[].name', SYSTEM)
-        self.assertIn('nao o copies', SYSTEM)
+    def test_system_prompt_is_short_and_states_the_failing_rules(self):
+        self.assertLess(len(SYSTEM), 1400)
+        for phrase in ('and/or/not so recebem BOOL_EXPR', 'MAIUSCULAS', 'TEM de ser usado',
+                       'variables.num/variables.bool', 'textos entre < > sao instrucoes'):
+            self.assertIn(phrase, SYSTEM)
 
-    def test_contract_is_sent_and_request_stays_bounded(self):
-        opener = FakeOpener(reply(*VALID))
-        invoke_once(small_packet(), endpoint='https://simulated.invalid/v1', model='SIM', opener=opener)
+    def test_native_request_is_bounded_and_carries_the_schema(self):
+        opener = NativeOpener(reply(*VALID))
+        invoke_once(small_packet(), endpoint='https://simulated.invalid/ai/run/M', model='M', opener=opener,
+                    endpoint_kind='native', json_mode='json_schema')
         body = json.loads(opener.calls[0].data)
-        user = json.loads(body['messages'][1]['content'])
-        self.assertIn('contract', user)
-        self.assertNotIn('response_example_fingerprints', user, 'internal guard not sent to the model')
+        self.assertNotIn('model', body, 'native endpoint names the model in the URL')
+        self.assertEqual(body['response_format']['type'], 'json_schema')
+        self.assertEqual(body['response_format']['json_schema'], response_schema())
+        self.assertEqual(body['max_tokens'], 2400)
         self.assertLessEqual(len(opener.calls[0].data), MAX_REQUEST_BYTES)
+
+
+class ProviderEnvelope(unittest.TestCase):
+    def test_native_object_and_string_responses(self):
+        for as_object in (True, False):
+            opener = NativeOpener(reply(VALID[0]), as_object=as_object)
+            out = invoke_once(small_packet(), endpoint='https://x.invalid/ai/run/M', model='M', opener=opener,
+                              endpoint_kind='native', json_mode='json_schema')
+            self.assertEqual(parse_response(out['content'])['accepted'], 1)
+            self.assertEqual(out['usage']['tokens']['total_tokens'], 7900)
+
+    def test_provider_failure_is_not_retried(self):
+        opener = NativeOpener(reply(VALID[0]), success=False)
+        with self.assertRaisesRegex(ValueError, 'LLM_PROVIDER_ERROR'):
+            invoke_once(small_packet(), endpoint='https://x.invalid/ai/run/M', model='M', opener=opener,
+                        endpoint_kind='native', json_mode='json_schema')
+        self.assertEqual(len(opener.calls), 1)
+
+
+class NeuronBudget(unittest.TestCase):
+    MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+
+    def test_worst_case_per_call_and_per_day_fit_the_free_allocation(self):
+        prof = MODEL_PROFILES[self.MODEL]
+        b = neuron_bound(self.MODEL, prof['max_request_bytes'])
+        # 30,000 B / 2.0 B per token = 15,000 input tokens; 2,400 output tokens.
+        expected = (15_000 * 26_668 + 2_400 * 204_805) / 1e6
+        self.assertAlmostEqual(b['neurons_max'], round(expected, 1))
+        self.assertLessEqual(b['neurons_max'], MAX_NEURONS_PER_CALL)
+        self.assertLessEqual(4 * b['neurons_max'], research_llm.FREE_NEURONS_PER_DAY)
+        self.assertLessEqual(15_000 + 2_400, prof['context_tokens'])
+
+    def test_refusals(self):
+        with self.assertRaisesRegex(ValueError, 'REQUEST_OVER_MODEL_BUDGET'):
+            neuron_bound(self.MODEL, 30_001)
+        with self.assertRaisesRegex(ValueError, 'MODEL_COST_UNKNOWN'):
+            neuron_bound('@cf/meta/llama-3.1-8b-instruct-fast', 1_000)
+        with self.assertRaisesRegex(ValueError, 'DAILY_NEURON_BUDGET_EXCEEDED'):
+            neuron_bound(self.MODEL, 20_000, prior_calls_today=5)
+        small = dict(MODEL_PROFILES[self.MODEL], context_tokens=8_000)
+        with mock.patch.dict(MODEL_PROFILES, {self.MODEL: small}), \
+                self.assertRaisesRegex(ValueError, 'CONTEXT_WINDOW_EXCEEDED'):
+            neuron_bound(self.MODEL, 20_000)
 
 
 class SimulatedModelReplies(unittest.TestCase):
@@ -187,10 +334,35 @@ class SimulatedModelReplies(unittest.TestCase):
         out, _ = through_model(reply())
         self.assertEqual((out['received'], out['accepted'], out['plans']), (0, 0, []))
 
-    def test_verbatim_copy_of_the_example_is_not_the_models_hypothesis(self):
-        out, _ = through_model(reply(response_example()))
-        self.assertEqual(out['accepted'], 0)
-        self.assertEqual(out['rejected'][0]['reason'], 'COPIED_RESPONSE_EXAMPLE')
+    def test_copies_are_not_the_models_hypotheses(self):
+        # Run 42030138637: the v2 example was returned verbatim twice.
+        out, _ = through_model(reply(LEGACY_EXAMPLE_V2))
+        self.assertEqual((out['accepted'], out['rejected'][0]['reason']), (0, 'COPIED_RESPONSE_EXAMPLE'))
+        # The structural template cannot pass the validator.
+        out, _ = through_model(reply(plan_template()))
+        self.assertEqual(out['rejected'][0]['reason'], 'UNSUPPORTED_MARKET_OR_OUTCOME')
+        # A grammar fragment handed back as the condition is a copy, not a hypothesis.
+        frag = dict(BASE, question='Pergunta que reutiliza o fragmento CERTO da gramatica como condicao?',
+                    market='TOTAL_GOALS', outcome='OVER_2_5', condition=grammar()['type_fragments']['CERTO'])
+        out, _ = through_model(reply(frag))
+        self.assertEqual((out['rejected'][0]['reason'], out['rejected'][0]['field']),
+                         ('COPIED_CONTRACT_FRAGMENT', 'condition'))
+        # Same fragment hidden behind an indicator is still detected (expressions are inlined).
+        hidden = dict(frag, indicators=[ind('X_FRAG', grammar()['type_fragments']['CERTO'])], condition=v('X_FRAG'))
+        out, _ = through_model(reply(hidden))
+        self.assertEqual(out['rejected'][0]['reason'], 'COPIED_CONTRACT_FRAGMENT')
+
+    def test_type_errors_stay_blocked(self):
+        # Run 42030138637, plan 0: DSL:TYPE_ERROR:and expects bool in indicators[0].
+        bad = dict(BASE, question='Um indicador que mistura numeros dentro de and e aceite pela DSL?',
+                   market='TOTAL_GOALS', outcome='OVER_2_5',
+                   indicators=[ind('X_MIXED', op('and', v('lambda_net'), v('ctx_cup')))], condition=v('X_MIXED'))
+        out, _ = through_model(reply(bad))
+        self.assertEqual((out['rejected'][0]['reason'], out['rejected'][0]['field']),
+                         ('DSL:TYPE_ERROR:and expects bool', 'indicators[0]'))
+        cmp_bool = dict(bad, indicators=[], condition=op('gt', v('ctx_cup'), c(0)))
+        out, _ = through_model(reply(cmp_bool))
+        self.assertEqual(out['rejected'][0]['reason'], 'DSL:TYPE_ERROR:gt expects num')
 
     def test_validator_rules_unchanged(self):
         # The fix is in the instructions, not in a weaker validator.
@@ -259,7 +431,7 @@ class EndToEndOnRealData(unittest.TestCase):
             conf = json.loads(cfg.read_text())
             conf['llm_live_enabled'] = True
             cfg.write_text(json.dumps(conf))
-            opener = FakeOpener(reply(VALID[0], VALID[2], UNUSED))
+            opener = NativeOpener(reply(VALID[0], VALID[2], UNUSED))
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
                    'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
                    'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
@@ -268,6 +440,10 @@ class EndToEndOnRealData(unittest.TestCase):
                          '--panel', str(panel), '--budget', '0', '--llm-audit', str(audit)], env=env, opener=opener)
             self.assertEqual(code, 0)
             self.assertEqual(len(opener.calls), 1, 'exactly one (fake) request')
+            self.assertTrue(opener.calls[0].full_url.endswith('/ai/run/' + MODEL))
+            sent = json.loads(opener.calls[0].data)
+            self.assertEqual(sent['response_format']['type'], 'json_schema')
+            self.assertLessEqual(len(opener.calls[0].data), MODEL_PROFILES[MODEL]['max_request_bytes'])
             records = read_memory(mem)
             exps = [r for r in records if r['record_type'] == 'EXPERIMENT']
             self.assertEqual({r['origin'] for r in exps}, {'LLM_LIVE'})
@@ -282,7 +458,10 @@ class EndToEndOnRealData(unittest.TestCase):
             self.assertEqual((cyc['llm_origin'], cyc['llm_model'], cyc['llm_calls']), ('LLM_LIVE', MODEL, 1))
             self.assertEqual((cyc['llm_plans_received'], cyc['llm_plans_accepted'], cyc['llm_plans_rejected']), (3, 2, 1))
             self.assertEqual((cyc['experiments_from_llm'], cyc['experiments_from_offline']), (2, 0))
-            self.assertEqual(cyc['llm_tokens']['total_tokens'], 150)
+            self.assertEqual(cyc['llm_tokens']['total_tokens'], 7900)
+            self.assertEqual(cyc['llm_json_mode'], 'json_schema')
+            self.assertLessEqual(cyc['llm_neurons_bound'], MAX_NEURONS_PER_CALL)
+            self.assertEqual(cyc['llm_neurons_from_tokens'], round((7000 * 26668 + 900 * 204805) / 1e6, 1))
             sci = exploration_gate(root)['scientific_validation_gate']
             self.assertEqual(verify_extension(b'', mem.read_bytes(), sci)['llm_calls'], 1)
             p = json.loads(panel.read_text())
@@ -292,7 +471,7 @@ class EndToEndOnRealData(unittest.TestCase):
             self.assertEqual(p['validated'], [])
             a = json.loads(audit.read_text())
             self.assertEqual(a['parsed']['accepted'], 2)
-            self.assertEqual(a['content'], json.loads(opener.body)['choices'][0]['message']['content'])
+            self.assertEqual(json.loads(a['content']), json.loads(opener.body)['result']['response'])
             self.assertNotIn('not-a-real-key', audit.read_text())
             shutil.rmtree(root)
 

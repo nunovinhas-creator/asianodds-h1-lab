@@ -11,181 +11,377 @@ counts and Python-generated memory digests (no Telegram text, team names or
 previous model prose). Model output is parsed as data, validated field by field,
 never executed, and rejected plans are logged by structural reason only.
 At most ONE bounded HTTPS request per call, no retries (``invoke_once``).
+
+Contract v3 (after live calls 42021728675 and 42030138637, both 0 accepted plans):
+* no complete JSON example any more: the model copied it twice in the second call.
+  The packet carries a STRUCTURAL template whose placeholders cannot validate;
+* the DSL is described as a typed grammar (BOOL_EXPR / NUM_EXPR) generated from
+  ``OPS``, so ``and``/``or``/``not`` visibly take booleans only;
+* provider JSON Mode with a JSON Schema generated from the same Python contract
+  (``response_schema``), for models whose JSON Mode support is documented;
+* every per-model limit (context window, neuron rates) is data in MODEL_PROFILES,
+  and ``neuron_bound`` refuses a request whose worst case exceeds the budget.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import math
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from .research_dataset import OUTCOMES
-from .research_dsl import FORBIDDEN_NAME_SEQUENCES, FORBIDDEN_NAME_TOKENS, MAX_DEPTH, MAX_NODES, NAME_RE, OPS
-from .research_plan import OPTIONAL, REQUIRED, STRATA, TEXT_FIELDS, PlanError, validate_plan
+from .research_dsl import (FORBIDDEN_NAME_SEQUENCES, FORBIDDEN_NAME_TOKENS, MAX_DEPTH, MAX_NODES, NAME_RE,
+                           OPS, canonical_json)
+from .research_plan import OPTIONAL, REQUIRED, STRATA, TEXT_FIELDS, PlanError, inline, validate_plan
 from .v6_llm_investigator import provider_usage, strict_json
 
 PACKET_SCHEMA = 1
-CONTRACT_VERSION = 2
+CONTRACT_VERSION = 3
 MAX_RESPONSE_BYTES = 60_000
-MAX_REQUEST_BYTES = 48_000
-PACKET_BUDGET_BYTES = 44_000   # leaves room for the system prompt and envelope
+MAX_REQUEST_BYTES = 48_000     # absolute ceiling for every model; profiles may be stricter
+PACKET_BUDGET_BYTES = 44_000   # absolute ceiling for the user packet
 MAX_INDICATORS_PER_PLAN = 3
+MAX_OUTPUT_TOKENS = 2400
+TEMPERATURE = 0.4
+MAX_MEMORY_ITEMS = 12
+MAX_AGENDA_ITEMS = 6
+MAX_TRAJECTORY_EXAMPLES = 4
 
-# The first live call (run 42021728675) returned three plans and all were refused:
-# twice INDICATOR_DEFINED_BUT_UNUSED and once DSL:INVALID_INDICATOR_NAME. The previous
-# prompt never said that a defined indicator must be referenced, never said that names
-# are UPPERCASE only, and its only example used an indicator in control_condition while
-# the condition used a catalogue variable. The rules below are derived from the
-# validator's own constants and the example is checked by validate_plan at build time.
+# ---------------------------------------------------------------------------
+# Provider facts. Source: cloudflare/cloudflare-docs @ abaf629 (2026-11-05):
+#   src/content/docs/workers-ai/platform/pricing.mdx      (neurons per M tokens; 10,000 free/day)
+#   src/content/docs/workers-ai/features/json-mode.mdx    (JSON Mode supported-model list)
+#   src/content/workers-ai-models/<model>.json            (context_window, input schema)
+# Neither the account plan nor the remaining allocation can be read here
+# (``account_quota_verified=false``): the bound below is on OUR worst case.
+FREE_NEURONS_PER_DAY = 10_000
+DAILY_NEURON_BUDGET = 5_000          # half the free allocation: headroom for other account usage
+MAX_NEURONS_PER_CALL = 1_000
+MAX_CALLS_PER_DAY = 4                # same as the pre-call ledger
+# Measured 39,017 request bytes -> 11,785 prompt tokens (3.3 B/token) on run 42030138637's
+# packet shape; 2.0 B/token is a deliberately pessimistic bound for the token estimate.
+BYTES_PER_TOKEN_PESSIMISTIC = 2.0
+
+MODEL_PROFILES = {
+    '@cf/meta/llama-3.3-70b-instruct-fp8-fast': {
+        'endpoint': 'native',             # /ai/run/{model}: the documented JSON Mode request shape
+        'json_mode': 'json_schema', 'json_mode_documented': True,
+        'context_tokens': 24_000, 'max_request_bytes': 30_000,
+        'neurons_per_m_input': 26_668, 'neurons_per_m_output': 204_805,
+        'reasoning_tokens': False, 'status': 'RECOMMENDED',
+    },
+    '@cf/qwen/qwen3-30b-a3b-fp8': {
+        'endpoint': 'native',
+        'json_mode': 'json_schema', 'json_mode_documented': False,   # not in the JSON Mode list
+        'context_tokens': 32_768, 'max_request_bytes': 30_000,
+        'neurons_per_m_input': 4_625, 'neurons_per_m_output': 30_475,
+        'reasoning_tokens': True,         # reasoning_content consumes the output budget
+        'status': 'NOT_RECOMMENDED_JSON_MODE_UNDOCUMENTED_REASONING_MODEL',
+    },
+    '@cf/meta/llama-3.1-8b-instruct-fast': {
+        'endpoint': 'openai', 'json_mode': 'json_object', 'json_mode_documented': False,
+        'context_tokens': None, 'max_request_bytes': MAX_REQUEST_BYTES,
+        'neurons_per_m_input': None, 'neurons_per_m_output': None,   # alias absent from the price table
+        'reasoning_tokens': False, 'status': 'RETIRED_0_OF_6_PLANS_ACCEPTED',
+    },
+}
+
+
+def neuron_bound(model, request_bytes, *, max_tokens=MAX_OUTPUT_TOKENS, prior_calls_today=0):
+    """Worst-case neurons for ONE request; raises when any bound would be exceeded."""
+    prof = MODEL_PROFILES.get(model)
+    if not prof or prof['neurons_per_m_input'] is None or prof['context_tokens'] is None:
+        raise ValueError('MODEL_COST_UNKNOWN')
+    if request_bytes > prof['max_request_bytes']:
+        raise ValueError('REQUEST_OVER_MODEL_BUDGET')
+    in_tokens = math.ceil(request_bytes / BYTES_PER_TOKEN_PESSIMISTIC)
+    if in_tokens + max_tokens > prof['context_tokens']:
+        raise ValueError('CONTEXT_WINDOW_EXCEEDED')
+    neurons = (in_tokens * prof['neurons_per_m_input'] + max_tokens * prof['neurons_per_m_output']) / 1e6
+    if neurons > MAX_NEURONS_PER_CALL:
+        raise ValueError('NEURONS_PER_CALL_OVER_BUDGET')
+    if (prior_calls_today + 1) * MAX_NEURONS_PER_CALL > DAILY_NEURON_BUDGET:
+        raise ValueError('DAILY_NEURON_BUDGET_EXCEEDED')
+    return {'model': model, 'request_bytes': request_bytes, 'input_tokens_max': in_tokens,
+            'output_tokens_max': max_tokens, 'neurons_max': round(neurons, 1),
+            'daily_neurons_max': MAX_CALLS_PER_DAY * MAX_NEURONS_PER_CALL,
+            'free_neurons_per_day': FREE_NEURONS_PER_DAY, 'account_quota_verified': False}
+
+
+def neurons_from_usage(model, tokens):
+    prof = MODEL_PROFILES.get(model) or {}
+    if not tokens or prof.get('neurons_per_m_input') is None:
+        return None
+    return round((tokens.get('prompt_tokens', 0) * prof['neurons_per_m_input']
+                  + tokens.get('completion_tokens', 0) * prof['neurons_per_m_output']) / 1e6, 1)
+
+
+# ---------------------------------------------------------------------------
+# Contract
+
 SYSTEM = (
-    'Es o investigador autonomo do MASTER BRAIN, em modo EXPLORATORIO. '
-    'Escolhes livremente que relacoes investigar nas trajetorias de odds pre-inicio '
-    '(Total, golos implicitos, 1X2, handicap asiatico, tempo, sequencias, intervalos sem observacao, contexto). '
-    'Podes criar novos indicadores com a linguagem declarativa (contract e dsl), '
-    'comparar explicacoes alternativas via control_condition, e usar a memoria para evitar repeticoes '
-    'ou re-testar o que precisava de mais dados. '
-    'NAO calculas resultados, NAO inventas numeros, NAO afirmas significancia, edge, ROI ou validacao: '
-    'o Python executa as experiencias. Nao recomendes apostas. '
-    'Mercados sem baseline (BTTS) so comparam frequencias. '
-    'trajectory_examples sao trajetorias reais pre-inicio, pseudonimizadas e sem resultados: '
-    'usa-as para entender formas de movimento, nunca como prova de efeito. '
-    'Devolve APENAS JSON: {"schema_version":1,"experiments":[ate max_experiments planos],"new_questions":[ate 5 textos]}. '
-    'REGRAS OBRIGATORIAS (um plano que falhe uma regra e recusado inteiro, sem correcao automatica): '
-    '(1) Cada plano usa so as chaves de contract.plan_keys; market e outcome tem de ser um par de contract.markets. '
-    '(2) condition e control_condition sao arvores JSON booleanas: {"var":nome}, {"const":numero|true|false} '
-    'ou {"op":operador,"args":[...]} com os operadores, tipos e aridade de dsl.operators. '
-    '(3) Cada {"var":nome} usa EXATAMENTE um nome de variables[].name (minusculas) ou um indicador X_ definido antes no mesmo plano. '
-    '(4) Nome de indicador: comeca por X_ e depois so MAIUSCULAS A-Z, digitos 0-9 e _, entre 2 e 40 caracteres apos X_ '
-    '(regex contract.indicator.name_regex). Nunca minusculas, hifens, espacos ou acentos; '
-    'nunca tokens de resultado (contract.indicator.forbidden_name_tokens) nem igual a uma variavel. '
-    '(5) TODO o indicador definido tem de aparecer como {"var":"X_..."} em condition, em control_condition, '
-    'ou dentro de outro indicador que por sua vez seja usado. Se nao o usas, nao o definas. indicators pode ser []. '
-    '(6) Maximo 3 indicadores por plano; cada um so tem name, description (5 a 200 caracteres) e expr. '
-    '(7) control_condition e opcional, tem de ser diferente de condition; sem ela o controlo e o complemento. '
-    '(8) confounders so pode conter lead_bin, line_bin, competition_type. '
-    '(9) response_example e apenas ilustrativo: nao o copies; propoe relacoes tuas. '
-    'Antes de responder, verifica cada plano contra contract.self_check.'
+    'Es o investigador autonomo do MASTER BRAIN (modo EXPLORATORIO). Propoe ate max_experiments '
+    'planos de experiencia ORIGINAIS sobre trajetorias de odds pre-inicio. O Python executa-os: '
+    'NAO calculas resultados, NAO inventas numeros, NAO afirmas significancia, edge ou validacao, '
+    'NAO recomendas apostas. trajectory_examples e memory sao contexto, nunca prova. '
+    'Responde APENAS com JSON {"schema_version":1,"experiments":[...],"new_questions":[...]}. '
+    'Cada plano segue contract.plan_template; os textos entre < > sao instrucoes, substitui-os. '
+    'Expressoes seguem contract.grammar: and/or/not so recebem BOOL_EXPR; gt/ge/lt/le/eq/ne/between '
+    'so recebem NUM_EXPR; condition e control_condition sao BOOL_EXPR. '
+    'Usa so nomes de variables.num/variables.bool ou indicadores X_ que defines no proprio plano. '
+    'Nome de indicador: X_ + MAIUSCULAS/digitos/_ ; cada indicador definido TEM de ser usado. '
+    'Nao repitas condicoes da memory nem os fragmentos de contract.grammar. '
+    'Antes de responder verifica cada plano contra contract.self_check.'
 )
 
 
-def dsl_spec():
-    return {'operators': {k: {'args': list(v[0]), 'returns': v[1]} for k, v in OPS.items()},
-            'nodes': ['{"var": name}', '{"const": number|bool}', '{"op": name, "args": [...]}'],
-            'variadic': "args ['T', '*'] means 2 to 6 arguments of type T",
-            'max_depth': MAX_DEPTH, 'max_nodes': MAX_NODES,
-            'indicator_name': NAME_RE.pattern + ' (UPPERCASE only); may reference catalogue variables and earlier indicators',
-            'missing_values': 'unknown inputs give unknown output; such matches are excluded, never controls'}
+def _sig(op):
+    args, out = OPS[op]
+    return args, out
+
+
+def grammar():
+    """Typed grammar generated from ``OPS`` (single source of truth)."""
+    kinds = {'num': 'NUM_EXPR', 'bool': 'BOOL_EXPR', 'any': 'BOOL_EXPR|NUM_EXPR'}
+    groups = {}
+    for op in sorted(OPS):
+        args, out = _sig(op)
+        if len(args) == 2 and args[1] == '*':
+            shape = '[%s, %s, ...] (2 a 6 argumentos, todos %s)' % (kinds[args[0]], kinds[args[0]], kinds[args[0]])
+        else:
+            shape = '[' + ', '.join(kinds[a] for a in args) + ']'
+        groups.setdefault((kinds[out], shape), []).append(op)
+    rules = {'BOOL_EXPR': ['{"var": <nome em variables.bool, ou indicador X_ booleano>}', '{"const": true|false}'],
+             'NUM_EXPR': ['{"var": <nome em variables.num, ou indicador X_ numerico>}', '{"const": <numero>}']}
+    for (out, shape), ops in sorted(groups.items()):
+        rules[out].append('{"op": "%s", "args": %s}' % ('|'.join(ops), shape))
+    return {
+        'BOOL_EXPR': rules['BOOL_EXPR'], 'NUM_EXPR': rules['NUM_EXPR'],
+        'type_rules': [
+            'and, or e not so aceitam BOOL_EXPR: uma variavel numerica tem de ser comparada primeiro '
+            '(gt/ge/lt/le/eq/ne/between) antes de entrar em and/or/not.',
+            'gt, ge, lt, le, eq, ne e between so aceitam NUM_EXPR: nunca compares uma variavel booleana.',
+            'condition e control_condition sao BOOL_EXPR; um indicador pode ser NUM_EXPR ou BOOL_EXPR.',
+        ],
+        # Fragments, not plans: a plan whose condition equals one of these is refused as a copy.
+        'type_fragments': {
+            'ERRADO (TYPE_ERROR)': {'op': 'and', 'args': [{'var': 'lambda_net'}, {'var': 'ctx_cup'}]},
+            'CERTO': {'op': 'and', 'args': [{'op': 'gt', 'args': [{'var': 'lambda_net'}, {'const': 0.1}]},
+                                            {'var': 'ctx_cup'}]},
+        },
+        'limits': {'max_depth': MAX_DEPTH, 'max_nodes': MAX_NODES},
+        'missing_values': 'entradas desconhecidas dao resultado desconhecido; esses jogos sao excluidos',
+    }
+
+
+def plan_template():
+    """Structural template. Every placeholder is invalid on purpose: a verbatim copy cannot pass."""
+    return {
+        'question': '<pergunta tua, 10 a 400 caracteres>',
+        'hypothesis': '<hipotese tua, 10 a 600 caracteres>',
+        'null_hypothesis': '<hipotese nula, 10 a 600 caracteres>',
+        'market': '<MARKET: uma chave de contract.markets>',
+        'outcome': '<OUTCOME: um valor de contract.markets[MARKET]>',
+        'indicators': [{'name': '<X_NOME_EM_MAIUSCULAS>', 'description': '<5 a 200 caracteres>',
+                        'expr': '<NUM_EXPR ou BOOL_EXPR>'}],
+        'condition': '<BOOL_EXPR que usa os indicadores definidos>',
+        'control_condition': '<BOOL_EXPR diferente de condition, opcional>',
+        'rationale': '<porque esta pergunta, ate 800 caracteres>',
+        'alternative_explanations': ['<0 a 5 textos, 3 a 300 caracteres>'],
+        'confounders': ['<subconjunto de contract.confounders_allowed>'],
+    }
 
 
 def contract_spec():
-    """Machine-readable contract built from the validator's constants (single source of truth)."""
+    """Machine-readable contract built from the validator's constants."""
     return {
         'version': CONTRACT_VERSION,
-        'response_keys': {'required': ['experiments', 'schema_version'], 'optional': ['new_questions']},
-        'plan_keys': {'required': sorted(REQUIRED), 'optional': sorted(OPTIONAL)},
+        'plan_template': plan_template(),
+        'plan_keys': {'required': sorted(REQUIRED), 'optional': sorted(OPTIONAL - {'related_to'})},
         'text_lengths': {k: list(v) for k, v in TEXT_FIELDS.items()},
         'markets': {m: sorted(outs) for m, outs in OUTCOMES.items()},
         'confounders_allowed': list(STRATA),
-        'alternative_explanations': 'lista de 0 a 5 textos, cada um com 3 a 300 caracteres',
-        'condition_type': 'bool',
+        'grammar': grammar(),
         'indicator': {
-            'keys': ['description', 'expr', 'name'],
-            'max_per_plan': MAX_INDICATORS_PER_PLAN,
-            'name_regex': NAME_RE.pattern,
-            'name_valid_examples': ['X_LONG_GAP', 'X_LAMBDA_DROP', 'X_AH_TOTAL_OPPOSE', 'X_LATE_MOVE_2H'],
+            'max_per_plan': MAX_INDICATORS_PER_PLAN, 'name_regex': NAME_RE.pattern,
+            'name_valid_examples': ['X_LONG_GAP', 'X_AH_TOTAL_OPPOSE', 'X_LATE_MOVE_2H'],
             'name_invalid_examples': {'X_long_gap': 'minusculas', 'X-LONG-GAP': 'hifen',
                                       'LONG_GAP': 'falta X_', 'X_A': 'curto demais',
                                       'X_FT_SIGNAL': 'contem FT (token de resultado)'},
             'forbidden_name_tokens': sorted(t.upper() for t in FORBIDDEN_NAME_TOKENS),
             'forbidden_name_sequences': sorted(t.upper() for t in FORBIDDEN_NAME_SEQUENCES),
-            'must_be_used': ('cada indicador definido tem de ser referenciado por {"var": nome} em condition, '
-                             'control_condition, ou num indicador posterior que seja usado'),
+            'must_be_used': 'cada indicador definido aparece como {"var": nome} em condition, '
+                            'control_condition, ou num indicador posterior que seja usado',
         },
         'self_check': [
-            'market/outcome existe em contract.markets',
-            'cada var existe em variables[].name ou e um X_ definido antes',
-            'cada nome X_ cumpre name_regex (so maiusculas, digitos e _)',
-            'cada indicador definido aparece em condition ou control_condition (ou num indicador usado)',
-            'condition e control_condition devolvem bool e sao diferentes',
-            'tipos e aridade dos operadores de dsl.operators respeitados',
-            'nenhuma chave fora de contract.plan_keys',
+            'nenhum texto entre < > ficou na resposta',
+            'market/outcome e um par de contract.markets',
+            'cada var existe em variables.num/variables.bool ou e um X_ definido antes no plano',
+            'and/or/not so com BOOL_EXPR; comparacoes so com NUM_EXPR',
+            'cada nome X_ cumpre name_regex e cada indicador definido e usado',
+            'condition e control_condition sao BOOL_EXPR diferentes entre si',
+            'a condicao nao repete memory nem contract.grammar.type_fragments',
         ],
     }
 
 
-def response_example():
-    """Two indicators, both referenced; condition and control isolate one explanation."""
-    return {
-        'question': 'Uma descida dos golos implicitos apos um longo intervalo sem observacao difere de uma descida observada sem esse intervalo?',
-        'hypothesis': 'Descidas de golos implicitos que surgem depois de longos periodos sem observacao tem residual Over diferente.',
-        'null_hypothesis': 'Nao existe diferenca no residual face ao baseline do mercado entre os dois grupos.',
-        'market': 'TOTAL_GOALS', 'outcome': 'OVER_2_5',
-        'indicators': [
-            {'name': 'X_LONG_GAP', 'description': 'Maior intervalo sem observacao acima de 6 horas',
-             'expr': {'op': 'gt', 'args': [{'var': 'max_gap_min'}, {'const': 360}]}},
-            {'name': 'X_LAMBDA_DROP', 'description': 'Golos implicitos desceram pelo menos 0.1',
-             'expr': {'op': 'le', 'args': [{'var': 'lambda_net'}, {'const': -0.1}]}},
-        ],
-        'condition': {'op': 'and', 'args': [{'var': 'X_LAMBDA_DROP'}, {'var': 'X_LONG_GAP'}]},
-        'control_condition': {'op': 'and', 'args': [{'var': 'X_LAMBDA_DROP'},
-                                                    {'op': 'not', 'args': [{'var': 'X_LONG_GAP'}]}]},
-        'rationale': 'Separa o efeito da descida do efeito de nao se ter observado o mercado.',
-        'alternative_explanations': ['Antecedencia diferente entre grupos', 'Competicoes com menos mensagens'],
-        'confounders': ['lead_bin', 'line_bin'],
+def _expr_schema():
+    # Non-recursive on purpose (portable across JSON Mode implementations); the full typed
+    # check is done by the Python validator, which is never relaxed.
+    return {'type': 'object', 'additionalProperties': False,
+            'properties': {'var': {'type': 'string', 'maxLength': 42},
+                           'const': {'type': ['number', 'boolean']},
+                           'op': {'type': 'string', 'enum': sorted(OPS)},
+                           'args': {'type': 'array', 'minItems': 1, 'maxItems': 6, 'items': {'type': 'object'}}}}
+
+
+def response_schema(max_plans=3):
+    """JSON Schema for provider JSON Mode, generated from the Python contract."""
+    def text(name):
+        lo, hi = TEXT_FIELDS[name]
+        return {'type': 'string', 'minLength': lo, 'maxLength': hi}
+    outcomes = sorted({o for outs in OUTCOMES.values() for o in outs})
+    plan = {
+        'type': 'object', 'additionalProperties': False,
+        'required': sorted(REQUIRED),
+        'properties': {
+            'question': text('question'), 'hypothesis': text('hypothesis'),
+            'null_hypothesis': text('null_hypothesis'), 'rationale': text('rationale'),
+            'market': {'type': 'string', 'enum': sorted(OUTCOMES)},
+            'outcome': {'type': 'string', 'enum': outcomes},
+            'indicators': {'type': 'array', 'maxItems': MAX_INDICATORS_PER_PLAN, 'items': {
+                'type': 'object', 'additionalProperties': False, 'required': ['name', 'description', 'expr'],
+                'properties': {'name': {'type': 'string', 'pattern': '^' + NAME_RE.pattern + '$'},
+                               'description': {'type': 'string', 'minLength': 5, 'maxLength': 200},
+                               'expr': _expr_schema()}}},
+            'condition': _expr_schema(), 'control_condition': _expr_schema(),
+            'alternative_explanations': {'type': 'array', 'maxItems': 5,
+                                         'items': {'type': 'string', 'minLength': 3, 'maxLength': 300}},
+            'confounders': {'type': 'array', 'maxItems': len(STRATA), 'uniqueItems': True,
+                            'items': {'type': 'string', 'enum': list(STRATA)}},
+        },
     }
+    return {'type': 'object', 'additionalProperties': False, 'required': ['schema_version', 'experiments'],
+            'properties': {'schema_version': {'type': 'integer', 'enum': [1]},
+                           'experiments': {'type': 'array', 'maxItems': max_plans, 'items': plan},
+                           'new_questions': {'type': 'array', 'maxItems': 5,
+                                             'items': {'type': 'string', 'minLength': 10, 'maxLength': 300}}}}
 
 
-def verified_example():
-    """The example sent to the model MUST pass the real validator; otherwise refuse to build."""
-    ex = response_example()
-    try:
-        plan = validate_plan(json.loads(json.dumps(ex)))
-    except PlanError as exc:   # pragma: no cover - guarded by tests
-        raise ValueError('RESPONSE_EXAMPLE_INVALID:' + str(exc)) from None
-    return ex, plan['fingerprint']
+# Plans/conditions the model must not hand back as its own: the v2 full example (sent in
+# run 42030138637 and copied twice) and the grammar fragments of this contract.
+LEGACY_EXAMPLE_V2 = {
+    'question': 'Uma descida dos golos implicitos apos um longo intervalo sem observacao difere de uma descida observada sem esse intervalo?',
+    'hypothesis': 'Descidas de golos implicitos que surgem depois de longos periodos sem observacao tem residual Over diferente.',
+    'null_hypothesis': 'Nao existe diferenca no residual face ao baseline do mercado entre os dois grupos.',
+    'market': 'TOTAL_GOALS', 'outcome': 'OVER_2_5',
+    'indicators': [
+        {'name': 'X_LONG_GAP', 'description': 'Maior intervalo sem observacao acima de 6 horas',
+         'expr': {'op': 'gt', 'args': [{'var': 'max_gap_min'}, {'const': 360}]}},
+        {'name': 'X_LAMBDA_DROP', 'description': 'Golos implicitos desceram pelo menos 0.1',
+         'expr': {'op': 'le', 'args': [{'var': 'lambda_net'}, {'const': -0.1}]}}],
+    'condition': {'op': 'and', 'args': [{'var': 'X_LAMBDA_DROP'}, {'var': 'X_LONG_GAP'}]},
+    'control_condition': {'op': 'and', 'args': [{'var': 'X_LAMBDA_DROP'},
+                                                {'op': 'not', 'args': [{'var': 'X_LONG_GAP'}]}]},
+    'confounders': ['lead_bin', 'line_bin'],
+}
+
+
+def copy_guard():
+    """-> (plan fingerprints, canonical expressions) that count as copies, not hypotheses."""
+    fps = {validate_plan(json.loads(json.dumps(LEGACY_EXAMPLE_V2)))['fingerprint']}
+    exprs = {canonical_json(e) for e in grammar()['type_fragments'].values()}
+    return sorted(fps), sorted(exprs)
+
+
+# ---------------------------------------------------------------------------
+# Packet
+
+def compact_variables(catalogue):
+    out = {'num': {}, 'bool': {}}
+    for v in catalogue:
+        text = '%s | %s' % (v['market'], v['description'])
+        if v.get('availability', 1.0) < 0.95:
+            text += ' | disponivel em %d%%' % round(100 * v['availability'])
+        out['bool' if v['type'] == 'bool' else 'num'][v['name']] = text
+    return out
+
+
+def compact_memory(digest):
+    return [{k: m.get(k) for k in ('experiment_id', 'market', 'outcome', 'condition', 'control_condition',
+                                   'state', 'group_n', 'control_n')}
+            | ({'indicators': m['indicators']} if m.get('indicators') else {})
+            for m in digest[-MAX_MEMORY_ITEMS:]]
+
+
+def compact_agenda(items):
+    seen, out = set(), []
+    for a in items:
+        key = (a.get('kind'), a.get('question'))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({k: a[k] for k in ('kind', 'question', 'avoid_condition') if k in a})
+        if len(out) >= MAX_AGENDA_ITEMS:
+            break
+    return out
 
 
 def build_packet(*, gate, dataset_description, variable_catalogue, memory_digest, agenda_items,
-                 max_plans=3, trajectory_examples=None):
+                 max_plans=3, trajectory_examples=None, budget_bytes=PACKET_BUDGET_BYTES):
     sci = gate.get('scientific_validation_gate', {})
-    example, example_fp = verified_example()
+    examples = trajectory_examples or {'examples': []}
+    examples = dict(examples, examples=examples.get('examples', [])[:MAX_TRAJECTORY_EXAMPLES])
+    fps, exprs = copy_guard()
     packet = {
         'schema_version': PACKET_SCHEMA,
         'mode': 'EXPLORATORY_RESEARCH_NOT_VALIDATION',
         'gates': {'exploration': gate['state'], 'scientific_validation': sci.get('state'),
-                  'limitations': gate.get('limitations', [])[:6]},
+                  'limitations': gate.get('limitations', [])[:4]},
         'data': dataset_description,
         'markets': {m: {o: (b or 'NO_MARKET_BASELINE') for o, b in outs.items()} for m, outs in OUTCOMES.items()},
-        'variables': variable_catalogue,
-        'dsl': dsl_spec(),
+        'variables': compact_variables(variable_catalogue),
         'contract': contract_spec(),
-        'memory': memory_digest,
-        'agenda': agenda_items[:12],
-        'trajectory_examples': trajectory_examples or {'examples': []},
+        'memory': compact_memory(memory_digest),
+        'agenda': compact_agenda(agenda_items),
+        'trajectory_examples': examples,
         'max_experiments': max_plans,
-        'response_example': {'schema_version': 1, 'experiments': [example],
-                             'new_questions': ['Os movimentos AH contrarios ao Total comportam-se de forma diferente?']},
-        # Not sent to the model: lets parse_response refuse a verbatim copy of the example.
-        'response_example_fingerprints': [example_fp],
+        # Not sent to the model: lets parse_response refuse copies.
+        'copy_guard_fingerprints': fps, 'copy_guard_expressions': exprs,
     }
-    # Bound the request deterministically: shrink examples, then memory, then fail.
-    while _user_size(packet) > PACKET_BUDGET_BYTES and packet['trajectory_examples'].get('examples'):
+    budget = min(budget_bytes, PACKET_BUDGET_BYTES)
+    while _user_size(packet) > budget and packet['trajectory_examples'].get('examples'):
         packet['trajectory_examples'] = dict(packet['trajectory_examples'],
                                              examples=packet['trajectory_examples']['examples'][:-1])
-    while _user_size(packet) > PACKET_BUDGET_BYTES and packet['memory']:
+    while _user_size(packet) > budget and packet['memory']:
         packet['memory'] = packet['memory'][1:]
-    if _user_size(packet) > PACKET_BUDGET_BYTES:
+    if _user_size(packet) > budget:
         raise ValueError('PACKET_TOO_LARGE')
     raw = json.dumps(packet, sort_keys=True, ensure_ascii=False, allow_nan=False)
     packet['packet_sha256'] = hashlib.sha256(raw.encode()).hexdigest()
     return packet
 
 
+def request_overhead_bytes(model, profile, max_plans=3):
+    """Bytes of the request that are NOT the user packet (system prompt, schema, envelope)."""
+    empty = {k: None for k in USER_KEYS}
+    return len(request_body(empty, model, endpoint_kind=profile['endpoint'], json_mode=profile['json_mode'],
+                            max_plans=max_plans)) + 256
+
+
+USER_KEYS = ('gates', 'data', 'markets', 'variables', 'contract', 'memory', 'agenda',
+             'trajectory_examples', 'max_experiments')
+
+
 def _user_size(packet):
-    return len(json.dumps(packet, ensure_ascii=False, allow_nan=False).encode())
+    return len(json.dumps({k: packet[k] for k in USER_KEYS}, ensure_ascii=False, allow_nan=False).encode())
 
 
-def parse_response(content, *, max_plans=3, example_fingerprints=()):
+# ---------------------------------------------------------------------------
+# Response
+
+def parse_response(content, *, max_plans=3, example_fingerprints=(), copied_expressions=()):
     """-> {'plans', 'rejected': [{'index', 'reason', 'field'?, 'detail'?}], 'new_questions',
     'received', 'accepted'}. Rejections carry only structural, code-validated tokens."""
     if not isinstance(content, str) or len(content.encode()) > MAX_RESPONSE_BYTES:
@@ -195,6 +391,7 @@ def parse_response(content, *, max_plans=3, example_fingerprints=()):
             or set(data) - {'schema_version', 'experiments', 'new_questions'}
             or not isinstance(data.get('experiments'), list)):
         raise ValueError('LLM_RESPONSE_SCHEMA_INVALID')
+    copied = set(copied_expressions)
     plans, rejected = [], []
     for i, raw in enumerate(data['experiments']):
         if i >= max_plans:
@@ -211,8 +408,14 @@ def parse_response(content, *, max_plans=3, example_fingerprints=()):
             rejected.append(rej)
             continue
         if plan['fingerprint'] in example_fingerprints:
-            # A verbatim copy of the illustrative example is not the model's own hypothesis.
+            # A verbatim copy of an example is not the model's own hypothesis.
             rejected.append({'index': i, 'reason': 'COPIED_RESPONSE_EXAMPLE', 'field': 'plan'})
+            continue
+        conds = [('condition', plan['condition']), ('control_condition', plan['control_condition'])]
+        hit = [f for f, e in conds if e is not None
+               and canonical_json(inline(e, plan['indicators'])) in copied]
+        if hit:
+            rejected.append({'index': i, 'reason': 'COPIED_CONTRACT_FRAGMENT', 'field': hit[0]})
             continue
         plans.append(plan)
     qs = data.get('new_questions', [])
@@ -220,38 +423,68 @@ def parse_response(content, *, max_plans=3, example_fingerprints=()):
     if isinstance(qs, list):
         for q in qs[:5]:
             if isinstance(q, str) and 10 <= len(q) <= 300:
-                questions.append(''.join(c for c in q if ord(c) >= 32))
+                q = ''.join(c for c in q if ord(c) >= 32)
+                if q not in questions:
+                    questions.append(q)
     return {'plans': plans, 'rejected': rejected, 'new_questions': questions,
             'received': len(data['experiments']), 'accepted': len(plans)}
 
 
-def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen):
+# ---------------------------------------------------------------------------
+# Request (exactly one, no retry)
+
+def request_body(packet, model, *, endpoint_kind='openai', json_mode='json_object', max_plans=3):
+    user = {k: packet[k] for k in USER_KEYS}
+    if json_mode == 'json_schema':
+        response_format = {'type': 'json_schema', 'json_schema': response_schema(max_plans)}
+    else:
+        response_format = {'type': 'json_object'}
+    body = {'temperature': TEMPERATURE, 'max_tokens': MAX_OUTPUT_TOKENS,
+            'response_format': response_format,
+            'messages': [{'role': 'system', 'content': SYSTEM},
+                         {'role': 'user', 'content': json.dumps(user, ensure_ascii=False)}]}
+    if endpoint_kind == 'openai':
+        body = {'model': model, **body}
+    return json.dumps(body).encode()
+
+
+def _content_and_usage(envelope):
+    """OpenAI-compatible ({choices}) or native Workers AI ({result: {response, usage}})."""
+    if isinstance(envelope.get('choices'), list):
+        return envelope['choices'][0]['message']['content'], envelope
+    result = envelope.get('result')
+    if envelope.get('success') is False or not isinstance(result, dict):
+        raise ValueError('LLM_PROVIDER_ERROR')
+    content = result.get('response')
+    if isinstance(content, (dict, list)):     # JSON Mode may return the parsed object
+        content = json.dumps(content, ensure_ascii=False)
+    if not isinstance(content, str):
+        raise ValueError('LLM_RESPONSE_MISSING')
+    return content, {'usage': result.get('usage')}
+
+
+def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint_kind='openai',
+                json_mode='json_object', max_request_bytes=MAX_REQUEST_BYTES, max_plans=3):
     """Exactly one request; any failure raises. No retry loop exists here."""
     parsed = urlsplit(endpoint)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
         raise ValueError('HTTPS_ENDPOINT_REQUIRED')
     if not isinstance(model, str) or not 1 <= len(model) <= 100:
         raise ValueError('MODEL_REQUIRED')
-    user = {k: packet[k] for k in ('gates', 'data', 'markets', 'variables', 'dsl', 'contract', 'memory',
-                                   'agenda', 'trajectory_examples', 'max_experiments',
-                                   'response_example')}
-    body = json.dumps({'model': model, 'temperature': 0.4, 'max_tokens': 2400,
-                       'response_format': {'type': 'json_object'},
-                       'messages': [{'role': 'system', 'content': SYSTEM},
-                                    {'role': 'user', 'content': json.dumps(user, ensure_ascii=False)}]}).encode()
-    if len(body) > MAX_REQUEST_BYTES:
+    body = request_body(packet, model, endpoint_kind=endpoint_kind, json_mode=json_mode, max_plans=max_plans)
+    if len(body) > min(max_request_bytes, MAX_REQUEST_BYTES):
         raise ValueError('REQUEST_TOO_LARGE')
     headers = {'Content-Type': 'application/json', 'Accept': 'application/json',
                'User-Agent': 'master-brain-research-cycle/1'}
     if api_key:
         headers['Authorization'] = 'Bearer ' + api_key
-    with opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=30) as resp:
+    with opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=60) as resp:
         if resp.status != 200:
             raise ValueError('LLM_NON_SUCCESS_STATUS')
         raw = resp.read(MAX_RESPONSE_BYTES + 1)
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValueError('LLM_RESPONSE_TOO_LARGE')
     envelope = strict_json(raw.decode('utf-8'))
-    content = envelope['choices'][0]['message']['content']
-    return {'content': content, 'usage': provider_usage(envelope, model), 'llm_calls': 1,
-            'response_sha256': hashlib.sha256(raw).hexdigest()}
+    content, usage_env = _content_and_usage(envelope)
+    return {'content': content, 'usage': provider_usage(usage_env, model), 'llm_calls': 1,
+            'response_sha256': hashlib.sha256(raw).hexdigest(), 'request_bytes': len(body)}
