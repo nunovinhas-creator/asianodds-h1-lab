@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T17:22:13+00:00",
+  "generated_at": "2026-11-05T17:32:13+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -162,13 +162,15 @@
         "DOWN",
         "FLAT",
         "UP",
-        "DOWN"
+        "DOWN",
+        "UP"
       ],
       "event_ids": [
         "3571094759:52933",
         "3571094759:52937",
         "3571094759:52964",
-        "3571094759:52965"
+        "3571094759:52965",
+        "3571094759:53054"
       ],
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-05,10045848,10066082",
@@ -259,22 +261,22 @@
   "scope": {
     "all_distinct_matches": 1604,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
-    "events_analysed": 1003,
-    "messages_in_source": 2456,
+    "events_analysed": 1005,
+    "messages_in_source": 2458,
     "repeated_matches_analysed": 400,
     "repeated_matches_in_source": 578,
     "repeated_matches_omitted": 178,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "11903a757b84f0f175aa04ccb269ab65113a38ab",
-  "source_generated_at": "2026-11-05T17:22:11+00:00",
+  "source_commit": "69c34836be321e423c47ae34458f823828424cae",
+  "source_generated_at": "2026-11-05T17:32:11+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 32,
-      "T_0_TO_60": 196,
+      "T_0_TO_60": 197,
       "T_360_TO_1440": 160,
       "T_60_TO_360": 154,
       "T_OVER_1440": 153,
@@ -282,7 +284,7 @@
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 35,
-      "T_0_TO_60": 269,
+      "T_0_TO_60": 271,
       "T_360_TO_1440": 218,
       "T_60_TO_360": 236,
       "T_OVER_1440": 245,
@@ -292,27 +294,27 @@
   },
   "total_line_within_alert": {
     "by_origin": {
-      "V4_EXPLICIT": 1002
+      "V4_EXPLICIT": 1004
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 36.0,
       "FLAT": 28.5,
-      "UP": 35.4
+      "UP": 35.6
     },
     "down": 361,
     "flat": 286,
-    "messages_with_total": 1002,
-    "up": 355,
+    "messages_with_total": 1004,
+    "up": 357,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 57,
-    "continuous": 341,
+    "continuous": 342,
     "identical_total_pairs": 44,
     "related_pairs": 56,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 12,
     "same_movement_repeat": 56,
-    "unobserved_change": 148
+    "unobserved_change": 149
   }
 }
