@@ -36,6 +36,8 @@ ALLOWED = (
     'h1lab/v6_llm_investigator.py', 'tests/quota_fixtures.py',
     'data/research/quota-ledger.json', 'docs/technical/LLM-QUOTA-CONTROLLER.md',
     'docs/technical/V6_LLM_AUTONOMY_CONTROLLED.md',
+    # Quota controller rehearsal on disposable branches (no secrets, no LLM, no main writes).
+    '.github/workflows/llm-quota-trial.yml',
 )
 PROTECTED_TOPS = ('data', 'docs/lab', 'config')
 

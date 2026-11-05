@@ -1,0 +1,161 @@
+# Controlled rehearsal of the central LLM quota controller with the REAL workflow token.
+# Scope: Contents-API CAS, concurrency, persistence and fail-closed refusals on DISPOSABLE
+# run-scoped branches llm-quota-trial/<run_id>-*; the operational llm-quota-ledger is only
+# read (before/after fingerprint). No provider secrets exist here, no LLM / Cloudflare call,
+# no real reservation, no write to main. Not part of the scheduled research path.
+name: LLM quota - controlled CAS rehearsal (no LLM)
+on:
+  pull_request:
+    paths:
+      - "h1lab/research_quota.py"
+      - "scripts/lab_research_quota_trial.py"
+      - ".github/workflows/llm-quota-trial.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: llm-quota-trial
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write  # create disposable trial branches only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Snapshot operational ledger (read-only) and create trial branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.lab_research_quota_trial --phase setup --evidence-dir "$RUNNER_TEMP/ev"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: quota-trial-setup
+          path: ${{ runner.temp }}/ev/setup.json
+          retention-days: 30
+
+  denied:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read   # deliberately WITHOUT contents:write and actions:read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: quota-trial-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/ev
+      - name: Controller must refuse every mutation without permissions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.lab_research_quota_trial --phase denied --evidence-dir "$RUNNER_TEMP/ev"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: quota-trial-denied
+          path: ${{ runner.temp }}/ev/denied.json
+          retention-days: 30
+
+  granted:
+    needs: [setup, denied]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write  # CAS on trial branches only
+      actions: read    # real history pagination
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: quota-trial-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/ev
+      - name: CAS, duplicate, stale SHA, 3 concurrent races, invalid and missing state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.lab_research_quota_trial --phase granted --evidence-dir "$RUNNER_TEMP/ev"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: quota-trial-granted
+          path: ${{ runner.temp }}/ev/granted.json
+          retention-days: 30
+
+  verify:
+    needs: [setup, granted]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: quota-trial-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/ev
+      - name: Persistence on a fresh runner and operational ledger unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.lab_research_quota_trial --phase verify --evidence-dir "$RUNNER_TEMP/ev"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: quota-trial-verify
+          path: ${{ runner.temp }}/ev/verify.json
+          retention-days: 30
+
+  cleanup:
+    needs: [setup, denied, granted, verify]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write  # delete the disposable trial branches
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: quota-trial-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/ev
+      - name: Delete trial branches, re-check operational ledger
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.lab_research_quota_trial --phase cleanup --evidence-dir "$RUNNER_TEMP/ev"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: quota-trial-cleanup
+          path: ${{ runner.temp }}/ev/cleanup.json
+          retention-days: 30
