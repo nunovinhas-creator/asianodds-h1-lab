@@ -269,6 +269,7 @@ class CliRecordsTheTimeout(unittest.TestCase):
             cfg = root / 'config/research-autonomy.json'
             conf = json.loads(cfg.read_text())
             conf['llm_live_enabled'] = True      # temporary copy only; the repository config is untouched
+            conf['llm_schedule_live_enabled'] = True  # cron path explicitly re-enabled in fixture
             cfg.write_text(json.dumps(conf))
             opener = RaisingOpener(TimeoutError('The read operation timed out'))
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',

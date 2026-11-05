@@ -62,6 +62,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           MASTER_BRAIN_LLM_API_KEY: ${{ secrets.MASTER_BRAIN_LLM_API_KEY }}
           RESEARCH_LLM_CONFIRMATION: ${{ inputs.confirmation }}
+          RESEARCH_LLM_MODE: ${{ inputs.mode }}
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/research"

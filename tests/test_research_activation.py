@@ -198,6 +198,7 @@ class OperationalLoop(unittest.TestCase):
         cfg = cls.root / 'config/research-autonomy.json'
         conf = json.loads(cfg.read_text())
         conf['llm_live_enabled'] = True  # isolated fixture, repository remains disabled
+        conf['llm_schedule_live_enabled'] = True  # cron path explicitly re-enabled in fixture
         cfg.write_text(json.dumps(conf))
         for rel in ('docs/research/demo/memory.jsonl', 'docs/research/demo/panel.json'):
             (cls.root / rel).parent.mkdir(parents=True, exist_ok=True)

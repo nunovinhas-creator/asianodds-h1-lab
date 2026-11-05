@@ -32,7 +32,7 @@ MAX_JSON_BYTES = 20_000_000      # LAB per-file contract
 MAX_STATE_BYTES = 60_000_000
 DEFAULT_CONFIG = {
     'schema_version': 1, 'exploration_enabled': False, 'offline_cycle_enabled': False,
-    'llm_live_enabled': False, 'max_experiments_per_cycle': 40,
+    'llm_live_enabled': False, 'llm_schedule_live_enabled': False, 'max_experiments_per_cycle': 40,
     'max_llm_plans_per_call': 3, 'max_llm_calls_per_cycle': 1,
 }
 # Operations and the inputs each one strictly needs. A broken input blocks only
