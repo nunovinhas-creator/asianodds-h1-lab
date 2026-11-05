@@ -52,6 +52,17 @@ class CollectTelegramInfraTests(unittest.TestCase):
         self.assertNotIn("git add data/lab", TEXT)
         self.assertNotIn("--force", TEXT)
 
+    def test_auth_probe_uses_existing_session_without_publication_or_bot_credentials(self):
+        import yaml
+        jobs = yaml.safe_load(TEXT)["jobs"]
+        probe = jobs["auth-probe"]
+        self.assertEqual(probe["permissions"], {"contents": "read"})
+        commands = [step["run"] for step in probe["steps"] if "run" in step]
+        self.assertEqual(commands, ["pip install -r requirements.txt",
+                                    "python -m h1lab.cli probe-telegram"])
+        self.assertEqual(probe["steps"][-1]["env"]["TG_SESSION"], "${{ secrets.TG_SESSION }}")
+        self.assertIn("!inputs.auth_probe", jobs["collect"]["if"])
+
     def test_yaml_parses(self):
         import yaml
         data = yaml.safe_load(TEXT)

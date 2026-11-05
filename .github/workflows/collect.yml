@@ -1,4 +1,5 @@
 name: H1 - Collect Telegram
+run-name: ${{ github.event_name == 'workflow_dispatch' && inputs.auth_probe && 'Telegram read-only authentication probe' || 'H1 - Collect Telegram' }}
 on:
   workflow_dispatch:
     inputs:
@@ -7,6 +8,11 @@ on:
         required: false
         type: string
         default: manual
+      auth_probe:
+        description: "Validar a sessão e a leitura sem recolher, publicar ou notificar"
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -21,7 +27,29 @@ concurrency:
   group: asianodds-h1-write
   cancel-in-progress: false
 jobs:
+  auth-probe:
+    if: github.event_name == 'workflow_dispatch' && inputs.auth_probe
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify existing Telegram session and channel read access
+        env:
+          TG_API_ID: ${{ secrets.TG_API_ID }}
+          TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          TG_SESSION: ${{ secrets.TG_SESSION }}
+          TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
+        run: python -m h1lab.cli probe-telegram
   collect:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.auth_probe }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

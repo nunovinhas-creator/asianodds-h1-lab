@@ -58,19 +58,8 @@ def persist_shadow(rows):
         print("LAB_SHADOW_STORE_FAILED:", type(exc).__name__)
 
 async def poll(state):
-    from telethon import TelegramClient
-    from .session import load_telegram_session
-    async with TelegramClient(load_telegram_session(),
-                               int(os.environ["TG_API_ID"]),os.environ["TG_API_HASH"],
-                               receive_updates=False) as client:
-        wanted=os.environ["TG_CHANNEL"].strip()
-        if wanted.startswith("@"):
-            entity=await client.get_entity(wanted)
-        else:
-            dialogs=[d async for d in client.iter_dialogs()]
-            matches=[d.entity for d in dialogs if str(d.id)==wanted or d.name==wanted]
-            if len(matches)!=1: raise RuntimeError("TG_CHANNEL is not an unambiguous subscribed channel")
-            entity=matches[0]
+    from .session import authorized_channel
+    async with authorized_channel() as (client, entity):
         allowed_triggers={"manual","push","github-schedule","cloudflare-cron","workflow_dispatch"}
         trigger=os.environ.get("COLLECT_TRIGGER","unknown")
         if trigger not in allowed_triggers:
@@ -84,11 +73,12 @@ async def poll(state):
             state["collector"]={"last_poll_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "last_batch_new_messages":0,"batch_limit_hit":False,"trigger_source":trigger}
             save(state)
+            print("TELEGRAM_READ_OK", "checkpoint", state["last_id"], "new_messages", 0)
             print("BOOTSTRAPPED: monitoring new messages after ID",state["last_id"])
             return
         original_last=last
         previous_tickets=len(state["tickets"])
-        diagnostics=state.setdefault("diagnostics",[])
+        diagnostics=list(state.get("diagnostics",[]))
         diagnosed={d["message_id"] for d in diagnostics}
         parsed=[]
         shadow_rows=[]
@@ -173,6 +163,7 @@ async def poll(state):
                 "telegram_last_id":last}
         if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added or heartbeat_due:
             save(state)
+        print("TELEGRAM_READ_OK", "checkpoint", last, "new_messages", new_messages)
         print("Inspected:",inspected,"new Telegram messages:",new_messages,
               "new structured alerts:",added,
               "new unparsed diagnostics:",len(fresh_diagnostics),
@@ -183,18 +174,29 @@ async def poll(state):
             print("UNPARSED id=",diagnostic["message_id"],
                   "reason=",diagnostic["reason"])
 
+async def probe_telegram():
+    from .session import authorized_channel
+    async with authorized_channel() as (client, entity):
+        await client.get_messages(entity, limit=1)
+    print("TELEGRAM_AUTH_PROBE_OK")
+
+
 def main():
+    from .session import TelegramSessionError
     p=argparse.ArgumentParser()
-    p.add_argument("action",choices=("collect","render"))
+    p.add_argument("action",choices=("collect","probe-telegram","render"))
     args=p.parse_args()
-    state=read_state()
-    if args.action=="collect":
+    if args.action in ("collect", "probe-telegram"):
         names=("TG_API_ID","TG_API_HASH","TG_SESSION","TG_CHANNEL")
         missing=[name for name in names if not os.environ.get(name)]
         if missing:
             print("SETUP_REQUIRED: configure "+", ".join(missing))
-            return
-        asyncio.run(poll(state))
-    else: save(state)
+            raise SystemExit(1)
+        try:
+            asyncio.run(poll(read_state()) if args.action=="collect" else probe_telegram())
+        except TelegramSessionError as exc:
+            print(exc)
+            raise SystemExit(1) from None
+    else: save(read_state())
 
 if __name__=="__main__": main()
