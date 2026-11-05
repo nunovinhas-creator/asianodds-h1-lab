@@ -3,8 +3,8 @@
   "hypotheses": [
     {
       "comparison": "market_model_residual",
-      "condition_original": 208,
-      "condition_strict": 183,
+      "condition_original": 210,
+      "condition_strict": 185,
       "decision_event_sha256": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
       "decision_reason": "INCONCLUSIVE_LOW_POWER",
       "definition": {
@@ -20,7 +20,7 @@
       "falsification_checks": [
         {
           "code": "F01_EPISODE_INDEPENDENCE",
-          "n": 144,
+          "n": 145,
           "name": "Episódios independentes",
           "required": "10 selected freezes with captured context; strict >= 80%",
           "result": "PASS"
@@ -34,7 +34,7 @@
         },
         {
           "code": "F03_1X2_AH_CONSISTENCY",
-          "n": 52,
+          "n": 55,
           "name": "Concordância entre mercados",
           "required": "10 comparable simultaneous AH/1X2 direction events",
           "result": "PASS"
@@ -15128,36 +15128,36 @@
           "telegram_original_at": "2026-11-03T14:54:08+00:00"
         },
         {
-          "event_id": "3571094759:52998",
+          "event_id": "3571094759:53017",
           "forecast": {
             "competition_heuristic": "LEAGUE_OTHER",
-            "feature_sha256": "8fd08532d32f23df05317022d8805a01c8b7e2380e7f25220a0eba5f74fc01aa",
+            "feature_sha256": "e5f4d8b355facab7492750907bdfbe1428eb065e53d2c0c174d3e0f7b824db5b",
             "feature_version": 2,
             "forecast_kind": "MARKET_BASELINE_ONLY",
-            "market_co_observation": "UNKNOWN_MARKET_NOT_OBSERVED",
-            "market_probability_over_2_5": 0.4684,
+            "market_co_observation": "SAME_MESSAGE",
+            "market_probability_over_2_5": 0.4505,
             "market_total_after": {
-              "line": 2.75,
-              "margin": 0.07581,
-              "over_price": 2.3,
-              "under_price": 1.56
+              "line": 2.25,
+              "margin": 0.05665,
+              "over_price": 1.83,
+              "under_price": 1.96
             },
             "market_total_before": {
-              "line": 2.5,
-              "margin": 0.05617,
-              "over_price": 2.01,
-              "under_price": 1.79
+              "line": 2.25,
+              "margin": 0.05706,
+              "over_price": 1.82,
+              "under_price": 1.97
             },
-            "memory_observation_sha256": "f2840ae37597f94531452e2f77852b6f752c6d42b9b69ecfa4ef8f8551103913",
-            "memory_pattern_sha256": "c5a047e0051b0670f7c21331f082b6e724b8302829e151bf5c1c0c539ce311c7",
+            "memory_observation_sha256": "558a46420b10a22e56859fe7b5ef197148de20c4c7c903f5537fe9e6260023d2",
+            "memory_pattern_sha256": "16e587a8937ebb08a5817cfd8942afac576d8d051f741f757c14bd61838676ff",
             "model_delta_vs_market": 0.0,
-            "original_posthoc_condition": false,
+            "original_posthoc_condition": true,
             "quality_flags": [],
             "quality_status": "USABLE",
-            "sha256": "4bfda531803d59f20928ee5f47ed134cd0c6c971ce0e3c569eb8d0fe42dd1bdf",
-            "strict_observation": false
+            "sha256": "552760ebbe221b89c47d4d88c021a32f362f0b62ea5d56b1778e6a49a29a2d35",
+            "strict_observation": true
           },
-          "frozen_known_at": "2026-11-05T12:41:47+00:00",
+          "frozen_known_at": "2026-11-05T14:01:52+00:00",
           "ft": {
             "checked_at": null,
             "event_id": "FT6:bb54b6012c1c81fca8d172699436",
@@ -15173,31 +15173,59 @@
           "kickoff_utc": "2026-11-06T11:00:00+00:00",
           "match_key": "2026-11-06,10086451,28855",
           "match_label": "Truong Tuoi Dong Nai vs SHB Da Nang",
-          "snapshot_history_count": 1,
+          "snapshot_history_count": 2,
           "source_v4": {
-            "known_at": "2026-11-05T12:36:13+00:00",
+            "known_at": "2026-11-05T14:01:17+00:00",
             "markets": {
-              "total": {
+              "asian_handicap": {
                 "after": {
-                  "line": 2.75,
-                  "over_price": 2.3,
-                  "under_price": 1.56
+                  "away_price": 1.82,
+                  "home_price": 1.98,
+                  "line": -0.25
                 },
                 "before": {
-                  "line": 2.5,
-                  "over_price": 2.01,
-                  "under_price": 1.79
+                  "away_price": 2.06,
+                  "home_price": 1.86,
+                  "line": 0.0
                 },
                 "cross_line_prices_comparable": false,
                 "line_changed": true
+              },
+              "one_x_two": {
+                "1": {
+                  "after": 2.27,
+                  "before": 2.47
+                },
+                "2": {
+                  "after": 2.88,
+                  "before": 2.37
+                },
+                "X": {
+                  "after": 3.41,
+                  "before": 3.44
+                }
+              },
+              "total": {
+                "after": {
+                  "line": 2.25,
+                  "over_price": 1.83,
+                  "under_price": 1.96
+                },
+                "before": {
+                  "line": 2.25,
+                  "over_price": 1.82,
+                  "under_price": 1.97
+                },
+                "cross_line_prices_comparable": true,
+                "line_changed": false
               }
             },
-            "revision_id": "V4R:efe4a273a81294d2231847dafa16",
-            "sha256": "04c0923c0222c990324cd0569c4aad698c1287a7e8eb9ffc58a699904dc136ae",
+            "revision_id": "V4R:838f062e35a6d55df79ffbf0b673",
+            "sha256": "2c6adb95c907864d91e7555106fb7ba9329e530872bc3aa787aad45a02ef03a5",
             "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
             "telegram_edit_at": null
           },
-          "telegram_original_at": "2026-11-05T12:35:37+00:00"
+          "telegram_original_at": "2026-11-05T13:58:21+00:00"
         },
         {
           "event_id": "3571094759:52538",
@@ -18309,38 +18337,36 @@
           "telegram_original_at": "2026-11-03T09:46:46+00:00"
         },
         {
-          "event_id": "3571094759:53004",
+          "event_id": "3571094759:53016",
           "forecast": {
             "competition_heuristic": "LEAGUE_OTHER",
-            "feature_sha256": "f3222a078be6b219664222045ea446f40d47831a9ce768157a199a33eba99881",
+            "feature_sha256": "25cc207182ac9ad75a55c226fe264d65f158152f2e103f1150781765a2c4b9df",
             "feature_version": 2,
             "forecast_kind": "MARKET_BASELINE_ONLY",
             "market_co_observation": "UNKNOWN_MARKET_NOT_OBSERVED",
-            "market_probability_over_2_5": null,
+            "market_probability_over_2_5": 0.6888,
             "market_total_after": {
-              "line": 3.25,
-              "margin": 0.02065,
-              "over_price": 1.93,
-              "under_price": 1.99
+              "line": 3.5,
+              "margin": 0.06941,
+              "over_price": 1.97,
+              "under_price": 1.78
             },
             "market_total_before": {
-              "line": 3.0,
-              "margin": 0.03897,
-              "over_price": 1.93,
-              "under_price": 1.92
+              "line": 3.25,
+              "margin": 0.07001,
+              "over_price": 1.83,
+              "under_price": 1.91
             },
-            "memory_observation_sha256": "880be372edc82d0e74333e58c28fb3102b23e58c43bdf54cad7cfc4094f1b5a6",
-            "memory_pattern_sha256": "3f30f104cfb800ab2a545fbedcfea0f258ddbab40024c56ca52bad5d4ae64ae4",
+            "memory_observation_sha256": "36aacd2eb7f4e1121c48e27cea197d4f311702f0de12cede36afa95a4a894960",
+            "memory_pattern_sha256": "c522f420b36a497f24a0200e4287465a1c105e2814e96fd44cdaa65e8d017fc6",
             "model_delta_vs_market": 0.0,
-            "original_posthoc_condition": false,
-            "quality_flags": [
-              "cross_line_unchanged_price"
-            ],
-            "quality_status": "UNUSABLE",
-            "sha256": "b233b041f4bd3577fd27ece07be93e262564ebc2562ceaf125c316befedf95f2",
-            "strict_observation": false
+            "original_posthoc_condition": true,
+            "quality_flags": [],
+            "quality_status": "USABLE",
+            "sha256": "e36cb9a92cfaccd09b38cb8c209e852f08321c7d5f6d66d49d6a4f99512a7e15",
+            "strict_observation": true
           },
-          "frozen_known_at": "2026-11-05T12:51:44+00:00",
+          "frozen_known_at": "2026-11-05T14:01:52+00:00",
           "ft": {
             "checked_at": null,
             "event_id": "FT6:7bdd5b25c1bef6b80f1a54c6f020",
@@ -18356,31 +18382,31 @@
           "kickoff_utc": "2026-11-05T15:00:00+00:00",
           "match_key": "2026-11-05,10056072,10024211",
           "match_label": "Ampem Darkoa Women vs Kawempe Muslim Women",
-          "snapshot_history_count": 1,
+          "snapshot_history_count": 2,
           "source_v4": {
-            "known_at": "2026-11-05T12:51:12+00:00",
+            "known_at": "2026-11-05T14:01:17+00:00",
             "markets": {
               "total": {
                 "after": {
-                  "line": 3.25,
-                  "over_price": 1.93,
-                  "under_price": 1.99
+                  "line": 3.5,
+                  "over_price": 1.97,
+                  "under_price": 1.78
                 },
                 "before": {
-                  "line": 3.0,
-                  "over_price": 1.93,
-                  "under_price": 1.92
+                  "line": 3.25,
+                  "over_price": 1.83,
+                  "under_price": 1.91
                 },
                 "cross_line_prices_comparable": false,
                 "line_changed": true
               }
             },
-            "revision_id": "V4R:6072cf08613d53844fb850d845fe",
-            "sha256": "f0cba86cac908f29b1368aeb131accde87ebe732a6a72aad31a29bb22f5a264e",
+            "revision_id": "V4R:01fe9b0ced21477a419f5609d707",
+            "sha256": "f403c800fd53795f0bda6a31d69ed03ea3b7829a12ea5dd161888990f6b3d1c5",
             "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
             "telegram_edit_at": null
           },
-          "telegram_original_at": "2026-11-05T12:47:52+00:00"
+          "telegram_original_at": "2026-11-05T13:56:46+00:00"
         },
         {
           "event_id": "3571094759:53011",
@@ -110815,12 +110841,12 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "67423f662e5bb45cf7c46b240d1943c4eadf5c818713e71375806f8b8461566e",
-    "observations": "3b3461a12009c5664c97b785608f4041b5095b296c99464d246bae373680fdcf",
-    "patterns": "4c258ac6ff95fee8a3411338dc869b150ba44fabe3f84bd1944919d6a918e523",
+    "forecasts": "552760ebbe221b89c47d4d88c021a32f362f0b62ea5d56b1778e6a49a29a2d35",
+    "observations": "558a46420b10a22e56859fe7b5ef197148de20c4c7c903f5537fe9e6260023d2",
+    "patterns": "16e587a8937ebb08a5817cfd8942afac576d8d051f741f757c14bd61838676ff",
     "science_evidence": "c9cf32b2feee33791b95543131c8cd0491c67581a81a1d92a88038d68dfc9110",
     "universal_ft": "b7c6c2a8c6bb2ceb11b53fd19b7b3e8be4cb9b0f8f7f9e3d0d8c2bdd49074b25",
-    "v4_revisions": "b9d0774aa737eaf53e25fc72a599b997abbf4ece6744592d8261e66e106045e4"
+    "v4_revisions": "2c6adb95c907864d91e7555106fb7ba9329e530872bc3aa787aad45a02ef03a5"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
@@ -110833,9 +110859,9 @@
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 113,
       "V4_VERSION_VERIFIED_BEFORE_FREEZE": 1256
     },
-    "frozen_snapshots": 1906,
+    "frozen_snapshots": 1908,
     "ft_universal_events": 3060,
     "unique_matches": 1369,
-    "v4_revision_events": 2348
+    "v4_revision_events": 2350
   }
 }
