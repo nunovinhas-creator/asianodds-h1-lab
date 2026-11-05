@@ -312,5 +312,30 @@ class HistoricalApi(unittest.TestCase):
             q.consume_http(MODEL, 1000)
 
 
+class LedgerSeedOwnership(unittest.TestCase):
+    """The main-branch seed is human-merged code: no main publisher may stage or rewrite it."""
+
+    def test_seed_is_program_owned(self):
+        from scripts import publication_ownership as own
+        from h1lab import research_quota
+        self.assertEqual(own.QUOTA_LEDGER_SEED, research_quota.PATH)
+        self.assertEqual(own.owner_of(research_quota.PATH), own.PROGRAM)
+        self.assertNotEqual(research_quota.BRANCH, 'main')
+
+    def test_seed_is_empty_and_valid(self):
+        from h1lab import research_quota
+        root = Path(__file__).resolve().parents[1]
+        seed = json.loads((root / research_quota.PATH).read_text(encoding='utf-8'))
+        self.assertEqual(seed, {'schema_version': 1, 'events': []})
+        validate(seed)
+
+    def test_no_workflow_stages_the_ledger_on_main(self):
+        root = Path(__file__).resolve().parents[1]
+        for wf in sorted((root / '.github/workflows').glob('*.yml')):
+            text = wf.read_text(encoding='utf-8')
+            with self.subTest(workflow=wf.name):
+                self.assertNotRegex(text, r'git add[^\n]*(?:quota-ledger|data/research/\*|data/research/?\s)')
+
+
 if __name__ == '__main__':
     unittest.main()

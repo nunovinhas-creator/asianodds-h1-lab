@@ -93,7 +93,12 @@ LEGACY_LEDGERS = frozenset({
     THREE_LEDGER, TWO_LEDGER})
 
 PROGRAM_PREFIXES = ("h1lab/", "scripts/", ".github/", "config/", "scheduler/", "tools/")
-PROGRAM_FILES = frozenset({"requirements.txt", "requirements-test.txt", ".gitignore"})
+# Seed of the central neuron-quota ledger. The operational ledger lives ONLY on the dedicated
+# ``llm-quota-ledger`` branch (h1lab/research_quota.py, CAS writes); on ``main`` this file is an
+# immutable human-merged seed, so it is PROGRAM-owned and every main publisher refuses it.
+QUOTA_LEDGER_SEED = "data/research/quota-ledger.json"
+PROGRAM_FILES = frozenset({"requirements.txt", "requirements-test.txt", ".gitignore",
+                           QUOTA_LEDGER_SEED})
 DOC_PATTERNS = (re.compile(r"tests/.+\Z"), re.compile(r"(?:docs|reports)/(?:[^/]+/)*[^/]+\.md\Z"),
                 re.compile(r"[A-Za-z0-9_-]+\.md\Z"))
 SITE_PATTERN = re.compile(r"docs/[A-Za-z0-9_.-]+\.(?:html|js|css)\Z")

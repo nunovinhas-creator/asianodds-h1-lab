@@ -26,7 +26,8 @@ ALLOWED = (
     'docs/research-autonomy.*', 'docs/research/demo/*', 'docs/technical/AUTONOMOUS-RESEARCH.md',
     '.github/proposed-workflows/*', 'config/research-autonomy.json',
     '.github/workflows/research-autonomy-smoke.yml', '.gitignore', 'docs/llm-investigator.html',
-    # Ownership registration only (two LLM_SHADOW paths, one SITE demo pattern); no publisher logic.
+    # Ownership registration only (two LLM_SHADOW paths, one SITE demo pattern, the PROGRAM-owned
+    # quota-ledger seed); no publisher logic.
     'scripts/publication_ownership.py',
     # Activation migration (exact files only): the prepared workflow replaces the retired one in
     # place, the retired workflow's wiring test, and the retired workflow's operator doc.
