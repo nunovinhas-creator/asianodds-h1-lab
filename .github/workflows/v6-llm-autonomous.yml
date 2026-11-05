@@ -92,6 +92,7 @@ jobs:
           if [ -f data/research/memory.jsonl ]; then cp data/research/memory.jsonl "$RUNNER_TEMP/research/memory.jsonl"; fi
           python -m scripts.lab_research_cycle --mode llm-live --allow-network \
             --memory "$RUNNER_TEMP/research/memory.jsonl" --panel "$RUNNER_TEMP/research/panel.json" \
+            --llm-audit "$RUNNER_TEMP/research/llm-response-audit.json" \
             > "$RUNNER_TEMP/research/result.json"
           git diff --exit-code
       - name: Save bounded output for the secret-free publisher

@@ -28,7 +28,14 @@ OPTIONAL = {'control_condition', 'indicators', 'rationale', 'alternative_explana
 
 
 class PlanError(ValueError):
-    pass
+    """``str(exc)`` is the stable structural reason. ``field`` names WHERE the plan
+    failed (e.g. ``indicators[1].name``) and ``detail`` carries only code-validated
+    tokens (indicator names that already matched NAME_RE), never free model text."""
+
+    def __init__(self, reason, *, field=None, detail=None):
+        super().__init__(reason)
+        self.field = field
+        self.detail = detail or {}
 
 
 def _text(value, name, lo, hi):
@@ -48,40 +55,54 @@ def validate_plan(raw):
         raise PlanError('PLAN_NOT_OBJECT')
     keys = set(raw)
     if not REQUIRED <= keys or keys - REQUIRED - OPTIONAL:
-        raise PlanError('PLAN_KEYS_INVALID')
+        # Only code-defined key names are echoed; unknown model keys are just counted.
+        raise PlanError('PLAN_KEYS_INVALID', field='plan',
+                        detail={'missing_required': sorted(REQUIRED - keys),
+                                'unknown_keys': len(keys - REQUIRED - OPTIONAL)})
     plan = {}
     for k, (lo, hi) in TEXT_FIELDS.items():
         if k in raw or k in REQUIRED:
             plan[k] = _text(raw.get(k, ''), k, lo, hi)
     market, outcome = raw['market'], raw['outcome']
     if market not in OUTCOMES or outcome not in OUTCOMES.get(market, {}):
-        raise PlanError('UNSUPPORTED_MARKET_OR_OUTCOME')
+        raise PlanError('UNSUPPORTED_MARKET_OR_OUTCOME', field='market/outcome')
     plan['market'], plan['outcome'] = market, outcome
     types = base_types()
     indicators = []
     specs = raw.get('indicators', [])
     if not isinstance(specs, list) or len(specs) > 3:
         raise PlanError('TOO_MANY_INDICATORS')
+    field = 'indicators'
     try:
-        for spec in specs:
+        for n, spec in enumerate(specs):
+            field = 'indicators[%d]' % n
             ind = validate_indicator(spec, types)
             types[ind['name']] = ind['type']
             indicators.append(ind)
+        field = 'condition'
         cond, _ = validate(raw['condition'], types, expect='bool')
         ctrl = None
         if raw.get('control_condition') is not None:
+            field = 'control_condition'
             ctrl, _ = validate(raw['control_condition'], types, expect='bool')
             if canonical_json(ctrl) == canonical_json(cond):
-                raise PlanError('CONTROL_EQUALS_CONDITION')
+                raise PlanError('CONTROL_EQUALS_CONDITION', field=field)
     except DSLError as exc:
-        raise PlanError('DSL:' + str(exc)) from None
+        reason = str(exc)
+        if field.startswith('indicators[') and reason == 'INVALID_INDICATOR_NAME':
+            field += '.name'
+        raise PlanError('DSL:' + reason, field=field) from None
     used = variables_used(cond) | (variables_used(ctrl) if ctrl else set())
     for ind in reversed(indicators):  # an indicator may only use earlier ones
         if ind['name'] in used:
             used |= set(ind['uses'])
     unused = [i['name'] for i in indicators if i['name'] not in used]
     if unused:
-        raise PlanError('INDICATOR_DEFINED_BUT_UNUSED')
+        # Names here already passed NAME_RE and the outcome-name filter: safe tokens.
+        raise PlanError('INDICATOR_DEFINED_BUT_UNUSED', field='indicators',
+                        detail={'unused_indicators': unused,
+                                'referenced_in_conditions': sorted(
+                                    v for v in used if v.startswith('X_'))})
     plan['indicators'] = indicators
     plan['condition'] = cond
     plan['control_condition'] = ctrl

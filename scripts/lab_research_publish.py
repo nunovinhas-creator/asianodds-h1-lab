@@ -54,8 +54,33 @@ def verify_extension(base_raw, cand_raw, science_gate):
                 raise ValueError('REJECTION_ORIGIN_NOT_ALLOWED')
         elif r['record_type'] != 'CYCLE':
             raise ValueError('UNKNOWN_RECORD_TYPE')
+    verify_provenance(c, new)
     return {'base_records': len(base), 'new_records': len(new), 'llm_calls': c.get('llm_calls', 0),
             'cycle_id': c['cycle_id']}
+
+
+def verify_provenance(c, new):
+    """Cycles from version 3 on must carry a self-consistent LLM funnel. Older published
+    cycles are never re-checked or rewritten (strict-extension rule above)."""
+    if c.get('cycle_version', 0) < 3:
+        return
+    exps = [r for r in new if r['record_type'] == 'EXPERIMENT']
+    rejs = [r for r in new if r['record_type'] == 'PLAN_REJECTED']
+    from_llm = sum(1 for r in exps if r['origin'] == 'LLM_LIVE')
+    offline = sum(1 for r in exps if r['origin'] == 'OFFLINE_PROPOSER')
+    ok = (c.get('experiments_from_llm') == from_llm and c.get('experiments_from_offline') == offline
+          and c.get('llm_plans_rejected') == len(rejs)
+          and c.get('experiments_run') == len(exps))
+    if c.get('llm_origin') == 'LLM_LIVE':
+        model = c.get('llm_model')
+        ok = ok and isinstance(model, str) and 1 <= len(model) <= 100 and c.get('llm_calls') == 1
+        ok = ok and c.get('llm_plans_received') == c.get('llm_plans_accepted', -1) + len(rejs)
+        ok = ok and c.get('llm_plans_accepted') == from_llm + c.get('llm_plans_duplicate_skipped', -1)
+        ok = ok and sum((c.get('llm_rejection_reasons') or {}).values()) == len(rejs)
+    else:
+        ok = ok and from_llm == 0 and not rejs and c.get('llm_calls', 0) == 0
+    if not ok:
+        raise ValueError('CYCLE_PROVENANCE_INCONSISTENT')
 
 
 def publish(root, candidate, *, now):

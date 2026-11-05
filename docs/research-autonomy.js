@@ -21,6 +21,18 @@
   };
   const MARKET_LABEL = { TOTAL_GOALS: "Total de golos", BTTS: "Ambas marcam", "1X2": "1X2", ASIAN_HANDICAP: "Handicap asiático" };
 
+  const ORIGIN_LABEL = {
+    LLM_LIVE: "LLM real",
+    OFFLINE_PROPOSER: "proponente offline determinístico",
+    SIMULATED_LLM: "LLM SIMULADO (sem chamadas reais)",
+    RESPONSE_FILE_NOT_LIVE_LLM: "ficheiro de resposta (não é LLM real)"
+  };
+  const REASON_HINT = {
+    INDICATOR_DEFINED_BUT_UNUSED: "indicador definido mas não usado na condição",
+    "DSL:INVALID_INDICATOR_NAME": "nome de indicador inválido (tem de ser X_ em MAIÚSCULAS)",
+    COPIED_RESPONSE_EXAMPLE: "cópia do exemplo do pedido",
+    OVER_PLAN_BUDGET: "acima do limite de planos"
+  };
   function fmt(x, nd) {
     return typeof x === "number" && isFinite(x) ? x.toFixed(nd === undefined ? 3 : nd) : "—";
   }
@@ -36,7 +48,7 @@
     head.appendChild(el(doc, "span", STATE_LABEL[c.state] || "Estado desconhecido", "ra-state " + (STATE_LABEL[c.state] ? c.state : "")));
     head.appendChild(doc.createTextNode(c.question || "Pergunta não disponível"));
     box.appendChild(head);
-    box.appendChild(el(doc, "p", (MARKET_LABEL[c.market] || "Mercado") + " · " + (c.outcome || "—") + " · origem " + (c.origin || "—") + " · versão " + (c.version || 1)));
+    box.appendChild(el(doc, "p", (MARKET_LABEL[c.market] || "Mercado") + " · " + (c.outcome || "—") + " · origem " + (ORIGIN_LABEL[c.origin] || c.origin || "—") + " · versão " + (c.version || 1)));
     const tags = el(doc, "div", undefined, "ra-tags");
     (Array.isArray(c.variables) ? c.variables : []).forEach(v => tags.appendChild(el(doc, "code", v)));
     (Array.isArray(c.new_indicators) ? c.new_indicators : []).forEach(i => tags.appendChild(el(doc, "code", "novo: " + i.name)));
@@ -78,7 +90,73 @@
     parts.push("Origem das hipóteses: " + (Array.isArray(p.cycle_origins) ? p.cycle_origins.join(", ") : "—"));
     parts.push(p.real_llm_calls > 0 ? "Chamadas reais ao LLM: " + p.real_llm_calls
                                     : "Sem chamadas reais ao LLM");
+    if (typeof p.experiments_from_live_llm === "number") {
+      parts.push("Experiências de planos do LLM real: " + p.experiments_from_live_llm
+                 + " · do proponente offline: " + (p.experiments_from_offline ?? "—"));
+    }
     return parts.join(" · ");
+  }
+  function li(doc, host, text) { host.appendChild(el(doc, "li", text)); }
+  const LLM_ORIGINS = ["LLM_LIVE", "SIMULATED_LLM", "RESPONSE_FILE_NOT_LIVE_LLM"];
+  // Reports published before provenance v3 have no research_split: derive it from what the
+  // report does contain (card origins and refused plans), clearly marked as derived.
+  function deriveSplit(data) {
+    const cards = [].concat(data.discovered || [], data.rejected || [], data.needs_more_data || []);
+    if (!cards.length && !(data.rejected_plans || []).length) return null;
+    const llm = cards.filter(c => LLM_ORIGINS.includes(c.origin));
+    const off = cards.filter(c => c.origin === "OFFLINE_PROPOSER");
+    const refused = (data.rejected_plans || []).filter(r => LLM_ORIGINS.includes(r.origin));
+    const reasons = {};
+    refused.forEach(r => { reasons[r.reason] = (reasons[r.reason] || 0) + 1; });
+    const states = {};
+    off.forEach(c => { states[c.state] = (states[c.state] || 0) + 1; });
+    const calls = data.provenance ? data.provenance.real_llm_calls || 0 : 0;
+    const exps = data.memory && typeof data.memory.experiments === "number" ? data.memory.experiments : cards.length;
+    return {
+      derived: true,
+      autonomous: { models: [], real_llm_calls: calls, plans_received: refused.length + llm.length,
+        plans_accepted: llm.length, plans_rejected: refused.length, plans_duplicate_skipped: 0,
+        experiments_executed: llm.length, rejection_reasons: reasons, cycles: [] },
+      deterministic: { experiments_executed: Math.max(off.length, exps - llm.length), distinct_questions: off.length,
+        states, limitations: ["Hipóteses de uma grelha fixa de tercis, sem IA e sem uso de resultados."] }
+    };
+  }
+  function renderSplit(doc, split) {
+    const a = doc.getElementById("ra-autonomous");
+    const d = doc.getElementById("ra-deterministic");
+    a.replaceChildren(); d.replaceChildren();
+    if (!split || !split.autonomous || !split.deterministic) {
+      li(doc, a, "Este relatório não separa a origem das experiências (formato anterior).");
+      li(doc, d, "Este relatório não separa a origem das experiências (formato anterior).");
+      return;
+    }
+    if (split.derived) {
+      li(doc, a, "Relatório anterior à proveniência v3: valores derivados dos cartões e planos recusados; modelo não registado.");
+      const r = split.autonomous.rejection_reasons || {};
+      const txt = Object.keys(r).map(k => (REASON_HINT[k] || k) + " ×" + r[k]).join("; ");
+      li(doc, a, "LLM: " + split.autonomous.plans_received + " propostas, " + split.autonomous.plans_accepted + " aceites, "
+                + split.autonomous.experiments_executed + " experiências executadas" + (txt ? " · motivos: " + txt : "")
+                + " · offline: " + split.deterministic.experiments_executed + " experiências");
+    }
+    const s = split.autonomous;
+    li(doc, a, "Modelo utilizado: " + (s.models && s.models.length ? s.models.join(", ") : "nenhum"));
+    li(doc, a, "Chamadas reais: " + (s.real_llm_calls ?? 0));
+    li(doc, a, "Planos propostos: " + (s.plans_received ?? 0) + " · aceites pela DSL: " + (s.plans_accepted ?? 0)
+              + " · rejeitados: " + (s.plans_rejected ?? 0) + " · repetidos na memória: " + (s.plans_duplicate_skipped ?? 0));
+    li(doc, a, "Experiências executadas a partir de planos do LLM: " + (s.experiments_executed ?? 0));
+    (Array.isArray(s.cycles) ? s.cycles : []).slice().reverse().forEach(c => {
+      const reasons = Object.keys(c.rejection_reasons || {}).map(k => (REASON_HINT[k] || k) + " ×" + c.rejection_reasons[k]).join("; ");
+      const inferred = c.model_inferred_from_code ? " (não registado no ciclo; inferido do código: " + c.model_inferred_from_code.model + ")" : "";
+      li(doc, a, "Ciclo " + c.recorded_at + " · modelo " + (c.model || "—") + inferred + " · LLM: " + c.plans_received
+                + " propostas, " + c.plans_accepted + " aceites, " + c.experiments_from_llm + " experiências executadas"
+                + (reasons ? " · motivos: " + reasons : "") + " · offline: " + c.experiments_from_offline + " experiências");
+    });
+    if (s.note) li(doc, a, s.note);
+    const o = split.deterministic;
+    li(doc, d, "Experiências do proponente offline: " + (o.experiments_executed ?? 0) + " (perguntas distintas: " + (o.distinct_questions ?? 0) + ")");
+    const st = o.states || {};
+    li(doc, d, "Resultados: " + (Object.keys(st).map(k => (STATE_LABEL[k] || k) + " " + st[k]).join(" · ") || "—"));
+    (Array.isArray(o.limitations) ? o.limitations : []).forEach(x => li(doc, d, "Limitação: " + x));
   }
   function render(doc, data) {
     if (!data || data.schema_version !== 2 || data.status !== "EXPLORATORY_RESEARCH_NOT_VALIDATION"
@@ -94,7 +172,10 @@
     doc.getElementById("ra-questions").textContent = m.distinct_questions ?? "—";
     doc.getElementById("ra-cycles").textContent = m.cycles ?? "—";
     const last = data.last_cycle;
-    doc.getElementById("ra-last-cycle").textContent = last ? "Último: " + last.recorded_at + " · chamadas IA " + last.llm_calls : "Sem ciclos";
+    const fu = last && last.funnel;
+    doc.getElementById("ra-last-cycle").textContent = last ? "Último: " + last.recorded_at + " · chamadas IA " + last.llm_calls
+      + (fu ? " · LLM " + fu.experiments_from_llm + " / offline " + fu.experiments_from_offline + " experiências" : "") : "Sem ciclos";
+    renderSplit(doc, data.research_split || deriveSplit(data));
     // Exploratory output never feeds the validated count.
     doc.getElementById("ra-validated").textContent = "0";
     const g = doc.getElementById("ra-gates");
@@ -112,7 +193,8 @@
     fill(doc, "ra-more", data.needs_more_data || [], "Nada pendente.");
     const rp = doc.getElementById("ra-rejected-plans");
     rp.replaceChildren();
-    (data.rejected_plans || []).forEach(r => rp.appendChild(el(doc, "li", r.recorded_at + " · " + r.origin + " · " + r.reason)));
+    (data.rejected_plans || []).forEach(r => rp.appendChild(el(doc, "li", r.recorded_at + " · " + (ORIGIN_LABEL[r.origin] || r.origin)
+      + " · " + r.reason + (REASON_HINT[r.reason] ? " (" + REASON_HINT[r.reason] + ")" : "") + (r.field ? " · campo " + r.field : ""))));
     if (!rp.children.length) rp.appendChild(el(doc, "li", "Nenhum plano recusado."));
     doc.getElementById("ra-validated-note").textContent = data.validated_note || "Nenhuma estratégia validada.";
     doc.getElementById("ra-state").textContent = "Memória com " + (m.records ?? 0) + " registos · gerado em " + data.generated_at;
@@ -139,7 +221,7 @@
       .catch(e => { s.textContent = "Dados indisponíveis (" + e.message + "). Não significa ausência de investigação."; });
   }
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { render, card, load, STATE_LABEL, provenanceText };
+    module.exports = { render, card, load, STATE_LABEL, provenanceText, renderSplit, deriveSplit };
   } else {
     root.document.addEventListener("DOMContentLoaded", () => {
       load(root.document, root.fetch.bind(root));
