@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - "h1lab/research_*.py"
-      - "scripts/lab_research_cycle.py"
+      - "scripts/lab_research_*.py"
+      - ".github/workflows/v6-llm-autonomous.yml"
+      - "tests/test_v6_llm_autonomous.py"
       - "tests/test_research_*.py"
       - "tests/research_fixtures.py"
       - "tests/research-autonomy-ui.test.cjs"
@@ -33,6 +35,12 @@ jobs:
         run: pip install -r requirements-test.txt
       - name: Research unit, adversarial, concurrency and end-to-end tests (synthetic + real replay)
         run: python -m unittest discover -s tests -p 'test_research_*.py' -v
+      - name: Pre-call preflight exactly as the secret job runs it (no PyYAML, no skips except YAML structure)
+        run: |
+          python -m venv "$RUNNER_TEMP/noyaml"
+          "$RUNNER_TEMP/noyaml/bin/python" -c "import importlib.util,sys; sys.exit(importlib.util.find_spec('yaml') is not None)"
+          RESEARCH_PREFLIGHT=1 "$RUNNER_TEMP/noyaml/bin/python" -m unittest discover -s tests -p 'test_research_*.py' 2>&1 | tee "$RUNNER_TEMP/preflight.txt"
+          grep -E '^OK \(skipped=1\)$' "$RUNNER_TEMP/preflight.txt"
       - name: Isolation proof against the PR base (allow-listed paths, no coupling, tree + gate unchanged)
         run: python -m scripts.research_isolation_check --base "origin/${{ github.base_ref || 'main' }}"
       - uses: actions/setup-node@v4

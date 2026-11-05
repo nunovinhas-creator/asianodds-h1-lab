@@ -28,6 +28,10 @@ ALLOWED = (
     '.github/workflows/research-autonomy-smoke.yml', '.gitignore', 'docs/llm-investigator.html',
     # Ownership registration only (two LLM_SHADOW paths, one SITE demo pattern); no publisher logic.
     'scripts/publication_ownership.py',
+    # Activation migration (exact files only): the prepared workflow replaces the retired one in
+    # place, the retired workflow's wiring test, and the retired workflow's operator doc.
+    '.github/workflows/v6-llm-autonomous.yml', 'tests/test_v6_llm_autonomous.py',
+    'docs/technical/V6_LLM_AUTONOMY_CONTROLLED.md',
 )
 PROTECTED_TOPS = ('data', 'docs/lab', 'config')
 

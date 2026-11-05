@@ -4,6 +4,7 @@ import copy
 import json
 import multiprocessing
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -20,6 +21,14 @@ from h1lab.research_llm import invoke_once, parse_response  # noqa: E402
 from h1lab.research_simulated_llm import SimulatedLLMOpener  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _has_yaml():
+    try:
+        import yaml  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 
 def _writer(path, n, tag, q):
@@ -159,9 +168,26 @@ class Provenance(unittest.TestCase):
         self.assertEqual(p['reference_time'], NOW.isoformat())
         self.assertIn('SIMULATED_LLM', p['cycle_origins'])
 
-    def test_tracked_demo_and_no_operational_files(self):
-        self.assertFalse((ROOT / 'data/research/memory.jsonl').exists())
-        self.assertFalse((ROOT / 'docs/research/autonomous-research.json').exists())
+    def test_tracked_demo_and_operational_files_never_mix(self):
+        """Before the first real cycle the operational files are absent; after it (on main)
+        they must be a valid OPERATIONAL chain with nothing validated and real calls <= 1/cycle."""
+        mem_path = ROOT / 'data/research/memory.jsonl'
+        panel_path = ROOT / 'docs/research/autonomous-research.json'
+        self.assertEqual(mem_path.exists(), panel_path.exists(), 'memory and panel are published together')
+        if mem_path.exists():
+            op = rm.read_memory(mem_path)            # strict hash chain
+            self.assertEqual(rm.memory_kind(op), 'OPERATIONAL')
+            for r in op:
+                self.assertIn(r.get('scientific_status'), (None, 'EXPLORATORY_NOT_VALIDATED'))
+                if r['record_type'] == 'CYCLE':
+                    self.assertLessEqual(r.get('llm_calls', 0), 1)
+                    self.assertIn(r.get('llm_origin'), (None, 'LLM_LIVE'))
+                if r['record_type'] == 'EXPERIMENT':
+                    self.assertIn(r['origin'], ('LLM_LIVE', 'OFFLINE_PROPOSER'))
+                    self.assertFalse(r.get('results', {}).get('promotion_eligible', False))
+            op_panel = json.loads(panel_path.read_text())
+            self.assertEqual(op_panel['provenance']['kind'], 'OPERATIONAL')
+            self.assertEqual(op_panel['validated'], [])
         demo = rm.read_memory(ROOT / 'docs/research/demo/memory.jsonl')
         self.assertEqual(rm.memory_kind(demo), 'DEMONSTRATION')
         panel = json.loads((ROOT / 'docs/research/demo/panel.json').read_text())
@@ -265,7 +291,7 @@ class LiveMigration(unittest.TestCase):
     def test_live_authorisation_mirrors_old_workflow(self):
         from scripts.lab_research_cycle import SCHEDULE, live_authorisation
         ok = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
-              'GITHUB_EVENT_SCHEDULE': SCHEDULE}
+              'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
         self.assertEqual(live_authorisation(ok, [], '2026-11-05'), 'schedule')
         for change in ({'GITHUB_REF': 'refs/heads/x'}, {'GITHUB_RUN_ATTEMPT': '2'},
                        {'GITHUB_EVENT_SCHEDULE': '* * * * *'}, {'GITHUB_EVENT_NAME': 'push'},
@@ -277,6 +303,33 @@ class LiveMigration(unittest.TestCase):
         with self.assertRaises(ValueError):
             live_authorisation(ok, used, '2026-11-05')
         self.assertEqual(live_authorisation(ok, used, '2026-11-06'), 'schedule')
+
+    def test_live_authorisation_requires_and_honours_the_pre_call_ledger(self):
+        from scripts.lab_research_cycle import SCHEDULE, live_authorisation
+        ok = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
+              'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '3'}
+        self.assertEqual(live_authorisation(ok, [], '2026-11-05'), 'schedule')
+        for bad in ('', ' 1', '-1', 'x', '1.0', '9999'):
+            with self.subTest(ledger=bad), self.assertRaisesRegex(ValueError, 'LIVE_LEDGER_MISSING'):
+                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=bad), [], '2026-11-05')
+        env = dict(ok)
+        env.pop('RESEARCH_PRIOR_LLM_ATTEMPTS')
+        with self.assertRaisesRegex(ValueError, 'LIVE_LEDGER_MISSING'):
+            live_authorisation(env, [], '2026-11-05')
+        # Calls made but never published: memory is empty, ledger says 4 -> refused.
+        for n in ('4', '5'):
+            with self.subTest(prior=n), self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
+                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=n), [], '2026-11-05')
+        # Manual dispatch is bound by the same daily total.
+        manual = dict(ok, GITHUB_EVENT_NAME='workflow_dispatch', RESEARCH_LLM_CONFIRMATION='INVESTIGAR_UMA_VEZ',
+                      RESEARCH_PRIOR_LLM_ATTEMPTS='4')
+        with self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
+            live_authorisation(manual, [], '2026-11-05')
+        # Ledger lower than memory (e.g. API lag): the memory count still wins.
+        used = [{'record_type': 'CYCLE', 'llm_origin': 'LLM_LIVE', 'llm_calls': 1,
+                 'recorded_at': '2026-11-05T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
+        with self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
+            live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS='0'), used, '2026-11-05')
 
     def test_live_mode_one_call_into_scratch_memory_when_enabled(self):
         """Full llm-live path with config enabled on a COPY of the repo inputs; simulated opener."""
@@ -293,7 +346,7 @@ class LiveMigration(unittest.TestCase):
             sim = SimulatedLLMOpener()
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
                    'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
-                   'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key'}
+                   'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
             mem, panel = Path(t) / 'scratch.jsonl', Path(t) / 'panel.json'
             code = main(['--root', str(root), '--mode', 'llm-live', '--allow-network', '--memory', str(mem),
                          '--panel', str(panel), '--budget', '0'], env=env, opener=sim)
@@ -315,25 +368,66 @@ class LiveMigration(unittest.TestCase):
                 verify_extension(mem.read_bytes(), mem.read_bytes(), sci)
             shutil.rmtree(root)
 
-    def test_prepared_workflow_is_inactive_and_keeps_four_slots(self):
-        import yaml
-        proposed = ROOT / '.github/proposed-workflows/v6-llm-autonomous.research.yml'
-        current = yaml.safe_load((ROOT / '.github/workflows/v6-llm-autonomous.yml').read_text())
-        wf = yaml.safe_load(proposed.read_text())
-        on = wf.get('on', wf.get(True))
-        cur_on = current.get('on', current.get(True))
-        self.assertEqual(on['schedule'], cur_on['schedule'])
-        self.assertEqual(wf['concurrency'], current['concurrency'])
-        self.assertFalse((ROOT / '.github/workflows' / proposed.name).exists())
-        self.assertFalse(json.loads((ROOT / 'config/research-autonomy.json').read_text())['llm_live_enabled'])
-        text = proposed.read_text()
-        pub = yaml.dump(wf['jobs']['publish'])
-        self.assertNotIn('secrets.', pub, 'publisher job holds no LLM secrets')
-        self.assertIn('secrets.MASTER_BRAIN_LLM_API_KEY', yaml.dump(wf['jobs']['discover']))
+    def test_migrated_workflow_is_the_single_active_llm_schedule(self):
+        """The prepared file replaced the old one in place (not added next to it)."""
+        wf_path = ROOT / '.github/workflows/v6-llm-autonomous.yml'
+        self.assertFalse((ROOT / '.github/proposed-workflows/v6-llm-autonomous.research.yml').exists(),
+                         'prepared copy removed: no second source of truth')
+        self.assertFalse((ROOT / '.github/workflows/v6-llm-autonomous.research.yml').exists())
+        text = wf_path.read_text()
+        self.assertIn('python -m scripts.lab_research_cycle --mode llm-live --allow-network', text)
+        self.assertNotIn('scripts.lab_v6_llm_autonomous', text, 'retired candidate-pool path no longer wired')
         self.assertNotIn('|| true', text)
-        self.assertLessEqual(wf['jobs']['discover']['timeout-minutes'], 5)
-        workflows = list((ROOT / '.github/workflows').glob('*.yml'))
-        self.assertFalse([w for w in workflows if 'lab_research_cycle --mode llm-live' in w.read_text()])
+        self.assertNotIn('continue-on-error', text)
+        live = [w.name for w in (ROOT / '.github/workflows').glob('*.y*ml')
+                if 'lab_research_cycle --mode llm-live' in w.read_text()]
+        self.assertEqual(live, ['v6-llm-autonomous.yml'])
+        self.assertTrue(json.loads((ROOT / 'config/research-autonomy.json').read_text())['llm_live_enabled'])
+
+    @unittest.skipIf(os.environ.get('RESEARCH_PREFLIGHT') == '1' and not _has_yaml(),
+                     'pre-call preflight in the secret job has no PyYAML; enforced by PR CI')
+    def test_migrated_workflow_structure_keeps_slots_group_and_secret_split(self):
+        import yaml
+        wf = yaml.safe_load((ROOT / '.github/workflows/v6-llm-autonomous.yml').read_text())
+        on = wf.get('on', wf.get(True))
+        self.assertEqual(on['schedule'], [{'cron': '43 1,7,13,19 * * *'}])
+        self.assertEqual(wf['concurrency'], {'group': 'v6-llm-global', 'cancel-in-progress': False})
+        self.assertEqual(wf['permissions'], {'contents': 'read'})
+        jobs = wf['jobs']
+        self.assertEqual(set(jobs), {'budget', 'discover', 'publish'})
+        # Secrets: only the single live step of discover.
+        for name, job in jobs.items():
+            for i, step in enumerate(job['steps']):
+                has = 'secrets.' in yaml.dump(step)
+                is_live = name == 'discover' and 'LLM call' in step.get('name', '')
+                with self.subTest(job=name, step=i):
+                    self.assertEqual(has, is_live)
+        self.assertNotIn('secrets.', yaml.dump(jobs['budget']))
+        self.assertNotIn('secrets.', yaml.dump(jobs['publish']), 'publisher holds no LLM secrets')
+        self.assertEqual(jobs['discover']['permissions'], {'contents': 'read'})
+        self.assertEqual(jobs['budget']['permissions'], {'contents': 'read', 'actions': 'read'})
+        self.assertEqual(jobs['publish']['permissions'], {'contents': 'write'})
+        self.assertEqual(jobs['discover']['needs'], 'budget')
+        self.assertEqual(jobs['publish']['needs'], 'discover')
+        self.assertLessEqual(jobs['discover']['timeout-minutes'], 10)
+        # The ledger feeds the live step; exactly one live step, one invocation.
+        live = [s for s in jobs['discover']['steps'] if 'LLM call' in s.get('name', '')]
+        self.assertEqual(len(live), 1)
+        self.assertEqual(live[0]['env']['RESEARCH_PRIOR_LLM_ATTEMPTS'], '${{ needs.budget.outputs.prior }}')
+        self.assertEqual(live[0]['run'].count('lab_research_cycle'), 1)
+        ledger = [s for s in jobs['budget']['steps'] if s.get('id') == 'ledger']
+        self.assertEqual(len(ledger), 1)
+        self.assertIn('scripts.lab_research_budget', ledger[0]['run'])
+        self.assertEqual(ledger[0]['if'], live[0]['if'], 'ledger runs whenever a call can happen')
+        # Checkouts: secret job never persists a token; both use the branch tip after the lock.
+        co = [s for s in jobs['discover']['steps'] if str(s.get('uses', '')).startswith('actions/checkout')]
+        self.assertEqual(co[0]['with']['persist-credentials'], False)
+        self.assertEqual(co[0]['with']['ref'], '${{ github.ref }}')
+        # Publisher stages exactly the two operational files.
+        pub = '\n'.join(s.get('run', '') for s in jobs['publish']['steps'])
+        adds = re.findall(r'^\s*git add (.+)$', pub, re.M)
+        self.assertEqual(adds, ['data/research/memory.jsonl docs/research/autonomous-research.json'])
+        self.assertIn("github.ref == 'refs/heads/main'", jobs['publish']['if'])
 
 
 class Ownership(unittest.TestCase):

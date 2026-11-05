@@ -78,8 +78,8 @@ Always `scientific_status=EXPLORATORY_NOT_VALIDATED`, `promotion_eligible=false`
 
 ### Memory
 
-Operational memory path `data/research/memory.jsonl` (not committed; written only by the
-prepared workflow after approval). Hash chain (`seq`, `prev_sha256`, `sha256`). Records:
+Operational memory path `data/research/memory.jsonl` (committed only by the `publish` job of
+the active workflow, together with the panel). Hash chain (`seq`, `prev_sha256`, `sha256`). Records:
 `EXPERIMENT` (hypothesis id, question, variables + definitions, plan, dataset SHA,
 sources SHA, information cut-off, test version, results, limitations, state, novelty,
 related ids, next question), `PLAN_REJECTED`, `CYCLE` (agenda for next cycle).
@@ -136,19 +136,69 @@ and that a second cycle chooses different pairs after reading memory. It found t
 the DSL name filter rejected `..._ONLY_MOVE`/`..._AWAY_NET` (substring `y_`), and the
 simulator's own memory check. Always labelled `SIMULATED_LLM`; never accepted as operational.
 
-### Prepared migration (NOT active)
+### Active workflow (migration PR, replaces the retired V6 workflow)
 
-`.github/proposed-workflows/v6-llm-autonomous.research.yml` (outside
-`.github/workflows`, so GitHub never runs it): same cron `43 1,7,13,19 * * *`, same
-`v6-llm-global` group, discover job with secrets writes a scratch copy, secret-free publish job
-runs `scripts/lab_research_publish.py` (strict extension, one OPERATIONAL cycle, ≤1 call,
-no validated/demo content). `lab_research_cycle --mode llm-live` mirrors the old guards: main,
-attempt 1, exact cron string, ≤4 real calls per UTC day, or dispatch with
-`RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ`.
+`.github/workflows/v6-llm-autonomous.yml` now runs the research cycle. The prepared file was
+moved over the old workflow (`git mv`), so there is still **one** scheduled LLM workflow:
+same cron `43 1,7,13,19 * * *`, same `v6-llm-global` group (`cancel-in-progress: false`),
+same provider and model (`@cf/meta/llama-3.1-8b-instruct-fast`), one request per run, no
+model retries. `config/research-autonomy.json` has `llm_live_enabled: true`.
+The retired `scripts/lab_v6_llm_autonomous.py` is kept unwired, for rollback only.
 
-Activation (human approval required): (1) `git mv` the file over
-`.github/workflows/v6-llm-autonomous.yml` (replaces, does not add, so still 4 opportunities/day);
-(2) set `llm_live_enabled: true`. Rollback: revert either change; the old memory stays valid.
+| Job | Permissions | Secrets | Does |
+|---|---|---|---|
+| `budget` | `contents: read`, `actions: read` | none (only `GITHUB_TOKEN`) | `scripts/lab_research_budget.py`: pre-call attempt ledger from GitHub run history |
+| `discover` | `contents: read` | `CLOUDFLARE_ACCOUNT_ID`, `MASTER_BRAIN_LLM_API_KEY`, **only in the live step** | preflight tests, then ONE call into a scratch copy of the memory; `git diff --exit-code` |
+| `publish` | `contents: write` | none | `lab_research_publish.py` strict-extension check, commits exactly two files |
+
+#### Daily budget: two independent counters, larger wins
+
+1. **Published memory**: `LLM_LIVE` cycles recorded today (only sees calls that were published).
+2. **Pre-call ledger** (`RESEARCH_PRIOR_LLM_ATTEMPTS`): every started LLM step today in
+   `v6-llm-autonomous.yml` *and* the manual `v6-llm-investigator.yml` (same Cloudflare account),
+   over all run attempts and any conclusion. It therefore also counts calls that were made but
+   never reached memory (invalid reply, executor error, timeout, push conflict, cancellation).
+   A run touching the UTC day in any timestamp counts; the current run is excluded.
+
+`--mode llm-live` refuses (before any request) when: the ledger value is missing/malformed,
+`max(memory, ledger) >= 4`, not `refs/heads/main`, `GITHUB_RUN_ATTEMPT != 1`, a schedule string
+other than the cron above, a dispatch without `INVESTIGAR_UMA_VEZ`, `--now` is passed, the config
+flag is off, or secrets are missing. Ledger API failure/overflow → no output → `discover` gets
+no ledger → refused. Over-counting (e.g. a step that refused before calling) is accepted.
+
+Manual `live_once` dispatches share the same four-per-UTC-day total; they can only use slots the
+scheduler did not use (GitHub frequently delays or drops cron runs).
+
+#### Queued runs see fresh memory
+
+Both checkouts use `ref: ${{ github.ref }}` (the branch tip when the job starts, i.e. after the
+concurrency lock), not the trigger SHA, so a run queued behind another sees the memory that run
+published instead of producing a guaranteed rebase conflict and a wasted call.
+
+#### Preflight in the secret job
+
+The discover job runs `test_research_*.py` with `RESEARCH_PREFLIGHT=1`. PyYAML is deliberately
+not installed in the job that holds secrets; only the YAML-structure test skips there (the PR CI
+`research-autonomy-smoke.yml` runs it with PyYAML and also replays the preflight without PyYAML,
+asserting exactly `OK (skipped=1)`).
+
+#### Cost bound (Cloudflare Workers AI)
+
+Request body ≤ 48,000 bytes (≈ 12–16k tokens), `max_tokens: 2400`, ≤ 4 attempts per UTC day.
+The repository's earlier measurement (`V6_LLM_AUTONOMY_CONTROLLED.md`) observed ≈ 25 neurons for one
+≈ 20 KB request; this packet is ≈ 25 KB on today's data. Even at a pessimistic 300 neurons per call,
+4 calls ≈ 1,200 neurons/day, ≈ 12% of the 10,000 neurons/day free allocation documented there.
+Not verified: the account plan and the actual remaining allocation (`account_quota_verified=false`;
+no usage API is called). Other Workers AI usage on the same account shares that allocation.
+
+#### Rollback
+
+* Stop real calls immediately, no deploy: set `"llm_live_enabled": false` (scheduled runs then
+  fail closed in `discover` with `LLM_LIVE_DISABLED_BY_CONFIG`, zero requests), or disable the
+  workflow in GitHub Actions.
+* Full rollback: `git revert` the migration merge commit — restores the old workflow file,
+  the old tests and `llm_live_enabled: false`. Operational memory and panel stay valid and are
+  simply no longer extended (delete both files to return the page to DEMONSTRAÇÃO).
 
 ### Isolation
 
@@ -160,11 +210,10 @@ already in every publisher's keep-set).
 
 ## Safety and cost
 
-* No new scheduled job, no publisher to `main`, no change to H1, FT, Telegram, quotas,
-  cooldowns, credentials, frozen forecasts or V6 journals.
-* `llm_live_enabled=false`. `--mode llm-live` refuses unless config, `--allow-network`
-  and `RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ` all agree; one request, no retry.
-  Wiring it into the existing 4 daily slots requires human approval.
+* No new scheduled job (the old one is replaced in place), one publisher to `main` for two
+  files, no change to H1, FT, Telegram, quotas, cooldowns, credentials, frozen forecasts or V6 journals.
+* `llm_live_enabled=true` after the migration PR. `--mode llm-live` refuses unless config,
+  `--allow-network`, the schedule/dispatch guards and both daily counters agree; one request, no retry.
 * Kill switches: `config/research-autonomy.json` (`exploration_enabled`,
   `offline_cycle_enabled`) and env `MASTER_BRAIN_EXPLORATION=off`. Missing/corrupt config
   → disabled.
@@ -177,6 +226,7 @@ python -m scripts.lab_research_cycle --mode packet          # what the LLM would
 python -m scripts.lab_research_cycle --run-kind DEMONSTRATION --mode llm-simulated
 python -m scripts.lab_research_cycle --run-kind DEMONSTRATION --mode llm-response --response FILE
 python -m scripts.research_isolation_check --base origin/main
+python -m scripts.lab_research_budget --repo OWNER/REPO --exclude-run 0   # needs GH_TOKEN; read-only
 python -m unittest discover -s tests -p 'test_research_*.py'
 node --test tests/research-autonomy-ui.test.cjs
 ```
