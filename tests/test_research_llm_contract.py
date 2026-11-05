@@ -503,24 +503,30 @@ class HistoricalCycleUntouched(unittest.TestCase):
     def test_first_live_cycle_is_shown_as_3_proposed_0_accepted_40_offline(self):
         before = hashlib.sha256(self.MEMORY.read_bytes()).hexdigest()
         memory = read_memory(self.MEMORY)   # strict hash-chain verification
-        legacy = [f for f in cycle_funnels(memory) if f['cycle_id'] == 'Ceede16a74f0ae09']
-        if not legacy:
+        cycle_id = 'Ceede16a74f0ae09'
+        first_cycle_end = next((i for i, record in enumerate(memory)
+                                if record['record_type'] == 'CYCLE'
+                                and record['cycle_id'] == cycle_id), None)
+        if first_cycle_end is None:
             self.skipTest('historical cycle not in this checkout')
-        f = legacy[0]
+        # The full chain above is still verified. Render the panel as it stood
+        # at the close of this cycle, before later append-only live results.
+        historical_memory = memory[:first_cycle_end + 1]
+        f = next(f for f in cycle_funnels(historical_memory) if f['cycle_id'] == cycle_id)
         self.assertEqual((f['plans_received'], f['plans_accepted'], f['plans_rejected'],
                           f['experiments_from_llm'], f['experiments_from_offline']), (3, 0, 3, 0, 40))
         self.assertEqual(f['rejection_reasons'], {'DSL:INVALID_INDICATOR_NAME': 1, 'INDICATOR_DEFINED_BUT_UNUSED': 2})
         self.assertEqual(f['provenance_source'], 'DERIVED_FROM_RECORDS_LEGACY_CYCLE')
         self.assertEqual(f['model_inferred_from_code']['model'], '@cf/meta/llama-3.1-8b-instruct-fast')
         from h1lab.research_gates import exploration_gate
-        p = build_panel(memory, exploration_gate(ROOT), now=NOW)
+        p = build_panel(historical_memory, exploration_gate(ROOT), now=NOW)
         self.assertFalse(p['provenance']['is_current_autonomous_research'],
                          'a call with zero executed plans is not autonomous research')
         self.assertEqual(p['research_split']['autonomous']['experiments_executed'], 0)
         self.assertGreaterEqual(p['research_split']['deterministic']['experiments_executed'], 40)
         self.assertEqual(p['validated'], [])
         self.assertEqual(hashlib.sha256(self.MEMORY.read_bytes()).hexdigest(), before, 'memory never rewritten')
-        old = [r for r in memory if r.get('cycle_id') == 'Ceede16a74f0ae09']
+        old = [r for r in memory if r.get('cycle_id') == cycle_id]
         self.assertTrue(all('llm_model' not in r and 'field' not in r for r in old))
 
 
