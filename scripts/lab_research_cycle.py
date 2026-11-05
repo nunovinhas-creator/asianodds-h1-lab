@@ -15,7 +15,7 @@ Modes:
   llm-live       ONE request (OPERATIONAL only). Refused unless config llm_live_enabled,
                  --allow-network, and either the original 4-slot schedule on main
                  (attempt 1) or workflow_dispatch with RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ,
-                 and <=4 attempts per UTC day by BOTH the published memory and the pre-call
+                 and <=4 attempts per UTC day (5 on 2026-11-05 only) by BOTH the published memory and the pre-call
                  ledger (RESEARCH_PRIOR_LLM_ATTEMPTS, from scripts/lab_research_budget.py). No retries.
   recover-torn-tail  explicit recovery of an interrupted foreign write (quarantines tail)
 
@@ -31,6 +31,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from h1lab.research_daily_limit import daily_llm_attempt_limit
 from h1lab.research_cycle import build_panel, llm_packet, run_cycle, write_panel
 from h1lab.research_dataset import build_dataset
 from h1lab.research_gates import EXPLORATION_ALLOWED, exploration_gate
@@ -45,7 +46,7 @@ LIVE_CONFIRM = 'INVESTIGAR_UMA_VEZ'
 # 0 valid plans in both live calls (runs 42021728675 and 42030138637).
 MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 SCHEDULE = '43 1,7,13,19 * * *'        # the four existing daily opportunities, unchanged
-MAX_DAILY_LIVE_CALLS = 4
+MAX_DAILY_LIVE_CALLS = 4               # base rule; dated exception in h1lab.research_daily_limit
 MODE_KINDS = {'offline': ('OPERATIONAL', 'DEMONSTRATION', 'TEST'),
               'llm-response': ('DEMONSTRATION', 'TEST'), 'llm-simulated': ('DEMONSTRATION', 'TEST'),
               'packet': ('OPERATIONAL', 'DEMONSTRATION', 'TEST'), 'llm-live': ('OPERATIONAL',),
@@ -77,7 +78,7 @@ def live_authorisation(env, memory, today):
     ledger = env.get('RESEARCH_PRIOR_LLM_ATTEMPTS', '')
     if not re.fullmatch(r'[0-9]{1,3}', ledger or ''):
         raise ValueError('LIVE_LEDGER_MISSING')
-    if max(published, int(ledger)) >= MAX_DAILY_LIVE_CALLS:
+    if max(published, int(ledger)) >= daily_llm_attempt_limit(today):
         raise ValueError('LIVE_DAILY_LIMIT')
     return event
 

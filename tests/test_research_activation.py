@@ -255,9 +255,12 @@ class OperationalLoop(unittest.TestCase):
         self.assertEqual(panel['validated'], [])
         self.assertEqual(sci_before, scientific_gate(self.root), 'scientific gate unchanged')
 
-        # Limits: ledger at 4 (e.g. two unpublished failed calls today) -> refused, no request.
+        # Limits: ledger at the day's limit (4; 5 only on 2026-11-05, real UTC clock because
+        # llm-live forbids --now) -> refused, no request.
+        from h1lab.research_daily_limit import daily_llm_attempt_limit
+        at_limit = daily_llm_attempt_limit(datetime.now(timezone.utc).date().isoformat())
         mem_before = (self.root / 'data/research/memory.jsonl').read_bytes()
-        for env in (self.env(4), self.env(2, GITHUB_RUN_ATTEMPT='2'),
+        for env in (self.env(at_limit), self.env(2, GITHUB_RUN_ATTEMPT='2'),
                     self.env(0, GITHUB_EVENT_NAME='workflow_dispatch'),
                     self.env(0, GITHUB_EVENT_NAME='workflow_dispatch', RESEARCH_LLM_CONFIRMATION='sim'),
                     self.env(0, GITHUB_REF='refs/heads/claude/x'),

@@ -292,44 +292,44 @@ class LiveMigration(unittest.TestCase):
         from scripts.lab_research_cycle import SCHEDULE, live_authorisation
         ok = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
               'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
-        self.assertEqual(live_authorisation(ok, [], '2026-11-05'), 'schedule')
+        self.assertEqual(live_authorisation(ok, [], '2026-11-04'), 'schedule')
         for change in ({'GITHUB_REF': 'refs/heads/x'}, {'GITHUB_RUN_ATTEMPT': '2'},
                        {'GITHUB_EVENT_SCHEDULE': '* * * * *'}, {'GITHUB_EVENT_NAME': 'push'},
                        {'GITHUB_EVENT_NAME': 'workflow_dispatch'}):
             with self.subTest(change=change), self.assertRaises(ValueError):
-                live_authorisation(dict(ok, **change), [], '2026-11-05')
+                live_authorisation(dict(ok, **change), [], '2026-11-04')
         used = [{'record_type': 'CYCLE', 'llm_origin': 'LLM_LIVE', 'llm_calls': 1,
-                 'recorded_at': '2026-11-05T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
+                 'recorded_at': '2026-11-04T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
         with self.assertRaises(ValueError):
-            live_authorisation(ok, used, '2026-11-05')
-        self.assertEqual(live_authorisation(ok, used, '2026-11-06'), 'schedule')
+            live_authorisation(ok, used, '2026-11-04')
+        self.assertEqual(live_authorisation(ok, used, '2026-11-05'), 'schedule')
 
     def test_live_authorisation_requires_and_honours_the_pre_call_ledger(self):
         from scripts.lab_research_cycle import SCHEDULE, live_authorisation
         ok = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
               'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '3'}
-        self.assertEqual(live_authorisation(ok, [], '2026-11-05'), 'schedule')
+        self.assertEqual(live_authorisation(ok, [], '2026-11-04'), 'schedule')
         for bad in ('', ' 1', '-1', 'x', '1.0', '9999'):
             with self.subTest(ledger=bad), self.assertRaisesRegex(ValueError, 'LIVE_LEDGER_MISSING'):
-                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=bad), [], '2026-11-05')
+                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=bad), [], '2026-11-04')
         env = dict(ok)
         env.pop('RESEARCH_PRIOR_LLM_ATTEMPTS')
         with self.assertRaisesRegex(ValueError, 'LIVE_LEDGER_MISSING'):
-            live_authorisation(env, [], '2026-11-05')
+            live_authorisation(env, [], '2026-11-04')
         # Calls made but never published: memory is empty, ledger says 4 -> refused.
         for n in ('4', '5'):
             with self.subTest(prior=n), self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
-                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=n), [], '2026-11-05')
+                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=n), [], '2026-11-04')
         # Manual dispatch is bound by the same daily total.
         manual = dict(ok, GITHUB_EVENT_NAME='workflow_dispatch', RESEARCH_LLM_CONFIRMATION='INVESTIGAR_UMA_VEZ',
                       RESEARCH_PRIOR_LLM_ATTEMPTS='4')
         with self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
-            live_authorisation(manual, [], '2026-11-05')
+            live_authorisation(manual, [], '2026-11-04')
         # Ledger lower than memory (e.g. API lag): the memory count still wins.
         used = [{'record_type': 'CYCLE', 'llm_origin': 'LLM_LIVE', 'llm_calls': 1,
-                 'recorded_at': '2026-11-05T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
+                 'recorded_at': '2026-11-04T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
         with self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
-            live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS='0'), used, '2026-11-05')
+            live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS='0'), used, '2026-11-04')
 
     def test_live_mode_one_call_into_scratch_memory_when_enabled(self):
         """Full llm-live path with config enabled on a COPY of the repo inputs; simulated opener."""
