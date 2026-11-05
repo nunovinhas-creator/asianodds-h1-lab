@@ -200,6 +200,44 @@ no usage API is called). Other Workers AI usage on the same account shares that 
   the old tests and `llm_live_enabled: false`. Operational memory and panel stay valid and are
   simply no longer extended (delete both files to return the page to DEMONSTRAÇÃO).
 
+### LLM → Python contract v2 (after the first live call, 2026-11-05)
+
+First live call: GitHub Actions run `42021728675`, model `@cf/meta/llama-3.1-8b-instruct-fast`
+(from the code at `71d00ffb`; the v2 cycle record did not store it). The model returned 3 plans;
+all were refused before execution: `INDICATOR_DEFINED_BUT_UNUSED` ×2 and
+`DSL:INVALID_INDICATOR_NAME` ×1. The 40 executed experiments all came from `OFFLINE_PROPOSER`.
+The raw reply was never persisted (memory keeps only structural reasons; `result.json` drops
+the records), so the exact JSON cannot be reconstructed. Instruction-side causes found:
+
+* the prompt never said a defined indicator must be referenced by `condition`,
+  `control_condition` or a used indicator (the validator rule);
+* it never said indicator names are UPPERCASE only (`X_[A-Z0-9_]{2,40}`), while every catalogue
+  variable is lowercase, so a small model naturally writes `X_line_up_...`;
+* the only example used its indicator in `control_condition` while `condition` used a catalogue
+  variable, and was never checked against `validate_plan`.
+
+Fix (the validator is unchanged): `contract_spec()` is built from the validator's own constants
+(name regex, forbidden tokens, plan keys, text lengths, markets/outcomes, strata, DSL limits), the
+system prompt lists the rules plus a self-check, and the example (two indicators, both used) is
+validated by `validate_plan` every time a packet is built (`verified_example`). A verbatim copy of
+the example is refused (`COPIED_RESPONSE_EXAMPLE`). Rejections now record `field`
+(e.g. `indicators[0].name`) and code-validated `detail` tokens (never free model text).
+The raw reply goes to `llm-response-audit.json` in the workflow artifact only (7 days).
+
+Provenance (cycle_version 3, new cycles only; the 44 published records are never rewritten):
+`llm_model`, `llm_response_sha256`, `llm_tokens`, `llm_plans_received/accepted/rejected`,
+`llm_rejection_reasons`, `llm_plans_duplicate_skipped`, `experiments_from_llm`,
+`experiments_from_offline`. The publisher refuses a v3 cycle whose funnel is inconsistent with its
+records (`CYCLE_PROVENANCE_INCONSISTENT`). The panel's `research_split` separates autonomous
+(model-planned) from deterministic (offline grid) research; legacy cycles are derived from their
+records and shown as such. `is_current_autonomous_research` now also requires ≥ 1 executed LLM plan.
+The operational panel is still written only by the publisher (isolation rule); until the next
+published cycle, the page derives the split from the pre-v3 report (card origins + refused plans).
+
+Operational containment: the workflow was disabled in the GitHub UI by the owner after run
+`42021728675` (no change to `main`; `llm_live_enabled` stays `true`). Re-enable only for one
+authorised `live_once` validation after this contract is merged.
+
 ### Isolation
 
 `scripts/research_isolation_check.py --base origin/main`: changed paths must be allow-listed,

@@ -107,8 +107,72 @@ test("unknown schema is rejected, not shown as empty results", () => {
   assert.throws(() => ui.render(doc, { schema_version: 2 }));
 });
 
-test("tracked demo panel is a labelled DEMONSTRATION; no operational report is committed", () => {
-  assert.ok(!fs.existsSync(path.join(__dirname, "../docs/research/autonomous-research.json")));
+test("tracked operational report, once published, is OPERATIONAL, exploratory and splits LLM from offline", () => {
+  // The first live cycle (run 42021728675) published this file; before that it did not exist.
+  const p = path.join(__dirname, "../docs/research/autonomous-research.json");
+  if (!fs.existsSync(p)) return;
+  const data = JSON.parse(fs.readFileSync(p, "utf8"));
+  assert.strictEqual(data.provenance.kind, "OPERATIONAL");
+  assert.strictEqual(data.status, "EXPLORATORY_RESEARCH_NOT_VALIDATION");
+  assert.deepStrictEqual(data.validated, []);
+  for (const c of [...data.discovered, ...data.rejected, ...data.needs_more_data]) {
+    assert.strictEqual(c.scientific_status, "EXPLORATORY_NOT_VALIDATED");
+  }
+  // Published by the workflow only; reports from before provenance v3 are split client-side.
+  const split = data.research_split || ui.deriveSplit(data);
+  assert.ok(split && split.autonomous && split.deterministic, "LLM and offline research are reported separately");
+  const llmCards = [...data.discovered, ...data.rejected, ...data.needs_more_data].filter(c => c.origin === "LLM_LIVE").length;
+  assert.ok(split.autonomous.experiments_executed >= llmCards);
+  if (data.research_split) {
+    assert.strictEqual(data.provenance.is_current_autonomous_research, split.autonomous.experiments_executed > 0);
+  }
+  const { doc, nodes } = fakeDoc();
+  ui.render(doc, data);
+  assert.ok(nodes["ra-autonomous"].textContent.includes("Experiências executadas a partir de planos do LLM: " + split.autonomous.experiments_executed));
+  assert.ok(nodes["ra-deterministic"].textContent.includes("Experiências do proponente offline: " + split.deterministic.experiments_executed));
+});
+
+test("historical live cycle reads 3 proposed, 0 accepted, 0 executed by the LLM and 40 offline", () => {
+  const { doc, nodes } = fakeDoc();
+  ui.renderSplit(doc, {
+    autonomous: { models: ["NAO_REGISTADO_CICLO_ANTERIOR_A_PROVENIENCIA_V3"], real_llm_calls: 1, plans_received: 3,
+      plans_accepted: 0, plans_rejected: 3, plans_duplicate_skipped: 0, experiments_executed: 0,
+      cycles: [{ recorded_at: "2026-11-05T11:49:58+00:00", model: "NAO_REGISTADO_CICLO_ANTERIOR_A_PROVENIENCIA_V3",
+        model_inferred_from_code: { model: "@cf/meta/llama-3.1-8b-instruct-fast" }, plans_received: 3, plans_accepted: 0,
+        experiments_from_llm: 0, experiments_from_offline: 40,
+        rejection_reasons: { "DSL:INVALID_INDICATOR_NAME": 1, INDICATOR_DEFINED_BUT_UNUSED: 2 } }] },
+    deterministic: { experiments_executed: 40, distinct_questions: 40, states: { NO_SUPPORT_IN_DATA: 34, INSUFFICIENT_DATA: 6 }, limitations: ["grelha fixa"] }
+  });
+  const a = nodes["ra-autonomous"].textContent;
+  assert.ok(a.includes("LLM: 3 propostas, 0 aceites, 0 experiências executadas"));
+  assert.ok(a.includes("offline: 40 experiências"));
+  assert.ok(a.includes("inferido do código: @cf/meta/llama-3.1-8b-instruct-fast"));
+  assert.ok(a.includes("Experiências executadas a partir de planos do LLM: 0"));
+  assert.ok(nodes["ra-deterministic"].textContent.includes("Experiências do proponente offline: 40"));
+});
+
+test("published pre-v3 report (first live cycle) is split as 3 proposed / 0 accepted / 0 LLM / 40 offline", () => {
+  const p = path.join(__dirname, "../docs/research/autonomous-research.json");
+  if (!fs.existsSync(p)) return;
+  const data = JSON.parse(fs.readFileSync(p, "utf8"));
+  if (data.research_split || data.last_cycle.cycle_id !== "Ceede16a74f0ae09") return;
+  const s = ui.deriveSplit(data);
+  assert.deepStrictEqual([s.autonomous.plans_received, s.autonomous.plans_accepted, s.autonomous.experiments_executed,
+                          s.deterministic.experiments_executed], [3, 0, 0, 40]);
+  const { doc, nodes } = fakeDoc();
+  ui.render(doc, data);
+  assert.ok(nodes["ra-autonomous"].textContent.includes("LLM: 3 propostas, 0 aceites, 0 experiências executadas"));
+  assert.ok(nodes["ra-autonomous"].textContent.includes("offline: 40 experiências"));
+  assert.ok(nodes["ra-provenance"].textContent.includes("Chamadas reais ao LLM: 1"));
+});
+
+test("reports with nothing to split are labelled, not shown as LLM research", () => {
+  const { doc, nodes } = fakeDoc();
+  ui.render(doc, Object.assign({}, sample, { discovered: [], rejected_plans: [] }));
+  assert.ok(nodes["ra-autonomous"].textContent.includes("formato anterior"));
+});
+
+test("tracked demo panel is a labelled DEMONSTRATION", () => {
   const p = path.join(__dirname, "../docs/research/demo/panel.json");
   const data = JSON.parse(fs.readFileSync(p, "utf8"));
   assert.strictEqual(data.provenance.kind, "DEMONSTRATION");

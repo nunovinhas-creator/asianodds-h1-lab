@@ -297,10 +297,27 @@ def definition(name):
     return {'type': t, 'market': market, 'description': desc}
 
 
-def rejected_record(index, reason, *, origin, cycle_id, now):
-    return {'record_type': 'PLAN_REJECTED', 'recorded_at': now.isoformat(), 'cycle_id': cycle_id,
-            'origin': origin, 'plan_index': index, 'reason': reason[:200],
-            'state': 'PLAN_REJECTED', 'scientific_status': 'EXPLORATORY_NOT_VALIDATED'}
+def rejected_record(index, reason, *, origin, cycle_id, now, field=None, detail=None):
+    rec = {'record_type': 'PLAN_REJECTED', 'recorded_at': now.isoformat(), 'cycle_id': cycle_id,
+           'origin': origin, 'plan_index': index, 'reason': reason[:200],
+           'state': 'PLAN_REJECTED', 'scientific_status': 'EXPLORATORY_NOT_VALIDATED'}
+    # New records only (older ones are never rewritten): WHERE the plan failed.
+    if isinstance(field, str) and field:
+        rec['field'] = field[:80]
+    if isinstance(detail, dict) and detail:
+        rec['detail'] = _safe_detail(detail)
+    return rec
+
+
+def _safe_detail(detail):
+    """Only short code-validated tokens and integers survive (no free model prose)."""
+    out = {}
+    for k, v in sorted(detail.items())[:6]:
+        if isinstance(v, int) and not isinstance(v, bool):
+            out[k] = v
+        elif isinstance(v, list):
+            out[k] = [x[:44] for x in v[:6] if isinstance(x, str) and x.replace('_', '').isalnum()]
+    return out
 
 
 # ---------------------------------------------------------------------------

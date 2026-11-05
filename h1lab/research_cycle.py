@@ -27,7 +27,7 @@ from .research_memory import (RUN_KINDS, agenda, append, digest_for_llm, experim
                               rejected_record, tip)
 from .research_plan import PlanError, validate_plan
 
-CYCLE_VERSION = 2
+CYCLE_VERSION = 3   # v3: per-cycle LLM provenance (model, tokens, plan funnel, origins)
 LLM_ORIGINS = ('LLM_LIVE', 'RESPONSE_FILE_NOT_LIVE_LLM', 'SIMULATED_LLM')
 # Operational memory only accepts hypotheses from a real bounded call or the offline proposer.
 ORIGINS_ALLOWED = {'OPERATIONAL': ('LLM_LIVE',),
@@ -159,7 +159,8 @@ def run_cycle(*, gate, dataset, memory_path, now, run_kind, cycle_label='offline
             raise ValueError('LLM_ORIGIN_NOT_ALLOWED_FOR_%s:%s' % (run_kind, origin))
         for rej in llm.get('rejected', []):
             records.append(rejected_record(rej['index'], rej['reason'], origin=origin,
-                                           cycle_id=cycle_id, now=now))
+                                           cycle_id=cycle_id, now=now, field=rej.get('field'),
+                                           detail=rej.get('detail')))
         for plan in llm.get('plans', [])[:cfg['max_llm_plans_per_call']]:
             nov = novelty(plan, memory, dataset['digest'])
             if nov['grade'] == 'DUPLICATE' or plan['fingerprint'] in seen:
@@ -189,6 +190,7 @@ def run_cycle(*, gate, dataset, memory_path, now, run_kind, cycle_label='offline
     for r in exp_records:
         states[r['state']] = states.get(r['state'], 0) + 1
     future = agenda(memory + exp_records, dataset)
+    llm_funnel = llm_provenance(llm, exp_records, skipped['duplicates'])
     cycle = {'record_type': 'CYCLE', 'recorded_at': now.isoformat(), 'cycle_id': cycle_id,
              'cycle_version': CYCLE_VERSION, 'label': cycle_label,
              'llm_origin': (llm or {}).get('origin'),
@@ -204,6 +206,7 @@ def run_cycle(*, gate, dataset, memory_path, now, run_kind, cycle_label='offline
              'scientific_validation_gate': gate['scientific_validation_gate']['state'],
              'next_priorities': future[:20],
              'scientific_status': 'EXPLORATORY_NOT_VALIDATED'}
+    cycle.update(llm_funnel)
     records.append(cycle)
     sealed = (append(memory_path, records, run_kind=run_kind, expected_tip=base_tip)
               if write else records)
@@ -211,6 +214,36 @@ def run_cycle(*, gate, dataset, memory_path, now, run_kind, cycle_label='offline
             'rejected_plans': len(records) - len(exp_records) - 1, 'states': states,
             'written': len(sealed) if write else 0, 'records': sealed,
             'memory_records_before': len(memory)}
+
+
+def llm_provenance(llm, exp_records, duplicates):
+    """Cycle-level provenance (v3). Distinguishes what the model proposed from what the
+    deterministic offline proposer contributed, so a call is never mistaken for research."""
+    llm = llm or {}
+    from_llm = sum(1 for r in exp_records if r['origin'] in LLM_ORIGINS)
+    reasons = {}
+    for rej in llm.get('rejected', []):
+        reasons[rej['reason']] = reasons.get(rej['reason'], 0) + 1
+    usage = llm.get('usage') or {}
+    tokens = usage.get('tokens') if isinstance(usage.get('tokens'), dict) else {}
+    received = llm.get('received')
+    if received is None and llm:
+        received = len(llm.get('plans', [])) + len(llm.get('rejected', []))
+    return {
+        'llm_model': llm.get('model') if llm else None,
+        'llm_response_sha256': llm.get('response_sha256'),
+        'llm_tokens': {k: v for k, v in tokens.items()
+                       if k in ('prompt_tokens', 'completion_tokens', 'total_tokens')} or None,
+        'llm_tokens_measurement': usage.get('measurement') if llm else None,
+        'llm_contract_version': llm.get('contract_version'),
+        'llm_plans_received': received or 0,
+        'llm_plans_accepted': len(llm.get('plans', [])),
+        'llm_plans_rejected': len(llm.get('rejected', [])),
+        'llm_rejection_reasons': dict(sorted(reasons.items())),
+        'llm_plans_duplicate_skipped': duplicates if llm else 0,
+        'experiments_from_llm': from_llm,
+        'experiments_from_offline': sum(1 for r in exp_records if r['origin'] == 'OFFLINE_PROPOSER'),
+    }
 
 
 def llm_packet(gate, dataset, memory, max_plans=3):
@@ -255,17 +288,112 @@ PROVENANCE_NOTE = {
 }
 
 
+MODEL_NOT_RECORDED = 'NAO_REGISTADO_CICLO_ANTERIOR_A_PROVENIENCIA_V3'
+# Legacy cycles did not record the model. This is presentation-only knowledge taken from
+# the code of the commit the run executed (GitHub Actions run 42021728675, head
+# 71d00ffb51192a26800ef09d3c7e0d1447dd91c2, scripts/lab_research_cycle.py MODEL). It is
+# shown as INFERRED, never written into the memory.
+LEGACY_MODEL_FROM_CODE = {
+    'Ceede16a74f0ae09': {'model': '@cf/meta/llama-3.1-8b-instruct-fast', 'run_id': 42021728675,
+                         'source': 'scripts/lab_research_cycle.py@71d00ffb51192a26800ef09d3c7e0d1447dd91c2'},
+}
+
+
+def cycle_funnels(memory):
+    """Per-cycle LLM funnel. v3 cycles carry it; for older cycles it is DERIVED from the
+    records of that cycle (PLAN_REJECTED / EXPERIMENT origins) without rewriting them."""
+    by_cycle = {}
+    for r in memory:
+        if r.get('record_type') in ('EXPERIMENT', 'PLAN_REJECTED'):
+            by_cycle.setdefault(r.get('cycle_id'), []).append(r)
+    out = []
+    for c in (r for r in memory if r.get('record_type') == 'CYCLE'):
+        recs = by_cycle.get(c['cycle_id'], [])
+        exps = [r for r in recs if r['record_type'] == 'EXPERIMENT']
+        rejs = [r for r in recs if r['record_type'] == 'PLAN_REJECTED']
+        from_llm = sum(1 for r in exps if r['origin'] in LLM_ORIGINS)
+        offline = sum(1 for r in exps if r['origin'] == 'OFFLINE_PROPOSER')
+        reasons = {}
+        for r in rejs:
+            reasons[r['reason']] = reasons.get(r['reason'], 0) + 1
+        dup = c.get('duplicates_skipped', 0) if c.get('llm_origin') else 0
+        v3 = c.get('cycle_version', 0) >= 3
+        out.append({
+            'cycle_id': c['cycle_id'], 'recorded_at': c['recorded_at'], 'label': c.get('label'),
+            'llm_origin': c.get('llm_origin'),
+            'model': c.get('llm_model') if v3 else (MODEL_NOT_RECORDED if c.get('llm_origin') else None),
+            'model_inferred_from_code': None if v3 else LEGACY_MODEL_FROM_CODE.get(c['cycle_id']),
+            'provenance_source': 'CYCLE_RECORD_V3' if v3 else 'DERIVED_FROM_RECORDS_LEGACY_CYCLE',
+            'llm_calls': c.get('llm_calls', 0),
+            'tokens': c.get('llm_tokens') if v3 else None,
+            'plans_received': (c.get('llm_plans_received', 0) if v3
+                               else (len(rejs) + from_llm + dup if c.get('llm_origin') else 0)),
+            'plans_accepted': c.get('llm_plans_accepted', 0) if v3 else from_llm + dup,
+            'plans_rejected': len(rejs),
+            'rejection_reasons': dict(sorted(reasons.items())),
+            'plans_duplicate_skipped': dup,
+            'experiments_from_llm': from_llm,
+            'experiments_from_offline': offline,
+        })
+    return out
+
+
 def provenance(memory):
     kind = memory_kind(memory) or 'OPERATIONAL'
     cycles = [r for r in memory if r.get('record_type') == 'CYCLE']
     origins = sorted({c.get('llm_origin') or 'OFFLINE_PROPOSER_ONLY' for c in cycles})
     real_calls = sum(c.get('llm_calls', 0) for c in cycles if c.get('llm_origin') == 'LLM_LIVE')
+    live_exps = sum(1 for r in experiments(memory) if r['origin'] == 'LLM_LIVE')
     return {'kind': kind, 'note': PROVENANCE_NOTE[kind],
             'reference_time': cycles[-1]['recorded_at'] if cycles else None,
             'first_cycle_at': cycles[0]['recorded_at'] if cycles else None,
             'cycle_origins': origins, 'real_llm_calls': real_calls,
+            'experiments_from_live_llm': live_exps,
+            'experiments_from_offline': sum(1 for r in experiments(memory) if r['origin'] == 'OFFLINE_PROPOSER'),
             'simulated_or_file_llm_cycles': sum(1 for c in cycles if c.get('llm_origin') not in (None, 'LLM_LIVE')),
-            'is_current_autonomous_research': kind == 'OPERATIONAL' and real_calls > 0}
+            # A real call that produced no executed plan is not autonomous research.
+            'is_current_autonomous_research': kind == 'OPERATIONAL' and real_calls > 0 and live_exps > 0}
+
+
+DETERMINISTIC_LIMITATIONS = [
+    'Hipóteses geradas por uma grelha fixa de tercis das variáveis do catálogo, sem uso de resultados.',
+    'Não formula relações novas nem explicações alternativas: é uma varredura determinística.',
+    'Muitos testes por ciclo: os resultados dependem da correção de testes múltiplos e continuam exploratórios.',
+]
+
+
+def research_split(memory, cards):
+    """Autonomous (model-proposed) vs deterministic (offline grid) research, never merged."""
+    funnels = cycle_funnels(memory)
+    llm_cycles = [f for f in funnels if f['llm_origin']]
+    llm_cards = [c for c in cards if c['origin'] in LLM_ORIGINS]
+    off_cards = [c for c in cards if c['origin'] == 'OFFLINE_PROPOSER']
+    states = {}
+    for c in off_cards:
+        states[c['state']] = states.get(c['state'], 0) + 1
+    models = sorted({f['model'] for f in llm_cycles if f['model']})
+    total = lambda k: sum(f[k] for f in llm_cycles)
+    return {
+        'autonomous': {
+            'models': models,
+            'cycles': llm_cycles[-20:],
+            'real_llm_calls': sum(f['llm_calls'] for f in llm_cycles if f['llm_origin'] == 'LLM_LIVE'),
+            'plans_received': total('plans_received'), 'plans_accepted': total('plans_accepted'),
+            'plans_rejected': total('plans_rejected'),
+            'plans_duplicate_skipped': total('plans_duplicate_skipped'),
+            'experiments_executed': total('experiments_from_llm'),
+            'distinct_questions': len(llm_cards),
+            'note': ('Planos propostos pelo modelo, validados pela DSL e executados pelo Python. '
+                     'Um plano aceite é apenas executável, não uma hipótese demonstrada.'),
+        },
+        'deterministic': {
+            'proposer': 'OFFLINE_PROPOSER',
+            'experiments_executed': sum(f['experiments_from_offline'] for f in funnels),
+            'distinct_questions': len(off_cards),
+            'states': dict(sorted(states.items())),
+            'limitations': DETERMINISTIC_LIMITATIONS,
+        },
+    }
 
 
 def build_panel(memory, gate, *, now):
@@ -285,16 +413,20 @@ def build_panel(memory, gate, *, now):
         'gates': {'exploration': gate['state'],
                   'scientific_validation': gate['scientific_validation_gate']['state'],
                   'limitations': gate.get('limitations', [])},
+        'research_split': research_split(memory, cards),
         'memory': {'records': len(memory), 'experiments': len(experiments(memory)),
                    'distinct_questions': len(latest), 'cycles': len(cycles),
                    'last_sha256': memory[-1]['sha256'] if memory else None},
-        'last_cycle': last and {k: last[k] for k in ('cycle_id', 'recorded_at', 'label', 'llm_calls',
-                                                     'experiments_run', 'plans_rejected', 'states',
-                                                     'verified_ft_in_dataset')},
+        'last_cycle': last and dict({k: last[k] for k in ('cycle_id', 'recorded_at', 'label', 'llm_calls',
+                                                          'experiments_run', 'plans_rejected', 'states',
+                                                          'verified_ft_in_dataset')},
+                                    funnel=cycle_funnels(memory)[-1]),
         'investigating': (last or {}).get('next_priorities', [])[:20],
         'discovered': by('PROMISING_EXPLORATORY')[:30],
         'rejected': by('NO_SUPPORT_IN_DATA', 'FALSIFIED_EXPLORATORY')[:40],
-        'rejected_plans': [{'recorded_at': r['recorded_at'], 'origin': r['origin'], 'reason': r['reason']}
+        'rejected_plans': [dict({'recorded_at': r['recorded_at'], 'origin': r['origin'], 'reason': r['reason'],
+                                 'cycle_id': r.get('cycle_id'), 'plan_index': r.get('plan_index')},
+                                **{k: r[k] for k in ('field', 'detail') if k in r})
                            for r in rejected_plans[-20:]],
         'needs_more_data': by('INSUFFICIENT_DATA', 'INCONCLUSIVE')[:40],
         'validated': [],

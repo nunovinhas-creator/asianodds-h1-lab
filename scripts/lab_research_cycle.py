@@ -79,6 +79,26 @@ def live_authorisation(env, memory, today):
     return event
 
 
+def _write_audit(path, reply, model, parsed=None):
+    """Bounded audit file for the workflow artifact: the exact model reply (data, never
+    executed) and, once parsed, the per-plan structural verdicts. No secrets: the request
+    body and headers are not written."""
+    if path is None:
+        return
+    audit = {'schema_version': 1, 'model': model, 'response_sha256': reply.get('response_sha256'),
+             'usage': reply.get('usage'), 'content': reply.get('content'),
+             'parsed': None if parsed is None else {
+                 'received': parsed.get('received'), 'accepted': parsed.get('accepted'),
+                 'accepted_hypothesis_ids': [pl['hypothesis_id'] for pl in parsed.get('plans', [])],
+                 'rejected': parsed.get('rejected', [])}}
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(audit, ensure_ascii=False, indent=1, sort_keys=True)
+    if len(data.encode()) > 200_000:
+        raise ValueError('LLM_AUDIT_TOO_LARGE')
+    path.write_text(data + '\n', encoding='utf-8')
+
+
 def main(argv=None, *, env=None, opener=None):
     env = os.environ if env is None else env
     ap = argparse.ArgumentParser(description=__doc__)
@@ -91,6 +111,9 @@ def main(argv=None, *, env=None, opener=None):
     ap.add_argument('--budget', type=int, default=None)
     ap.add_argument('--now', default=None, help='UTC ISO time (reproducible replays)')
     ap.add_argument('--allow-network', action='store_true')
+    ap.add_argument('--llm-audit', type=Path, default=None,
+                    help='Write the raw model reply + structural verdicts here (workflow artifact only, '
+                         'outside the repository; never published to memory or Pages)')
     args = ap.parse_args(argv)
 
     def refuse(reason):
@@ -138,22 +161,30 @@ def main(argv=None, *, env=None, opener=None):
         if args.mode == 'packet':
             print(json.dumps(packet, ensure_ascii=False, indent=1, sort_keys=True))
             return 0
-        from h1lab.research_llm import invoke_once, parse_response
+        from h1lab.research_llm import CONTRACT_VERSION, invoke_once, parse_response
+        example_fps = tuple(packet.get('response_example_fingerprints', ()))
+        if args.llm_audit and args.llm_audit.resolve().is_relative_to(root.resolve()):
+            raise ValueError('LLM_AUDIT_PATH_MUST_BE_OUTSIDE_REPOSITORY')
         if args.mode == 'llm-response':
             if not args.response:
                 raise ValueError('RESPONSE_FILE_REQUIRED')
-            llm = parse_response(args.response.read_text(encoding='utf-8'), max_plans=max_plans)
+            llm = parse_response(args.response.read_text(encoding='utf-8'), max_plans=max_plans,
+                                 example_fingerprints=example_fps)
             llm.update(origin='RESPONSE_FILE_NOT_LIVE_LLM', llm_calls=0,
-                       packet_sha256=packet['packet_sha256'])
+                       packet_sha256=packet['packet_sha256'], model='RESPONSE_FILE',
+                       contract_version=CONTRACT_VERSION)
         elif args.mode == 'llm-simulated':
             from h1lab.research_simulated_llm import ORIGIN, SimulatedLLMOpener
             sim = SimulatedLLMOpener()
             reply = invoke_once(packet, endpoint='https://simulated-llm.invalid/v1/chat/completions',
                                 model='SIMULATED', opener=sim)
-            llm = parse_response(reply['content'], max_plans=max_plans)
+            _write_audit(args.llm_audit, reply, 'SIMULATED')
+            llm = parse_response(reply['content'], max_plans=max_plans, example_fingerprints=example_fps)
             # Simulated replies are not provider calls: llm_calls stays 0.
             llm.update(origin=ORIGIN, llm_calls=0, simulated_requests=len(sim.calls),
-                       packet_sha256=packet['packet_sha256'])
+                       packet_sha256=packet['packet_sha256'], model='SIMULATED',
+                       response_sha256=reply.get('response_sha256'), contract_version=CONTRACT_VERSION)
+            _write_audit(args.llm_audit, reply, 'SIMULATED', llm)
         elif args.mode == 'llm-live':
             if args.now:
                 raise ValueError('LIVE_NOW_OVERRIDE_FORBIDDEN')   # the daily budget uses real UTC time
@@ -170,9 +201,13 @@ def main(argv=None, *, env=None, opener=None):
             if opener is not None:
                 kw['opener'] = opener
             reply = invoke_once(packet, **kw)   # exactly one request; any failure aborts
-            llm = parse_response(reply['content'], max_plans=max_plans)
+            # Raw reply saved BEFORE parsing, so even an unparseable answer can be audited.
+            _write_audit(args.llm_audit, reply, MODEL)
+            llm = parse_response(reply['content'], max_plans=max_plans, example_fingerprints=example_fps)
             llm.update(origin='LLM_LIVE', llm_calls=1, packet_sha256=packet['packet_sha256'],
-                       usage=reply['usage'])
+                       usage=reply['usage'], model=MODEL, response_sha256=reply.get('response_sha256'),
+                       contract_version=CONTRACT_VERSION)
+            _write_audit(args.llm_audit, reply, MODEL, llm)
         result = run_cycle(gate=gate, dataset=dataset, memory_path=memory_path, now=now,
                            run_kind=args.run_kind, cycle_label=args.mode, llm=llm,
                            offline_budget=args.budget)

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./master-brain.css">
   <link rel="stylesheet" href="./llm-investigator.css">
   <link rel="stylesheet" href="./research-autonomy.css?v=20261105-ra2">
-  <script defer src="./research-autonomy.js?v=20261105-ra2"></script>
+  <script defer src="./research-autonomy.js?v=20261105-ra3"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Saltar para a investigação</a>
@@ -37,10 +37,22 @@
       </div>
     </section>
     <section class="llm-metrics" aria-label="Resumo">
-      <article class="llm-card"><div>Experiências executadas</div><strong id="ra-experiments">—</strong><small>Cálculos feitos pelo Python, não pela IA</small></article>
+      <article class="llm-card"><div>Experiências executadas</div><strong id="ra-experiments">—</strong><small>Cálculos feitos pelo Python, não pela IA; origem LLM vs offline abaixo</small></article>
       <article class="llm-card"><div>Perguntas distintas</div><strong id="ra-questions">—</strong><small>Repetições só com dados novos</small></article>
       <article class="llm-card"><div>Ciclos de investigação</div><strong id="ra-cycles">—</strong><small id="ra-last-cycle">—</small></article>
       <article class="llm-card"><div>Cientificamente validado</div><strong id="ra-validated">0</strong><small>Exige pré-registo e jogos futuros</small></article>
+    </section>
+    <section class="llm-panel" aria-labelledby="ra-auto-h">
+      <div class="eyebrow">ORIGEM · INVESTIGAÇÃO AUTÓNOMA</div>
+      <h2 id="ra-auto-h">Investigação autónoma (planos do LLM)</h2>
+      <p class="llm-muted">Só conta aqui o que o modelo propôs, a DSL aceitou e o Python executou. Uma chamada sem planos aceites não é investigação autónoma.</p>
+      <ul id="ra-autonomous" class="ra-list"></ul>
+    </section>
+    <section class="llm-panel" aria-labelledby="ra-det-h">
+      <div class="eyebrow">ORIGEM · INVESTIGAÇÃO DETERMINÍSTICA</div>
+      <h2 id="ra-det-h">Investigação determinística (proponente offline)</h2>
+      <p class="llm-muted">Grelha fixa sem IA, executada pelo Python sobre os mesmos dados. Não é criada pelo LLM.</p>
+      <ul id="ra-deterministic" class="ra-list"></ul>
     </section>
     <section class="llm-panel ra-gates" aria-labelledby="ra-gates-h">
       <h2 id="ra-gates-h">Porque é que pode investigar, mas não validar</h2>
