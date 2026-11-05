@@ -27,8 +27,20 @@ MAX_NODES = 64
 MAX_CONST = 1e4
 NAME_RE = re.compile(r'X_[A-Z0-9_]{2,40}')
 VAR_RE = re.compile(r'[a-z][a-z0-9_]{1,40}')
-FORBIDDEN_NAME_PARTS = ('score', 'outcome', 'result', 'goals_ft', 'ft_', 'home_goals',
-                        'away_goals', 'win', 'cover', 'btts', 'over_2_5', 'y_')
+# Whole-token match (a substring rule rejected legitimate names such as X_..._ONLY_MOVE
+# or X_..._AWAY_NET because they contain "y_").
+FORBIDDEN_NAME_TOKENS = frozenset({'score', 'scores', 'outcome', 'outcomes', 'result', 'results',
+                                   'ft', 'win', 'wins', 'won', 'cover', 'covers', 'covered',
+                                   'btts', 'y', 'label', 'target', 'final'})
+FORBIDDEN_NAME_SEQUENCES = ('over_2_5', 'under_2_5', 'home_goals', 'away_goals', 'total_goals',
+                            'goals_scored')
+
+
+def name_suggests_outcome(name):
+    low = name.lower()
+    tokens = low.split('_')
+    return bool(FORBIDDEN_NAME_TOKENS & set(tokens)) or any(
+        ('_' + s + '_') in ('_' + low + '_') for s in FORBIDDEN_NAME_SEQUENCES)
 # op -> (argument types, result type); '*' = variadic of the given type (2..6 args)
 OPS = {
     'add': (('num', '*'), 'num'), 'sub': (('num', 'num'), 'num'),
@@ -202,8 +214,7 @@ def validate_indicator(spec, variables):
     name = spec['name']
     if not isinstance(name, str) or not NAME_RE.fullmatch(name):
         raise DSLError('INVALID_INDICATOR_NAME')
-    low = name.lower()
-    if any(p in low for p in FORBIDDEN_NAME_PARTS):
+    if name_suggests_outcome(name):
         raise DSLError('INDICATOR_NAME_SUGGESTS_OUTCOME')
     if name in variables:
         raise DSLError('INDICATOR_NAME_COLLISION')

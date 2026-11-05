@@ -255,6 +255,32 @@ def trajectory_variables(events, ko, competition):
     return v
 
 
+def compact_trajectory(events, ko):
+    """Pre-kickoff observed quotes only (no outcome, no names). Values as published."""
+    out = []
+    for e in events:
+        s = e.get('snapshots') or {}
+        m = {'event_id': e['event_id'],
+             'minutes_to_kickoff': round((ko - utc(e['observed_at'])).total_seconds() / 60, 1),
+             'trigger': e.get('trigger_market')}
+        if s.get('total'):
+            t = s['total']
+            m['total'] = {side: [t[side]['line'], t[side]['over_price'], t[side]['under_price']]
+                          for side in ('before', 'after')}
+            lb, la = _lam(t['before']), _lam(t['after'])
+            m['implied_goals'] = [None if lb is None else round(lb, 3), None if la is None else round(la, 3)]
+        if s.get('asian_handicap'):
+            a = s['asian_handicap']
+            m['asian_handicap'] = {side: [a[side]['line'], a[side]['home_price'], a[side]['away_price']]
+                                   for side in ('before', 'after')}
+        if s.get('one_x_two'):
+            p = one_x_two_probs({k: s['one_x_two'][k]['after'] for k in ('1', 'X', '2')})
+            if p:
+                m['p_1x2_after'] = [p['1'], p['X'], p['2']]
+        out.append(m)
+    return out
+
+
 def baselines_from(events):
     out = {'p_over_2_5': None, 'p_home': None, 'p_draw': None, 'p_away': None,
            'p_ah_home': None, 'ah_line_at_decision': None}
@@ -314,7 +340,8 @@ def build_row(timeline, competition, ft_attach):
     base = baselines_from(pre)
     row = {'match_key': timeline['match_key'], 'kickoff_utc': kos[0], 'decision_at': decision,
            'variables': variables, 'baselines': base,
-           'source_event_ids': [e['event_id'] for e in pre]}
+           'source_event_ids': [e['event_id'] for e in pre],
+           'trajectory': compact_trajectory(pre, ko)}
     ft = {'kickoff_utc': kos[0], 'decision_at': decision}
     ft_attach(ft)
     row['ft_status'] = ft.get('ft_status')

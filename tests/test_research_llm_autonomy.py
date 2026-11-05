@@ -64,11 +64,17 @@ class DSL(unittest.TestCase):
         good = {'name': 'X_VELOCITY', 'description': 'Velocidade relativa',
                 'expr': {'op': 'div', 'args': [{'var': 'lambda_net'}, {'var': 'span_min'}]}}
         self.assertEqual(validate_indicator(good, TYPES)['type'], 'num')
-        for name in ('X_SCORE_DIFF', 'X_HOME_WIN', 'lambda_net', 'X_', 'Y_ABC', 'X_FT_GOALS'):
+        for name in ('X_SCORE_DIFF', 'X_HOME_WIN', 'lambda_net', 'X_', 'Y_ABC', 'X_FT_GOALS',
+                     'X_OVER_2_5_HINT', 'X_LAG_TOTAL_GOALS', 'X_Y'):
             with self.subTest(name=name), self.assertRaises(DSLError):
                 validate_indicator(dict(good, name=name), TYPES)
         with self.assertRaises(DSLError):
             validate_indicator(dict(good, description='x\x00y attack'), TYPES)
+        # Regression: names chosen by the (simulated) model on real data were wrongly refused.
+        for name in ('X_BIG_TOTAL_ONLY_MOVE', 'X_COMOVE_LAMBDA_NET_P_AWAY_NET', 'X_DAILY_SWING',
+                     'X_OVERROUND_GAP', 'X_WINDOW_SHORT'):
+            with self.subTest(ok=name):
+                self.assertEqual(validate_indicator(dict(good, name=name), TYPES)['name'], name)
 
 
 class Plans(unittest.TestCase):

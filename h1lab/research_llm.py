@@ -27,6 +27,7 @@ from .v6_llm_investigator import provider_usage, strict_json
 PACKET_SCHEMA = 1
 MAX_RESPONSE_BYTES = 60_000
 MAX_REQUEST_BYTES = 48_000
+PACKET_BUDGET_BYTES = 44_000   # leaves room for the system prompt and envelope
 
 SYSTEM = (
     'Es o investigador autonomo do MASTER BRAIN, em modo EXPLORATORIO. '
@@ -41,7 +42,9 @@ SYSTEM = (
     'Devolve APENAS JSON: {"schema_version":1,"experiments":[ate 3 planos],"new_questions":[ate 5 textos]}. '
     'Cada plano: question, hypothesis, null_hypothesis, market, outcome, condition (expressao booleana), '
     'opcional control_condition, indicators [{name X_..., description, expr}], rationale, '
-    'alternative_explanations, confounders (lead_bin, line_bin, competition_type).'
+    'alternative_explanations, confounders (lead_bin, line_bin, competition_type). '
+    'trajectory_examples sao trajetorias reais pre-inicio, pseudonimizadas e sem resultados: '
+    'usa-as para entender formas de movimento, nunca como prova de efeito.'
 )
 
 
@@ -54,7 +57,7 @@ def dsl_spec():
 
 
 def build_packet(*, gate, dataset_description, variable_catalogue, memory_digest, agenda_items,
-                 max_plans=3):
+                 max_plans=3, trajectory_examples=None):
     sci = gate.get('scientific_validation_gate', {})
     example = {
         'question': 'Uma subida da linha Total seguida de descida dos golos implicitos difere de tres movimentos consecutivos no mesmo sentido?',
@@ -80,13 +83,26 @@ def build_packet(*, gate, dataset_description, variable_catalogue, memory_digest
         'dsl': dsl_spec(),
         'memory': memory_digest,
         'agenda': agenda_items[:12],
+        'trajectory_examples': trajectory_examples or {'examples': []},
         'max_experiments': max_plans,
         'response_example': {'schema_version': 1, 'experiments': [example],
                              'new_questions': ['Os movimentos AH contrarios ao Total comportam-se de forma diferente?']},
     }
+    # Bound the request deterministically: shrink examples, then memory, then fail.
+    while _user_size(packet) > PACKET_BUDGET_BYTES and packet['trajectory_examples'].get('examples'):
+        packet['trajectory_examples'] = dict(packet['trajectory_examples'],
+                                             examples=packet['trajectory_examples']['examples'][:-1])
+    while _user_size(packet) > PACKET_BUDGET_BYTES and packet['memory']:
+        packet['memory'] = packet['memory'][1:]
+    if _user_size(packet) > PACKET_BUDGET_BYTES:
+        raise ValueError('PACKET_TOO_LARGE')
     raw = json.dumps(packet, sort_keys=True, ensure_ascii=False, allow_nan=False)
     packet['packet_sha256'] = hashlib.sha256(raw.encode()).hexdigest()
     return packet
+
+
+def _user_size(packet):
+    return len(json.dumps(packet, ensure_ascii=False, allow_nan=False).encode())
 
 
 def parse_response(content, *, max_plans=3):
@@ -124,7 +140,8 @@ def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen):
     if not isinstance(model, str) or not 1 <= len(model) <= 100:
         raise ValueError('MODEL_REQUIRED')
     user = {k: packet[k] for k in ('gates', 'data', 'markets', 'variables', 'dsl', 'memory',
-                                   'agenda', 'max_experiments', 'response_example')}
+                                   'agenda', 'trajectory_examples', 'max_experiments',
+                                   'response_example')}
     body = json.dumps({'model': model, 'temperature': 0.4, 'max_tokens': 2400,
                        'response_format': {'type': 'json_object'},
                        'messages': [{'role': 'system', 'content': SYSTEM},
