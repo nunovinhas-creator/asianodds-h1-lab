@@ -3,12 +3,14 @@
   "exploration_enabled": true,
   "offline_cycle_enabled": true,
   "llm_live_enabled": false,
+  "llm_schedule_live_enabled": false,
   "max_experiments_per_cycle": 40,
   "max_llm_plans_per_call": 3,
   "max_llm_calls_per_cycle": 1,
   "notes": [
     "exploration_enabled=false restores the previous behaviour: no exploratory research runs.",
     "Live LLM disabled pending explicit authorization. Central quota: 8000 estimated neurons/day, 1000 reserved per call, one call per execution, no retries. Quota ledger branch must be provisioned after merge.",
+    "llm_schedule_live_enabled=false: even with llm_live_enabled=true, cron runs are refused before any reservation or provider request; only workflow_dispatch mode=live_once + INVESTIGAR_UMA_VEZ, attempt 1, on main can call.",
     "Nothing in this file can change scientific validation criteria, frozen forecasts, H1, FT, Telegram or quotas."
   ]
 }

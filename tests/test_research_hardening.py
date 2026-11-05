@@ -324,6 +324,7 @@ class LiveMigration(unittest.TestCase):
             cfg = root / 'config/research-autonomy.json'
             c = json.loads(cfg.read_text())
             c['llm_live_enabled'] = True
+            c['llm_schedule_live_enabled'] = True  # cron path explicitly re-enabled in fixture
             cfg.write_text(json.dumps(c))
             sim = SimulatedLLMOpener()
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',

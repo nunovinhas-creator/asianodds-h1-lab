@@ -52,17 +52,26 @@ MODE_KINDS = {'offline': ('OPERATIONAL', 'DEMONSTRATION', 'TEST'),
               'recover-torn-tail': ('OPERATIONAL', 'DEMONSTRATION', 'TEST')}
 
 
-def live_authorisation(env, memory, today):
-    """Mirror of the existing autonomous workflow protections (fail closed)."""
+def live_authorisation(env, memory, today, schedule_allowed=True):
+    """Mirror of the existing autonomous workflow protections (fail closed).
+
+    ``schedule_allowed`` comes from config ``llm_schedule_live_enabled`` (default False):
+    while it is off, llm_live_enabled=true can only ever be used by ONE supervised
+    workflow_dispatch(mode=live_once, INVESTIGAR_UMA_VEZ); every cron run is refused
+    before any quota reservation or provider request."""
     if env.get('GITHUB_REF') != 'refs/heads/main':
         raise ValueError('LIVE_NOT_MAIN')
     if env.get('GITHUB_RUN_ATTEMPT') != '1':
         raise ValueError('LIVE_RERUN_NOT_AUTHORISED')
     event = env.get('GITHUB_EVENT_NAME')
     if event == 'schedule':
+        if not schedule_allowed:
+            raise ValueError('LIVE_SCHEDULE_BLOCKED_BY_CONFIG')
         if env.get('GITHUB_EVENT_SCHEDULE') != SCHEDULE:
             raise ValueError('LIVE_SCHEDULE_NOT_AUTHORISED')
     elif event == 'workflow_dispatch':
+        if env.get('RESEARCH_LLM_MODE') != 'live_once':
+            raise ValueError('LIVE_DISPATCH_MODE_NOT_LIVE_ONCE')
         if env.get('RESEARCH_LLM_CONFIRMATION') != LIVE_CONFIRM:
             raise ValueError('LIVE_CONFIRMATION_MISSING')
     else:
@@ -212,7 +221,8 @@ def main(argv=None, *, env=None, opener=None, quota_factory=None):
                 raise ValueError('LLM_LIVE_DISABLED_BY_CONFIG')
             if not args.allow_network:
                 raise ValueError('LLM_LIVE_NOT_AUTHORISED')
-            live_authorisation(env, memory, now.date().isoformat())
+            live_authorisation(env, memory, now.date().isoformat(),
+                               schedule_allowed=gate['config']['llm_schedule_live_enabled'])
             account, key = env.get('CLOUDFLARE_ACCOUNT_ID', ''), env.get('MASTER_BRAIN_LLM_API_KEY', '')
             if not re.fullmatch(r'[a-fA-F0-9]{32}', account) or not key:
                 raise ValueError('LLM_SECRET_MISSING')
