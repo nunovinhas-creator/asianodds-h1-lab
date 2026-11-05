@@ -1,13 +1,13 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const {validateData,renderPatternsMeta,renderValidation,renderChronology,_testState}=require('../docs/master-brain.js');
+const {validateData,renderPatternsMeta,renderValidation,renderChronology,renderSourceEvidence,sourceFreshness,_testState}=require('../docs/master-brain.js');
 test('reject empty/array/wrong schema and missing fields instead of zero opportunities',()=>{
  for(const bad of [{},[],null,{schema_version:999},{schema_version:1,future_strict:[]}])
   assert.throws(()=>validateData('watch',bad));
 });
 test('real published contracts pass without mutating source',()=>{
- for(const [k,p] of Object.entries({research:'lab/pattern-research.json',watch:'lab/pattern-watch.json',discovery:'lab/discoveries.json',ft:'lab/ft-results.json',quality:'lab/v4-audit.json',h1:'data.json'})){
+ for(const [k,p] of Object.entries({research:'lab/pattern-research.json',watch:'lab/pattern-watch.json',discovery:'lab/discoveries.json',ft:'lab/ft-results.json',quality:'lab/v4-audit.json',h1:'data.json',science:'lab/v6-p0-gates.json'})){
   const d=JSON.parse(fs.readFileSync('docs/'+p));const before=JSON.stringify(d);validateData(k,d);assert.equal(JSON.stringify(d),before);
  }
 });
@@ -77,5 +77,28 @@ test('failed refresh cannot keep previous research metrics or discovery details 
    assert.equal(nodes.get('discovery-count').textContent,'Indisponível');
  } finally {
    if(oldDocument===undefined)delete global.document;else global.document=oldDocument;
+ }
+});
+
+test('a fresh V4 report cannot make a stale Telegram checkpoint look current',()=>{
+ const now=Date.parse('2026-11-05T21:22:00Z');
+ assert.deepEqual(sourceFreshness('2026-11-05T19:36:00Z',now,60),{minutes:106,stale:true});
+ assert.deepEqual(sourceFreshness('2026-11-05T21:19:00Z',now,60),{minutes:3,stale:false});
+ assert.deepEqual(sourceFreshness('2026-11-06T21:19:00Z',now,60),{minutes:null,stale:true});
+ const previous=global.document,originalData=_testState.data;
+ const makeNode=()=>({textContent:'',children:[],append(...nodes){this.children.push(...nodes)}});
+ global.document={createElement:makeNode};
+ try {
+   _testState.data={h1:{generated_at:'2026-11-05T21:20:00Z',
+     collector:{last_poll_at:'2026-11-05T19:36:00Z'}},quality:{generated_at:'2026-11-05T21:20:00Z'}};
+   const pane=makeNode();
+   renderSourceEvidence(pane,now);
+   const rows=Object.fromEntries(pane.children.map(row=>row.children.map(cell=>cell.textContent)));
+   assert.equal(rows['Autenticação Telegram'],'Estado atual por confirmar');
+   assert.match(rows['Última leitura Telegram registada'],/Desatualizada/);
+   assert.equal(rows['Estado científico'],'Indisponível');
+ } finally {
+   global.document=previous;
+   _testState.data=originalData;
  }
 });

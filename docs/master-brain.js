@@ -5,7 +5,8 @@
  const SOURCES={
    research:"lab/pattern-research.json", watch:"lab/pattern-watch.json",
    discovery:"lab/discoveries.json",
-   ft:"lab/ft-results.json", quality:"lab/v4-audit.json", h1:"data.json"
+   ft:"lab/ft-results.json", quality:"lab/v4-audit.json", h1:"data.json",
+   science:"lab/v6-p0-gates.json"
  };
  const PAGE_NAMES={radar:"Radar do Cérebro",futuros:"Jogos futuros",padroes:"Padrões e cruzamentos",validacao:"Validação e evolução",dados:"Dados e qualidade"};
  const CATEGORY={
@@ -106,11 +107,13 @@
    if(key!=="h1"&&body.schema_version!==1)fail();
    const arrays={research:["patterns","combinations_top","frozen"],watch:["future_strict","future_other_original","future_opposing"],discovery:["timeline"],ft:["games"],h1:["signals","tickets"]};
    for(const field of arrays[key]||[])if(!Array.isArray(body[field])||body[field].some(v=>!object(v)))fail();
-   const objects={research:["scope","generation","state_counts"],watch:["summary"],discovery:["patterns","prospective"],ft:["timing_counts","coverage_diagnostics"],quality:["acceptance_gates"],h1:["singles","triples"]};
+   const objects={research:["scope","generation","state_counts"],watch:["summary"],discovery:["patterns","prospective"],ft:["timing_counts","coverage_diagnostics"],quality:["acceptance_gates"],science:["gates"],h1:["singles","triples"]};
    for(const field of objects[key]||[])if(!object(body[field]))fail();
    if(!Object.hasOwn(objects,key))fail();
-   const timestamp=key==="ft"?body.last_updated_at:key==="discovery"?body.baseline_at:body.generated_at;
+   const timestamp=key==="ft"?body.last_updated_at:key==="discovery"?body.baseline_at:key==="science"?body.evaluation_clock:body.generated_at;
    if(typeof timestamp!=="string"||!Number.isFinite(Date.parse(timestamp)))fail();
+   if(key==="science"&&(typeof body.scientific_state!=="string"||
+      typeof body.gates["7_days"]?.status!=="string"))fail();
    if(key==="ft"){
      if(![body.matches,body.final_recorded,body.unverified].every(count)||body.final_recorded+body.unverified!==body.matches)fail();
      if(!Object.values(body.timing_counts).every(count)||Object.values(body.timing_counts).reduce((a,b)=>a+b,0)!==body.matches)fail();
@@ -202,6 +205,31 @@
      throw Error("Incomplete discovery page coverage");
    return {...root,patterns};
  }
+ // Collector heartbeat is persisted at most 45 min apart without new messages.
+ function sourceFreshness(value,now,limitMinutes){
+   const stamp=dt(value);
+   if(stamp==null||stamp>now+120000)return {minutes:null,stale:true};
+   const minutes=Math.max(0,Math.floor((now-stamp)/60000));
+   return {minutes,stale:minutes>=limitMinutes};
+ }
+ function renderSourceEvidence(parent,now=Date.now()){
+   const h1=data("h1"),v4=data("quality"),ft=data("ft"),science=data("science");
+   const lastPoll=h1?.collector?.last_poll_at;
+   const collection=sourceFreshness(lastPoll,now,60);
+   const settlement=sourceFreshness(ft?.last_updated_at,now,70);
+   rowKeyVal(parent,"Snapshot H1 gerado",formatDate(h1?.generated_at));
+   rowKeyVal(parent,"Última leitura Telegram registada",collection.minutes==null?"Sem checkpoint verificável":
+     formatDate(lastPoll)+" · "+num(collection.minutes)+" min"+(collection.stale?" · Desatualizada":""));
+   rowKeyVal(parent,"Autenticação Telegram",collection.stale?
+     "Estado atual por confirmar":"Leitura confirmada no último checkpoint");
+   rowKeyVal(parent,"Relatório LAB V4 gerado",formatDate(v4?.generated_at));
+   rowKeyVal(parent,"Último snapshot FT",formatDate(ft?.last_updated_at)+
+     (settlement.minutes==null?"":(" · "+num(settlement.minutes)+" min")));
+   rowKeyVal(parent,"Reconciliação FT",settlement.stale?"Estado atual por confirmar":
+     (ft.execution_health?.status||"Sem diagnóstico no snapshot"));
+   rowKeyVal(parent,"Estado científico",science?
+     science.scientific_state+" · 7 dias: "+science.gates["7_days"].status:"Indisponível");
+ }
  async function load(force=false){
    const button=$("refresh");button.disabled=true;button.textContent="↻";
    const attempts=await Promise.allSettled(Object.entries(SOURCES).map(async ([key,path])=>({key,body:await (key==="discovery"?fetchDiscovery(path):fetchData(path))})));
@@ -213,17 +241,19 @@
        try{
          state.data[key]=validateData(key,body);got++;
          if(key==="ft"&&body.execution_health?.status==="DEGRADED")failed.push("FT: erros de execução registados");
-         const timestamp=key==="ft"?body.last_updated_at:body.generated_at;
+         const timestamp=key==="ft"?body.last_updated_at:key==="science"?body.evaluation_clock:body.generated_at;
          if(timestamp&&(Date.now()-Date.parse(timestamp)>2*60*60*1000||Date.parse(timestamp)>Date.now()+120000))stale.push(key);
        }
        catch(_){delete state.data[key];failed.push(key+" (formato)")}
      }else{delete state.data[key];failed.push(key)}
    }
+   const collectorStale=sourceFreshness(data("h1")?.collector?.last_poll_at,Date.now(),60).stale;
    const banner=$("error-box");
-   banner.hidden=failed.length===0&&stale.length===0;
+   banner.hidden=failed.length===0&&stale.length===0&&!collectorStale;
    banner.textContent="";
    if(failed.length)banner.textContent="Dados parciais: não foi possível atualizar "+failed.join(", ")+". Os valores existentes podem estar desatualizados.";
    if(stale.length)banner.textContent+=" Dados desatualizados ou com relógio inválido: "+stale.join(", ")+". Última atualização superior a 2 horas ou no futuro.";
+   if(collectorStale)banner.textContent+=" Recolha Telegram sem checkpoint recente. A publicação do painel não comprova nova leitura.";
    put("last-sync",got?(data("research")?.generated_at?"Cérebro: "+formatDate(data("research").generated_at)+" · relatórios publicados":"Relatórios parcialmente disponíveis"):"Sem ligação aos relatórios");
    try{render()}catch(_){banner.hidden=false;banner.textContent="Erro ao apresentar os relatórios. Os valores não puderam ser validados."}
    finally{button.disabled=false;button.textContent="↻"}
@@ -287,6 +317,7 @@
      gate(proof,"Validação fora da amostra",(r.state_counts?.VALIDADO||0)>0,(r.state_counts?.VALIDADO||0)+" validadas");
    }
    const feeds=clear("r-feeds");
+   renderSourceEvidence(feeds);
    if(!r&&!data("ft")&&!data("watch"))empty(feeds,"A aguardar dados das fontes.");
    else {
      if(r)rowKeyVal(feeds,"Pesquisa V5",formatDate(r.generated_at));
@@ -586,12 +617,12 @@
      for(const [key,value] of Object.entries(q.acceptance_gates||{}))gate(gates,GATE_LABELS[key]||key,!!value,"Comprovado","Pendente");
    }else empty(gates,"Auditoria V4 indisponível.");
    const feeds=clear("d-feeds");
-   if(f)rowKeyVal(feeds,"Relatório FT",formatDate(f.last_updated_at));
+   renderSourceEvidence(feeds);
    if(r){rowKeyVal(feeds,"Pesquisa V5",formatDate(r.generated_at));rowKeyVal(feeds,"FT usados no V5",num(r.scope?.ft_confirmed));rowKeyVal(feeds,"Universo elegível",num(r.scope?.research_eligible));}
    if(w){rowKeyVal(feeds,"Padrões futuros",formatDate(w.generated_at));rowKeyVal(feeds,"Registos de primeira deteção",num(w.summary?.total_historical_first_detections));}
    if(data("h1"))rowKeyVal(feeds,"Arquivo Under H1",num(data("h1").singles?.total)+" sinais simulados");
  }
  function render(){renderRadar();renderChronology();renderProspective();renderFuture();renderPatternsMeta();renderValidation();renderData()}
- if(typeof module!=="undefined"&&module.exports){module.exports={validateData,renderPatternsMeta,renderValidation,renderChronology,_testState:state};return}
+ if(typeof module!=="undefined"&&module.exports){module.exports={validateData,renderPatternsMeta,renderValidation,renderChronology,renderSourceEvidence,sourceFreshness,_testState:state};return}
  setupNav();load();
 })();
