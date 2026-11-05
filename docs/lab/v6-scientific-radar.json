@@ -3,8 +3,8 @@
   "hypotheses": [
     {
       "comparison": "market_model_residual",
-      "condition_original": 202,
-      "condition_strict": 178,
+      "condition_original": 203,
+      "condition_strict": 179,
       "decision_event_sha256": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
       "decision_reason": "INCONCLUSIVE_LOW_POWER",
       "definition": {
@@ -90,7 +90,7 @@
         }
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
-      "frozen_matches": 1343,
+      "frozen_matches": 1344,
       "ft_verified": 392,
       "games": [
         {
@@ -10118,6 +10118,78 @@
             "telegram_edit_at": null
           },
           "telegram_original_at": "2026-11-03T09:58:37+00:00"
+        },
+        {
+          "event_id": "3571094759:52963",
+          "forecast": {
+            "competition_heuristic": "LEAGUE_OTHER",
+            "feature_sha256": "b933f243f1d4044deaa32e569217fb97da7ab19c921901f1e434532ba685c87c",
+            "feature_version": 2,
+            "forecast_kind": "MARKET_BASELINE_ONLY",
+            "market_co_observation": "SAME_MESSAGE",
+            "market_probability_over_2_5": 0.6097,
+            "market_total_after": {
+              "line": 3.0,
+              "margin": 0.00505,
+              "over_price": 2.0,
+              "under_price": 1.98
+            },
+            "market_total_before": {
+              "line": 2.75,
+              "margin": 0.05807,
+              "over_price": 1.8,
+              "under_price": 1.99
+            },
+            "memory_observation_sha256": "e02f69df6bd64db5e2647485759de43c33bf74a66fd483a254244ce99fdff5b2",
+            "memory_pattern_sha256": "75a627a4d02d90b0aaa8aeb2d5bcb5b3531746dea477f5bb27c9323eee164a83",
+            "model_delta_vs_market": 0.0,
+            "original_posthoc_condition": true,
+            "quality_flags": [],
+            "quality_status": "USABLE",
+            "sha256": "d94534377a4c3137b335c414aa5918e67d091cf5d2e389922db4efc2a2f647e7",
+            "strict_observation": true
+          },
+          "frozen_known_at": "2026-11-05T10:01:53+00:00",
+          "ft": {
+            "checked_at": null,
+            "event_id": null,
+            "evidence_level": null,
+            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
+            "scientific_event_sha256": null,
+            "score": null,
+            "sha256": null,
+            "source_url": null,
+            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+          },
+          "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
+          "kickoff_utc": "2026-11-07T13:00:00+00:00",
+          "match_key": "2026-11-07,35368,28715",
+          "match_label": "Ceska Lipa vs FK MAS Táborsko",
+          "snapshot_history_count": 1,
+          "source_v4": {
+            "known_at": "2026-11-05T10:01:16+00:00",
+            "markets": {
+              "total": {
+                "after": {
+                  "line": 3.0,
+                  "over_price": 2.0,
+                  "under_price": 1.98
+                },
+                "before": {
+                  "line": 2.75,
+                  "over_price": 1.8,
+                  "under_price": 1.99
+                },
+                "cross_line_prices_comparable": false,
+                "line_changed": true
+              }
+            },
+            "revision_id": "V4R:e4a057b21b87adce4702e834e4f0",
+            "sha256": "ea079523b23320462a932577ac0f32e7904b4af272af63b3226ecd825cb6bd9e",
+            "status": "V4_VERSION_VERIFIED_BEFORE_FREEZE",
+            "telegram_edit_at": null
+          },
+          "telegram_original_at": "2026-11-05T10:00:28+00:00"
         },
         {
           "event_id": "3571094759:52692",
@@ -108779,12 +108851,12 @@
   },
   "source_tails": {
     "decisions": "430aeb142ef76d96d61c4399a4c08e2eb8c9a822d006a684160b5cda2c23f985",
-    "forecasts": "f92b0eadf1485984d4444270172da46f16802e47a60874b4eed1cac19fadc505",
-    "observations": "c29e2dea2626a6c2dc23215f203b5fbf152eb1c24d4f9f7124d4f26ef3f8d51d",
-    "patterns": "435403cd69cf927cfa2d418397cdce49dfbfd33a33625e01f948c836ca194728",
+    "forecasts": "d94534377a4c3137b335c414aa5918e67d091cf5d2e389922db4efc2a2f647e7",
+    "observations": "e02f69df6bd64db5e2647485759de43c33bf74a66fd483a254244ce99fdff5b2",
+    "patterns": "75a627a4d02d90b0aaa8aeb2d5bcb5b3531746dea477f5bb27c9323eee164a83",
     "science_evidence": "c9cf32b2feee33791b95543131c8cd0491c67581a81a1d92a88038d68dfc9110",
     "universal_ft": "1f90f550c6cdcd66e20f33b5baf90cdcc373a1d4b6fa97cab5df8250ea8f237f",
-    "v4_revisions": "4dda0a8f53f24f4d0bb582b1f9545abf905b3763ecd41adac550e96cbd04c8a8"
+    "v4_revisions": "ea079523b23320462a932577ac0f32e7904b4af272af63b3226ecd825cb6bd9e"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
@@ -108792,13 +108864,14 @@
     "evidence_quality": {
       "EXPIRED_UNVERIFIED": 660,
       "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 392,
+      "NOT_REGISTERED_IN_FT_JOURNAL": 1,
       "PENDING": 291,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 113,
-      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 1230
+      "V4_VERSION_VERIFIED_BEFORE_FREEZE": 1231
     },
-    "frozen_snapshots": 1857,
+    "frozen_snapshots": 1858,
     "ft_universal_events": 3016,
-    "unique_matches": 1343,
-    "v4_revision_events": 2294
+    "unique_matches": 1344,
+    "v4_revision_events": 2296
   }
 }
