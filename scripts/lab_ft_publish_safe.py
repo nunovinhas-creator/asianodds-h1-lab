@@ -731,6 +731,12 @@ def refusal_receipt(exc, context, *, root=None, bundle=None, env=None):
     fields.update(reason=str(exc)[:500], reason_kind=kind, published_commit=None,
                   publication="NOT_PUBLISHED", run_id=env.get("GITHUB_RUN_ID"),
                   telegram_requests=0)
+    if kind in {"INCOMPATIBLE_PROGRAM", "BASE_NOT_ANCESTOR"}:
+        fields["recovery_action"] = "RECONCILE_FROM_CURRENT_MAIN"
+    elif status == "OUTCOME_UNRESOLVED":
+        fields["recovery_action"] = "VERIFY_REMOTE_BEFORE_RETRY"
+    else:
+        fields["recovery_action"] = "REVIEW_REFUSAL"
     if bundle is not None and root is not None:
         fields.update(write_bundle(root, context, bundle))
     return _receipt(status, context, **fields)

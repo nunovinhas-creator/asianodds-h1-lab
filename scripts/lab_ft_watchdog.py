@@ -1,6 +1,7 @@
-"""Nonblocking GitHub FT workflow watchdog, run AFTER H1 data were safely pushed.
+"""Nonblocking GitHub FT workflow watchdog, run independently of the Telegram read.
 
-H1/Telegram/FIFO already finished before this call. No sports API calls here.
+No sports API calls here. A failed recent attempt holds the same minimum
+spacing, but is explicitly reported and never treated as healthy.
 Conservatively dispatch LAB FT only if no real scheduled/manual FT workflow
 was created in the preceding 35 minutes. Unauthenticated push runs are ignored.
 The GitHub API token stays in the authorization header and is never logged.
@@ -34,7 +35,7 @@ def plan(runs, now):
     """Return safe dispatch decision. Invalid/missing fields fail closed."""
     if not isinstance(runs,list) or len(runs)>100 or now.tzinfo is None:
         raise ValueError("Invalid workflow run list or clock")
-    times=[]
+    candidates=[]
     for entry in runs:
         if not isinstance(entry,dict):
             raise ValueError("Invalid GitHub run entry")
@@ -44,13 +45,28 @@ def plan(runs, now):
         event = entry.get("event")
         if event is not None and event not in ("schedule", "workflow_dispatch"):
             continue  # notably push: NO authenticated FT scan
-        times.append(when)
-    newest=max(times) if times else None
-    age=(now-newest) if newest else None
+        candidates.append((when, entry.get("status"), entry.get("conclusion")))
+    newest = max(candidates, key=lambda row: row[0]) if candidates else None
+    when, status, conclusion = newest or (None, None, None)
+    age = now - when if when is not None else None
+    active = any(status in {"requested", "queued", "pending", "waiting", "in_progress"}
+                 for _, status, _ in candidates)
+    dispatch = not active and (age is None or age >= MIN_AGE)
+    if active:
+        reason = "ACTIVE_RUN"
+    elif conclusion and conclusion != "success":
+        reason = "STALE_FAILED_ATTEMPT" if dispatch else "FAILED_ATTEMPT_COOLDOWN"
+    elif dispatch:
+        reason = "NO_RECENT_ATTEMPT"
+    else:
+        reason = "RECENT_ATTEMPT"
+
     return {
-        "dispatch":newest is None or age>=MIN_AGE,
-        "latest_ft_run_at":newest.isoformat(timespec="seconds") if newest else None,
-        "age_minutes":round(age.total_seconds()/60,2) if age else None,
+        "dispatch":dispatch,
+        "reason":reason,
+        "latest_ft_run_at":when.isoformat(timespec="seconds") if when else None,
+        "latest_ft_conclusion":conclusion,
+        "age_minutes":round(age.total_seconds()/60,2) if age is not None else None,
         "minimum_age_minutes":int(MIN_AGE.total_seconds()/60),
     }
 
@@ -105,9 +121,13 @@ def run(*, env=None, now=None, opener=urlopen):
 
 def main():
     outcome=run()
+    if outcome.get("reason") == "FAILED_ATTEMPT_COOLDOWN":
+        print("::warning title=FT watchdog::Latest FT attempt failed; bounded retry interval still active.")
     print(outcome["status"],
           "dispatched",outcome["dispatched"],
-          "latest_ft_run_at",outcome.get("latest_ft_run_at"))
+          "latest_ft_run_at",outcome.get("latest_ft_run_at"),
+          "conclusion",outcome.get("latest_ft_conclusion"),
+          "reason",outcome.get("reason"))
     return outcome
 
 

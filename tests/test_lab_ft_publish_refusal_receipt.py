@@ -77,6 +77,17 @@ class FTRefusalReceiptTests(base.GitFTPublicationTests):
         git(self.root, "fetch", "-q", "origin", "main")
         self.assertEqual(git(self.root, "rev-parse", "origin/main"), remote_before)
 
+    def test_recovery_actions_distinguish_refused_inputs_and_unknown_push(self):
+        for reason, action in (
+            ("FT dependency or program changed: h1lab/lab_results.py", "RECONCILE_FROM_CURRENT_MAIN"),
+            ("FT push outcome unknown and remote unreadable", "VERIFY_REMOTE_BEFORE_RETRY"),
+            ("Unknown concurrent path: unknown.json", "REVIEW_REFUSAL"),
+        ):
+            with self.subTest(reason=reason), contextlib.redirect_stdout(io.StringIO()):
+                receipt = p.refusal_receipt(p.UnsafeFTPublication(reason), {}, env={})
+                self.assertEqual(receipt["recovery_action"], action)
+                self.assertEqual(receipt["publication"], "NOT_PUBLISHED")
+
     def test_incident_41502044305_invalid_h1_receipt_leaves_a_receipt(self):
         wrong = {"schema_version": 1, "entries": {
             "old": {"match_key": "changed", "kickoff_utc": "2026-11-01T16:00:00Z"}}}
