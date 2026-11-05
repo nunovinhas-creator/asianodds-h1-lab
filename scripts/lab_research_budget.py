@@ -28,12 +28,14 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from h1lab.research_daily_limit import daily_llm_attempt_limit
+
 API = 'https://api.github.com'
 LEDGER_WORKFLOWS = ('v6-llm-autonomous.yml', 'v6-llm-investigator.yml')
 # Substrings identifying the step that may contact the provider in each workflow
 # (current research workflow, retired autonomous workflow, manual investigator).
 LLM_STEP_MARKERS = ('LLM call', 'Cloudflare Workers AI')
-MAX_DAILY_LLM_ATTEMPTS = 4
+MAX_DAILY_LLM_ATTEMPTS = 4          # base rule; dated exception in h1lab.research_daily_limit
 PAGE = 100
 
 
@@ -144,9 +146,11 @@ def main(argv=None, *, env=None, opener=urlopen, now=None):
     except Exception as exc:  # any doubt -> no output -> discover skipped, no LLM call
         print(json.dumps({'status': 'LEDGER_UNAVAILABLE', 'reason': type(exc).__name__ + ': ' + str(exc)[:200]}))
         return 2
-    report = {'status': 'LEDGER_OK', 'utc_day': now.astimezone(timezone.utc).date().isoformat(),
-              'prior_llm_attempts': total, 'limit': MAX_DAILY_LLM_ATTEMPTS,
-              'remaining': max(0, MAX_DAILY_LLM_ATTEMPTS - total), 'counted': details}
+    day = now.astimezone(timezone.utc).date().isoformat()
+    limit = daily_llm_attempt_limit(day)
+    report = {'status': 'LEDGER_OK', 'utc_day': day,
+              'prior_llm_attempts': total, 'limit': limit,
+              'remaining': max(0, limit - total), 'counted': details}
     print(json.dumps(report, sort_keys=True))
     if args.github_output:
         with open(args.github_output, 'a', encoding='utf-8') as fh:
