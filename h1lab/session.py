@@ -8,6 +8,7 @@ import asyncio
 import binascii
 import os
 import struct
+import sys
 
 
 SETUP_TIMEOUT_SECONDS = 30
@@ -56,31 +57,41 @@ async def authorized_channel():
         raise TelegramSessionError("TELEGRAM_API_CONFIG_INVALID") from None
 
     client = TelegramClient(load_telegram_session(), api_id, os.environ["TG_API_HASH"],
-                            receive_updates=False, flood_sleep_threshold=0)
+                            receive_updates=False, flood_sleep_threshold=0,
+                            timeout=10, connection_retries=1, request_retries=1,
+                            retry_delay=1, auto_reconnect=False, raise_last_call_error=True)
     stage = "CONNECT"
     try:
+        print("TELEGRAM_PHASE_START CONNECT", flush=True)
         await asyncio.wait_for(client.connect(), SETUP_TIMEOUT_SECONDS)
+        print(f"TELEGRAM_PHASE_OK {stage}", flush=True)
         stage = "AUTHORIZE"
+        print(f"TELEGRAM_PHASE_START {stage}", flush=True)
         # is_user_authorized() maps every RPCError to False. Use its underlying
         # request directly to distinguish rejected sessions from temporary errors.
         await asyncio.wait_for(client(GetStateRequest()), SETUP_TIMEOUT_SECONDS)
+        print(f"TELEGRAM_PHASE_OK {stage}", flush=True)
         stage = "CHANNEL_LOOKUP"
+        print(f"TELEGRAM_PHASE_START {stage}", flush=True)
         async with asyncio.timeout(SETUP_TIMEOUT_SECONDS):
             wanted = os.environ["TG_CHANNEL"].strip()
             if wanted.startswith("@"):
                 try:
                     entity = await client.get_entity(wanted)
                 except ValueError:
-                    raise TelegramSessionError("TELEGRAM_CHANNEL_NOT_RESOLVED") from None
+                    raise TelegramSessionError("TELEGRAM_CHANNEL_UNAVAILABLE CHANNEL_LOOKUP") from None
             else:
                 dialogs = [dialog async for dialog in client.iter_dialogs()]
                 matches = [d.entity for d in dialogs if str(d.id) == wanted or d.name == wanted]
                 if len(matches) != 1:
-                    raise TelegramSessionError("TELEGRAM_CHANNEL_NOT_RESOLVED")
+                    raise TelegramSessionError("TELEGRAM_CHANNEL_UNAVAILABLE CHANNEL_LOOKUP")
                 entity = matches[0]
+        print(f"TELEGRAM_PHASE_OK {stage}", flush=True)
         stage = "CHANNEL_READ"
+        print(f"TELEGRAM_PHASE_START {stage}", flush=True)
         async with asyncio.timeout(READ_TIMEOUT_SECONDS):
             yield client, entity
+        print("TELEGRAM_PHASE_OK CHANNEL_READ", flush=True)
     except TimeoutError:
         raise TelegramSessionError(f"TELEGRAM_TIMEOUT {stage}") from None
     except (errors.SessionRevokedError, errors.SessionExpiredError,
@@ -99,7 +110,16 @@ async def authorized_channel():
     except errors.RPCError as exc:
         raise TelegramSessionError(f"TELEGRAM_RPC_FAILURE {stage} {type(exc).__name__}") from None
     finally:
+        # Cleanup must never replace the original rejection/transport diagnosis.
+        primary_error = sys.exc_info()[0] is not None
+        print("TELEGRAM_PHASE_START DISCONNECT", flush=True)
         try:
             await asyncio.wait_for(client.disconnect(), DISCONNECT_TIMEOUT_SECONDS)
-        except OSError:
-            print("TELEGRAM_DISCONNECT_FAILED")
+        except Exception as exc:
+            reason = ("TELEGRAM_TIMEOUT DISCONNECT" if isinstance(exc, TimeoutError)
+                      else "TELEGRAM_DISCONNECT_FAILED")
+            print(reason, flush=True)
+            if not primary_error:
+                raise TelegramSessionError(reason) from None
+        else:
+            print("TELEGRAM_PHASE_OK DISCONNECT", flush=True)
