@@ -29,6 +29,14 @@ After live run 42038573930 (``HTTPError: HTTP Error 400: Bad Request``, provider
 * the schema SENT to the provider (``provider_schema``) keeps only the keywords used by
   the Cloudflare JSON Mode documentation plus ``enum``/``additionalProperties``; the full
   contract (``response_schema``) and the Python validator are unchanged and still decide.
+
+After live run 42054180234 (``TimeoutError: The read operation timed out`` ~60 s after the
+request started, i.e. the 60 s socket timeout expired while waiting for the reply):
+* the socket timeout is ``LLM_HTTP_TIMEOUT_S`` (180 s), sized for Llama 3.3 70B producing up to
+  ``MAX_OUTPUT_TOKENS`` under JSON Mode; the 10-minute job limit stays the wall-clock bound;
+* a transport failure raises ``ProviderTransportError`` with a bounded diagnostic naming the
+  phase (``connect_or_send`` / ``awaiting_response`` / ``reading_body``) and the kind
+  (``timeout`` / ``connection``). Still exactly one request, no retries.
 """
 from __future__ import annotations
 
@@ -36,7 +44,9 @@ import hashlib
 import json
 import math
 import re
-from urllib.error import HTTPError
+import socket
+import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
@@ -500,6 +510,18 @@ def _content_and_usage(envelope):
     return content, {'usage': result.get('usage')}
 
 
+# Socket timeout for the single provider request. urllib applies it to EACH blocking socket
+# operation (connect/TLS, send, waiting for the status line, every body read), not to the whole
+# call. The reply is not streamed, so the wait for the status line covers the full generation:
+# up to MAX_OUTPUT_TOKENS (2400) constrained by JSON Mode on a 70B model. 60 s expired in live run
+# 42054180234; 180 s allows ~13 tok/s worst case. Must stay well inside the 10-minute `discover`
+# job of .github/workflows/v6-llm-autonomous.yml (checked offline by the tests).
+# Worst case per call is therefore a few multiples of 180 s only if EVERY phase stalls; the
+# job's own `timeout-minutes` remains the hard wall-clock bound (and the ledger counts the run).
+LLM_HTTP_TIMEOUT_S = 180
+DISCOVER_JOB_TIMEOUT_MIN = 10     # mirrors the workflow; a test fails if they drift apart
+TRANSPORT_PHASES = ('connect_or_send', 'awaiting_response', 'reading_body')
+
 MAX_ERROR_BODY_BYTES = 8_192
 MAX_ERROR_MESSAGE_CHARS = 200
 MAX_ERROR_ITEMS = 3
@@ -576,14 +598,45 @@ def provider_error_diagnostic(exc, *, secrets=()):
     return diag
 
 
+class ProviderTransportError(ValueError):
+    """No HTTP status was obtained (timeout / connection failure). ``diagnostic`` is log-safe."""
+
+    def __init__(self, diagnostic):
+        super().__init__('LLM_PROVIDER_%s_%s' % (diagnostic['failure'].upper(), diagnostic['phase'].upper()))
+        self.diagnostic = diagnostic
+
+
+def _is_timeout(exc):
+    return isinstance(exc, (TimeoutError, socket.timeout))
+
+
+def transport_diagnostic(exc, *, phase, elapsed_s, timeout_s, secrets=()):
+    """Bounded summary of a transport failure: phase, kind, exception type names, elapsed time.
+
+    ``phase`` follows urllib's own structure: ``URLError`` wrapping the cause = failure while
+    connecting / sending the request; a bare ``TimeoutError``/``OSError`` from the opener = no
+    status line yet (the provider may be generating, so the call may have been billed); from
+    ``read()`` = the body was being received. Never kept: URL, headers, request, token."""
+    cause = exc.reason if isinstance(exc, URLError) and isinstance(exc.reason, BaseException) else exc
+    timeout = _is_timeout(cause) or _is_timeout(exc) or (isinstance(exc, URLError) and 'timed out' in str(exc.reason))
+    return {'failure': 'timeout' if timeout else 'connection', 'phase': phase,
+            'exception_type': type(exc).__name__, 'cause_type': type(cause).__name__,
+            'message': _safe_text(str(cause), secrets),
+            'elapsed_s': round(elapsed_s, 1), 'timeout_s': timeout_s,
+            'request_may_have_reached_provider': phase != 'connect_or_send'}
+
+
 def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint_kind='openai',
-                json_mode='json_object', max_request_bytes=MAX_REQUEST_BYTES, max_plans=3):
+                json_mode='json_object', max_request_bytes=MAX_REQUEST_BYTES, max_plans=3,
+                timeout_s=LLM_HTTP_TIMEOUT_S, clock=time.monotonic):
     """Exactly one request; any failure raises. No retry loop exists here."""
     parsed = urlsplit(endpoint)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
         raise ValueError('HTTPS_ENDPOINT_REQUIRED')
     if not isinstance(model, str) or not 1 <= len(model) <= 100:
         raise ValueError('MODEL_REQUIRED')
+    if not isinstance(timeout_s, (int, float)) or isinstance(timeout_s, bool) or not 1 <= timeout_s <= LLM_HTTP_TIMEOUT_S:
+        raise ValueError('INVALID_HTTP_TIMEOUT')
     body = request_body(packet, model, endpoint_kind=endpoint_kind, json_mode=json_mode, max_plans=max_plans)
     if len(body) > min(max_request_bytes, MAX_REQUEST_BYTES):
         raise ValueError('REQUEST_TOO_LARGE')
@@ -591,19 +644,35 @@ def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint
                'User-Agent': 'master-brain-research-cycle/1'}
     if api_key:
         headers['Authorization'] = 'Bearer ' + api_key
+    account = re.search(r'/accounts/([^/]+)', parsed.path)
+    secrets = (api_key, account.group(1) if account else '')
+
+    def transport_error(exc, phase):
+        diag = transport_diagnostic(exc, phase=phase, elapsed_s=clock() - started, timeout_s=timeout_s,
+                                    secrets=secrets)
+        diag.update(llm_calls=1, request_bytes=len(body), json_mode=json_mode, endpoint_kind=endpoint_kind)
+        return ProviderTransportError(diag)
+
+    started = clock()
     try:
-        resp_cm = opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=60)
+        resp_cm = opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=timeout_s)
     except HTTPError as exc:
-        account = re.search(r'/accounts/([^/]+)', parsed.path)
-        diag = provider_error_diagnostic(exc, secrets=(api_key, account.group(1) if account else ''))
+        diag = provider_error_diagnostic(exc, secrets=secrets)
         diag.update(llm_calls=1, request_bytes=len(body), json_mode=json_mode, endpoint_kind=endpoint_kind,
                     schema_sha256=hashlib.sha256(canonical_json(
                         json.loads(body)['response_format']).encode()).hexdigest())
         raise ProviderHTTPError(diag) from None
+    except URLError as exc:          # urllib wraps failures of connect/TLS/send in URLError
+        raise transport_error(exc, 'connect_or_send') from None
+    except OSError as exc:           # TimeoutError etc. while waiting for the status line
+        raise transport_error(exc, 'awaiting_response') from None
     with resp_cm as resp:
         if resp.status != 200:
             raise ValueError('LLM_NON_SUCCESS_STATUS')
-        raw = resp.read(MAX_RESPONSE_BYTES + 1)
+        try:
+            raw = resp.read(MAX_RESPONSE_BYTES + 1)
+        except OSError as exc:
+            raise transport_error(exc, 'reading_body') from None
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValueError('LLM_RESPONSE_TOO_LARGE')
     envelope = strict_json(raw.decode('utf-8'))

@@ -104,7 +104,7 @@ def _write_audit(path, reply, model, parsed=None):
 
 
 def _write_error_audit(path, diagnostic, model):
-    """Audit file for a provider HTTP error: only the bounded, redacted diagnostic."""
+    """Audit file for a provider HTTP / transport error: only the bounded, redacted diagnostic."""
     if path is None:
         return
     path = Path(path)
@@ -185,8 +185,8 @@ def main(argv=None, *, env=None, opener=None):
         if args.mode == 'packet':
             print(json.dumps(packet, ensure_ascii=False, indent=1, sort_keys=True))
             return 0
-        from h1lab.research_llm import (CONTRACT_VERSION, ProviderHTTPError, invoke_once, neuron_bound,
-                                        neurons_from_usage, parse_response)
+        from h1lab.research_llm import (CONTRACT_VERSION, ProviderHTTPError, ProviderTransportError, invoke_once,
+                                        neuron_bound, neurons_from_usage, parse_response)
         guard = {'example_fingerprints': tuple(packet.get('copy_guard_fingerprints', ())),
                  'copied_expressions': tuple(packet.get('copy_guard_expressions', ()))}
         if args.llm_audit and args.llm_audit.resolve().is_relative_to(root.resolve()):
@@ -238,7 +238,7 @@ def main(argv=None, *, env=None, opener=None):
             bound = neuron_bound(MODEL, body_len, prior_calls_today=int(env['RESEARCH_PRIOR_LLM_ATTEMPTS']))
             try:
                 reply = invoke_once(packet, **kw)   # exactly one request; any failure aborts
-            except ProviderHTTPError as exc:
+            except (ProviderHTTPError, ProviderTransportError) as exc:
                 _write_error_audit(args.llm_audit, exc.diagnostic, MODEL)
                 raise
             # Raw reply saved BEFORE parsing, so even an unparseable answer can be audited.
