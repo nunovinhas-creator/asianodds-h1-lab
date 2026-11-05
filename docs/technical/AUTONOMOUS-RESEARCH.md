@@ -78,7 +78,8 @@ Always `scientific_status=EXPLORATORY_NOT_VALIDATED`, `promotion_eligible=false`
 
 ### Memory
 
-`data/research/memory.jsonl`: hash chain (`seq`, `prev_sha256`, `sha256`). Records:
+Operational memory path `data/research/memory.jsonl` (not committed; written only by the
+prepared workflow after approval). Hash chain (`seq`, `prev_sha256`, `sha256`). Records:
 `EXPERIMENT` (hypothesis id, question, variables + definitions, plan, dataset SHA,
 sources SHA, information cut-off, test version, results, limitations, state, novelty,
 related ids, next question), `PLAN_REJECTED`, `CYCLE` (agenda for next cycle).
@@ -89,6 +90,73 @@ Same question + same data → skipped; same question + new data → new version.
 `score = novelty × testability × availability × informativeness × (1 − 0.5·redundancy)`
 with a per-outcome cap. Reads FT *availability* only, never outcome values (tested by
 shuffling outcomes).
+
+### Run kinds and provenance (no demo presented as current research)
+
+| run_kind | Files | Accepted hypothesis origins |
+|---|---|---|
+| `OPERATIONAL` | `data/research/memory.jsonl`, `docs/research/autonomous-research.json` | `OFFLINE_PROPOSER`, `LLM_LIVE` (one real bounded call) |
+| `DEMONSTRATION` | `docs/research/demo/{memory.jsonl,panel.json}` | `OFFLINE_PROPOSER`, `SIMULATED_LLM`, `RESPONSE_FILE_NOT_LIVE_LLM` |
+| `TEST` | explicit temporary paths only | all, for tests |
+
+A memory file holds exactly one run kind (mixing is refused). Panel schema 2 carries
+`provenance` (kind, reference time, origins, real LLM calls, `is_current_autonomous_research`).
+The page shows the operational report; only if it does not exist (HTTP 404) it shows the
+demo under a "DEMONSTRAÇÃO — NÃO É INVESTIGAÇÃO AUTÓNOMA ATUAL" banner. Any other error is
+shown as unavailable data, never replaced by the demo.
+
+### Concurrency and crash safety
+
+* Exclusive `fcntl` lock on `<memory>.lock`, bounded wait (`MEMORY_LOCK_TIMEOUT`, no hang).
+* Chain re-read inside the lock; `expected_tip` CAS: a cycle computed against a memory that
+  changed meanwhile raises `MemoryConflict` and writes nothing (no lost update, no seq clash).
+* Atomic write: temp file + fsync + `os.replace` + directory fsync. A crash leaves the old file.
+* A file ending without newline (foreign interrupted write) raises `MemoryTornTail`; only the
+  explicit `--mode recover-torn-tail` quarantines the fragment (`.torn-<sha>`), and only if
+  every complete line is a valid chain. Mid-file corruption is never repaired.
+* Across GitHub runs: same `v6-llm-global` concurrency group; the publisher accepts only a
+  byte-exact strict extension of the tracked memory and aborts on any rebase conflict.
+
+### LLM context: real pre-kickoff trajectories
+
+`research_context.trajectory_examples`: up to 8 real matches, ≤10 messages each, ≤16 KB,
+one per structural bucket (message count, AH/1X2 present, line moved), lowest salted hash.
+Selection never reads outcomes or FT status (tested by blanking outcomes). Content: minutes to
+kickoff, trigger, Total/AH quotes before/after, implied goals, de-margined 1X2. Pseudonymous
+`ref`, no names, dates or competition names; provenance = hashed event ids + SHA-256 of the
+market files. The whole packet is bounded (44 KB) by trimming examples, then memory.
+
+### Simulated LLM proof
+
+`h1lab/research_simulated_llm.py` is an opener for `invoke_once`: it receives the real request
+body and derives plans from it (catalogue availability, thresholds from the trajectory
+examples, avoiding variable pairs found in the memory digest). Tests prove that Python runs
+exactly those plans (fingerprints), that they are neither offline-proposer nor fixture plans,
+and that a second cycle chooses different pairs after reading memory. It found two real bugs:
+the DSL name filter rejected `..._ONLY_MOVE`/`..._AWAY_NET` (substring `y_`), and the
+simulator's own memory check. Always labelled `SIMULATED_LLM`; never accepted as operational.
+
+### Prepared migration (NOT active)
+
+`.github/proposed-workflows/v6-llm-autonomous.research.yml` (outside
+`.github/workflows`, so GitHub never runs it): same cron `43 1,7,13,19 * * *`, same
+`v6-llm-global` group, discover job with secrets writes a scratch copy, secret-free publish job
+runs `scripts/lab_research_publish.py` (strict extension, one OPERATIONAL cycle, ≤1 call,
+no validated/demo content). `lab_research_cycle --mode llm-live` mirrors the old guards: main,
+attempt 1, exact cron string, ≤4 real calls per UTC day, or dispatch with
+`RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ`.
+
+Activation (human approval required): (1) `git mv` the file over
+`.github/workflows/v6-llm-autonomous.yml` (replaces, does not add, so still 4 opportunities/day);
+(2) set `llm_live_enabled: true`. Rollback: revert either change; the old memory stays valid.
+
+### Isolation
+
+`scripts/research_isolation_check.py --base origin/main`: changed paths must be allow-listed,
+no pre-existing module imports `research_*`, an offline cycle leaves `data/`, `docs/lab/`,
+`config/` byte-identical and `scientific_gate()` unchanged. The only shared file touched is
+`scripts/publication_ownership.py` (two `LLM_SHADOW` paths and a `SITE` demo pattern, both
+already in every publisher's keep-set).
 
 ## Safety and cost
 
@@ -106,7 +174,9 @@ shuffling outcomes).
 ```bash
 python -m scripts.lab_research_cycle                       # offline cycle, zero LLM calls
 python -m scripts.lab_research_cycle --mode packet          # what the LLM would see
-python -m scripts.lab_research_cycle --mode llm-response --response FILE
+python -m scripts.lab_research_cycle --run-kind DEMONSTRATION --mode llm-simulated
+python -m scripts.lab_research_cycle --run-kind DEMONSTRATION --mode llm-response --response FILE
+python -m scripts.research_isolation_check --base origin/main
 python -m unittest discover -s tests -p 'test_research_*.py'
 node --test tests/research-autonomy-ui.test.cjs
 ```

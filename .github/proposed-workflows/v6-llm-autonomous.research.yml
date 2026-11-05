@@ -1,0 +1,117 @@
+# PREPARED, NOT ACTIVE. Lives in .github/proposed-workflows (not .github/workflows): GitHub never runs it.
+# Activation (requires explicit human approval, see docs/technical/AUTONOMOUS-RESEARCH.md):
+#   1. git mv this file over .github/workflows/v6-llm-autonomous.yml (replaces the old one,
+#      so the number of daily LLM opportunities stays exactly four);
+#   2. set "llm_live_enabled": true in config/research-autonomy.json.
+# Same cron, same concurrency group, one request per run, no retries, no new provider.
+name: V6 - LLM Autonomous Research (bounded)
+on:
+  schedule:
+    - cron: '43 1,7,13,19 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Packet preview (free) or ONE explicit live request'
+        type: choice
+        options: [preview, live_once]
+        default: preview
+        required: true
+      confirmation:
+        description: 'For live_once type INVESTIGAR_UMA_VEZ'
+        type: string
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+concurrency:
+  group: v6-llm-global
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify research safety contract offline
+        run: python -m unittest discover -s tests -p 'test_research_*.py'
+      - name: Packet preview, zero AI usage
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'preview' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/research"
+          python -m scripts.lab_research_cycle --mode packet > "$RUNNER_TEMP/research/packet.json"
+      - name: ONE bounded LLM call into a scratch copy of the operational memory, no retries
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live_once') }}
+        env:
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MASTER_BRAIN_LLM_API_KEY: ${{ secrets.MASTER_BRAIN_LLM_API_KEY }}
+          RESEARCH_LLM_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/research"
+          if [ -f data/research/memory.jsonl ]; then cp data/research/memory.jsonl "$RUNNER_TEMP/research/memory.jsonl"; fi
+          python -m scripts.lab_research_cycle --mode llm-live --allow-network \
+            --memory "$RUNNER_TEMP/research/memory.jsonl" --panel "$RUNNER_TEMP/research/panel.json" \
+            > "$RUNNER_TEMP/research/result.json"
+          git diff --exit-code
+      - name: Save bounded output for the secret-free publisher
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-cycle
+          path: ${{ runner.temp }}/research/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: discover
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.mode == 'live_once') && needs.discover.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: research-cycle
+          path: ${{ runner.temp }}/research-review
+      - name: Verify strict extension and write memory + panel (no secrets in this job)
+        run: python -m scripts.lab_research_publish --candidate "$RUNNER_TEMP/research-review/memory.jsonl"
+      - name: Commit exactly two files; bounded push retries, re-verifying after each rebase
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/research/memory.jsonl docs/research/autonomous-research.json
+          git diff --cached --quiet && exit 0
+          git commit -m "data(research): autonomous exploratory cycle $GITHUB_RUN_ID [skip ci]"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "::error::RESEARCH_MEMORY_CONFLICT_NO_AUTOMATIC_MERGE"
+              exit 1
+            fi
+            # Strict chain read after the rebase: any interleaving fails the job, never ignored.
+            python -c "from h1lab.research_memory import read_memory; read_memory('data/research/memory.jsonl')"
+            if git push origin HEAD:main; then
+              echo "RESEARCH_CYCLE_PUBLISHED=$GITHUB_RUN_ID"
+              exit 0
+            fi
+            echo "::warning::Research publication push retry $attempt (no model retry)"
+          done
+          echo "::error::RESEARCH_PUBLISH_FAILED"
+          exit 1
