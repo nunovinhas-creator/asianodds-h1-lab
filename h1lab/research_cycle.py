@@ -250,7 +250,8 @@ PROVENANCE_NOTE = {
     'DEMONSTRATION': ('DEMONSTRAÇÃO: fotografia de referência gerada para revisão. Não é investigação '
                       'autónoma atual; as hipóteses "LLM" vieram de um ficheiro ou de um LLM simulado, '
                       'sem chamadas reais a fornecedores.'),
-    'TEST': 'TESTE: dados sintéticos de teste automático.',
+    'TEST': ('TESTE: verificação automática, nunca publicada como investigação; pode usar dados '
+             'reais do repositório ou sintéticos e hipóteses simuladas.'),
 }
 
 

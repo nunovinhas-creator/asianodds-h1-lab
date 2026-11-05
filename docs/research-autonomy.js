@@ -70,7 +70,7 @@
   const KIND_LABEL = {
     OPERATIONAL: "INVESTIGAÇÃO OPERACIONAL",
     DEMONSTRATION: "DEMONSTRAÇÃO — NÃO É INVESTIGAÇÃO AUTÓNOMA ATUAL",
-    TEST: "TESTE — DADOS SINTÉTICOS"
+    TEST: "TESTE AUTOMÁTICO — NÃO É INVESTIGAÇÃO PUBLICADA"
   };
   function provenanceText(p) {
     const parts = [KIND_LABEL[p.kind]];
