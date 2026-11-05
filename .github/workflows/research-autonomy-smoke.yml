@@ -1,0 +1,69 @@
+name: Research - Autonomous exploration smoke (offline, PR only)
+on:
+  pull_request:
+    paths:
+      - "h1lab/research_*.py"
+      - "scripts/lab_research_cycle.py"
+      - "tests/test_research_*.py"
+      - "tests/research_fixtures.py"
+      - "tests/research-autonomy-ui.test.cjs"
+      - "docs/research-autonomy.*"
+      - "docs/research/**"
+      - ".github/proposed-workflows/**"
+      - "scripts/research_isolation_check.py"
+      - "scripts/publication_ownership.py"
+      - "config/research-autonomy.json"
+      - ".github/workflows/research-autonomy-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test-only dependencies (PyYAML validates the prepared workflow)
+        run: pip install -r requirements-test.txt
+      - name: Research unit, adversarial, concurrency and end-to-end tests (synthetic + real replay)
+        run: python -m unittest discover -s tests -p 'test_research_*.py' -v
+      - name: Isolation proof against the PR base (allow-listed paths, no coupling, tree + gate unchanged)
+        run: python -m scripts.research_isolation_check --base "origin/${{ github.base_ref || 'main' }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Panel UI contract
+        run: |
+          node --check docs/research-autonomy.js
+          node --test tests/research-autonomy-ui.test.cjs
+      - name: Real-data cycles into a scratch TEST memory (offline + SIMULATED LLM; zero provider calls)
+        run: |
+          M="$RUNNER_TEMP/mem.jsonl"; P="$RUNNER_TEMP/panel.json"
+          python -m scripts.lab_research_cycle --run-kind TEST --memory "$M" --panel "$P" --budget 10
+          python -m scripts.lab_research_cycle --run-kind TEST --mode llm-simulated --memory "$M" --panel "$P" --budget 0
+          python -m scripts.lab_research_cycle --run-kind TEST --mode llm-response --response docs/research/demo/hand-authored-response-2026-11-05.json --memory "$M" --panel "$P" --budget 0
+          if python -m scripts.lab_research_cycle --mode llm-simulated; then echo "::error::simulated mode accepted for OPERATIONAL"; exit 1; fi
+          python - <<'PY'
+          import json, os
+          from h1lab.research_memory import read_memory
+          m = read_memory(os.environ['RUNNER_TEMP'] + '/mem.jsonl')
+          cycles = [r for r in m if r['record_type'] == 'CYCLE']
+          assert len(cycles) == 3 and cycles[1]['memory_records_before'] > 0
+          assert all(r['run_kind'] == 'TEST' for r in m)
+          assert all(r.get('scientific_status') in (None, 'EXPLORATORY_NOT_VALIDATED') for r in m)
+          assert sum(c['llm_calls'] for c in cycles) == 0
+          assert any(r.get('origin') == 'SIMULATED_LLM' for r in m if r['record_type'] == 'EXPERIMENT')
+          p = json.load(open(os.environ['RUNNER_TEMP'] + '/panel.json'))
+          assert p['validated'] == [] and p['provenance']['kind'] == 'TEST'
+          d = read_memory('docs/research/demo/memory.jsonl')
+          assert {r['run_kind'] for r in d} == {'DEMONSTRATION'}
+          print('RESEARCH_SMOKE_OK', len(m), p['memory'], p['provenance'])
+          PY
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
