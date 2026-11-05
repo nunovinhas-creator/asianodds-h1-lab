@@ -365,7 +365,8 @@ class LiveMigration(unittest.TestCase):
         live = [w.name for w in (ROOT / '.github/workflows').glob('*.y*ml')
                 if 'lab_research_cycle --mode llm-live' in w.read_text()]
         self.assertEqual(live, ['v6-llm-autonomous.yml'])
-        self.assertFalse(json.loads((ROOT / 'config/research-autonomy.json').read_text())['llm_live_enabled'])
+        cfg = json.loads((ROOT / 'config/research-autonomy.json').read_text())
+        self.assertFalse(cfg['llm_live_enabled'] and cfg['llm_schedule_live_enabled'])  # one-shot window only
 
     @unittest.skipIf(os.environ.get('RESEARCH_PREFLIGHT') == '1' and not _has_yaml(),
                      'pre-call preflight in the secret job has no PyYAML; enforced by PR CI')
