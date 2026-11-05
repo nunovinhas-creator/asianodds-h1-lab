@@ -40,7 +40,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PATHS = {'OPERATIONAL': ('data/research/memory.jsonl', 'docs/research/autonomous-research.json'),
          'DEMONSTRATION': ('docs/research/demo/memory.jsonl', 'docs/research/demo/panel.json')}
 LIVE_CONFIRM = 'INVESTIGAR_UMA_VEZ'
-MODEL = '@cf/meta/llama-3.1-8b-instruct-fast'
+# Contract v3 model (cloudflare-docs @ abaf629): documented JSON Mode (json_schema), 24k context,
+# 26,668 / 204,805 neurons per M input / output tokens. The previous 8B alias returned
+# 0 valid plans in both live calls (runs 42021728675 and 42030138637).
+MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 SCHEDULE = '43 1,7,13,19 * * *'        # the four existing daily opportunities, unchanged
 MAX_DAILY_LIVE_CALLS = 4
 MODE_KINDS = {'offline': ('OPERATIONAL', 'DEMONSTRATION', 'TEST'),
@@ -156,34 +159,41 @@ def main(argv=None, *, env=None, opener=None):
         dataset = build_dataset(root, now=now)
         memory = read_memory(memory_path)
         max_plans = gate['config']['max_llm_plans_per_call']
-        packet = llm_packet(gate, dataset, memory, max_plans)
+        from h1lab.research_llm import MODEL_PROFILES, request_overhead_bytes
+        profile = MODEL_PROFILES[MODEL]
+        packet = llm_packet(gate, dataset, memory, max_plans,
+                            budget_bytes=profile['max_request_bytes'] - request_overhead_bytes(
+                                MODEL, profile, max_plans))
         llm = None
         if args.mode == 'packet':
             print(json.dumps(packet, ensure_ascii=False, indent=1, sort_keys=True))
             return 0
-        from h1lab.research_llm import CONTRACT_VERSION, invoke_once, parse_response
-        example_fps = tuple(packet.get('response_example_fingerprints', ()))
+        from h1lab.research_llm import (CONTRACT_VERSION, invoke_once, neuron_bound, neurons_from_usage,
+                                        parse_response)
+        guard = {'example_fingerprints': tuple(packet.get('copy_guard_fingerprints', ())),
+                 'copied_expressions': tuple(packet.get('copy_guard_expressions', ()))}
         if args.llm_audit and args.llm_audit.resolve().is_relative_to(root.resolve()):
             raise ValueError('LLM_AUDIT_PATH_MUST_BE_OUTSIDE_REPOSITORY')
         if args.mode == 'llm-response':
             if not args.response:
                 raise ValueError('RESPONSE_FILE_REQUIRED')
-            llm = parse_response(args.response.read_text(encoding='utf-8'), max_plans=max_plans,
-                                 example_fingerprints=example_fps)
+            llm = parse_response(args.response.read_text(encoding='utf-8'), max_plans=max_plans, **guard)
             llm.update(origin='RESPONSE_FILE_NOT_LIVE_LLM', llm_calls=0,
                        packet_sha256=packet['packet_sha256'], model='RESPONSE_FILE',
                        contract_version=CONTRACT_VERSION)
         elif args.mode == 'llm-simulated':
             from h1lab.research_simulated_llm import ORIGIN, SimulatedLLMOpener
             sim = SimulatedLLMOpener()
-            reply = invoke_once(packet, endpoint='https://simulated-llm.invalid/v1/chat/completions',
-                                model='SIMULATED', opener=sim)
+            reply = invoke_once(packet, endpoint='https://simulated-llm.invalid/ai/run/SIMULATED',
+                                model='SIMULATED', opener=sim, endpoint_kind='native',
+                                json_mode=profile['json_mode'], max_plans=max_plans)
             _write_audit(args.llm_audit, reply, 'SIMULATED')
-            llm = parse_response(reply['content'], max_plans=max_plans, example_fingerprints=example_fps)
+            llm = parse_response(reply['content'], max_plans=max_plans, **guard)
             # Simulated replies are not provider calls: llm_calls stays 0.
             llm.update(origin=ORIGIN, llm_calls=0, simulated_requests=len(sim.calls),
                        packet_sha256=packet['packet_sha256'], model='SIMULATED',
-                       response_sha256=reply.get('response_sha256'), contract_version=CONTRACT_VERSION)
+                       response_sha256=reply.get('response_sha256'), contract_version=CONTRACT_VERSION,
+                       json_mode=profile['json_mode'])
             _write_audit(args.llm_audit, reply, 'SIMULATED', llm)
         elif args.mode == 'llm-live':
             if args.now:
@@ -196,17 +206,28 @@ def main(argv=None, *, env=None, opener=None):
             account, key = env.get('CLOUDFLARE_ACCOUNT_ID', ''), env.get('MASTER_BRAIN_LLM_API_KEY', '')
             if not re.fullmatch(r'[a-fA-F0-9]{32}', account) or not key:
                 raise ValueError('LLM_SECRET_MISSING')
-            kw = {'endpoint': 'https://api.cloudflare.com/client/v4/accounts/%s/ai/v1/chat/completions' % account,
-                  'model': MODEL, 'api_key': key}
+            base = 'https://api.cloudflare.com/client/v4/accounts/%s/ai/' % account
+            kw = {'endpoint': base + ('run/' + MODEL if profile['endpoint'] == 'native' else 'v1/chat/completions'),
+                  'model': MODEL, 'api_key': key, 'endpoint_kind': profile['endpoint'],
+                  'json_mode': profile['json_mode'], 'max_request_bytes': profile['max_request_bytes'],
+                  'max_plans': max_plans}
             if opener is not None:
                 kw['opener'] = opener
+            # Worst-case neurons BEFORE the request (fail closed): body size, context window,
+            # per-call cap and daily budget given the attempts already counted by the ledger.
+            from h1lab.research_llm import request_body
+            body_len = len(request_body(packet, MODEL, endpoint_kind=profile['endpoint'],
+                                        json_mode=profile['json_mode'], max_plans=max_plans))
+            bound = neuron_bound(MODEL, body_len, prior_calls_today=int(env['RESEARCH_PRIOR_LLM_ATTEMPTS']))
             reply = invoke_once(packet, **kw)   # exactly one request; any failure aborts
             # Raw reply saved BEFORE parsing, so even an unparseable answer can be audited.
             _write_audit(args.llm_audit, reply, MODEL)
-            llm = parse_response(reply['content'], max_plans=max_plans, example_fingerprints=example_fps)
+            llm = parse_response(reply['content'], max_plans=max_plans, **guard)
             llm.update(origin='LLM_LIVE', llm_calls=1, packet_sha256=packet['packet_sha256'],
                        usage=reply['usage'], model=MODEL, response_sha256=reply.get('response_sha256'),
-                       contract_version=CONTRACT_VERSION)
+                       contract_version=CONTRACT_VERSION, json_mode=profile['json_mode'],
+                       neurons_bound=bound['neurons_max'],
+                       neurons_from_tokens=neurons_from_usage(MODEL, reply['usage'].get('tokens')))
             _write_audit(args.llm_audit, reply, MODEL, llm)
         result = run_cycle(gate=gate, dataset=dataset, memory_path=memory_path, now=now,
                            run_kind=args.run_kind, cycle_label=args.mode, llm=llm,

@@ -184,7 +184,7 @@ asserting exactly `OK (skipped=1)`).
 
 #### Cost bound (Cloudflare Workers AI)
 
-Request body ≤ 48,000 bytes (≈ 12–16k tokens), `max_tokens: 2400`, ≤ 4 attempts per UTC day.
+Request body ≤ 48,000 bytes absolute (≤ 30,000 for the v3 model, see contract v3), `max_tokens: 2400`, ≤ 4 attempts per UTC day.
 The repository's earlier measurement (`V6_LLM_AUTONOMY_CONTROLLED.md`) observed ≈ 25 neurons for one
 ≈ 20 KB request; this packet is ≈ 25 KB on today's data. Even at a pessimistic 300 neurons per call,
 4 calls ≈ 1,200 neurons/day, ≈ 12% of the 10,000 neurons/day free allocation documented there.
@@ -237,6 +237,46 @@ published cycle, the page derives the split from the pre-v3 report (card origins
 Operational containment: the workflow was disabled in the GitHub UI by the owner after run
 `42021728675` (no change to `main`; `llm_live_enabled` stays `true`). Re-enable only for one
 authorised `live_once` validation after this contract is merged.
+
+### LLM contract v3 and model change (after the second live call, 2026-11-05)
+
+Second live call: run `42030138637`, `@cf/meta/llama-3.1-8b-instruct-fast`, 11,785 + 1,013 tokens,
+3 plans, 0 accepted: `COPIED_RESPONSE_EXAMPLE` ×2 (the v2 full example returned verbatim) and
+`DSL:TYPE_ERROR:and expects bool` ×1 (`indicators[0]`). The raw reply is in the run's
+`research-cycle` artifact (`llm-response-audit.json`, until 2026-11-12); it could not be read from
+the session that wrote v3 (artifact storage host denied by its network policy).
+
+v3 changes (validator and DSL unchanged):
+
+* no complete JSON example: `contract.plan_template` uses `<...>` placeholders that cannot validate;
+  the v2 example and the grammar fragments are copy-guarded (`COPIED_RESPONSE_EXAMPLE`,
+  `COPIED_CONTRACT_FRAGMENT`, also when hidden behind an indicator);
+* `contract.grammar`: typed BOOL_EXPR / NUM_EXPR productions generated from `OPS`
+  (`and`/`or`/`not` take BOOL_EXPR only; comparisons take NUM_EXPR only), with one wrong/right pair;
+* compact packet: variables split into `num`/`bool`, memory and agenda de-duplicated, ≤ 4 trajectory
+  examples; system prompt 1,015 chars. Request on today's data: 23,388 B (was 39,017 B);
+* provider JSON Mode `json_schema` with `response_schema()` generated from the same contract,
+  sent to the native endpoint `/ai/run/{model}` (the request/response shape of the official JSON Mode
+  example; the response may be an object). The Python validator still decides.
+
+Model (source: `cloudflare/cloudflare-docs` @ `abaf629`, pricing.mdx, json-mode.mdx, model JSON):
+
+| Model | JSON Mode documented | Context | Neurons / M in · out | Worst case / call |
+|---|---|---|---|---|
+| `@cf/meta/llama-3.3-70b-instruct-fp8-fast` (**selected**) | yes | 24,000 | 26,668 · 204,805 | 891.6 |
+| `@cf/qwen/qwen3-30b-a3b-fp8` | no (not in the list) | 32,768 | 4,625 · 30,475 | 142.5 |
+| `@cf/meta/llama-3.1-8b-instruct-fast` (retired) | no; alias absent from the price table | — | — | unknown |
+
+Worst case = 30,000 B ÷ 2.0 B/token (pessimistic; measured 3.3) = 15,000 input tokens + 2,400 output
+tokens. Qwen3-30B is ~6× cheaper but is a reasoning model (`reasoning_content` spends the output budget)
+and its JSON Mode is undocumented, so it is profiled but not selected.
+
+Pre-call guard `neuron_bound` (fail closed, before the request): body ≤ the model's
+`max_request_bytes`, input + output tokens ≤ context window, worst case ≤ 1,000 neurons per call, and
+`(prior attempts + 1) × 1,000 ≤ 5,000` (half of the 10,000 free neurons/day). With the ledger's 4 attempts
+per UTC day our worst case is ≤ 3,566 neurons/day. The account's other Workers AI usage and its plan are
+not visible (`account_quota_verified=false`). New cycles record `llm_json_mode`, `llm_neurons_bound`
+and `llm_neurons_from_tokens`.
 
 ### Isolation
 

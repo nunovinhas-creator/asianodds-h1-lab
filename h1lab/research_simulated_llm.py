@@ -44,9 +44,24 @@ def _example_stats(examples):
             'examples_used': len(nets)}
 
 
+def _catalogue(variables):
+    """Accepts the v1/v2 list catalogue and the v3 compact {'num': {...}, 'bool': {...}} form."""
+    if isinstance(variables, list):
+        return {v['name']: v for v in variables}
+    out = {}
+    for typ in ('num', 'bool'):
+        for name, text in (variables.get(typ) or {}).items():
+            parts = [x.strip() for x in text.split('|')]
+            avail = 1.0
+            if len(parts) > 2 and parts[2].startswith('disponivel em '):
+                avail = float(parts[2][len('disponivel em '):].rstrip('%')) / 100
+            out[name] = {'name': name, 'type': typ, 'market': parts[0], 'availability': avail}
+    return out
+
+
 def decide(packet_user):
     """Deterministic 'model' policy: packet in, response JSON out."""
-    catalogue = {v['name']: v for v in packet_user['variables']}
+    catalogue = _catalogue(packet_user['variables'])
     used_pairs = set()
     for m in packet_user.get('memory', []):
         names = set()
@@ -146,6 +161,10 @@ class SimulatedLLMOpener:
         user = json.loads(body['messages'][1]['content'])
         self.calls.append({'url': req.full_url, 'bytes': len(req.data)})
         content = json.dumps(decide(user), ensure_ascii=False)
-        env = {'choices': [{'message': {'content': content}, 'finish_reason': 'stop'}],
-               'usage': {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0}}
+        usage = {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0}
+        if '/ai/run/' in req.full_url:   # native Workers AI envelope (JSON Mode returns an object)
+            env = {'result': {'response': json.loads(content), 'usage': usage}, 'success': True,
+                   'errors': [], 'messages': []}
+        else:
+            env = {'choices': [{'message': {'content': content}, 'finish_reason': 'stop'}], 'usage': usage}
         return _Resp(json.dumps(env).encode())
