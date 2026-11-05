@@ -177,7 +177,7 @@ async def poll(state):
 async def probe_telegram():
     from .session import authorized_channel
     async with authorized_channel() as (client, entity):
-        await client.get_messages(entity, limit=1)
+        await asyncio.wait_for(client.get_messages(entity, limit=1), 30)
     print("TELEGRAM_AUTH_PROBE_OK")
 
 

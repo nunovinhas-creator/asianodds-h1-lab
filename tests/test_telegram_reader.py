@@ -1,4 +1,5 @@
 """Offline regression tests for the non-interactive Telegram reader."""
+import asyncio
 import os
 import unittest
 from copy import deepcopy
@@ -71,4 +72,25 @@ class TelegramReaderTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(TelegramSessionError, "^TELEGRAM_CHANNEL_UNAVAILABLE CHANNEL_READ$"):
             await cli.poll(state)
         self.assertEqual(state, previous)
+        self.save.assert_not_called()
+
+
+    async def test_stalled_setup_names_the_stage_and_keeps_checkpoint(self):
+        async def stalled(*args):
+            await asyncio.Future()
+
+        for stage, call in (("CONNECT", self.client.connect),
+                            ("AUTHORIZE", self.client),
+                            ("CHANNEL_LOOKUP", self.client.get_entity)):
+            with self.subTest(stage=stage):
+                state = empty_state()
+                previous = deepcopy(state)
+                call.side_effect = stalled
+                try:
+                    with patch("h1lab.session.SETUP_TIMEOUT_SECONDS", 0.02):
+                        with self.assertRaisesRegex(TelegramSessionError, f"^TELEGRAM_TIMEOUT {stage}$"):
+                            await cli.poll(state)
+                finally:
+                    call.side_effect = None
+                self.assertEqual(state, previous)
         self.save.assert_not_called()
