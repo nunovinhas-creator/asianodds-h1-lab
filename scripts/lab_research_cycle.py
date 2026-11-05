@@ -102,6 +102,17 @@ def _write_audit(path, reply, model, parsed=None):
     path.write_text(data + '\n', encoding='utf-8')
 
 
+def _write_error_audit(path, diagnostic, model):
+    """Audit file for a provider HTTP error: only the bounded, redacted diagnostic."""
+    if path is None:
+        return
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps({'schema_version': 1, 'model': model, 'provider_error': diagnostic},
+                      ensure_ascii=False, indent=1, sort_keys=True)
+    path.write_text(data + '\n', encoding='utf-8')
+
+
 def main(argv=None, *, env=None, opener=None):
     env = os.environ if env is None else env
     ap = argparse.ArgumentParser(description=__doc__)
@@ -119,8 +130,13 @@ def main(argv=None, *, env=None, opener=None):
                          'outside the repository; never published to memory or Pages)')
     args = ap.parse_args(argv)
 
-    def refuse(reason):
-        print(json.dumps({'status': 'REFUSED_OR_FAILED', 'reason': reason}))
+    def refuse(reason, provider_error=None):
+        out = {'status': 'REFUSED_OR_FAILED', 'reason': reason}
+        if provider_error is not None:
+            # Bounded, redacted provider diagnostic (h1lab.research_llm.provider_error_diagnostic).
+            out['provider_error'] = provider_error
+            out['llm_calls'] = provider_error.get('llm_calls')
+        print(json.dumps(out, sort_keys=True))
         print('RESEARCH_CYCLE_FAILED', file=sys.stderr)
         return 2
 
@@ -168,8 +184,8 @@ def main(argv=None, *, env=None, opener=None):
         if args.mode == 'packet':
             print(json.dumps(packet, ensure_ascii=False, indent=1, sort_keys=True))
             return 0
-        from h1lab.research_llm import (CONTRACT_VERSION, invoke_once, neuron_bound, neurons_from_usage,
-                                        parse_response)
+        from h1lab.research_llm import (CONTRACT_VERSION, ProviderHTTPError, invoke_once, neuron_bound,
+                                        neurons_from_usage, parse_response)
         guard = {'example_fingerprints': tuple(packet.get('copy_guard_fingerprints', ())),
                  'copied_expressions': tuple(packet.get('copy_guard_expressions', ()))}
         if args.llm_audit and args.llm_audit.resolve().is_relative_to(root.resolve()):
@@ -219,7 +235,11 @@ def main(argv=None, *, env=None, opener=None):
             body_len = len(request_body(packet, MODEL, endpoint_kind=profile['endpoint'],
                                         json_mode=profile['json_mode'], max_plans=max_plans))
             bound = neuron_bound(MODEL, body_len, prior_calls_today=int(env['RESEARCH_PRIOR_LLM_ATTEMPTS']))
-            reply = invoke_once(packet, **kw)   # exactly one request; any failure aborts
+            try:
+                reply = invoke_once(packet, **kw)   # exactly one request; any failure aborts
+            except ProviderHTTPError as exc:
+                _write_error_audit(args.llm_audit, exc.diagnostic, MODEL)
+                raise
             # Raw reply saved BEFORE parsing, so even an unparseable answer can be audited.
             _write_audit(args.llm_audit, reply, MODEL)
             llm = parse_response(reply['content'], max_plans=max_plans, **guard)
@@ -235,7 +255,7 @@ def main(argv=None, *, env=None, opener=None):
         if result['status'] == 'RUN':
             write_panel(panel_path, build_panel(read_memory(memory_path), gate, now=now))
     except (ValueError, KeyError, TypeError, OSError) as exc:
-        return refuse(type(exc).__name__ + ': ' + str(exc)[:200])
+        return refuse(type(exc).__name__ + ': ' + str(exc)[:200], getattr(exc, 'diagnostic', None))
     result.pop('records', None)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result['status'] in ('RUN', 'NOT_RUN') else 2

@@ -21,12 +21,22 @@ Contract v3 (after live calls 42021728675 and 42030138637, both 0 accepted plans
   (``response_schema``), for models whose JSON Mode support is documented;
 * every per-model limit (context window, neuron rates) is data in MODEL_PROFILES,
   and ``neuron_bound`` refuses a request whose worst case exceeds the budget.
+
+After live run 42038573930 (``HTTPError: HTTP Error 400: Bad Request``, provider body never read):
+* a provider HTTP error now raises ``ProviderHTTPError`` carrying a bounded, redacted
+  diagnostic (status, Cloudflare ``errors[].code``/``message``, body hash) - never the
+  request, headers, token or account id;
+* the schema SENT to the provider (``provider_schema``) keeps only the keywords used by
+  the Cloudflare JSON Mode documentation plus ``enum``/``additionalProperties``; the full
+  contract (``response_schema``) and the Python validator are unchanged and still decide.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import math
+import re
+from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
@@ -269,6 +279,33 @@ def response_schema(max_plans=3):
                                              'items': {'type': 'string', 'minLength': 10, 'maxLength': 300}}}}
 
 
+# Keywords kept in the schema sent to Workers AI JSON Mode. The Cloudflare page documents no
+# list of supported keywords; its example uses type/properties/required/items only. Run
+# 42038573930 was refused with HTTP 400 while sending pattern, min/maxLength, min/maxItems,
+# uniqueItems and a union ``type`` list (UNPROVEN as the cause: the body was not captured).
+# Everything removed here is still enforced by validate_plan / parse_response.
+PROVIDER_SCHEMA_KEYWORDS = frozenset({'type', 'properties', 'required', 'items', 'enum',
+                                      'additionalProperties'})
+
+
+def provider_schema(max_plans=3):
+    """``response_schema`` reduced to PROVIDER_SCHEMA_KEYWORDS (guidance only, not validation)."""
+    def reduce(node):
+        out = {}
+        for k, val in node.items():
+            if k not in PROVIDER_SCHEMA_KEYWORDS:
+                continue
+            if k == 'type' and isinstance(val, list):
+                continue              # union type -> unconstrained value; Python checks the type
+            if k == 'properties':
+                val = {name: reduce(sub) for name, sub in val.items()}
+            elif k == 'items':
+                val = reduce(val)
+            out[k] = val
+        return out
+    return reduce(response_schema(max_plans))
+
+
 # Plans/conditions the model must not hand back as its own: the v2 full example (sent in
 # run 42030138637 and copied twice) and the grammar fragments of this contract.
 LEGACY_EXAMPLE_V2 = {
@@ -436,7 +473,7 @@ def parse_response(content, *, max_plans=3, example_fingerprints=(), copied_expr
 def request_body(packet, model, *, endpoint_kind='openai', json_mode='json_object', max_plans=3):
     user = {k: packet[k] for k in USER_KEYS}
     if json_mode == 'json_schema':
-        response_format = {'type': 'json_schema', 'json_schema': response_schema(max_plans)}
+        response_format = {'type': 'json_schema', 'json_schema': provider_schema(max_plans)}
     else:
         response_format = {'type': 'json_object'}
     body = {'temperature': TEMPERATURE, 'max_tokens': MAX_OUTPUT_TOKENS,
@@ -463,6 +500,82 @@ def _content_and_usage(envelope):
     return content, {'usage': result.get('usage')}
 
 
+MAX_ERROR_BODY_BYTES = 8_192
+MAX_ERROR_MESSAGE_CHARS = 200
+MAX_ERROR_ITEMS = 3
+_REDACT = [(re.compile(r'(?i)bearer\s+\S+'), 'Bearer [REDACTED]'),
+           (re.compile(r'(?i)/accounts/[^/\s"\']+'), '/accounts/[REDACTED]'),
+           (re.compile(r'\b[A-Fa-f0-9]{32,}\b'), '[HEX_REDACTED]'),
+           (re.compile(r'[A-Za-z0-9_\-]{32,}'), '[TOKEN_REDACTED]')]
+
+
+class ProviderHTTPError(ValueError):
+    """HTTP status >= 400 from the provider. ``diagnostic`` is safe to publish in a log."""
+
+    def __init__(self, diagnostic):
+        super().__init__('LLM_PROVIDER_HTTP_%s' % diagnostic.get('http_status'))
+        self.diagnostic = diagnostic
+
+
+def _safe_text(value, secrets=()):
+    if not isinstance(value, str):
+        return None
+    for secret in secrets:
+        if secret and len(secret) >= 4:
+            value = value.replace(secret, '[REDACTED]')
+    for rx, rep in _REDACT:
+        value = rx.sub(rep, value)
+    value = ''.join(ch if ch.isprintable() else ' ' for ch in value)
+    return value[:MAX_ERROR_MESSAGE_CHARS]
+
+
+def provider_error_diagnostic(exc, *, secrets=()):
+    """Bounded, redacted summary of an ``HTTPError`` (reads at most MAX_ERROR_BODY_BYTES).
+
+    Kept: HTTP status, Content-Type, body size/hash, up to 3 Cloudflare ``errors`` /
+    ``messages`` items as {code:int, message:<=200 redacted chars}. Never kept: request body,
+    headers, URL (it holds the account id), token, or any field other than code/message."""
+    try:
+        raw = exc.read(MAX_ERROR_BODY_BYTES + 1) if exc.fp is not None else b''
+    except (OSError, ValueError, AttributeError):
+        raw = b''
+    finally:
+        try:
+            exc.close()
+        except (OSError, AttributeError):
+            pass
+    raw = raw or b''
+    status = exc.code if isinstance(exc.code, int) else None
+    ctype = (exc.headers.get('Content-Type') if exc.headers is not None else None) or ''
+    diag = {'http_status': status, 'content_type': _safe_text(ctype.split(';')[0].strip()[:60]),
+            'body_bytes_read': min(len(raw), MAX_ERROR_BODY_BYTES),
+            'body_truncated': len(raw) > MAX_ERROR_BODY_BYTES,
+            'body_sha256': hashlib.sha256(raw[:MAX_ERROR_BODY_BYTES]).hexdigest() if raw else None,
+            'provider_errors': [], 'provider_body_json': False}
+    try:
+        env = json.loads(raw[:MAX_ERROR_BODY_BYTES].decode('utf-8')) if raw else None
+    except (UnicodeDecodeError, ValueError):
+        env = None
+    if isinstance(env, dict):
+        diag['provider_body_json'] = True
+        if isinstance(env.get('success'), bool):
+            diag['provider_success'] = env['success']
+        items = []
+        for key in ('errors', 'messages'):
+            vals = env.get(key)
+            if isinstance(vals, list):
+                items += [(key, x) for x in vals if isinstance(x, (dict, str))]
+        for key, item in items[:MAX_ERROR_ITEMS]:
+            if isinstance(item, str):
+                item = {'message': item}
+            code = item.get('code')
+            diag['provider_errors'].append({
+                'source': key,
+                'code': code if isinstance(code, int) and not isinstance(code, bool) else None,
+                'message': _safe_text(item.get('message'), secrets)})
+    return diag
+
+
 def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint_kind='openai',
                 json_mode='json_object', max_request_bytes=MAX_REQUEST_BYTES, max_plans=3):
     """Exactly one request; any failure raises. No retry loop exists here."""
@@ -478,7 +591,16 @@ def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint
                'User-Agent': 'master-brain-research-cycle/1'}
     if api_key:
         headers['Authorization'] = 'Bearer ' + api_key
-    with opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=60) as resp:
+    try:
+        resp_cm = opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=60)
+    except HTTPError as exc:
+        account = re.search(r'/accounts/([^/]+)', parsed.path)
+        diag = provider_error_diagnostic(exc, secrets=(api_key, account.group(1) if account else ''))
+        diag.update(llm_calls=1, request_bytes=len(body), json_mode=json_mode, endpoint_kind=endpoint_kind,
+                    schema_sha256=hashlib.sha256(canonical_json(
+                        json.loads(body)['response_format']).encode()).hexdigest())
+        raise ProviderHTTPError(diag) from None
+    with resp_cm as resp:
         if resp.status != 200:
             raise ValueError('LLM_NON_SUCCESS_STATUS')
         raw = resp.read(MAX_RESPONSE_BYTES + 1)

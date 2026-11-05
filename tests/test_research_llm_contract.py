@@ -243,7 +243,9 @@ class ContractSentToModel(unittest.TestCase):
         body = json.loads(opener.calls[0].data)
         self.assertNotIn('model', body, 'native endpoint names the model in the URL')
         self.assertEqual(body['response_format']['type'], 'json_schema')
-        self.assertEqual(body['response_format']['json_schema'], response_schema())
+        # The provider receives the reduced guidance schema (run 42038573930, HTTP 400);
+        # the full contract stays in response_schema() and in the Python validator.
+        self.assertEqual(body['response_format']['json_schema'], research_llm.provider_schema())
         self.assertEqual(body['max_tokens'], 2400)
         self.assertLessEqual(len(opener.calls[0].data), MAX_REQUEST_BYTES)
 
