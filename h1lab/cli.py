@@ -66,113 +66,117 @@ async def poll(state):
             trigger="unknown"
         print("COLLECT_TRIGGER:",trigger)
         last=int(state["last_id"])
-        if last==0 and not state["alerts"]:
-            # At deployment do NOT replay historical messages into prospective bets.
+        bootstrap = last==0 and not state["alerts"]
+        if bootstrap:
+            # Do not replay history. Commit only after read AND cleanup succeed.
             newest=await client.get_messages(entity,limit=1)
-            state["last_id"]=newest[0].id if newest else 0
-            state["collector"]={"last_poll_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                "last_batch_new_messages":0,"batch_limit_hit":False,"trigger_source":trigger}
-            save(state)
-            print("TELEGRAM_READ_OK", "checkpoint", state["last_id"], "new_messages", 0)
-            print("BOOTSTRAPPED: monitoring new messages after ID",state["last_id"])
-            return
-        original_last=last
-        previous_tickets=len(state["tickets"])
-        diagnostics=list(state.get("diagnostics",[]))
-        diagnosed={d["message_id"] for d in diagnostics}
-        parsed=[]
-        shadow_rows=[]
-        market_v4_rows=[]
-        inspected_ids=set()
-        inspected=0
-        new_messages=0
-        fresh_diagnostics=[]
-        batch_limit=1500
-        # Revisit exactly the previous checkpoint, which may have been
-        # skipped by an older parser. Keep duplicate protection in incorporate.
-        async for msg in client.iter_messages(entity,min_id=max(0,last-1),reverse=True,limit=batch_limit):
-            inspected+=1
-            inspected_ids.add(msg.id)
-            if msg.id>original_last:
-                new_messages+=1
-            last=max(last,msg.id)
-            raw_text=msg.raw_text or ""
-            # AsianOdds links are often Telegram text-url entities, not visible text.
-            links=[getattr(item,"url","") for item in (msg.entities or [])]
-            links=[url for url in links if url and "asianodds.com" in url]
-            combined=raw_text+"\n"+"\n".join(links)
-            event=parse_alert(combined,msg.date,msg.id,str(entity.id))
-            observe_shadow(combined,msg.date,msg.id,str(entity.id),event is not None,shadow_rows)
-            observe_market_v4(combined,msg.date,msg.id,str(entity.id),event,market_v4_rows,
-                              edit_date=getattr(msg,"edit_date",None))
-            if event:
-                parsed.append(event)
-            elif msg.id not in diagnosed:
-                reason=classify_message(combined)
-                diagnostic={"message_id":msg.id,"seen_at":msg.date.isoformat(),"reason":reason}
-                diagnostics.append(diagnostic)
-                fresh_diagnostics.append(diagnostic)
-                diagnosed.add(msg.id)
-        # Telegram edits to older messages are invisible to min_id=last-1.
-        # An independent bounded V4-only revisit covers the 80 most recent
-        # channel messages. No old message is passed to H1 incorporate(),
-        # shadow formats, tickets or notification generation.
-        # Messages older than the window may still be edited undetected.
-        older_edit_rechecks=0
-        try:
-            legacy_by_id={x.get("event_id"):x for x in state["alerts"]
-                          if isinstance(x,dict) and x.get("event_id")}
-            async for previous_msg in client.iter_messages(entity,limit=80):
-                if previous_msg.id in inspected_ids or not getattr(previous_msg,"edit_date",None):
-                    continue
-                older_edit_rechecks+=1
-                prior_raw=previous_msg.raw_text or ""
-                prior_links=[getattr(e,"url","") for e in (previous_msg.entities or [])]
-                prior_links=[url for url in prior_links if url and "asianodds.com" in url]
-                prior_combined=prior_raw+"\n"+"\n".join(prior_links)
-                event_id=str(entity.id)+":"+str(previous_msg.id)
-                observe_market_v4(prior_combined,previous_msg.date,previous_msg.id,str(entity.id),
-                                  legacy_by_id.get(event_id),market_v4_rows,
-                                  edit_date=previous_msg.edit_date)
-        except Exception as exc:
-            print("LAB_V4_EDIT_RECHECK_FAILED:",type(exc).__name__)
-        print("LAB_V4_EDIT_RECHECK",older_edit_rechecks,"recent_limit",80)
-        # Shadow persistence is best effort and never affects H1 state/checkpoints.
-        persist_shadow(shadow_rows)
-        persist_market_v4(market_v4_rows)
-        # Remove obsolete parse errors for messages now successfully recovered.
-        recovered_ids={event["message_id"] for event in parsed}
-        if recovered_ids:
-            diagnostics[:]=[d for d in diagnostics if d["message_id"] not in recovered_ids]
-            diagnosed.difference_update(recovered_ids)
-        state["diagnostics"]=diagnostics[-200:]
-        now=datetime.now(timezone.utc)
-        added=incorporate(state,parsed,now)
-        state["last_id"]=last
-        last_saved_poll=state.get("collector",{}).get("last_poll_at")
-        heartbeat_due=(not last_saved_poll or
-            datetime.fromisoformat(last_saved_poll)<now-timedelta(minutes=45))
-        batch_limit_hit=inspected>=batch_limit
-        if new_messages or heartbeat_due or batch_limit_hit:
-            state["collector"]={
-                "last_poll_at":now.isoformat(timespec="seconds"),
-                "last_batch_new_messages":new_messages,
-                "last_batch_parsed":added,
-                "trigger_source":trigger,
-                "batch_limit_hit":batch_limit_hit,
-                "telegram_last_id":last}
-        if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added or heartbeat_due:
-            save(state)
-        print("TELEGRAM_READ_OK", "checkpoint", last, "new_messages", new_messages)
-        print("Inspected:",inspected,"new Telegram messages:",new_messages,
-              "new structured alerts:",added,
-              "new unparsed diagnostics:",len(fresh_diagnostics),
-              "H1 signals:",len(state["signals"]),"triples:",len(state["tickets"]))
-        if batch_limit_hit:
-            print("BACKLOG: batch limit reached; subsequent polls resume from Telegram ID",last)
-        for diagnostic in fresh_diagnostics:
-            print("UNPARSED id=",diagnostic["message_id"],
-                  "reason=",diagnostic["reason"])
+        else:
+            original_last=last
+            previous_tickets=len(state["tickets"])
+            diagnostics=list(state.get("diagnostics",[]))
+            diagnosed={d["message_id"] for d in diagnostics}
+            parsed=[]
+            shadow_rows=[]
+            market_v4_rows=[]
+            inspected_ids=set()
+            inspected=0
+            new_messages=0
+            fresh_diagnostics=[]
+            batch_limit=1500
+            # Revisit exactly the previous checkpoint, which may have been
+            # skipped by an older parser. Keep duplicate protection in incorporate.
+            async for msg in client.iter_messages(entity,min_id=max(0,last-1),reverse=True,limit=batch_limit):
+                inspected+=1
+                inspected_ids.add(msg.id)
+                if msg.id>original_last:
+                    new_messages+=1
+                last=max(last,msg.id)
+                raw_text=msg.raw_text or ""
+                # AsianOdds links are often Telegram text-url entities, not visible text.
+                links=[getattr(item,"url","") for item in (msg.entities or [])]
+                links=[url for url in links if url and "asianodds.com" in url]
+                combined=raw_text+"\n"+"\n".join(links)
+                event=parse_alert(combined,msg.date,msg.id,str(entity.id))
+                observe_shadow(combined,msg.date,msg.id,str(entity.id),event is not None,shadow_rows)
+                observe_market_v4(combined,msg.date,msg.id,str(entity.id),event,market_v4_rows,
+                                  edit_date=getattr(msg,"edit_date",None))
+                if event:
+                    parsed.append(event)
+                elif msg.id not in diagnosed:
+                    reason=classify_message(combined)
+                    diagnostic={"message_id":msg.id,"seen_at":msg.date.isoformat(),"reason":reason}
+                    diagnostics.append(diagnostic)
+                    fresh_diagnostics.append(diagnostic)
+                    diagnosed.add(msg.id)
+            # Telegram edits to older messages are invisible to min_id=last-1.
+            # An independent bounded V4-only revisit covers the 80 most recent
+            # channel messages. No old message is passed to H1 incorporate(),
+            # shadow formats, tickets or notification generation.
+            # Messages older than the window may still be edited undetected.
+            older_edit_rechecks=0
+            try:
+                legacy_by_id={x.get("event_id"):x for x in state["alerts"]
+                              if isinstance(x,dict) and x.get("event_id")}
+                async for previous_msg in client.iter_messages(entity,limit=80):
+                    if previous_msg.id in inspected_ids or not getattr(previous_msg,"edit_date",None):
+                        continue
+                    older_edit_rechecks+=1
+                    prior_raw=previous_msg.raw_text or ""
+                    prior_links=[getattr(e,"url","") for e in (previous_msg.entities or [])]
+                    prior_links=[url for url in prior_links if url and "asianodds.com" in url]
+                    prior_combined=prior_raw+"\n"+"\n".join(prior_links)
+                    event_id=str(entity.id)+":"+str(previous_msg.id)
+                    observe_market_v4(prior_combined,previous_msg.date,previous_msg.id,str(entity.id),
+                                      legacy_by_id.get(event_id),market_v4_rows,
+                                      edit_date=previous_msg.edit_date)
+            except Exception as exc:
+                print("LAB_V4_EDIT_RECHECK_FAILED:",type(exc).__name__)
+            print("LAB_V4_EDIT_RECHECK",older_edit_rechecks,"recent_limit",80)
+    # Nothing durable (including the cursor) is written inside the network context.
+    if bootstrap:
+        state["last_id"]=newest[0].id if newest else 0
+        state["collector"]={"last_poll_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "last_batch_new_messages":0,"batch_limit_hit":False,"trigger_source":trigger}
+        save(state)
+        print("TELEGRAM_READ_OK", "checkpoint", state["last_id"], "new_messages", 0)
+        print("BOOTSTRAPPED: monitoring new messages after ID",state["last_id"])
+        return
+    # Shadow persistence is best effort and never affects H1 state/checkpoints.
+    persist_shadow(shadow_rows)
+    persist_market_v4(market_v4_rows)
+    # Remove obsolete parse errors for messages now successfully recovered.
+    recovered_ids={event["message_id"] for event in parsed}
+    if recovered_ids:
+        diagnostics[:]=[d for d in diagnostics if d["message_id"] not in recovered_ids]
+        diagnosed.difference_update(recovered_ids)
+    state["diagnostics"]=diagnostics[-200:]
+    now=datetime.now(timezone.utc)
+    added=incorporate(state,parsed,now)
+    state["last_id"]=last
+    last_saved_poll=state.get("collector",{}).get("last_poll_at")
+    heartbeat_due=(not last_saved_poll or
+        datetime.fromisoformat(last_saved_poll)<now-timedelta(minutes=45))
+    batch_limit_hit=inspected>=batch_limit
+    if new_messages or heartbeat_due or batch_limit_hit:
+        state["collector"]={
+            "last_poll_at":now.isoformat(timespec="seconds"),
+            "last_batch_new_messages":new_messages,
+            "last_batch_parsed":added,
+            "trigger_source":trigger,
+            "batch_limit_hit":batch_limit_hit,
+            "telegram_last_id":last}
+    if last!=original_last or len(state["tickets"])!=previous_tickets or fresh_diagnostics or recovered_ids or added or heartbeat_due:
+        save(state)
+    print("TELEGRAM_READ_OK", "checkpoint", last, "new_messages", new_messages)
+    print("Inspected:",inspected,"new Telegram messages:",new_messages,
+          "new structured alerts:",added,
+          "new unparsed diagnostics:",len(fresh_diagnostics),
+          "H1 signals:",len(state["signals"]),"triples:",len(state["tickets"]))
+    if batch_limit_hit:
+        print("BACKLOG: batch limit reached; subsequent polls resume from Telegram ID",last)
+    for diagnostic in fresh_diagnostics:
+        print("UNPARSED id=",diagnostic["message_id"],
+              "reason=",diagnostic["reason"])
 
 async def probe_telegram():
     from .session import authorized_channel

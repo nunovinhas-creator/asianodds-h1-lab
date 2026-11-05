@@ -47,7 +47,15 @@ jobs:
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
-        run: python -m h1lab.cli probe-telegram
+        # External deadline also bounds cancellation-resistant Telethon/background tasks.
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=10s 140s python -u -m h1lab.cli probe-telegram
+          status=$?
+          if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
+            echo "TELEGRAM_TIMEOUT PROCESS_DEADLINE"
+          fi
+          exit "$status"
   collect:
     if: ${{ github.event_name != 'workflow_dispatch' || !inputs.auth_probe }}
     runs-on: ubuntu-latest
@@ -70,7 +78,15 @@ jobs:
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
           TG_SESSION: ${{ secrets.TG_SESSION }}
           TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
-        run: python -m h1lab.cli collect
+        timeout-minutes: 8
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=10s 420s python -u -m h1lab.cli collect
+          status=$?
+          if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
+            echo "TELEGRAM_TIMEOUT PROCESS_DEADLINE"
+          fi
+          exit "$status"
       # The collector commit is published BEFORE any Telegram request (E5 runs after this step).
       # No rebase, no force push, no re-collection and no Telegram request here.
       # Only the collector-owned paths of scripts/publication_ownership.py are staged

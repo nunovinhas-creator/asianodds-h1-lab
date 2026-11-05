@@ -35,7 +35,7 @@ class CollectTelegramInfraTests(unittest.TestCase):
         self.assertIn("group: asianodds-h1-write", TEXT)
         self.assertIn("cancel-in-progress: false", TEXT)
         self.assertIn("contents: write", TEXT)
-        for needle in ("python -m h1lab.cli collect", "python -m h1lab.e5_notify",
+        for needle in ("python -u -m h1lab.cli collect", "python -m h1lab.e5_notify",
                        "python -m scripts.lab_ft_watchdog",
                        "python -m scripts.h1_results_watchdog",
                        "python -m scripts.collect_publish_safe stage",
@@ -58,10 +58,36 @@ class CollectTelegramInfraTests(unittest.TestCase):
         probe = jobs["auth-probe"]
         self.assertEqual(probe["permissions"], {"contents": "read"})
         commands = [step["run"] for step in probe["steps"] if "run" in step]
-        self.assertEqual(commands, ["pip install -r requirements.txt",
-                                    "python -m h1lab.cli probe-telegram"])
+        self.assertEqual(commands[0], "pip install -r requirements.txt")
+        self.assertIn("140s python -u -m h1lab.cli probe-telegram", commands[1])
         self.assertEqual(probe["steps"][-1]["env"]["TG_SESSION"], "${{ secrets.TG_SESSION }}")
         self.assertIn("!inputs.auth_probe", jobs["collect"]["if"])
+
+    def test_external_deadlines_kill_an_uncooperative_process_and_fail_closed(self):
+        import subprocess
+        import sys
+        import tempfile
+        import time
+        import shlex
+        import yaml
+        jobs = yaml.safe_load(TEXT)["jobs"]
+        with tempfile.TemporaryDirectory() as tmp:
+            child = Path(tmp) / "stalled.py"
+            child.write_text("import signal, time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\nwhile True: time.sleep(1)\n")
+            for job, action, budget in (("collect", "collect", "420s"),
+                                        ("auth-probe", "probe-telegram", "140s")):
+                with self.subTest(job=job):
+                    command = next(s["run"] for s in jobs[job]["steps"]
+                                   if f"h1lab.cli {action}" in s.get("run", ""))
+                    command = command.replace(budget, "0.2s").replace("10s", "0.1s")
+                    command = command.replace(f"python -u -m h1lab.cli {action}",
+                                              shlex.join([sys.executable, str(child)]))
+                    start = time.monotonic()
+                    result = subprocess.run(["bash", "-c", command], capture_output=True,
+                                            text=True, timeout=3)
+                    self.assertIn(result.returncode, (124, 137))
+                    self.assertIn("TELEGRAM_TIMEOUT PROCESS_DEADLINE", result.stdout)
+                    self.assertLess(time.monotonic() - start, 3)
 
     def test_yaml_parses(self):
         import yaml

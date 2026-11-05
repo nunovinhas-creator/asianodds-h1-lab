@@ -730,7 +730,7 @@ class OnlyE5IsActiveTests(unittest.TestCase):
 
     def test_collect_workflow_runs_only_the_e5_emitter(self):
         text = (REPO / ".github/workflows/collect.yml").read_text(encoding="utf-8")
-        modules = re.findall(r"python -m (h1lab\.[a-z0-9_]+)", text)
+        modules = re.findall(r"python (?:-u )?-m (h1lab\.[a-z0-9_]+)", text)
         self.assertEqual(modules, ["h1lab.cli", "h1lab.cli", "h1lab.e5_notify"])
         steps = yaml.safe_load(text)["jobs"]["collect"]["steps"]
         names = [s.get("name", "") for s in steps]
