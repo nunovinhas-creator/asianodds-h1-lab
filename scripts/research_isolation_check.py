@@ -31,6 +31,9 @@ ALLOWED = (
     # Activation migration (exact files only): the prepared workflow replaces the retired one in
     # place, the retired workflow's wiring test, and the retired workflow's operator doc.
     '.github/workflows/v6-llm-autonomous.yml', 'tests/test_v6_llm_autonomous.py',
+    # Central quota: legacy network boundary guard, offline store double and seed only.
+    'h1lab/v6_llm_investigator.py', 'tests/quota_fixtures.py',
+    'data/research/quota-ledger.json', 'docs/technical/LLM-QUOTA-CONTROLLER.md',
     'docs/technical/V6_LLM_AUTONOMY_CONTROLLED.md',
 )
 PROTECTED_TOPS = ('data', 'docs/lab', 'config')

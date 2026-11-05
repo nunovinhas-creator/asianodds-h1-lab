@@ -15,8 +15,7 @@ Modes:
   llm-live       ONE request (OPERATIONAL only). Refused unless config llm_live_enabled,
                  --allow-network, and either the original 4-slot schedule on main
                  (attempt 1) or workflow_dispatch with RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ,
-                 and <=4 attempts per UTC day (5 on 2026-11-05 only) by BOTH the published memory and the pre-call
-                 ledger (RESEARCH_PRIOR_LLM_ATTEMPTS, from scripts/lab_research_budget.py). No retries.
+                 and a durable central reservation within 8,000 estimated neurons per UTC day. No retries.
   recover-torn-tail  explicit recovery of an interrupted foreign write (quarantines tail)
 
 Exit 0 on success or clean NOT_RUN, 2 on refusal/error (JSON reason on stdout).
@@ -31,7 +30,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from h1lab.research_daily_limit import daily_llm_attempt_limit
+from h1lab.research_quota import DAILY_NEURON_BUDGET, MAX_NEURONS_PER_CALL
 from h1lab.research_cycle import build_panel, llm_packet, run_cycle, write_panel
 from h1lab.research_dataset import build_dataset
 from h1lab.research_gates import EXPLORATION_ALLOWED, exploration_gate
@@ -46,7 +45,7 @@ LIVE_CONFIRM = 'INVESTIGAR_UMA_VEZ'
 # 0 valid plans in both live calls (runs 42021728675 and 42030138637).
 MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 SCHEDULE = '43 1,7,13,19 * * *'        # the four existing daily opportunities, unchanged
-MAX_DAILY_LIVE_CALLS = 4               # base rule; dated exception in h1lab.research_daily_limit
+MAX_DAILY_LIVE_CALLS = DAILY_NEURON_BUDGET // MAX_NEURONS_PER_CALL  # compatibility: unmetered capacity
 MODE_KINDS = {'offline': ('OPERATIONAL', 'DEMONSTRATION', 'TEST'),
               'llm-response': ('DEMONSTRATION', 'TEST'), 'llm-simulated': ('DEMONSTRATION', 'TEST'),
               'packet': ('OPERATIONAL', 'DEMONSTRATION', 'TEST'), 'llm-live': ('OPERATIONAL',),
@@ -68,18 +67,8 @@ def live_authorisation(env, memory, today):
             raise ValueError('LIVE_CONFIRMATION_MISSING')
     else:
         raise ValueError('LIVE_EVENT_NOT_AUTHORISED')
-    # Two independent counters; the larger wins. Memory sees only PUBLISHED cycles; the
-    # pre-call ledger (scripts/lab_research_budget.py, GitHub run history) also sees calls
-    # that were made but never published (invalid reply, crash, push conflict). Missing or
-    # malformed ledger -> refuse: never call without proof of the remaining daily budget.
-    published = sum(c.get('llm_calls', 0) for c in memory
-                    if c.get('record_type') == 'CYCLE' and c.get('llm_origin') == 'LLM_LIVE'
-                    and str(c.get('recorded_at', ''))[:10] == today)
-    ledger = env.get('RESEARCH_PRIOR_LLM_ATTEMPTS', '')
-    if not re.fullmatch(r'[0-9]{1,3}', ledger or ''):
-        raise ValueError('LIVE_LEDGER_MISSING')
-    if max(published, int(ledger)) >= daily_llm_attempt_limit(today):
-        raise ValueError('LIVE_DAILY_LIMIT')
+    # Admission is performed by the durable quota controller immediately before HTTP.
+    # No caller-supplied counter or a published-memory count can grant permission.
     return event
 
 
@@ -114,7 +103,7 @@ def _write_error_audit(path, diagnostic, model):
     path.write_text(data + '\n', encoding='utf-8')
 
 
-def main(argv=None, *, env=None, opener=None):
+def main(argv=None, *, env=None, opener=None, quota_factory=None):
     env = os.environ if env is None else env
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--root', type=Path, default=ROOT)
@@ -131,8 +120,12 @@ def main(argv=None, *, env=None, opener=None):
                          'outside the repository; never published to memory or Pages)')
     args = ap.parse_args(argv)
 
+    quota_report = None
+
     def refuse(reason, provider_error=None):
         out = {'status': 'REFUSED_OR_FAILED', 'reason': reason}
+        if quota_report is not None:
+            out['quota'] = quota_report
         if provider_error is not None:
             # Bounded, redacted provider diagnostic (h1lab.research_llm.provider_error_diagnostic).
             out['provider_error'] = provider_error
@@ -235,12 +228,19 @@ def main(argv=None, *, env=None, opener=None):
             from h1lab.research_llm import request_body
             body_len = len(request_body(packet, MODEL, endpoint_kind=profile['endpoint'],
                                         json_mode=profile['json_mode'], max_plans=max_plans))
-            bound = neuron_bound(MODEL, body_len, prior_calls_today=int(env['RESEARCH_PRIOR_LLM_ATTEMPTS']))
+            bound = neuron_bound(MODEL, body_len)
+            from h1lab.research_quota import from_environment
+            quota = (quota_factory or from_environment)(env)
+            quota_report = quota.reserve(env.get('GITHUB_RUN_ID'), MODEL, bound['neurons_max'])
+            kw['quota'] = quota
             try:
-                reply = invoke_once(packet, **kw)   # exactly one request; any failure aborts
+                reply = quota.send(lambda: invoke_once(packet, **kw))  # durable reservation, exactly one request
             except (ProviderHTTPError, ProviderTransportError) as exc:
                 _write_error_audit(args.llm_audit, exc.diagnostic, MODEL)
                 raise
+            # Settle metered cost even if the response is later rejected by the DSL.
+            # Failure to persist settlement leaves the full reservation in the ledger.
+            quota_report = quota.settle(neurons_from_usage(MODEL, reply['usage'].get('tokens'))) or quota_report
             # Raw reply saved BEFORE parsing, so even an unparseable answer can be audited.
             _write_audit(args.llm_audit, reply, MODEL)
             llm = parse_response(reply['content'], max_plans=max_plans, **guard)
@@ -257,6 +257,8 @@ def main(argv=None, *, env=None, opener=None):
             write_panel(panel_path, build_panel(read_memory(memory_path), gate, now=now))
     except (ValueError, KeyError, TypeError, OSError) as exc:
         return refuse(type(exc).__name__ + ': ' + str(exc)[:200], getattr(exc, 'diagnostic', None))
+    if quota_report is not None:
+        result['quota'] = quota_report
     result.pop('records', None)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result['status'] in ('RUN', 'NOT_RUN') else 2
@@ -264,3 +266,4 @@ def main(argv=None, *, env=None, opener=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
+

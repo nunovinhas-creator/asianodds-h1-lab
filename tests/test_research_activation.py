@@ -68,7 +68,7 @@ class SingleActiveSchedule(unittest.TestCase):
     def test_no_proposed_copy_left_and_config_enabled_only_by_this_change(self):
         self.assertEqual(list((ROOT / '.github').glob('proposed-workflows/*')), [])
         cfg = json.loads((ROOT / 'config/research-autonomy.json').read_text())
-        self.assertTrue(cfg['llm_live_enabled'])
+        self.assertFalse(cfg['llm_live_enabled'])
         self.assertEqual(cfg['max_llm_calls_per_cycle'], 1)
         self.assertEqual(cfg['max_llm_plans_per_call'], 3)
 
@@ -86,8 +86,8 @@ class SingleActiveSchedule(unittest.TestCase):
         self.assertLessEqual(research_llm.neuron_bound(cyc.MODEL, prof['max_request_bytes'])['neurons_max'],
                              research_llm.MAX_NEURONS_PER_CALL)
         self.assertEqual(cyc.SCHEDULE, old.SCHEDULE)
-        self.assertEqual(cyc.MAX_DAILY_LIVE_CALLS, 4)
-        self.assertEqual(budget.MAX_DAILY_LLM_ATTEMPTS, 4)
+        self.assertEqual(cyc.MAX_DAILY_LIVE_CALLS, 8)
+        self.assertEqual(budget.MAX_DAILY_LLM_ATTEMPTS, 8)
         self.assertEqual(research_llm.MAX_REQUEST_BYTES, 48_000)
         src = Path(research_llm.__file__).read_text()
         self.assertEqual(research_llm.MAX_OUTPUT_TOKENS, 2400)
@@ -195,6 +195,10 @@ class OperationalLoop(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name) / 'repo'
         copy_sources(cls.root)
+        cfg = cls.root / 'config/research-autonomy.json'
+        conf = json.loads(cfg.read_text())
+        conf['llm_live_enabled'] = True  # isolated fixture, repository remains disabled
+        cfg.write_text(json.dumps(conf))
         for rel in ('docs/research/demo/memory.jsonl', 'docs/research/demo/panel.json'):
             (cls.root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / rel, cls.root / rel)
@@ -207,7 +211,7 @@ class OperationalLoop(unittest.TestCase):
         from scripts.lab_research_cycle import SCHEDULE
         e = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
              'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
-             'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'RESEARCH_PRIOR_LLM_ATTEMPTS': str(prior)}
+             'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'GITHUB_RUN_ID': '999', 'RESEARCH_PRIOR_LLM_ATTEMPTS': str(prior)}
         e.update(kw)
         return e
 
@@ -221,7 +225,7 @@ class OperationalLoop(unittest.TestCase):
             shutil.copy2(tracked, scratch / 'memory.jsonl')
         code = main(['--root', str(self.root), '--mode', 'llm-live', '--allow-network',
                      '--memory', str(scratch / 'memory.jsonl'), '--panel', str(scratch / 'panel.json'),
-                     '--budget', '0'], env=env, opener=opener)
+                     '--budget', '0'], env=env, opener=opener, quota_factory=__import__('quota_fixtures').factory)
         return code, scratch / 'memory.jsonl'
 
     def test_full_operational_sequence(self):
@@ -264,7 +268,7 @@ class OperationalLoop(unittest.TestCase):
                     self.env(0, GITHUB_EVENT_NAME='workflow_dispatch'),
                     self.env(0, GITHUB_EVENT_NAME='workflow_dispatch', RESEARCH_LLM_CONFIRMATION='sim'),
                     self.env(0, GITHUB_REF='refs/heads/claude/x'),
-                    {k: v for k, v in self.env(0).items() if k != 'RESEARCH_PRIOR_LLM_ATTEMPTS'}):
+                    {k: v for k, v in self.env(0).items() if k != 'GITHUB_RUN_ID'}):
             with self.subTest(env={k: env.get(k) for k in ('RESEARCH_PRIOR_LLM_ATTEMPTS', 'GITHUB_RUN_ATTEMPT',
                                                          'GITHUB_EVENT_NAME', 'GITHUB_REF')}):
                 op = FakeOpener('{}')
@@ -361,3 +365,4 @@ class PublisherRejects(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

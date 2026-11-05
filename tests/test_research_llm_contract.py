@@ -274,11 +274,11 @@ class NeuronBudget(unittest.TestCase):
         prof = MODEL_PROFILES[self.MODEL]
         b = neuron_bound(self.MODEL, prof['max_request_bytes'])
         # 30,000 B / 2.0 B per token = 15,000 input tokens; 2,400 output tokens.
-        expected = (15_000 * 26_668 + 2_400 * 204_805) / 1e6
-        self.assertAlmostEqual(b['neurons_max'], round(expected, 1))
+        expected = (18_512 * 26_668 + 2_400 * 204_805) / 1e6
+        self.assertAlmostEqual(b['neurons_max'], __import__('math').ceil(expected))
         self.assertLessEqual(b['neurons_max'], MAX_NEURONS_PER_CALL)
         self.assertLessEqual(4 * b['neurons_max'], research_llm.FREE_NEURONS_PER_DAY)
-        self.assertLessEqual(15_000 + 2_400, prof['context_tokens'])
+        self.assertLessEqual(18_512 + 2_400, prof['context_tokens'])
 
     def test_refusals(self):
         with self.assertRaisesRegex(ValueError, 'REQUEST_OVER_MODEL_BUDGET'):
@@ -286,11 +286,11 @@ class NeuronBudget(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'MODEL_COST_UNKNOWN'):
             neuron_bound('@cf/meta/llama-3.1-8b-instruct-fast', 1_000)
         with self.assertRaisesRegex(ValueError, 'DAILY_NEURON_BUDGET_EXCEEDED'):
-            neuron_bound(self.MODEL, 20_000, prior_calls_today=5)
+            neuron_bound(self.MODEL, 17_000, prior_calls_today=8)
         small = dict(MODEL_PROFILES[self.MODEL], context_tokens=8_000)
         with mock.patch.dict(MODEL_PROFILES, {self.MODEL: small}), \
                 self.assertRaisesRegex(ValueError, 'CONTEXT_WINDOW_EXCEEDED'):
-            neuron_bound(self.MODEL, 20_000)
+            neuron_bound(self.MODEL, 17_000)
 
 
 class SimulatedModelReplies(unittest.TestCase):
@@ -436,10 +436,10 @@ class EndToEndOnRealData(unittest.TestCase):
             opener = NativeOpener(reply(VALID[0], VALID[2], UNUSED))
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
                    'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
-                   'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
+                   'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'GITHUB_RUN_ID': '999', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
             mem, panel, audit = Path(t) / 'scratch.jsonl', Path(t) / 'panel.json', Path(t) / 'audit.json'
             code = main(['--root', str(root), '--mode', 'llm-live', '--allow-network', '--memory', str(mem),
-                         '--panel', str(panel), '--budget', '0', '--llm-audit', str(audit)], env=env, opener=opener)
+                         '--panel', str(panel), '--budget', '0', '--llm-audit', str(audit)], env=env, opener=opener, quota_factory=__import__('quota_fixtures').factory)
             self.assertEqual(code, 0)
             self.assertEqual(len(opener.calls), 1, 'exactly one (fake) request')
             self.assertTrue(opener.calls[0].full_url.endswith('/ai/run/' + MODEL))
@@ -463,7 +463,7 @@ class EndToEndOnRealData(unittest.TestCase):
             self.assertEqual(cyc['llm_tokens']['total_tokens'], 7900)
             self.assertEqual(cyc['llm_json_mode'], 'json_schema')
             self.assertLessEqual(cyc['llm_neurons_bound'], MAX_NEURONS_PER_CALL)
-            self.assertEqual(cyc['llm_neurons_from_tokens'], round((7000 * 26668 + 900 * 204805) / 1e6, 1))
+            self.assertEqual(cyc['llm_neurons_from_tokens'], __import__('math').ceil((7000 * 26668 + 900 * 204805) / 1e6))
             sci = exploration_gate(root)['scientific_validation_gate']
             self.assertEqual(verify_extension(b'', mem.read_bytes(), sci)['llm_calls'], 1)
             p = json.loads(panel.read_text())
@@ -525,3 +525,4 @@ class HistoricalCycleUntouched(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

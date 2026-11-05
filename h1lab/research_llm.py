@@ -75,19 +75,20 @@ MAX_TRAJECTORY_EXAMPLES = 4
 #   src/content/workers-ai-models/<model>.json            (context_window, input schema)
 # Neither the account plan nor the remaining allocation can be read here
 # (``account_quota_verified=false``): the bound below is on OUR worst case.
-FREE_NEURONS_PER_DAY = 10_000
-DAILY_NEURON_BUDGET = 5_000          # half the free allocation: headroom for other account usage
-MAX_NEURONS_PER_CALL = 1_000
-MAX_CALLS_PER_DAY = 4                # same as the pre-call ledger
-# Measured 39,017 request bytes -> 11,785 prompt tokens (3.3 B/token) on run 42030138637's
-# packet shape; 2.0 B/token is a deliberately pessimistic bound for the token estimate.
-BYTES_PER_TOKEN_PESSIMISTIC = 2.0
+from .research_quota import FREE_NEURONS_PER_DAY, DAILY_NEURON_BUDGET, MAX_NEURONS_PER_CALL
+MAX_CALLS_PER_DAY = DAILY_NEURON_BUDGET // MAX_NEURONS_PER_CALL  # unmetered capacity, not a call-count cap
+# Byte-fallback tokenizers emit no more than one token per UTF-8 byte. Count
+# the ENTIRE serialized request, plus 512 tokens for provider chat framing.
+# This replaces the old empirical 2 bytes/token heuristic. Bound remains an
+# internal conservative estimate under the pinned provider/model contract.
+BYTES_PER_TOKEN_PESSIMISTIC = 1.0
+PROMPT_FRAMING_TOKENS = 512
 
 MODEL_PROFILES = {
     '@cf/meta/llama-3.3-70b-instruct-fp8-fast': {
         'endpoint': 'native',             # /ai/run/{model}: the documented JSON Mode request shape
         'json_mode': 'json_schema', 'json_mode_documented': True,
-        'context_tokens': 24_000, 'max_request_bytes': 30_000,
+        'context_tokens': 24_000, 'max_request_bytes': 18_000,
         'neurons_per_m_input': 26_668, 'neurons_per_m_output': 204_805,
         'reasoning_tokens': False, 'status': 'RECOMMENDED',
     },
@@ -115,7 +116,9 @@ def neuron_bound(model, request_bytes, *, max_tokens=MAX_OUTPUT_TOKENS, prior_ca
         raise ValueError('MODEL_COST_UNKNOWN')
     if request_bytes > prof['max_request_bytes']:
         raise ValueError('REQUEST_OVER_MODEL_BUDGET')
-    in_tokens = math.ceil(request_bytes / BYTES_PER_TOKEN_PESSIMISTIC)
+    if type(request_bytes) is not int or request_bytes <= 0 or type(max_tokens) is not int or not 0 < max_tokens <= MAX_OUTPUT_TOKENS or type(prior_calls_today) is not int or prior_calls_today < 0:
+        raise ValueError('INVALID_NEURON_BOUND_INPUT')
+    in_tokens = math.ceil(request_bytes / BYTES_PER_TOKEN_PESSIMISTIC) + PROMPT_FRAMING_TOKENS
     if in_tokens + max_tokens > prof['context_tokens']:
         raise ValueError('CONTEXT_WINDOW_EXCEEDED')
     neurons = (in_tokens * prof['neurons_per_m_input'] + max_tokens * prof['neurons_per_m_output']) / 1e6
@@ -124,17 +127,22 @@ def neuron_bound(model, request_bytes, *, max_tokens=MAX_OUTPUT_TOKENS, prior_ca
     if (prior_calls_today + 1) * MAX_NEURONS_PER_CALL > DAILY_NEURON_BUDGET:
         raise ValueError('DAILY_NEURON_BUDGET_EXCEEDED')
     return {'model': model, 'request_bytes': request_bytes, 'input_tokens_max': in_tokens,
-            'output_tokens_max': max_tokens, 'neurons_max': round(neurons, 1),
-            'daily_neurons_max': MAX_CALLS_PER_DAY * MAX_NEURONS_PER_CALL,
+            'output_tokens_max': max_tokens, 'neurons_max': math.ceil(neurons),
+            'daily_neurons_max': DAILY_NEURON_BUDGET,
+            'bound_kind': 'CONSERVATIVE_TOKEN_ESTIMATE',
             'free_neurons_per_day': FREE_NEURONS_PER_DAY, 'account_quota_verified': False}
 
 
 def neurons_from_usage(model, tokens):
+    """Conservative integer estimate from complete metering, never account billing."""
     prof = MODEL_PROFILES.get(model) or {}
-    if not tokens or prof.get('neurons_per_m_input') is None:
+    if not isinstance(tokens, dict) or prof.get('neurons_per_m_input') is None:
         return None
-    return round((tokens.get('prompt_tokens', 0) * prof['neurons_per_m_input']
-                  + tokens.get('completion_tokens', 0) * prof['neurons_per_m_output']) / 1e6, 1)
+    values = [tokens.get(k) for k in ('prompt_tokens', 'completion_tokens')]
+    if any(type(v) is not int or v < 0 for v in values) or sum(values) == 0:
+        return None
+    return math.ceil((values[0] * prof['neurons_per_m_input']
+                      + values[1] * prof['neurons_per_m_output']) / 1e6)
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +430,10 @@ USER_KEYS = ('gates', 'data', 'markets', 'variables', 'contract', 'memory', 'age
 
 
 def _user_size(packet):
-    return len(json.dumps({k: packet[k] for k in USER_KEYS}, ensure_ascii=False, allow_nan=False).encode())
+    # The user JSON is itself a JSON string in the HTTP envelope. Count escaping
+    # and non-ASCII expansion exactly, not just the inner UTF-8 payload.
+    inner = json.dumps({k: packet[k] for k in USER_KEYS}, ensure_ascii=False, allow_nan=False)
+    return len(json.dumps(inner).encode())
 
 
 # ---------------------------------------------------------------------------
@@ -628,8 +639,10 @@ def transport_diagnostic(exc, *, phase, elapsed_s, timeout_s, secrets=()):
 
 def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint_kind='openai',
                 json_mode='json_object', max_request_bytes=MAX_REQUEST_BYTES, max_plans=3,
-                timeout_s=LLM_HTTP_TIMEOUT_S, clock=time.monotonic):
+                timeout_s=LLM_HTTP_TIMEOUT_S, clock=time.monotonic, quota=None):
     """Exactly one request; any failure raises. No retry loop exists here."""
+    if opener is urlopen and (quota is None or not quota.sent or quota.key is None):
+        raise ValueError('QUOTA_DURABLE_RESERVATION_REQUIRED')
     parsed = urlsplit(endpoint)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
         raise ValueError('HTTPS_ENDPOINT_REQUIRED')
@@ -653,6 +666,8 @@ def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint
         diag.update(llm_calls=1, request_bytes=len(body), json_mode=json_mode, endpoint_kind=endpoint_kind)
         return ProviderTransportError(diag)
 
+    if quota is not None:
+        quota.consume_http(model, len(body))
     started = clock()
     try:
         resp_cm = opener(Request(endpoint, data=body, headers=headers, method='POST'), timeout=timeout_s)
@@ -679,3 +694,4 @@ def invoke_once(packet, *, endpoint, model, api_key='', opener=urlopen, endpoint
     content, usage_env = _content_and_usage(envelope)
     return {'content': content, 'usage': provider_usage(usage_env, model), 'llm_calls': 1,
             'response_sha256': hashlib.sha256(raw).hexdigest(), 'request_bytes': len(body)}
+

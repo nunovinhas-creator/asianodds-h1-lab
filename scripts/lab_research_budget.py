@@ -1,4 +1,6 @@
-"""Pre-call LLM attempt ledger for the autonomous research workflow (no LLM secrets).
+"""Legacy READ-ONLY attempt diagnostic (not live admission).
+
+Pre-call LLM attempt ledger for the autonomous research workflow (no LLM secrets).
 
 Why: the memory-based daily count only sees cycles that were PUBLISHED. A call that was
 made but never reached memory (invalid reply, executor error, timeout, push conflict,
@@ -35,7 +37,7 @@ LEDGER_WORKFLOWS = ('v6-llm-autonomous.yml', 'v6-llm-investigator.yml')
 # Substrings identifying the step that may contact the provider in each workflow
 # (current research workflow, retired autonomous workflow, manual investigator).
 LLM_STEP_MARKERS = ('LLM call', 'Cloudflare Workers AI')
-MAX_DAILY_LLM_ATTEMPTS = 4          # base rule; dated exception in h1lab.research_daily_limit
+MAX_DAILY_LLM_ATTEMPTS = daily_llm_attempt_limit(None)  # read-only diagnostic capacity
 PAGE = 100
 
 
@@ -160,3 +162,4 @@ def main(argv=None, *, env=None, opener=urlopen, now=None):
 
 if __name__ == '__main__':
     sys.exit(main())
+
