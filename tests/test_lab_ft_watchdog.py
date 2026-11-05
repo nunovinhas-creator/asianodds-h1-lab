@@ -19,23 +19,25 @@ class FakeResponse:
     def __exit__(self,*args): return False
     def read(self,n=-1): return self.data[:n]
 
-def fetcher(at, *, post_status=204, status=200):
+def fetcher(at, *, post_status=204, status=200, conclusion="success"):
     requests=[]
     def opener(req,timeout=None):
         requests.append(req)
         if req.get_method()=="GET":
-            return FakeResponse({"workflow_runs":[{"created_at":at}] if at else []},
+            return FakeResponse({"workflow_runs":[{"created_at":at, "status":"completed", "conclusion":conclusion}] if at else []},
                                 status=status)
         return FakeResponse({},status=post_status)
     return opener,requests
 
 
 class FTWatchdogTests(unittest.TestCase):
-    def test_recent_job_suppresses_new_job_even_if_failed(self):
-        fn,calls=fetcher("2026-10-28T17:50:00Z")
+    def test_failed_recent_attempt_preserves_spacing_without_reporting_health(self):
+        fn,calls=fetcher("2026-10-28T17:50:00Z", conclusion="failure")
         r=run(env=ENV,now=NOW,opener=fn)
         self.assertEqual(r["status"],STATUS_SKIPPED)
         self.assertFalse(r["dispatched"])
+        self.assertEqual(r["reason"],"FAILED_ATTEMPT_COOLDOWN")
+        self.assertEqual(r["latest_ft_conclusion"],"failure")
         self.assertEqual(len(calls),1)
         self.assertIn("/actions/workflows/lab-ft-results.yml/runs?",calls[0].full_url)
 
@@ -49,6 +51,28 @@ class FTWatchdogTests(unittest.TestCase):
         self.assertEqual(json.loads(calls[1].data),
                          {"ref":"main","inputs":{"trigger_source":"h1-ft-watchdog"}})
         self.assertNotIn(ENV["GITHUB_TOKEN"],json.dumps(r))
+
+    def test_stale_failure_dispatches_fresh_main_once(self):
+        fn,calls=fetcher("2026-10-28T17:30:00Z", conclusion="failure")
+        outcome=run(env=ENV,now=NOW,opener=fn)
+        self.assertTrue(outcome["dispatched"])
+        self.assertEqual(outcome["reason"],"STALE_FAILED_ATTEMPT")
+        self.assertEqual(len(calls),2)
+        self.assertEqual(json.loads(calls[1].data)["ref"],"main")
+
+    def test_old_active_job_still_blocks_duplicate_dispatch(self):
+        result=plan([{"created_at":"2026-10-28T17:30:00Z","event":"schedule",
+                      "status":"in_progress","conclusion":None}],NOW)
+        self.assertFalse(result["dispatch"])
+        self.assertEqual(result["reason"],"ACTIVE_RUN")
+
+    def test_collect_failure_cannot_suppress_ft_watchdog_step(self):
+        from pathlib import Path
+        import yaml
+        steps=yaml.safe_load(Path(".github/workflows/collect.yml").read_text())["jobs"]["collect"]["steps"]
+        watchdog=next(step for step in steps if step.get("run")=="python -m scripts.lab_ft_watchdog")
+        self.assertEqual(watchdog["if"], "${{ !cancelled() && github.ref == 'refs/heads/main' }}")
+        self.assertEqual(set(watchdog["env"]), {"GITHUB_TOKEN"})
 
     def test_missing_workflow_run_list_does_not_dispatch(self):
         def invalid(req, timeout=10):

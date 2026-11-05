@@ -104,11 +104,10 @@ jobs:
           path: ${{ runner.temp }}/collect-unexpected.patch
           if-no-files-found: ignore
           retention-days: 30
-      # A missing GitHub schedule can starve authenticated FT lookups.
-      # Runs ONLY after H1 has persisted the collected data (even if the E5 step failed).
-      # Does not modify H1/Telegram or block data publication on failure.
+      # The FT watchdog has no Telegram or provider credentials. A failed read
+      # must not prevent it from observing or waking an overdue FT run.
       - name: Wake overdue LAB FT workflow (nonblocking watchdog)
-        if: ${{ !cancelled() && steps.store.outcome == 'success' }}
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
         continue-on-error: true
         timeout-minutes: 1
         env:
