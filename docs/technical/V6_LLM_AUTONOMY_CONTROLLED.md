@@ -1,5 +1,13 @@
 # MASTER BRAIN V6 — Autonomia controlada do Investigador LLM (fase experimental)
 
+> **RETIRADO (PR de migração MASTER BRAIN).** `.github/workflows/v6-llm-autonomous.yml` executa agora o
+> investigador autónomo exploratório (`scripts/lab_research_cycle.py --mode llm-live`), com o mesmo cron,
+> o mesmo grupo `v6-llm-global`, o mesmo modelo e no máximo 4 tentativas por dia UTC, contadas por um
+> registo pré-chamada (`scripts/lab_research_budget.py`) que também conta chamadas não publicadas.
+> O fluxo descrito abaixo (`scripts/lab_v6_llm_autonomous.py`) já não está ligado a nenhum workflow e fica
+> apenas para rollback (`git revert` do merge). Documentação atual: `docs/technical/AUTONOMOUS-RESEARCH.md`.
+> Os arquivos `docs/lab/llm-investigator-runs/` continuam a ser escritos pelo Investigador manual.
+
 ## Objetivo e alcance
 Execução automática e limitada de novas hipóteses de cruzamento de variáveis do catálogo V5. Esta funcionalidade está isolada das estratégias H1/FT, Telegram, apostas e validação científica. A IA **não aprende nem valida estatisticamente** a partir de um prompt; apresenta uma hipótese DRAFT para testar em jogos futuros.
 

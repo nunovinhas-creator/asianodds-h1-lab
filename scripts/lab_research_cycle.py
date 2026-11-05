@@ -14,8 +14,9 @@ Modes:
   packet         print the exact packet an LLM would receive, zero calls
   llm-live       ONE request (OPERATIONAL only). Refused unless config llm_live_enabled,
                  --allow-network, and either the original 4-slot schedule on main
-                 (attempt 1, <=4 per UTC day) or workflow_dispatch with
-                 RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ. No retries.
+                 (attempt 1) or workflow_dispatch with RESEARCH_LLM_CONFIRMATION=INVESTIGAR_UMA_VEZ,
+                 and <=4 attempts per UTC day by BOTH the published memory and the pre-call
+                 ledger (RESEARCH_PRIOR_LLM_ATTEMPTS, from scripts/lab_research_budget.py). No retries.
   recover-torn-tail  explicit recovery of an interrupted foreign write (quarantines tail)
 
 Exit 0 on success or clean NOT_RUN, 2 on refusal/error (JSON reason on stdout).
@@ -63,10 +64,17 @@ def live_authorisation(env, memory, today):
             raise ValueError('LIVE_CONFIRMATION_MISSING')
     else:
         raise ValueError('LIVE_EVENT_NOT_AUTHORISED')
-    used = sum(c.get('llm_calls', 0) for c in memory
-               if c.get('record_type') == 'CYCLE' and c.get('llm_origin') == 'LLM_LIVE'
-               and str(c.get('recorded_at', ''))[:10] == today)
-    if used >= MAX_DAILY_LIVE_CALLS:
+    # Two independent counters; the larger wins. Memory sees only PUBLISHED cycles; the
+    # pre-call ledger (scripts/lab_research_budget.py, GitHub run history) also sees calls
+    # that were made but never published (invalid reply, crash, push conflict). Missing or
+    # malformed ledger -> refuse: never call without proof of the remaining daily budget.
+    published = sum(c.get('llm_calls', 0) for c in memory
+                    if c.get('record_type') == 'CYCLE' and c.get('llm_origin') == 'LLM_LIVE'
+                    and str(c.get('recorded_at', ''))[:10] == today)
+    ledger = env.get('RESEARCH_PRIOR_LLM_ATTEMPTS', '')
+    if not re.fullmatch(r'[0-9]{1,3}', ledger or ''):
+        raise ValueError('LIVE_LEDGER_MISSING')
+    if max(published, int(ledger)) >= MAX_DAILY_LIVE_CALLS:
         raise ValueError('LIVE_DAILY_LIMIT')
     return event
 
@@ -147,6 +155,8 @@ def main(argv=None, *, env=None, opener=None):
             llm.update(origin=ORIGIN, llm_calls=0, simulated_requests=len(sim.calls),
                        packet_sha256=packet['packet_sha256'])
         elif args.mode == 'llm-live':
+            if args.now:
+                raise ValueError('LIVE_NOW_OVERRIDE_FORBIDDEN')   # the daily budget uses real UTC time
             if not gate['config']['llm_live_enabled']:
                 raise ValueError('LLM_LIVE_DISABLED_BY_CONFIG')
             if not args.allow_network:

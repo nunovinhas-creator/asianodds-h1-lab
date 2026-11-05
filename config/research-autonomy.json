@@ -2,13 +2,13 @@
   "schema_version": 1,
   "exploration_enabled": true,
   "offline_cycle_enabled": true,
-  "llm_live_enabled": false,
+  "llm_live_enabled": true,
   "max_experiments_per_cycle": 40,
   "max_llm_plans_per_call": 3,
   "max_llm_calls_per_cycle": 1,
   "notes": [
     "exploration_enabled=false restores the previous behaviour: no exploratory research runs.",
-    "llm_live_enabled=false: the research cycle never contacts an LLM provider. Turning it on requires explicit human approval and a workflow change; the existing 4 daily slots are not increased.",
+    "llm_live_enabled=true (activated by the migration PR, human-approved merge required): the research cycle may make ONE bounded request per authorised run of .github/workflows/v6-llm-autonomous.yml (4 daily cron slots, <=4 attempts per UTC day by the pre-call ledger and memory). Set false to stop all real calls instantly.",
     "Nothing in this file can change scientific validation criteria, frozen forecasts, H1, FT, Telegram or quotas."
   ]
 }

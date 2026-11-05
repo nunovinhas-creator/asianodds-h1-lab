@@ -242,6 +242,8 @@ class AutonomousResearchTests(TestCase):
         self.assertNotIn('feature_codes', user['response_schema']['analysis'])
 
     def test_workflow_uses_at_most_four_slots_with_isolated_writer(self):
+        """Retired path: the script is kept (rollback = revert the workflow file) but is no
+        longer wired; its replacement keeps the same four slots, group and writer split."""
         root = Path(__file__).resolve().parents[1]
         wf = (root / '.github/workflows/v6-llm-autonomous.yml').read_text()
         manual = (root / '.github/workflows/v6-llm-investigator.yml').read_text()
@@ -251,7 +253,10 @@ class AutonomousResearchTests(TestCase):
         self.assertIn('needs: discover', wf)
         self.assertIn('contents: write', wf)
         self.assertIn('contents: read', wf)
-        self.assertIn('AUTONOMIA_LLM_UMA_VEZ', wf)
-        self.assertIn('python -m scripts.lab_v6_llm_autonomous --mode live --allow-network', wf)
         self.assertNotIn('re-run', wf.lower())
+        wired = [w.name for w in (root / '.github/workflows').glob('*.y*ml')
+                 if 'scripts.lab_v6_llm_autonomous' in w.read_text()]
+        self.assertEqual(wired, [], 'retired candidate-pool workflow must not run alongside the new one')
+        self.assertIn('python -m scripts.lab_research_cycle --mode llm-live --allow-network', wf)
         self.assertEqual(autonomy.MAX_DAILY_AUTOMATED_REQUESTS, 4)
+        self.assertEqual(autonomy.SCHEDULE, '43 1,7,13,19 * * *')

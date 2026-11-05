@@ -1,4 +1,4 @@
-"""Publisher-side verification for the (PREPARED, NOT ACTIVE) research workflow.
+"""Publisher-side verification for the active research workflow (.github/workflows/v6-llm-autonomous.yml).
 
 Runs in a job WITHOUT LLM secrets. It accepts a candidate operational memory produced
 by the discover job only if it is a byte-exact, strict extension of the memory tracked
