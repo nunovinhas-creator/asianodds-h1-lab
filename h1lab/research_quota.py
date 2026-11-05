@@ -22,6 +22,7 @@ DAILY_NEURON_BUDGET = 8_000
 MAX_NEURONS_PER_CALL = 1_000
 FREE_NEURONS_PER_DAY = 10_000
 BRANCH = 'llm-quota-ledger'
+TRIAL_BRANCH = r'llm-quota-trial/[0-9]{1,20}-[a-z]{1,20}'  # isolated rehearsal data only
 PATH = 'data/research/quota-ledger.json'
 MAX_BYTES = 900_000
 WORKFLOWS = ('v6-llm-autonomous.yml', 'v6-llm-investigator.yml')
@@ -128,9 +129,14 @@ def summary(state, now):
 
 class GitHubStore:
     """No retry, no redirects, no fallback to empty state, no writes to main."""
-    def __init__(self, repo, token, opener=urlopen, clock=lambda: datetime.now(timezone.utc)):
+    def __init__(self, repo, token, opener=urlopen, clock=lambda: datetime.now(timezone.utc), branch=BRANCH):
         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo or '') or not token:
             raise ValueError('QUOTA_GITHUB_IDENTITY_REQUIRED')
+        # Only the operational ledger or a disposable, run-scoped trial branch. The production
+        # path (from_environment) never passes this argument.
+        if branch != BRANCH and not re.fullmatch(TRIAL_BRANCH, branch or ''):
+            raise ValueError('QUOTA_BRANCH_FORBIDDEN')
+        self.branch = branch
         self.base = 'https://api.github.com/repos/' + repo
         self.token, self.clock = token, clock
         self.opener = no_redirect_open if opener is urlopen else opener
@@ -153,7 +159,7 @@ class GitHubStore:
             raise ValueError('QUOTA_API_UNAVAILABLE_OR_CAS_CONFLICT') from None
 
     def read(self):
-        obj = self.api('/contents/' + PATH + '?ref=' + BRANCH)
+        obj = self.api('/contents/' + PATH + '?ref=' + self.branch)
         if obj.get('encoding') != 'base64' or not re.fullmatch('[a-f0-9]{40}', obj.get('sha', '')):
             raise ValueError('QUOTA_STORE_INVALID')
         raw = base64.b64decode(obj['content'])
@@ -170,7 +176,7 @@ class GitHubStore:
         raw = canonical(new).encode()
         if len(raw) > MAX_BYTES:
             raise ValueError('QUOTA_STORE_FULL')
-        result = self.api('/contents/' + PATH, {'branch': BRANCH, 'sha': sha,
+        result = self.api('/contents/' + PATH, {'branch': self.branch, 'sha': sha,
                           'message': 'data(quota): append accounting events [skip ci]',
                           'content': base64.b64encode(raw).decode()})
         expected = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
