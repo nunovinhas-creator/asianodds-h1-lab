@@ -68,7 +68,9 @@ class SingleActiveSchedule(unittest.TestCase):
     def test_no_proposed_copy_left_and_config_enabled_only_by_this_change(self):
         self.assertEqual(list((ROOT / '.github').glob('proposed-workflows/*')), [])
         cfg = json.loads((ROOT / 'config/research-autonomy.json').read_text())
-        self.assertFalse(cfg['llm_live_enabled'])
+        # One-shot window (#241): live may be on ONLY while every cron call stays blocked.
+        self.assertIs(cfg['llm_schedule_live_enabled'], False)
+        self.assertIn(cfg['llm_live_enabled'], (False, True))
         self.assertEqual(cfg['max_llm_calls_per_cycle'], 1)
         self.assertEqual(cfg['max_llm_plans_per_call'], 3)
 
