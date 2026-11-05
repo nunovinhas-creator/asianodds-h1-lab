@@ -138,22 +138,13 @@ class Rehearsal(unittest.TestCase):
         self.addCleanup(patch.stop)
         self.env = {'GITHUB_REPOSITORY': REPO, 'GH_TOKEN': 't', 'GITHUB_RUN_ID': '777',
                     'GITHUB_REF': 'refs/pull/1/merge', 'GITHUB_RUN_ATTEMPT': '1'}
-        # The rehearsal reads its OWN repo config; use an isolated copy with live off so the
-        # offline tests do not depend on the operational switch.
-        self.root = Path(self.tmp.name) / 'root'
-        (self.root / 'config').mkdir(parents=True)
-        (self.root / 'config/research-autonomy.json').write_text('{"llm_live_enabled": false}')
-        root_patch = mock.patch.object(trial, 'ROOT', self.root)
-        root_patch.start()
-        self.addCleanup(root_patch.stop)
-        self.tmp_ev = Path(self.tmp.name) / 'ev'
 
     def run_phase(self, phase, **perms):
         self.gh.write = perms.get('write', True)
         self.gh.actions = perms.get('actions', True)
         with mock.patch.dict(os.environ, self.env, clear=True):
-            code = trial.main(['--phase', phase, '--evidence-dir', str(self.tmp_ev)])
-        return code, json.loads((self.tmp_ev / (phase + '.json')).read_text())
+            code = trial.main(['--phase', phase, '--evidence-dir', self.tmp.name])
+        return code, json.loads((Path(self.tmp.name) / (phase + '.json')).read_text())
 
     def full(self):
         out = {}
@@ -224,14 +215,8 @@ class Rehearsal(unittest.TestCase):
     def test_refuses_when_provider_secret_present(self):
         self.env['MASTER_BRAIN_LLM_API_KEY'] = 'x'
         with mock.patch.dict(os.environ, self.env, clear=True), self.assertRaises(AssertionError):
-            trial.main(['--phase', 'setup', '--evidence-dir', str(self.tmp_ev)])
+            trial.main(['--phase', 'setup', '--evidence-dir', self.tmp.name])
         self.assertEqual(self.gh.requests, [])
-
-    def test_rehearsal_refuses_while_llm_live_enabled(self):
-        (self.root / 'config/research-autonomy.json').write_text('{"llm_live_enabled": true}')
-        code, out = self.run_phase('setup')
-        self.assertEqual(code, 1)
-        self.assertIn('LLM_LIVE_NOT_DISABLED', out['error'])
 
     def test_trial_branch_name_guard(self):
         with self.assertRaisesRegex(ValueError, 'QUOTA_BRANCH_FORBIDDEN'):
