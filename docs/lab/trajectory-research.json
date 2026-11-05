@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T10:02:11+00:00",
+  "generated_at": "2026-11-05T10:07:09+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,9 +32,9 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 256,
+      "matches": 257,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 64.0
+      "percentage_descriptive": 64.2
     },
     "both_total_and_1x2": {
       "matches": 254,
@@ -42,9 +42,9 @@
       "percentage_descriptive": 63.5
     },
     "opposing_intra_alert_directions": {
-      "matches": 122,
+      "matches": 123,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 30.5
+      "percentage_descriptive": 30.8
     },
     "with_ambiguous_repeats": {
       "matches": 52,
@@ -145,6 +145,23 @@
     {
       "directions": [
         "DOWN",
+        "FLAT",
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:52933",
+        "3571094759:52937",
+        "3571094759:52964",
+        "3571094759:52965"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-11-05,10045848,10066082",
+      "match_label": "ALS Omonia 29IS Maiou vs AEP Polemidion"
+    },
+    {
+      "directions": [
+        "DOWN",
         "UP"
       ],
       "event_ids": [
@@ -240,37 +257,22 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-05,26903,37005",
       "match_label": "Al-Qadisiyah FC (KSA) vs Al Feiha"
-    },
-    {
-      "directions": [
-        "UP",
-        "DOWN",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50867",
-        "3571094759:51696",
-        "3571094759:51697"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-31,48236,66854",
-      "match_label": "Arema (ISL) vs Bali United Pusam"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 1556,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
-    "events_analysed": 989,
-    "messages_in_source": 2366,
+    "events_analysed": 991,
+    "messages_in_source": 2368,
     "repeated_matches_analysed": 400,
     "repeated_matches_in_source": 556,
     "repeated_matches_omitted": 156,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "cdc71a06dcc57b6d072c7240433c72d2a4571df2",
-  "source_generated_at": "2026-11-05T10:02:09+00:00",
+  "source_commit": "711e648b4d23cb914073df4158a252c82f8df795",
+  "source_generated_at": "2026-11-05T10:07:07+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
@@ -285,7 +287,7 @@
     "messages_by_bucket": {
       "AFTER_KICKOFF": 37,
       "T_0_TO_60": 258,
-      "T_360_TO_1440": 227,
+      "T_360_TO_1440": 229,
       "T_60_TO_360": 223,
       "T_OVER_1440": 244,
       "UNKNOWN": 0
@@ -294,27 +296,27 @@
   },
   "total_line_within_alert": {
     "by_origin": {
-      "V4_EXPLICIT": 988
+      "V4_EXPLICIT": 990
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 36.0,
+      "DOWN": 36.1,
       "FLAT": 28.5,
-      "UP": 35.4
+      "UP": 35.5
     },
-    "down": 356,
+    "down": 357,
     "flat": 282,
-    "messages_with_total": 988,
-    "up": 350,
+    "messages_with_total": 990,
+    "up": 351,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 56,
-    "continuous": 330,
+    "continuous": 331,
     "identical_total_pairs": 50,
     "related_pairs": 62,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 12,
     "same_movement_repeat": 62,
-    "unobserved_change": 140
+    "unobserved_change": 141
   }
 }
