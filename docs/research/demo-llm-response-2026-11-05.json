@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "experiments": [
+    {
+      "question": "Uma subida da linha do Total seguida de reversao dos golos implicitos tem comportamento diferente de tres movimentos consecutivos no mesmo sentido?",
+      "hypothesis": "Jogos em que a linha sobe e depois os golos implicitos descem tem residual Over diferente dos jogos com tres ou mais movimentos seguidos no mesmo sentido.",
+      "null_hypothesis": "O residual Over face ao mercado e igual nos dois tipos de trajetoria.",
+      "market": "TOTAL_GOALS",
+      "outcome": "OVER_2_5",
+      "indicators": [
+        {"name": "X_THREE_SAME_DIR", "description": "Tres ou mais movimentos consecutivos no mesmo sentido",
+         "expr": {"op": "ge", "args": [{"var": "lambda_max_run"}, {"const": 3}]}}
+      ],
+      "condition": {"var": "line_up_then_lambda_down"},
+      "control_condition": {"var": "X_THREE_SAME_DIR"},
+      "rationale": "Compara duas explicacoes: correcao de excesso versus informacao persistente.",
+      "alternative_explanations": ["As trajetorias longas tem mais mensagens e maior antecedencia"],
+      "confounders": ["lead_bin", "line_bin", "competition_type"]
+    },
+    {
+      "question": "Quando o handicap asiatico passa a favorecer a casa mas os golos implicitos descem, a casa cobre o handicap mais do que o mercado preve?",
+      "hypothesis": "Movimentos contraditorios (AH a favor da casa, Total a descer) indicam informacao defensiva sobre o visitante que o preco AH ainda nao incorpora.",
+      "null_hypothesis": "A cobertura AH da casa nestes jogos e igual a dos jogos em que o AH favorece a casa com golos implicitos estaveis ou a subir.",
+      "market": "ASIAN_HANDICAP",
+      "outcome": "AH_HOME_COVER",
+      "indicators": [
+        {"name": "X_AH_TO_HOME", "description": "Linha AH desceu (casa mais favorecida)",
+         "expr": {"op": "lt", "args": [{"var": "ah_line_net"}, {"const": 0}]}}
+      ],
+      "condition": {"op": "and", "args": [{"var": "X_AH_TO_HOME"}, {"op": "le", "args": [{"var": "lambda_net"}, {"const": -0.05}]}]},
+      "control_condition": {"op": "and", "args": [{"var": "X_AH_TO_HOME"}, {"op": "gt", "args": [{"var": "lambda_net"}, {"const": -0.05}]}]},
+      "rationale": "Relacao entre Total e handicap asiatico; controlo restrito ao mesmo sentido de AH.",
+      "alternative_explanations": ["Selecao de jogos com mais mensagens AH"],
+      "confounders": ["lead_bin", "line_bin"]
+    },
+    {
+      "question": "Golos implicitos instaveis (muito caminho percorrido para pouca variacao liquida) alteram a frequencia de Over face ao mercado?",
+      "hypothesis": "Uma trajetoria ruidosa de golos implicitos sinaliza desacordo entre apostadores e um preco final menos informativo.",
+      "null_hypothesis": "O residual Over nao depende da eficiencia da trajetoria dos golos implicitos.",
+      "market": "TOTAL_GOALS",
+      "outcome": "OVER_2_5",
+      "indicators": [
+        {"name": "X_PATH_EFFICIENCY", "description": "Variacao liquida absoluta dividida pelo caminho total dos golos implicitos",
+         "expr": {"op": "div", "args": [{"op": "abs", "args": [{"var": "lambda_net"}]}, {"var": "lambda_abs_path"}]}}
+      ],
+      "condition": {"op": "and", "args": [{"op": "le", "args": [{"var": "X_PATH_EFFICIENCY"}, {"const": 0.5}]}, {"op": "ge", "args": [{"var": "lambda_abs_path"}, {"const": 0.1}]}]},
+      "control_condition": {"op": "and", "args": [{"op": "gt", "args": [{"var": "X_PATH_EFFICIENCY"}, {"const": 0.5}]}, {"op": "ge", "args": [{"var": "lambda_abs_path"}, {"const": 0.1}]}]},
+      "rationale": "Novo indicador de estabilidade; controlo com o mesmo minimo de movimento.",
+      "alternative_explanations": ["Mais mensagens implicam mais oportunidades de inversao"],
+      "confounders": ["lead_bin", "line_bin", "competition_type"]
+    }
+  ],
+  "new_questions": [
+    "Os intervalos longos sem observacao escondem movimentos que mudam o significado da ultima linha?",
+    "A diferenca observada em jogos de taca mantem-se depois de controlar a linha do Total?"
+  ]
+}

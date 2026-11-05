@@ -1,0 +1,54 @@
+name: Research - Autonomous exploration smoke (offline, PR only)
+on:
+  pull_request:
+    paths:
+      - "h1lab/research_*.py"
+      - "scripts/lab_research_cycle.py"
+      - "tests/test_research_*.py"
+      - "tests/research_fixtures.py"
+      - "tests/research-autonomy-ui.test.cjs"
+      - "docs/research-autonomy.*"
+      - "docs/research/**"
+      - "config/research-autonomy.json"
+      - ".github/workflows/research-autonomy-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Research unit, adversarial and end-to-end tests (synthetic + real replay)
+        run: python -m unittest discover -s tests -p 'test_research_*.py' -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Panel UI contract
+        run: |
+          node --check docs/research-autonomy.js
+          node --test tests/research-autonomy-ui.test.cjs
+      - name: Real-data offline cycle into a scratch memory (zero LLM calls, zero tracked writes)
+        run: |
+          python -m scripts.lab_research_cycle --memory "$RUNNER_TEMP/mem.jsonl" --panel "$RUNNER_TEMP/panel.json" --budget 10
+          python -m scripts.lab_research_cycle --mode llm-response --response docs/research/demo-llm-response-2026-11-05.json --memory "$RUNNER_TEMP/mem.jsonl" --panel "$RUNNER_TEMP/panel.json" --budget 5
+          python - <<'PY'
+          import json, os
+          from h1lab.research_memory import read_memory
+          m = read_memory(os.environ['RUNNER_TEMP'] + '/mem.jsonl')
+          cycles = [r for r in m if r['record_type'] == 'CYCLE']
+          assert len(cycles) == 2 and cycles[1]['memory_records_before'] > 0
+          assert all(r.get('scientific_status') in (None, 'EXPLORATORY_NOT_VALIDATED') for r in m)
+          assert sum(c['llm_calls'] for c in cycles) == 0
+          p = json.load(open(os.environ['RUNNER_TEMP'] + '/panel.json'))
+          assert p['validated'] == []
+          print('RESEARCH_SMOKE_OK', len(m), p['memory'])
+          PY
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
