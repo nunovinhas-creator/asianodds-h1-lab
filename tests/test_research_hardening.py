@@ -291,7 +291,7 @@ class LiveMigration(unittest.TestCase):
     def test_live_authorisation_mirrors_old_workflow(self):
         from scripts.lab_research_cycle import SCHEDULE, live_authorisation
         ok = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
-              'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
+              'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'GITHUB_RUN_ID': '999', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
         self.assertEqual(live_authorisation(ok, [], '2026-11-04'), 'schedule')
         for change in ({'GITHUB_REF': 'refs/heads/x'}, {'GITHUB_RUN_ATTEMPT': '2'},
                        {'GITHUB_EVENT_SCHEDULE': '* * * * *'}, {'GITHUB_EVENT_NAME': 'push'},
@@ -300,36 +300,18 @@ class LiveMigration(unittest.TestCase):
                 live_authorisation(dict(ok, **change), [], '2026-11-04')
         used = [{'record_type': 'CYCLE', 'llm_origin': 'LLM_LIVE', 'llm_calls': 1,
                  'recorded_at': '2026-11-04T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
-        with self.assertRaises(ValueError):
-            live_authorisation(ok, used, '2026-11-04')
+        self.assertEqual(live_authorisation(ok, used, '2026-11-04'), 'schedule')
         self.assertEqual(live_authorisation(ok, used, '2026-11-05'), 'schedule')
 
-    def test_live_authorisation_requires_and_honours_the_pre_call_ledger(self):
+    def test_event_authorisation_does_not_trust_old_environment_counter(self):
         from scripts.lab_research_cycle import SCHEDULE, live_authorisation
         ok = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
-              'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '3'}
-        self.assertEqual(live_authorisation(ok, [], '2026-11-04'), 'schedule')
-        for bad in ('', ' 1', '-1', 'x', '1.0', '9999'):
-            with self.subTest(ledger=bad), self.assertRaisesRegex(ValueError, 'LIVE_LEDGER_MISSING'):
-                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=bad), [], '2026-11-04')
-        env = dict(ok)
-        env.pop('RESEARCH_PRIOR_LLM_ATTEMPTS')
-        with self.assertRaisesRegex(ValueError, 'LIVE_LEDGER_MISSING'):
-            live_authorisation(env, [], '2026-11-04')
-        # Calls made but never published: memory is empty, ledger says 4 -> refused.
-        for n in ('4', '5'):
-            with self.subTest(prior=n), self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
-                live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=n), [], '2026-11-04')
-        # Manual dispatch is bound by the same daily total.
-        manual = dict(ok, GITHUB_EVENT_NAME='workflow_dispatch', RESEARCH_LLM_CONFIRMATION='INVESTIGAR_UMA_VEZ',
-                      RESEARCH_PRIOR_LLM_ATTEMPTS='4')
-        with self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
-            live_authorisation(manual, [], '2026-11-04')
-        # Ledger lower than memory (e.g. API lag): the memory count still wins.
-        used = [{'record_type': 'CYCLE', 'llm_origin': 'LLM_LIVE', 'llm_calls': 1,
-                 'recorded_at': '2026-11-04T%02d:43:00+00:00' % h} for h in (1, 7, 13, 19)]
-        with self.assertRaisesRegex(ValueError, 'LIVE_DAILY_LIMIT'):
-            live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS='0'), used, '2026-11-04')
+              'GITHUB_EVENT_SCHEDULE': SCHEDULE}
+        for value in ('', '-1', '4', '9999'):
+            self.assertEqual(live_authorisation(dict(ok, RESEARCH_PRIOR_LLM_ATTEMPTS=value), [], '2026-11-04'),
+                             'schedule')
+        # This checks event authorization only. Controller.reserve is mandatory in llm-live;
+        # durable admission and failure injection are exercised in test_research_quota.
 
     def test_live_mode_one_call_into_scratch_memory_when_enabled(self):
         """Full llm-live path with config enabled on a COPY of the repo inputs; simulated opener."""
@@ -346,10 +328,10 @@ class LiveMigration(unittest.TestCase):
             sim = SimulatedLLMOpener()
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
                    'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'CLOUDFLARE_ACCOUNT_ID': 'a' * 32,
-                   'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
+                   'MASTER_BRAIN_LLM_API_KEY': 'not-a-real-key', 'GITHUB_RUN_ID': '999', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
             mem, panel = Path(t) / 'scratch.jsonl', Path(t) / 'panel.json'
             code = main(['--root', str(root), '--mode', 'llm-live', '--allow-network', '--memory', str(mem),
-                         '--panel', str(panel), '--budget', '0'], env=env, opener=sim)
+                         '--panel', str(panel), '--budget', '0'], env=env, opener=sim, quota_factory=__import__('quota_fixtures').factory)
             self.assertEqual(code, 0)
             self.assertEqual(len(sim.calls), 1)
             self.assertTrue(sim.calls[0]['url'].startswith('https://api.cloudflare.com/'))
@@ -382,7 +364,7 @@ class LiveMigration(unittest.TestCase):
         live = [w.name for w in (ROOT / '.github/workflows').glob('*.y*ml')
                 if 'lab_research_cycle --mode llm-live' in w.read_text()]
         self.assertEqual(live, ['v6-llm-autonomous.yml'])
-        self.assertTrue(json.loads((ROOT / 'config/research-autonomy.json').read_text())['llm_live_enabled'])
+        self.assertFalse(json.loads((ROOT / 'config/research-autonomy.json').read_text())['llm_live_enabled'])
 
     @unittest.skipIf(os.environ.get('RESEARCH_PREFLIGHT') == '1' and not _has_yaml(),
                      'pre-call preflight in the secret job has no PyYAML; enforced by PR CI')
@@ -394,7 +376,7 @@ class LiveMigration(unittest.TestCase):
         self.assertEqual(wf['concurrency'], {'group': 'v6-llm-global', 'cancel-in-progress': False})
         self.assertEqual(wf['permissions'], {'contents': 'read'})
         jobs = wf['jobs']
-        self.assertEqual(set(jobs), {'budget', 'discover', 'publish'})
+        self.assertEqual(set(jobs), {'discover', 'publish'})
         # Secrets: only the single live step of discover.
         for name, job in jobs.items():
             for i, step in enumerate(job['steps']):
@@ -402,23 +384,16 @@ class LiveMigration(unittest.TestCase):
                 is_live = name == 'discover' and 'LLM call' in step.get('name', '')
                 with self.subTest(job=name, step=i):
                     self.assertEqual(has, is_live)
-        self.assertNotIn('secrets.', yaml.dump(jobs['budget']))
         self.assertNotIn('secrets.', yaml.dump(jobs['publish']), 'publisher holds no LLM secrets')
-        self.assertEqual(jobs['discover']['permissions'], {'contents': 'read'})
-        self.assertEqual(jobs['budget']['permissions'], {'contents': 'read', 'actions': 'read'})
+        self.assertEqual(jobs['discover']['permissions'], {'contents': 'write', 'actions': 'read'})
         self.assertEqual(jobs['publish']['permissions'], {'contents': 'write'})
-        self.assertEqual(jobs['discover']['needs'], 'budget')
         self.assertEqual(jobs['publish']['needs'], 'discover')
         self.assertLessEqual(jobs['discover']['timeout-minutes'], 10)
         # The ledger feeds the live step; exactly one live step, one invocation.
         live = [s for s in jobs['discover']['steps'] if 'LLM call' in s.get('name', '')]
         self.assertEqual(len(live), 1)
-        self.assertEqual(live[0]['env']['RESEARCH_PRIOR_LLM_ATTEMPTS'], '${{ needs.budget.outputs.prior }}')
+        self.assertEqual(live[0]['env']['GH_TOKEN'], '${{ github.token }}')
         self.assertEqual(live[0]['run'].count('lab_research_cycle'), 1)
-        ledger = [s for s in jobs['budget']['steps'] if s.get('id') == 'ledger']
-        self.assertEqual(len(ledger), 1)
-        self.assertIn('scripts.lab_research_budget', ledger[0]['run'])
-        self.assertEqual(ledger[0]['if'], live[0]['if'], 'ledger runs whenever a call can happen')
         # Checkouts: secret job never persists a token; both use the branch tip after the lock.
         co = [s for s in jobs['discover']['steps'] if str(s.get('uses', '')).startswith('actions/checkout')]
         self.assertEqual(co[0]['with']['persist-credentials'], False)
@@ -455,3 +430,4 @@ class Isolation(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

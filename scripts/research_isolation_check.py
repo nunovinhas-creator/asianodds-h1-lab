@@ -26,11 +26,15 @@ ALLOWED = (
     'docs/research-autonomy.*', 'docs/research/demo/*', 'docs/technical/AUTONOMOUS-RESEARCH.md',
     '.github/proposed-workflows/*', 'config/research-autonomy.json',
     '.github/workflows/research-autonomy-smoke.yml', '.gitignore', 'docs/llm-investigator.html',
-    # Ownership registration only (two LLM_SHADOW paths, one SITE demo pattern); no publisher logic.
+    # Ownership registration only (two LLM_SHADOW paths, one SITE demo pattern, the PROGRAM-owned
+    # quota-ledger seed); no publisher logic.
     'scripts/publication_ownership.py',
     # Activation migration (exact files only): the prepared workflow replaces the retired one in
     # place, the retired workflow's wiring test, and the retired workflow's operator doc.
     '.github/workflows/v6-llm-autonomous.yml', 'tests/test_v6_llm_autonomous.py',
+    # Central quota: legacy network boundary guard, offline store double and seed only.
+    'h1lab/v6_llm_investigator.py', 'tests/quota_fixtures.py',
+    'data/research/quota-ledger.json', 'docs/technical/LLM-QUOTA-CONTROLLER.md',
     'docs/technical/V6_LLM_AUTONOMY_CONTROLLED.md',
 )
 PROTECTED_TOPS = ('data', 'docs/lab', 'config')

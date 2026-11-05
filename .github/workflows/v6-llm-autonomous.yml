@@ -30,36 +30,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  budget:
-    # Pre-call attempt ledger from GitHub run history (counts calls even when nothing was
-    # published). No LLM secrets here. Failure -> discover is skipped -> no LLM call.
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    permissions:
-      contents: read
-      actions: read
-    outputs:
-      prior: ${{ steps.ledger.outputs.prior }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Count today's LLM attempts across v6-llm-global workflows (fail closed)
-        id: ledger
-        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live_once') }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python -m scripts.lab_research_budget --repo "$GITHUB_REPOSITORY" --exclude-run "$GITHUB_RUN_ID" --github-output "$GITHUB_OUTPUT"
-
   discover:
-    needs: budget
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
+      contents: write  # quota branch CAS only; publisher remains separate
+      actions: read   # historical attempts, including failures and reruns
     steps:
       - uses: actions/checkout@v4
         with:
@@ -86,7 +62,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           MASTER_BRAIN_LLM_API_KEY: ${{ secrets.MASTER_BRAIN_LLM_API_KEY }}
           RESEARCH_LLM_CONFIRMATION: ${{ inputs.confirmation }}
-          RESEARCH_PRIOR_LLM_ATTEMPTS: ${{ needs.budget.outputs.prior }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/research"
           if [ -f data/research/memory.jsonl ]; then cp data/research/memory.jsonl "$RUNNER_TEMP/research/memory.jsonl"; fi
@@ -150,3 +126,4 @@ jobs:
           done
           echo "::error::RESEARCH_PUBLISH_FAILED"
           exit 1
+

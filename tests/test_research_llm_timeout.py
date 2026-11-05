@@ -273,13 +273,13 @@ class CliRecordsTheTimeout(unittest.TestCase):
             opener = RaisingOpener(TimeoutError('The read operation timed out'))
             env = {'GITHUB_REF': 'refs/heads/main', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_EVENT_NAME': 'schedule',
                    'GITHUB_EVENT_SCHEDULE': SCHEDULE, 'CLOUDFLARE_ACCOUNT_ID': ACCOUNT,
-                   'MASTER_BRAIN_LLM_API_KEY': KEY, 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
+                   'MASTER_BRAIN_LLM_API_KEY': KEY, 'GITHUB_RUN_ID': '999', 'RESEARCH_PRIOR_LLM_ATTEMPTS': '0'}
             mem, panel, audit = Path(t) / 'scratch.jsonl', Path(t) / 'panel.json', Path(t) / 'audit.json'
             out = io.StringIO()
             with redirect_stdout(out), redirect_stderr(io.StringIO()):
                 code = main(['--root', str(root), '--mode', 'llm-live', '--allow-network', '--memory', str(mem),
                              '--panel', str(panel), '--budget', '0', '--llm-audit', str(audit)],
-                            env=env, opener=opener)
+                            env=env, opener=opener, quota_factory=__import__('quota_fixtures').factory)
             self.assertEqual(code, 2)
             self.assertEqual(len(opener.calls), 1, 'exactly one request, no retry')
             self.assertEqual(opener.timeouts, [LLM_HTTP_TIMEOUT_S])
@@ -299,3 +299,4 @@ class CliRecordsTheTimeout(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

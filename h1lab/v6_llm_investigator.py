@@ -315,6 +315,10 @@ def validate_proposals(packet, response):
 
 def invoke(packet, *, endpoint, model, api_key='', opener=urlopen, candidate_options=None):
     """At most one bounded request; optional offline-selected research choices."""
+    # Retired live path has no documented neuron profile (8B alias). Its dossier,
+    # DSL and scientific gate remain available; real traffic must use the quota CLI.
+    if opener is urlopen:
+        raise ValueError('QUOTA_LEGACY_MODEL_UNBOUNDED_USE_RESEARCH_CYCLE')
     parsed = urlsplit(endpoint)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError('An explicit HTTPS endpoint is required')
@@ -474,3 +478,4 @@ def provider_usage(envelope, model):
             'neurons_consumed': None,
             'measurement': 'PROVIDER_TOKEN_COUNTERS' if counters else 'UNAVAILABLE',
             'account_quota_verified': False}
+
