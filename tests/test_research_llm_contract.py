@@ -236,7 +236,7 @@ class ContractSentToModel(unittest.TestCase):
                        'variables.num/variables.bool', 'textos entre < > sao instrucoes'):
             self.assertIn(phrase, SYSTEM)
         for phrase in ('relacoes CONCRETAS', 'probabilidade 1X2 sem margem',
-                       'Dinheiro, volumes e operadores NAO estao disponiveis',
+                       'Nao investigues dinheiro, volumes, stakes ou fluxos monetarios',
                        'FT comprovado e resultados sao medidos APENAS pelo Python'):
             self.assertIn(phrase, SYSTEM)
 
