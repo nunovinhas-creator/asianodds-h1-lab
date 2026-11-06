@@ -57,3 +57,25 @@ provas versionadas é revisão manual, não uma capacidade de escrita do CLI.
 serão registados na PR. Nada altera H1/E5/Telegram/FT/Pages, workflows de produção,
 gates, memória, quotas ou agendamento. Zero LLM real, fornecedores, serviços pagos
 ou fluxos monetários. Requer nova auditoria independente Work; não está aprovada.
+
+## B1 P0 — controlo neutro e alternativas OR
+
+A validação dimensional abrange o sinal e o controlo. A exigência de movimento
+material aplica-se ao sinal, por caminho lógico. O controlo neutro de −0,02 a
+0,02 tem 100 observações face a 182 no sinal e, nesta amostra, dá os mesmos
+estados, razões e métricas que o complemento. Unidades incompatíveis,
+sobreposição e falta de suporte comum continuam a impedir a aceitação.
+
+O OR entre pelo menos 0,10 golos implícitos e pelo menos 0,25 na linha Total
+passa a verificação do desenho. Alternativas imateriais ou contraditórias são
+rejeitadas. Caminhos sem materialidade demonstrável ficam pendentes. Limites
+AND redundantes continuam a ser combinados. A aceitação do desenho mantém
+`TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE` e zero elegibilidade operacional.
+
+O replay histórico autenticado produziu exatamente o relatório versionado
+(`output_sha256` 334731885529019ee3a2e0a453c435c76474e8533d554993bf6f9304427f0617).
+Os três planos permanecem rejeitados por `IMMATERIAL_MOVEMENT`, com
+`MIN_N_NOT_MET` e `COMMON_STRATUM_SUPPORT_MISSING` entre as limitações.
+Zero experiências executadas. Os 21 testes direcionados B1 passaram.
+
+PR em Draft. Nova auditoria independente requerida antes de qualquer merge.

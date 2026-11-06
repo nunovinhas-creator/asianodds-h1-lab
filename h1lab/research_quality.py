@@ -32,12 +32,8 @@ def sha(value):
                                      separators=(',', ':')).encode()).hexdigest()
 
 
-def _design(expr):
-    """Conservative dimension checking; complex motion expressions need review.
-
-    A signed directional bound must exclude the dead zone. A threshold with the
-    opposite direction (e.g. x < +floor) does not establish a material move.
-    """
+def _dimensions(expr):
+    """Check units and expression validity in either arm."""
     rejected, deferred = set(), set()
 
     def unit(n):
@@ -81,6 +77,13 @@ def _design(expr):
     if not variables_used(expr):
         rejected.add('CONSTANT_CONDITION')
 
+    return rejected, deferred
+
+
+def _design(expr):
+    """Require a directional material bound on each signal path."""
+    rejected, deferred = _dimensions(expr)
+
     def paths(n):
         if n == {'const': True}:
             return [[]]
@@ -88,7 +91,10 @@ def _design(expr):
             return []
         op = n.get('op')
         if op == 'or':
-            return [p for a in n['args'] for p in paths(a)]
+            result = [p for a in n['args'] for p in paths(a)]
+            if len(result) > 64:
+                raise ValueError('LOGIC_TOO_COMPLEX')
+            return result
         if op == 'and':
             result = [[]]
             for a in n['args']:
@@ -100,36 +106,42 @@ def _design(expr):
 
     try:
         branches = paths(expr)
-        all_motion = set().union(*(variables_used(n) & FLOORS.keys()
-                                  for branch in branches for n in branch
-                                  if n.get('op') != 'is_known'))
+        if not branches:
+            rejected.add('CONSTANT_CONDITION')
         for branch in branches:
             bounds = {}
+            branch_motion = set()
             complex_motion = False
             for n in branch:
                 op, args = n.get('op'), n.get('args', [])
-                motion = variables_used(n) & FLOORS.keys()
                 if op == 'is_known':
                     continue
                 if not variables_used(n):
                     rejected.add('CONSTANT_CONDITION')
-                if not motion:
-                    continue
+                motion = variables_used(n) & FLOORS.keys()
+                branch_motion.update(motion)
                 if (op in ('gt', 'ge', 'lt', 'le') and len(args) == 2
-                        and args[0].get('var') in FLOORS and 'const' in args[1]):
+                        and 'var' in args[0] and 'const' in args[1]):
                     v, bound = args[0]['var'], args[1]['const']
-                    lo, hi = bounds.get(v, (float('-inf'), float('inf')))
+                    lower, upper = bounds.get(v, ((float('-inf'), False),
+                                                   (float('inf'), False)))
                     if op in ('gt', 'ge'):
-                        lo = max(lo, bound)
+                        lower = max(lower, (bound, op == 'gt'))
                     else:
-                        hi = min(hi, bound)
-                    bounds[v] = lo, hi
-                else:
+                        upper = min(upper, (bound, op != 'lt'))
+                    bounds[v] = lower, upper
+                elif motion:
                     complex_motion = True
-            if complex_motion:
+            if any(lo > hi or (lo == hi and (strict_lo or not inclusive_hi))
+                   for (lo, strict_lo), (hi, inclusive_hi) in bounds.values()):
+                rejected.add('CONTRADICTORY_SIGNAL_PATH')
+                continue
+            if complex_motion or not branch_motion:
                 deferred.add('MATERIALITY_UNPROVEN')
-            for v in all_motion:
-                lo, hi = bounds.get(v, (float('-inf'), float('inf')))
+            for v in branch_motion:
+                lower, upper = bounds.get(v, ((float('-inf'), False),
+                                               (float('inf'), False)))
+                lo, hi = lower[0], upper[0]
                 floor = FLOORS[v][0]
                 if lo >= floor or hi <= -floor:
                     continue
@@ -183,7 +195,7 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         defer |= d
         if ctrl:
             ctrl = inline(ctrl, canonical['indicators'])
-            r, d = _design(ctrl)
+            r, d = _dimensions(ctrl)
             reject |= r
             defer |= d
             if expr == ctrl:

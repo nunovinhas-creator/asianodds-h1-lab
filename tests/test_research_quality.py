@@ -194,6 +194,32 @@ class WorkRevisionTests(unittest.TestCase):
         self.assertIn('MATERIALITY_UNPROVEN', _design({'op': 'or', 'args': [strong, {'var': 'ctx_cup'}]})[1])
         self.assertEqual(_design({'op': 'or', 'args': [strong, strong]}), (set(), set()))
 
+    def test_or_materiality_per_path(self):
+        from h1lab.research_quality import _design
+        goals = {'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]}
+        line = {'op': 'ge', 'args': [{'var': 'total_line_net'}, {'const': .25}]}
+        self.assertEqual(_design({'op': 'or', 'args': [goals, line]}), (set(), set()))
+        line['args'][1]['const'] = .02
+        self.assertIn('IMMATERIAL_MOVEMENT', _design({'op': 'or', 'args': [goals, line]})[0])
+        contradiction = {'op': 'lt', 'args': goals['args']}
+        dead = {'op': 'and', 'args': [goals, contradiction]}
+        self.assertIn('CONTRADICTORY_SIGNAL_PATH',
+                      _design({'op': 'or', 'args': [dead, goals]})[0])
+
+    def test_neutral_control_and_equivalent_complement(self):
+        for i, row in enumerate(self.meta):
+            row['variables'].update(lambda_net=.2 if i < 182 else 0, total_line_last=2.5)
+        group = {'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]}
+        neutral = {'op': 'between', 'args': [
+            {'var': 'lambda_net'}, {'const': -.02}, {'const': .02}]}
+        explicit = self.quality(self.plan_with(group, control_condition=neutral), m=self.meta[:282])
+        implicit = self.quality(self.plan_with(group), m=self.meta[:282])
+        self.assertEqual((explicit['metrics']['group'], explicit['metrics']['control']), (182, 100))
+        self.assertNotIn('IMMATERIAL_MOVEMENT', explicit['reasons'])
+        self.assertIn('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE', explicit['reasons'])
+        for key in ('quality_status', 'design_quality_status', 'reasons', 'metrics'):
+            self.assertEqual(explicit[key], implicit[key], key)
+
     def test_work_controls_and_support(self):
         invalid = {'op': 'gt', 'args': [{'op': 'add', 'args': [
             {'var': 'lambda_net'}, {'var': 'total_line_last'}]}, {'const': 0}]}
