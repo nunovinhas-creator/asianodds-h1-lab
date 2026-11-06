@@ -47,6 +47,14 @@ class LiveGuard(unittest.TestCase):
                 {'schema_version': 1, 'llm_live_enabled': True, 'llm_schedule_live_enabled': 'true'}))
             self.assertIs(load_config(t, env={})['llm_schedule_live_enabled'], False)
 
+    def test_scheduled_research_is_offline_and_live_step_is_dispatch_only(self):
+        workflow = (ROOT / '.github/workflows/v6-llm-autonomous.yml').read_text(encoding='utf-8')
+        self.assertIn('Scheduled exploratory research OFFLINE', workflow)
+        self.assertIn('python -m scripts.lab_research_cycle --mode offline', workflow)
+        self.assertIn("if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'live_once' }}", workflow)
+        self.assertFalse(json.loads((ROOT / 'config/research-autonomy.json').read_text())
+                         ['llm_schedule_live_enabled'])
+
     def test_workflow_passes_dispatch_mode_to_the_live_step(self):
         text = (ROOT / '.github/workflows/v6-llm-autonomous.yml').read_text(encoding='utf-8')
         self.assertIn('RESEARCH_LLM_MODE: ${{ inputs.mode }}', text)
