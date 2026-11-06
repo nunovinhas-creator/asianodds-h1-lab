@@ -298,7 +298,7 @@ def _path_constraints(branch, *, competition_type=False):
     for v, (lo, hi, holes) in domains.items():
         # Domain restrictions prove feasibility, not the materiality of a
         # submitted threshold; keep the explicit bounds returned to _design.
-        domain_lo, domain_hi = SIGNAL_DOMAINS.get(v, (-math.inf, math.inf))
+        domain_lo, domain_hi = _numeric_domain(v)
         lo = max(lo, (domain_lo, False))
         hi = min(hi, (domain_hi, math.isfinite(domain_hi)))
         low, strict = lo
@@ -323,10 +323,20 @@ def _path_constraints(branch, *, competition_type=False):
             contradiction = True
             continue
         witness = False
+        discrete_possible = False
         for l, li, h, hin in intervals:
             candidates = [l if li else math.nextafter(l, math.inf),
                           h if hin else math.nextafter(h, -math.inf),
                           l/2+h/2 if math.isfinite(l) and math.isfinite(h) else 0]
+            if v in COUNTS or v == 'kickoff_hour_utc':
+                first = math.ceil(l) + int(not li and l == math.ceil(l))
+                last = math.floor(h) - int(not hin and h == math.floor(h)) if math.isfinite(h) else math.inf
+                discrete_possible |= first <= last
+                candidates = [first, last]
+            elif v in ('lambda_first_dir', 'lambda_last_dir'):
+                candidates = [-1, 0, 1]
+                discrete_possible |= any((x > l or (li and x == l)) and
+                                         (x < h or (hin and x == h)) for x in candidates)
             for x in candidates:
                 if (math.isfinite(x) and (x > l or (li and x == l))
                         and (x < h or (hin and x == h))
@@ -334,7 +344,10 @@ def _path_constraints(branch, *, competition_type=False):
                     witness = True
                     break
         if not witness:
-            unproven = True
+            if (v in COUNTS or v in ('kickoff_hour_utc', 'lambda_first_dir', 'lambda_last_dir')) and not discrete_possible:
+                contradiction = True
+            else:
+                unproven = True
     return contradiction, unproven, domains
 
 
@@ -443,6 +456,20 @@ COUNTS = frozenset(v for v in NONNEGATIVE if v not in (
     'total_line_last', 'lambda_first', 'lambda_last', 'lambda_abs_path', 'lambda_sd'))
 
 
+def _numeric_domain(name):
+    # One catalogue contract for row admission AND logical witnesses. Never
+    # prove satisfiability with values that row validation would exclude.
+    if name in SIGNAL_DOMAINS:
+        return SIGNAL_DOMAINS[name]
+    if name in ('p_home_first', 'p_home_last', 'trigger_total_share'):
+        return 0, 1
+    if name in ('lambda_first_dir', 'lambda_last_dir'):
+        return -1, 1
+    if name == 'kickoff_hour_utc':
+        return 0, 23
+    return (0, math.inf) if name in NONNEGATIVE else (-math.inf, math.inf)
+
+
 def _time(value):
     """B1 boundary wrapper; UTC conversion can overflow near year 1/9999."""
     try:
@@ -471,12 +498,10 @@ def _variable_issues(variables, names):
             finite = _finite(value)
             if not finite:
                 reason = 'SIGNAL_VALUE_NONFINITE'
-            elif ((name in NONNEGATIVE and value < 0)
+            elif ((not _numeric_domain(name)[0] <= value <= _numeric_domain(name)[1])
                   or (name in COUNTS and value != int(value))
                   or (name in ('lambda_first_dir', 'lambda_last_dir') and value not in (-1, 0, 1))
-                  or (name == 'kickoff_hour_utc' and (value != int(value) or not 0 <= value <= 23))
-                  or (name in ('p_home_first', 'p_home_last', 'trigger_total_share') and not 0 <= value <= 1)
-                  or (name in SIGNAL_DOMAINS and not SIGNAL_DOMAINS[name][0] <= value <= SIGNAL_DOMAINS[name][1])):
+                  or (name == 'kickoff_hour_utc' and value != int(value))):
                 reason = 'SIGNAL_VALUE_OUT_OF_DOMAIN'
         if reason:
             issues.append({'variable': name, 'reason': reason})

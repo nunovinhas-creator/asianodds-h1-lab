@@ -154,15 +154,16 @@ class IndependentPathTests(unittest.TestCase):
                          (set(), set()))
 
     def test_interpreter_witnesses_never_rejected_as_contradictory(self):
-        # Independent finite witness oracle, including near-equality floats.
-        predicates = [cmp(operator, 'lambda_first', value)
+        # Independent finite witness oracle on a signed catalogue variable,
+        # including near-equality floats. Physical levels cannot be negative.
+        predicates = [cmp(operator, 'lambda_unobserved_net', value)
                       for operator in ('gt', 'ge', 'lt', 'le', 'eq', 'ne')
                       for value in (-2, -1, 0, 1, 2)]
         samples = [value+delta for value in (-3, -2, -1, 0, 1, 2, 3)
                    for delta in (-1.5e-9, -.5e-9, 0, .5e-9, 1.5e-9)]
         for a, b in itertools.product(predicates, repeat=2):
             expr = op('and', cmp('ge', 'lambda_net', .1), a, b)
-            if any(evaluate(expr, {'lambda_net': .2, 'lambda_first': x}) is True
+            if any(evaluate(expr, {'lambda_net': .2, 'lambda_unobserved_net': x}) is True
                    for x in samples):
                 self.assertNotIn('CONTRADICTORY_SIGNAL_PATH', _design(expr)[0], expr)
 

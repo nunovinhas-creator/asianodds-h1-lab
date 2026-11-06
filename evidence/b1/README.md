@@ -255,7 +255,8 @@ O fragmento de prova verifica constantes com o próprio intérprete DSL,
 comparações reflexivas, exigências de disponibilidade de expressões e ciclos de
 ordenação estrita. A ordenação não usa epsilon. `EQ`/`NE` continuam com a tolerância
 **real da DSL, 1e-9**; igualdade aproximada não é tratada como transitiva. Os
-intervalos escalares continuam arredondados para fora e só demonstram
+intervalos escalares usam os mesmos domínios da admissão das linhas (incluindo
+contagens inteiras e direções discretas), continuam arredondados para fora e só demonstram
 satisfatibilidade após uma testemunha concreta da DSL. A disponibilidade de
 aritmética que pode transbordar ou dividir por zero não é inferida só pela
 disponibilidade dos operandos. A lógica de três valores do intérprete não mudou.
@@ -275,6 +276,7 @@ aprovação científica.
 | `NE(x, x)` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição |
 | `AND(NOT IS_KNOWN(GT(x, 1)), GT(x, 1))` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição |
 | `AND(GT(x, y), GE(y, x))` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição, por ciclo estrito |
+| Níveis lambda negativos, probabilidade >1, contagem fracionária e direção fora de {-1,0,1} nas condições | Podia usar testemunhas fora do contrato de admissão | REJECTED / `CONTRADICTORY_SIGNAL_PATH`; domínio lógico e de dados partilhado |
 | Expressões satisfazíveis, incluindo EQ aproximada não transitiva e AND conhecido por operando dominante | Regressões positivas | Não rejeitadas como contraditórias; testemunhas independentes na DSL |
 | Álgebra geral, razões compostas, aritmética indefinida | Revisão manual | INSUFFICIENT_DATA quando não há prova; nunca aprovação por suposição |
 | OR com `false`, `NOT true`, falso aninhado, complementos opacos e booleanos; intervalos incompatíveis; controlo OR morto | Já corrigidos na auditoria anterior | Regressões preservadas |
@@ -403,12 +405,15 @@ não se apresenta uma identidade integral que não existe.
 
 ### Regressões, isolamento e limites remanescentes
 
-São 54 testes B1: os 42 anteriores, com fixtures cronologicamente válidos e uma
-expectativa de suporte por período explicitada, mais 12 novos métodos. Incluem
+São 55 testes B1: os 42 anteriores, com fixtures cronologicamente válidos e uma
+expectativa de suporte por período explicitada, mais 13 novos métodos. Incluem
 permutações de OR, AND, linhas e duplicados; estados booleanos completos;
 testemunhas finitas e fronteiras float; entradas inválidas monotónicas;
 contaminação de sinal/controlo; disponibilidade derivada; erro simultâneo em
-várias linhas; proveniência e replay autenticado. Não há dependências novas.
+várias linhas; proveniência e replay autenticado. O oráculo anterior de 900 pares
+conserva os valores negativos numa variável de movimento assinada
+(`lambda_unobserved_net`); níveis `lambda_first` passam a respeitar o domínio não
+negativo também nas provas lógicas. Não há dependências novas.
 
 A suite integral, Research, preflight sem PyYAML, 30 testes UI, 7 scheduler,
 isolamento e os quatro workflows CI são reportados no comentário de entrega da

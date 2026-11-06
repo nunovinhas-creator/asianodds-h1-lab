@@ -128,6 +128,21 @@ class BlockerTests(unittest.TestCase):
                                         for w in (bound, bound+delta/2, math.nextafter(bound-1e-9, bound),
                                                   math.nextafter(bound+1e-9, bound))))
 
+    def test_catalogue_domains_constrain_logic_witnesses_and_row_values(self):
+        impossible = [cmp('lt', 'lambda_first', -.1), cmp('gt', 'p_home_last', 1),
+                      op('between', var('n_messages'), const(.1), const(.9)),
+                      op('between', var('lambda_first_dir'), const(.2), const(.8)),
+                      cmp('eq', 'kickoff_hour_utc', 1.5), cmp('ge', 'trigger_total_share', 2)]
+        for c in impossible:
+            expr = op('or', A, op('and', A, c))
+            for material in (False, True):
+                self.assertIn('CONTRADICTORY_SIGNAL_PATH', _design(expr, material=material)[0])
+        for c in (cmp('ge', 'lambda_first', 0), cmp('eq', 'kickoff_hour_utc', 12),
+                  cmp('eq', 'n_messages', 1), cmp('eq', 'lambda_first_dir', -1)):
+            self.assertEqual(_design(op('and', A, c)), (set(), set()))
+        # A signed movement variable remains allowed to have negative witnesses.
+        self.assertEqual(_design(op('and', A, cmp('lt', 'lambda_unobserved_net', -1))), (set(), set()))
+
     def test_invalid_signal_inputs_never_become_control_in_any_design(self):
         plans = [self.plan, self.plan_with(A, control_condition=cmp('lt', 'lambda_net', .1), confounders=['line_bin']),
                  validate_plan(dict(LLM_PLAN, confounders=['line_bin']))]
