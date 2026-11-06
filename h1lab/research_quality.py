@@ -462,4 +462,3 @@ def shadow_report(plans, metadata, *, design=None, prior_plans=()):
                        'before_eligible_by_syntax': valid, 'after_eligible': statuses['SCIENTIFICALLY_TESTABLE'],
                        'quality': dict(sorted(statuses.items())), 'executed': 0},
             'agenda': cards, 'validated': [], 'memory_written': False}
-

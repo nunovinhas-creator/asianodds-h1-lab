@@ -138,4 +138,3 @@ operacionais não são alterados por esta correção.
 **Nova auditoria independente solicitada: procurar contraexemplos não antecipados
 pelos testes, especialmente negações/OR aninhados, tolerância das igualdades,
 dependências temporais dos estratos e suporte comum nos dois braços.**
-
