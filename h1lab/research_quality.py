@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections import Counter
 
 from .research_dataset import OUTCOMES, VARIABLES
-from .research_dsl import variables_used
+from .research_dsl import variables_used, evaluate
 from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership, _bins
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
 from .v6_shadow import utc
@@ -80,79 +81,182 @@ def _dimensions(expr):
     return rejected, deferred
 
 
-def _design(expr):
-    """Require a directional material bound on each signal path."""
-    rejected, deferred = _dimensions(expr)
-
-    def paths(n):
-        if n == {'const': True}:
-            return [[]]
-        if n == {'const': False}:
-            return []
-        op = n.get('op')
-        if op == 'or':
-            result = [p for a in n['args'] for p in paths(a)]
+def _logic_paths(n, negate=False):
+    """Bounded DNF in three-valued logic; do not erase dead AND alternatives."""
+    op, args = n.get('op'), n.get('args', [])
+    if op == 'not':
+        return _logic_paths(args[0], not negate)
+    if op in ('and', 'or'):
+        union = (op == 'or') != negate
+        result = [] if union else [[]]
+        for arg in args:
+            part = _logic_paths(arg, negate)
+            if not union and not part:
+                part = [[{'const': False}]]
+            result = result + part if union else [x+y for x in result for y in part]
             if len(result) > 64:
                 raise ValueError('LOGIC_TOO_COMPLEX')
-            return result
-        if op == 'and':
-            result = [[]]
-            for a in n['args']:
-                result = [x+y for x in result for y in paths(a)]
-                if len(result) > 64:
-                    raise ValueError('LOGIC_TOO_COMPLEX')
-            return result
-        return [[n]]
+        return result
+    if 'const' in n:
+        return [[]] if bool(n['const']) != negate else []
+    if op == 'between':
+        v, lo, hi = args
+        return _logic_paths({'op': 'and', 'args': [
+            {'op': 'ge', 'args': [v, lo]}, {'op': 'le', 'args': [v, hi]}]}, negate)
+    if negate and op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne'):
+        op = {'gt': 'le', 'ge': 'lt', 'lt': 'ge', 'le': 'gt', 'eq': 'ne', 'ne': 'eq'}[op]
+        return [[{'op': op, 'args': args}]]
+    return [[{'op': 'not', 'args': [n]} if negate else n]]
 
+
+def _path_constraints(branch):
+    """Prove simple independent scalar constraints; defer all other algebra.
+
+    Equality follows the DSL's 1e-9 tolerance, not exact Python equality.
+    Outward rounding keeps contradiction proofs conservative at float edges.
+    A concrete DSL witness is required before claiming satisfiability.
+    """
+    domains, literals, known, atoms = {}, {}, {}, {}
+    equalities, inequalities = set(), set()
+    predicates = {}
+    unproven = False
+    contradiction = False
+    for n in branch:
+        op, args = n.get('op'), n.get('args', [])
+        if n == {'const': False}:
+            contradiction = True
+            continue
+        neg = op == 'not'
+        atom = args[0] if neg else n
+        predicate, polarity = atom, not neg
+        # Complementary opaque predicates are contradictory too, even when
+        # their arithmetic cannot otherwise be solved by this scalar fragment.
+        complements = {'le': 'gt', 'lt': 'ge', 'ne': 'eq'}
+        if atom.get('op') in complements:
+            predicate = dict(atom, op=complements[atom['op']])
+            polarity = not polarity
+        key = json.dumps(predicate, sort_keys=True, separators=(',', ':'))
+        if key in predicates and predicates[key] != polarity:
+            contradiction = True
+        predicates[key] = polarity
+        if 'var' in atom and VARIABLES[atom['var']][0] == 'bool':
+            v, value = atom['var'], not neg
+            if v in literals and literals[v] != value:
+                contradiction = True
+            literals[v] = value
+            continue
+        if atom.get('op') == 'is_known' and 'var' in atom['args'][0]:
+            v, value = atom['args'][0]['var'], not neg
+            if v in known and known[v] != value:
+                contradiction = True
+            known[v] = value
+            continue
+        if op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne') and len(args) == 2:
+            left, right = args
+            if 'const' in left and 'var' in right:
+                left, right = right, left
+                op = {'gt': 'lt', 'ge': 'le', 'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}[op]
+            if 'var' in left and 'const' in right:
+                v, b = left['var'], right['const']
+                if op in ('eq', 'ne'):
+                    key = (v, b)
+                    (equalities if op == 'eq' else inequalities).add(key)
+                    if key in equalities and key in inequalities:
+                        contradiction = True
+                lo, hi, holes = domains.setdefault(v, [(float('-inf'), False),
+                                                       (float('inf'), False), []])
+                if op in ('ge', 'gt'):
+                    lo = max(lo, (b, op == 'gt'))
+                elif op in ('le', 'lt'):
+                    hi = min(hi, (b, op == 'le'))
+                elif op == 'eq':
+                    lo = max(lo, (math.nextafter(b-1e-9, -math.inf), False))
+                    hi = min(hi, (math.nextafter(b+1e-9, math.inf), True))
+                else:
+                    holes.append((math.nextafter(b-1e-9, math.inf),
+                                  math.nextafter(b+1e-9, -math.inf)))
+                domains[v] = [lo, hi, holes]
+                atoms.setdefault(v, []).append(n)
+                continue
+        unproven = True
+    if any(not value and (v in literals or v in domains) for v, value in known.items()):
+        contradiction = True
+    for v, (lo, hi, holes) in domains.items():
+        low, strict = lo
+        high, inclusive = hi
+        if low > high or (low == high and (strict or not inclusive)):
+            contradiction = True
+            continue
+        # Remove closed forbidden intervals, retaining open endpoints correctly.
+        intervals = [(low, not strict, high, inclusive)]
+        for start, end in holes:
+            remaining = []
+            for l, li, h, hin in intervals:
+                if end < l or start > h:
+                    remaining.append((l, li, h, hin))
+                    continue
+                if l < start:
+                    remaining.append((l, li, start, False))
+                if end < h:
+                    remaining.append((end, False, h, hin))
+            intervals = remaining
+        if not intervals:
+            contradiction = True
+            continue
+        witness = False
+        for l, li, h, hin in intervals:
+            candidates = [l if li else math.nextafter(l, math.inf),
+                          h if hin else math.nextafter(h, -math.inf),
+                          l/2+h/2 if math.isfinite(l) and math.isfinite(h) else 0]
+            for x in candidates:
+                if (math.isfinite(x) and (x > l or (li and x == l))
+                        and (x < h or (hin and x == h))
+                        and all(evaluate(n, {v: x}) is True for n in atoms[v])):
+                    witness = True
+                    break
+        if not witness:
+            unproven = True
+    return contradiction, unproven, domains
+
+
+def _design(expr, *, material=True):
+    """Every explicit path must be satisfiable; signal paths also material."""
+    rejected, deferred = _dimensions(expr)
     try:
-        branches = paths(expr)
+        branches = _logic_paths(expr)
         if not branches:
             rejected.add('CONSTANT_CONDITION')
         for branch in branches:
-            bounds = {}
-            branch_motion = set()
-            complex_motion = False
-            for n in branch:
-                op, args = n.get('op'), n.get('args', [])
-                if op == 'is_known':
-                    continue
-                if not variables_used(n):
-                    rejected.add('CONSTANT_CONDITION')
-                motion = variables_used(n) & FLOORS.keys()
-                branch_motion.update(motion)
-                if (op in ('gt', 'ge', 'lt', 'le') and len(args) == 2
-                        and 'var' in args[0] and 'const' in args[1]):
-                    v, bound = args[0]['var'], args[1]['const']
-                    lower, upper = bounds.get(v, ((float('-inf'), False),
-                                                   (float('inf'), False)))
-                    if op in ('gt', 'ge'):
-                        lower = max(lower, (bound, op == 'gt'))
-                    else:
-                        upper = min(upper, (bound, op != 'lt'))
-                    bounds[v] = lower, upper
-                elif motion:
-                    complex_motion = True
-            if any(lo > hi or (lo == hi and (strict_lo or not inclusive_hi))
-                   for (lo, strict_lo), (hi, inclusive_hi) in bounds.values()):
+            contradictory, uncertain, bounds = _path_constraints(branch)
+            if contradictory:
                 rejected.add('CONTRADICTORY_SIGNAL_PATH')
                 continue
-            if complex_motion or not branch_motion:
+            if uncertain:
+                deferred.add('SATISFIABILITY_UNPROVEN')
+            if not material:
+                continue
+            branch_motion = set().union(*(variables_used(n) & FLOORS.keys() for n in branch
+                                          if n.get('op') != 'is_known'))
+            if not branch_motion:
                 deferred.add('MATERIALITY_UNPROVEN')
             for v in branch_motion:
-                lower, upper = bounds.get(v, ((float('-inf'), False),
-                                               (float('inf'), False)))
+                if v not in bounds:
+                    deferred.add('MATERIALITY_UNPROVEN')
+                    continue
+                lower, upper, _ = bounds[v]
                 lo, hi = lower[0], upper[0]
                 floor = FLOORS[v][0]
                 if lo >= floor or hi <= -floor:
                     continue
-                if v not in bounds or complex_motion:
-                    deferred.add('MATERIALITY_UNPROVEN')
-                elif max(abs(x) for x in (lo, hi) if abs(x) != float('inf')) < floor:
+                finite = [abs(x) for x in (lo, hi) if math.isfinite(x)]
+                if finite and max(finite) < floor:
                     rejected.add('IMMATERIAL_MOVEMENT')
                 else:
                     deferred.add('MATERIAL_DIRECTION_UNPROVEN')
     except ValueError:
-        deferred.add('MATERIALITY_UNPROVEN')
+        deferred.add('SATISFIABILITY_UNPROVEN')
+        if material:
+            deferred.add('MATERIALITY_UNPROVEN')
     return rejected, deferred
 
 
@@ -195,7 +299,7 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         defer |= d
         if ctrl:
             ctrl = inline(ctrl, canonical['indicators'])
-            r, d = _dimensions(ctrl)
+            r, d = _design(ctrl, material=False)
             reject |= r
             defer |= d
             if expr == ctrl:
@@ -209,6 +313,9 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         used = set(canonical['variables_used'])
         if not used:
             reject.add('NO_OBSERVABLE_SIGNAL')
+        strata_vars = {'lead_bin': {'lead_first_min'}, 'line_bin': {'total_line_last'},
+                       'competition_type': {'ctx_cup', 'ctx_youth_reserve', 'ctx_league_other'}}
+        temporal_used = used | set().union(*(strata_vars[s] for s in canonical['confounders']))
         base = OUTCOMES[canonical['market']][canonical['outcome']]
         design = design or {}
         frozen = utc(design.get('frozen_at'))
@@ -223,27 +330,41 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 reject.add('DUPLICATE_MATCH_UNIT')
                 continue
             seen.add(key)
+            temporal_ok = True
             dec, ko = utc(row.get('decision_at')), utc(row.get('kickoff_utc'))
             if dec is None or ko is None:
+                temporal_ok = False
                 defer.add('DECISION_WINDOW_UNPROVEN')
             elif dec >= ko:
+                temporal_ok = False
                 reject.add('POST_KICKOFF_INFORMATION')
             if frozen and dec and frozen > dec:
+                temporal_ok = False
                 reject.add('DESIGN_NOT_FROZEN_BEFORE_DECISION')
             times = row.get('feature_observed_at', {})
             ff = utc(row.get('feature_frozen_at'))
             if not row.get('source_event_ids') or ff is None or dec is None or ko is None:
+                temporal_ok = False
                 defer.add('FEATURE_FREEZE_UNPROVEN')
-            elif ff > dec or ff >= ko:
+            if ff and ((dec and ff > dec) or (ko and ff >= ko)):
+                temporal_ok = False
                 reject.add('POST_DECISION_FEATURE_FREEZE')
-            for v in used:
+            for v in temporal_used:
                 t = utc(times.get(v))
                 if t is None:
+                    temporal_ok = False
                     defer.add('FEATURE_WINDOW_UNPROVEN')
-                elif dec and ko and (t > dec or t >= ko):
-                    reject.add('POST_KICKOFF_INFORMATION')
-            if ff and any(utc(times.get(v)) and utc(times[v]) > ff for v in used):
-                reject.add('OBSERVATION_AFTER_FREEZE')
+                else:
+                    if (dec and t > dec) or (ko and t >= ko):
+                        temporal_ok = False
+                        reject.add('POST_KICKOFF_INFORMATION')
+                    if ff and t > ff:
+                        temporal_ok = False
+                        reject.add('OBSERVATION_AFTER_FREEZE')
+            if any(row['variables'].get(v) is None for s in canonical['confounders']
+                   for v in strata_vars[s]):
+                temporal_ok = False
+                defer.add('CONFOUNDER_DATA_MISSING')
             g, c = membership(canonical, {'variables': row['variables']})
             if g is None:
                 counts['unknown'] += 1
@@ -259,7 +380,10 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             counts[side] += 1
             bins = _bins(row)
             cell = tuple(bins[s] for s in canonical['confounders'])
-            cells.setdefault(cell, Counter())[side] += 1
+            # Preserve each selected cell, but late/unknown rows cannot supply support.
+            support = cells.setdefault(cell, Counter())
+            if temporal_ok:
+                support[side] += 1
             ft = row.get('ft_verified') is True and row.get('ft_source_verified') is True
             baseline = base is None or row.get('baseline_available', {}).get(base) is True
             counts['ft'] += int(ft)
@@ -271,7 +395,7 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 defer.add('VERIFIED_FT_PROVENANCE_MISSING')
             if not baseline:
                 defer.add('BASELINE_MISSING')
-            if ft and baseline:
+            if ft and baseline and temporal_ok:
                 counts[side + '_eligible'] += 1
                 if ko:
                     safe.append((ko.date().isoformat(), side))
@@ -295,12 +419,6 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 defer.add('DISCOVERY_BOUNDARY_UNPROVEN')
             elif end > frozen or end.date().isoformat() >= cut:
                 reject.add('DISCOVERY_HOLDOUT_CONTAMINATION')
-        strata_vars = {'lead_bin': {'lead_first_min'}, 'line_bin': {'total_line_last'},
-                       'competition_type': {'ctx_cup', 'ctx_youth_reserve', 'ctx_league_other'}}
-        for s in canonical['confounders']:
-            needed = strata_vars[s]
-            if any(any(r['variables'].get(v) is None for v in needed) for r in metadata):
-                defer.add('CONFOUNDER_DATA_MISSING')
         if not cells or any(min(c['group'], c['control']) < 2 for c in cells.values()):
             defer.add('COMMON_STRATUM_SUPPORT_MISSING')
         duplicates = sum(p.get('fingerprint') == canonical['fingerprint'] for p in prior_plans)
@@ -344,3 +462,4 @@ def shadow_report(plans, metadata, *, design=None, prior_plans=()):
                        'before_eligible_by_syntax': valid, 'after_eligible': statuses['SCIENTIFICALLY_TESTABLE'],
                        'quality': dict(sorted(statuses.items())), 'executed': 0},
             'agenda': cards, 'validated': [], 'memory_written': False}
+

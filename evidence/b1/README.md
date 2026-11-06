@@ -79,3 +79,63 @@ Os três planos permanecem rejeitados por `IMMATERIAL_MOVEMENT`, com
 Zero experiências executadas. Os 21 testes direcionados B1 passaram.
 
 PR em Draft. Nova auditoria independente requerida antes de qualquer merge.
+
+## B1 P0/P1 — auditoria independente de 58e3c1fd
+
+Correção limitada a `h1lab/research_quality.py` e testes adversariais independentes.
+A PR permanece Draft e requer nova auditoria; não autoriza merge, experiências,
+ativação operacional ou promoção científica.
+
+- P0: cada alternativa explícita AND/OR é verificada, incluindo negação e
+  complementos booleanos, igualdade/desigualdade (tolerância real de 1e-9 da DSL),
+  operandos invertidos e intervalos. Um ramo comprovadamente contraditório rejeita
+  o desenho mesmo com outro ramo OR válido. Álgebra sem prova de satisfatibilidade
+  recebe `SATISFIABILITY_UNPROVEN` e revisão manual. OR materiais válidos, AND
+  redundantes e controlo neutro mantêm aceitação do desenho.
+- P1: a janela temporal inclui as dependências dos estratos selecionados:
+  `lead_first_min`, `total_line_last` e os três contextos de competição.
+  Observação, freeze, decisão e kickoff são confrontados separadamente; uma
+  fronteira desconhecida não oculta uma violação demonstrada noutra fronteira.
+  Linhas tardias ou de cronologia desconhecida continuam nas contagens brutas,
+  mas não fornecem suporte comum, elegibilidade nem OOS. As células selecionadas
+  são preservadas, sem descartar células deficientes para obter suporte artificial.
+- Os dois contraexemplos OR e o controlo com `total_line_last` um segundo tardio
+  foram reproduzidos no código rejeitado: os três eram SCIENTIFICALLY_TESTABLE.
+  A versão corrigida rejeita os três.
+- 30 testes direcionados passaram sem skips: 21 existentes e 9 novos métodos
+  adversariais, com permutações e variações de operadores e braços, testemunhas
+  concretas pela DSL e 900 pares de predicados para procurar falsos positivos.
+- Replay autenticado dos três planos: igualdade estrutural e byte a byte com
+  `evidence/b1/replay.json`, sem diferenças de estados, razões ou métricas.
+  `output_sha256=334731885529019ee3a2e0a453c435c76474e8533d554993bf6f9304427f0617`.
+  Prova original intacta; zero experiências, zero promoções e zero chamadas pagas.
+
+Reprodução em checkout com objetos históricos disponíveis:
+
+```sh
+python -m unittest discover -s tests -p 'test_research_quality*.py' -v
+mkdir -p /tmp/b1-frozen
+git archive ede8b771cc20a9236a0163df47ce2f6e7e915b25 data docs/lab | tar -x -C /tmp/b1-frozen
+python -m scripts.lab_research_quality --source-root /tmp/b1-frozen --output novo-p0-p1-replay.json
+cmp evidence/b1/replay.json work/b1-diagnostics/novo-p0-p1-replay.json
+python -m unittest discover -s tests -v
+node --test tests/dashboard-ui.test.cjs tests/master-brain-contract.test.cjs tests/discovery-public-pages.test.cjs tests/research-autonomy-ui.test.cjs scheduler/worker.test.mjs
+python -m unittest discover -s tests -p 'test_v6_offline*.py' -v
+python -m scripts.v6_scientific_gate --verify-blocked
+python -m scripts.research_isolation_check --base 58e3c1fd10a40746cf16296432a81444b30fa8c5
+```
+
+Os resultados integrais, falhas/skips e checks remotos finais são registados na
+conversa da PR. Neste ambiente, o proxy Git estava inacessível; a recuperação pelo
+conector GitHub foi conferida contra hashes Git originais, incluindo árvores,
+commits, memória de publicação e os onze blobs do replay. Não se desativou TLS nem
+se contornou o proxy. A recuperação parcial não constitui prova de suite integral.
+
+Mantém-se `TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE`, LLM autónomo desligado e zero
+custos. H1, E5, Telegram, FT, Pages, históricos, ledgers, gates e workflows
+operacionais não são alterados por esta correção.
+
+**Nova auditoria independente solicitada: procurar contraexemplos não antecipados
+pelos testes, especialmente negações/OR aninhados, tolerância das igualdades,
+dependências temporais dos estratos e suporte comum nos dois braços.**
+
