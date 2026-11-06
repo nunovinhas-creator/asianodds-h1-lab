@@ -21,6 +21,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED = (
+    # B1 offline audit evidence only; no operational or Pages output.
+    'evidence/b1/real-plans.json', 'evidence/b1/replay.json',
+    'evidence/b1/README.md', 'evidence/b1/verification.json',
     'h1lab/research_*.py', 'scripts/lab_research_*.py', 'scripts/research_isolation_check.py',
     'tests/test_research_*.py', 'tests/research_fixtures.py', 'tests/research-autonomy-ui.test.cjs',
     'docs/research-autonomy.*', 'docs/research/demo/*', 'docs/technical/AUTONOMOUS-RESEARCH.md',
