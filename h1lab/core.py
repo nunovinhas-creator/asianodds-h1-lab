@@ -102,19 +102,31 @@ def empty_state():
     return {"last_id":0,"alerts":[],"signals":[],"tickets":[],"diagnostics":[]}
 
 def incorporate(state,events,now,min_lead=10):
-    seen={a["event_id"] for a in state["alerts"]}
+    from .fixture_identity import blocked_keys, quarantine
+    seen={a["event_id"] for a in state["alerts"]} | {
+        q["event_id"] for q in state.get("fixture_quarantine", [])}
     matched={s["match_key"] for s in state["signals"]}
     count=0
+    admitted=[]
     for a in sorted(events,key=lambda x:(x["observed_at"],x["message_id"])):
         if a["event_id"] in seen: continue
-        seen.add(a["event_id"]); state["alerts"].append(a); count+=1
+        seen.add(a["event_id"]); count+=1
+        if quarantine(state,a,iso(now)):
+            continue
+        state["alerts"].append(a)
+        admitted.append(a)
+    # Resolve the whole batch before generating picks: a later message may
+    # contradict the first observation of a previously unseen match key.
+    blocked=blocked_keys(state)
+    for a in admitted:
         # Signals observed only after the polling delay are not prospective bets.
         # Keep the raw structured alert for audit, but exclude it from ROI.
         kickoff_time=datetime.fromisoformat(a["kickoff_utc"])
         observed_time=datetime.fromisoformat(a["observed_at"])
         eligible=kickoff_time > now.astimezone(UTC)+timedelta(minutes=min_lead) and (
             observed_time <= now.astimezone(UTC))
-        if a["h1"] and eligible and a["match_key"] not in matched:
+        if (a["h1"] and eligible and a["match_key"] not in matched
+                and a["match_key"] not in blocked):
             state["signals"].append({"signal_id":a["event_id"],"match_key":a["match_key"],
               "home":a["home"],"away":a["away"],"competition":a["competition"],
               "observed_at":a["observed_at"],"kickoff_utc":a["kickoff_utc"],
@@ -124,9 +136,12 @@ def incorporate(state,events,now,min_lead=10):
     return count
 
 def make_triples(state,now,min_lead=10):
+    from .fixture_identity import blocked_keys
+    blocked=blocked_keys(state)
     cutoff=now.astimezone(UTC)+timedelta(minutes=min_lead)
     used={sid for t in state["tickets"] for sid in t["signal_ids"]}
     pending=sorted((s for s in state["signals"] if s["signal_id"] not in used and
+                    s["match_key"] not in blocked and
                     datetime.fromisoformat(s["kickoff_utc"])>cutoff and
                     datetime.fromisoformat(s["observed_at"])<=now.astimezone(UTC)),
                    key=lambda s:(s["observed_at"],s["signal_id"]))
