@@ -51,7 +51,7 @@ def audit(root):
     assert verify_projection(root)
     ledger = 'data/e5-over25-notifications.json'
     assert (root/ledger).read_bytes() == blob(BASE, ledger) == blob(SOURCE, ledger)
-    assert json.loads(blob(BASE, 'config/research-autonomy.json'))['llm_live_enabled'] is False
+    assert json.loads((root/'config/research-autonomy.json').read_text())['llm_live_enabled'] is False
     def sha(data):
         return hashlib.sha256(data).hexdigest()
     return {'status': 'OFFLINE_RECOVERY_VERIFIED_NOT_LIVE_PROOF', 'run_id': '42181923012',
