@@ -136,6 +136,11 @@ class Rehearsal(unittest.TestCase):
         patch = mock.patch.object(rq, 'no_redirect_open', self.gh)
         patch.start()
         self.addCleanup(patch.stop)
+        # Trial operates on an in-memory GitHub double and must simulate the pre-activation
+        # quota-rehearsal state; live_flag() on the real repository intentionally refuses.
+        trial_flag = mock.patch.object(trial, 'live_flag', return_value=False)
+        trial_flag.start()
+        self.addCleanup(trial_flag.stop)
         self.env = {'GITHUB_REPOSITORY': REPO, 'GH_TOKEN': 't', 'GITHUB_RUN_ID': '777',
                     'GITHUB_REF': 'refs/pull/1/merge', 'GITHUB_RUN_ATTEMPT': '1'}
 
