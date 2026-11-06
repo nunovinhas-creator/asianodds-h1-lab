@@ -189,6 +189,8 @@ class WorkRevisionTests(unittest.TestCase):
         weak = {'op': 'gt', 'args': [{'var': 'lambda_net'}, {'const': 0}]}
         from h1lab.research_quality import _design
         self.assertEqual(_design({'op': 'and', 'args': [strong, weak]}), (set(), set()))
+        self.assertEqual(_design({'op': 'and', 'args': [strong, {'const': True}]}), (set(), set()))
+        self.assertEqual(_design({'op': 'or', 'args': [strong, {'const': False}]}), (set(), set()))
         self.assertIn('MATERIALITY_UNPROVEN', _design({'op': 'or', 'args': [strong, {'var': 'ctx_cup'}]})[1])
         self.assertEqual(_design({'op': 'or', 'args': [strong, strong]}), (set(), set()))
 
@@ -227,7 +229,13 @@ class WorkRevisionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.object(cli, 'ROOT', Path(tmp)):
             for name in ('/tmp/escape.json', '../escape.json', 'data/a.json', 'a/../b.json'):
                 with self.assertRaises(ValueError): cli.write_diagnostic(name, {})
-            cli.write_diagnostic('new.json', {})
+            import os
+            cwd = os.getcwd()
+            try:
+                os.chdir('/tmp')
+                cli.write_diagnostic('new.json', {})
+            finally:
+                os.chdir(cwd)
             target = Path(tmp)/'work/b1-diagnostics/new.json'
             original = target.read_bytes()
             with self.assertRaises(FileExistsError): cli.write_diagnostic('new.json', {'bad': True})

@@ -78,8 +78,14 @@ def _design(expr):
         return next(iter(units)) if units else None
 
     unit(expr)
+    if not variables_used(expr):
+        rejected.add('CONSTANT_CONDITION')
 
     def paths(n):
+        if n == {'const': True}:
+            return [[]]
+        if n == {'const': False}:
+            return []
         op = n.get('op')
         if op == 'or':
             return [p for a in n['args'] for p in paths(a)]
