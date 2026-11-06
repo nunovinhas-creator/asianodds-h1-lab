@@ -154,7 +154,7 @@ SYSTEM = (
     "linha e preco Total, lambda implicito, probabilidade 1X2 sem margem, AH, direcao, tempo e inversoes. "
     "Cada pergunta deve dizer variaveis, sentidos/limiares, grupo e controlo, explicacao alternativa "
     "e confundidores. Procura interacoes entre pelo menos dois sinais quando os dados existem. "
-    "Dinheiro, volumes e operadores NAO estao disponiveis: nao inventes fluxos nem compares casas. "
+    "Nao investigues dinheiro, volumes, stakes ou fluxos monetarios: estao fora do ambito. "
     "FT comprovado e resultados sao medidos APENAS pelo Python, nunca usados como preditores. "
     "NAO inventas numeros, significancia, edge, validacao nem recomendas apostas. "
     "trajectory_examples e memory sao contexto, nunca prova. "
