@@ -51,6 +51,16 @@ class QualityTest(unittest.TestCase):
         raw['indicators'][0]['expr']['args'][1]['const'] = 0
         self.assertIn('IMMATERIAL_MOVEMENT', self.quality(validate_plan(raw))['reasons'])
 
+    def test_mixed_units_in_levels_and_compound_expressions(self):
+        p = self.plan_with({'op': 'gt', 'args': [
+            {'op': 'add', 'args': [{'var': 'p_home_last'}, {'var': 'total_line_last'}]},
+            {'const': .1}]})
+        self.assertIn('MIXED_MOVEMENT_UNITS', self.quality(p)['reasons'])
+        p = self.plan_with({'op': 'gt', 'args': [
+            {'op': 'mul', 'args': [{'var': 'p_home_last'}, {'var': 'p_home_last'}]},
+            {'const': .1}]})
+        self.assertIn('COMPOUND_UNITS_REVIEW', self.quality(p)['reasons'])
+
     def test_overlap_constant_unknown_and_small_sample(self):
         p = self.plan_with({'var': 'ctx_cup'}, control_condition={'var': 'ctx_league_other'})
         self.meta[0]['variables'].update(ctx_cup=True, ctx_league_other=True)

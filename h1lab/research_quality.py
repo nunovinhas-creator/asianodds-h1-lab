@@ -40,6 +40,45 @@ def _design(expr):
     """
     rejected, deferred = set(), set()
 
+    def unit(n):
+        if 'const' in n:
+            return None
+        if 'var' in n:
+            v = n['var']
+            if VARIABLES[v][0] == 'bool':
+                return 'BOOL'
+            if v.startswith('p_') or v == 'total_overround_last':
+                return 'PROBABILITY'
+            if v.startswith('total_line_') and v not in ('total_line_ups', 'total_line_downs'):
+                return 'TOTAL_LINE'
+            if v.startswith('ah_line_') and v != 'ah_line_moves':
+                return 'AH_LINE'
+            if v in ('lambda_first', 'lambda_last', 'lambda_net', 'lambda_abs_path',
+                     'lambda_sd', 'lambda_unobserved_net'):
+                return 'IMPLIED_GOALS'
+            if v in ('lambda_velocity_h', 'lambda_accel_h'):
+                return 'IMPLIED_GOALS_PER_HOUR'
+            if v.endswith('_min'):
+                return 'MINUTES'
+            if v.endswith('_share'):
+                return 'FRACTION'
+            if v == 'kickoff_hour_utc':
+                return 'HOUR_OF_DAY'
+            return 'COUNT_OR_DIRECTION'
+        op = n['op']
+        units = {u for a in n['args'] if (u := unit(a)) is not None}
+        if op in ('and', 'or', 'not', 'is_known'):
+            return 'BOOL'
+        if len(units) > 1:
+            rejected.add('MIXED_MOVEMENT_UNITS')
+        if op in ('mul', 'div') and sum('const' not in a for a in n['args']) > 1:
+            deferred.add('COMPOUND_UNITS_REVIEW')
+        if op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne', 'between'):
+            return 'BOOL'
+        return next(iter(units)) if units else None
+
+    unit(expr)
+
     def walk(n):
         used = variables_used(n)
         motion = used & FLOORS.keys()
