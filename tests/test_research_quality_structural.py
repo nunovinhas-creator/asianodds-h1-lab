@@ -5,7 +5,7 @@ import unittest
 
 from h1lab.research_dataset import trajectory_variables
 from h1lab.research_dsl import evaluate
-from h1lab.research_quality import _arm_separation, _design, evaluate_quality, raw_plan, shadow_report
+from h1lab.research_quality import _arm_separation, _design, _sequence_possible, evaluate_quality, raw_plan, shadow_report
 from test_research_quality_adversarial import cmp, const, op, var
 import test_research_quality_blockers as fixtures
 
@@ -75,6 +75,30 @@ class StructuralTests(unittest.TestCase):
         ):
             self.assertIn('CONTRADICTORY_SIGNAL_PATH',
                           _design(op('or', fixtures.A, branch), material=False)[0])
+
+    def test_exhaustive_short_sign_sequences_and_single_message_clock(self):
+        for n in range(1, 4):
+            truth = set()
+            for sequence in product((-1, 0, 1), repeat=n):
+                nonzero = [x for x in sequence if x]
+                truth.add((sequence.count(1), sequence.count(-1),
+                           nonzero[0] if nonzero else 0, nonzero[-1] if nonzero else 0))
+            for up, down, first, last in product(range(n+1), range(n+1), (-1, 0, 1), (-1, 0, 1)):
+                env = dict(total_msgs=n, lambda_moves_up=up, lambda_moves_down=down,
+                           lambda_first_dir=first, lambda_last_dir=last)
+                self.assertEqual(_sequence_possible({k: (v, v) for k, v in env.items()}),
+                                 (up, down, first, last) in truth)
+        for terms in (
+            (cmp('eq', 'total_msgs', 1), cmp('eq', 'lambda_moves_up', 1),
+             cmp('eq', 'lambda_last_dir', -1)),
+            (cmp('eq', 'n_messages', 1), cmp('ge', 'lead_first_min', 90),
+             cmp('le', 'lead_last_min', 60)),
+            (cmp('eq', 'n_messages', 1), cmp('eq', 'lambda_first_dir', -1)),
+            (cmp('eq', 'total_msgs', 1), cmp('eq', 'lambda_abs_path', 0)),
+        ):
+            for order in (terms, terms[::-1]):
+                self.assertIn('CONTRADICTORY_SIGNAL_PATH',
+                              _design(op('and', fixtures.A, *order))[0])
 
     def test_identity_prior_and_fail_closed_in_both_apis(self):
         f = self.fixture

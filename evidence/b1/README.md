@@ -459,7 +459,10 @@ A PR permanece em Draft e requer nova auditoria independente.
 O fragmento usa limites necessários do produtor, grelhas e uma testemunha
 conjunta reavaliada no intérprete DSL. Verifica também as relações entre
 contagens, extremos, movimentos, direções e leads nas dependências presentes.
-As grelhas estreitas são verificadas exaustivamente. Uma interseção sem
+As grelhas estreitas são verificadas exaustivamente. Um oráculo independente
+enumera todas as sequências de sinais de uma a três mensagens e verifica
+as contagens e os sentidos nos extremos. As implicações de uma única
+mensagem também vinculam os leads, os intervalos e o movimento Total. Uma interseção sem
 contradição demonstrada nem testemunha fica por provar. A expansão continua
 limitada a 64 ramos, e a análise explícita admite até 64 pares de caminhos e
 4 096 vetores de testemunhas por análise. O modelo cobre os invariantes

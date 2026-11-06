@@ -14,7 +14,7 @@ from datetime import timedelta
 from itertools import islice, product
 
 from .market_math import LAM_MAX, LAM_MIN
-from .research_dataset import OUTCOMES, VARIABLES
+from .research_dataset import LAMBDA_EPS, OUTCOMES, VARIABLES
 from .research_dsl import variables_used, evaluate
 from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
@@ -382,12 +382,11 @@ def _path_constraints(branch, *, competition_type=False, available=()):
     windows = {v: windows.get(v, _numeric_domain(v)) for v in referenced | set(available)}
     if _violated_rule(windows, rules):
         contradiction = True
-    direction_fields = referenced & set((*DIRECTIONS, 'lambda_moves_up', 'lambda_moves_down'))
-    fixed = {v: lo for v, (lo, hi) in windows.items() if v in direction_fields and lo == hi}
-    if not _directions_valid(fixed):
+    sequence_fields = (referenced | set(available)) & SEQUENCE_FIELDS
+    if not _sequence_possible(windows):
         contradiction = True
     if not contradiction and not unproven:
-        involved = set().union(*(terms.keys() for terms, _ in rules)) | direction_fields
+        involved = set().union(*(terms.keys() for terms, _ in rules)) | sequence_fields
         for v in involved - witnesses.keys():
             lo, hi = windows[v]
             witnesses[v] = {x for x in (lo, hi, 0, 1, 2) if math.isfinite(x) and lo <= x <= hi}
@@ -398,8 +397,8 @@ def _path_constraints(branch, *, competition_type=False, available=()):
             defaults[v] = False if VARIABLES[v][0] == 'bool' else _default_value(v)
         for values in islice(product(*(sorted(witnesses[v]) for v in names)), 4096):
             env = dict(defaults, **dict(zip(names, values)))
-            if (not _violated_rule({v: (env[v], env[v]) for v in involved}, rules)
-                    and _directions_valid(env)
+            point = {v: (env[v], env[v]) for v in involved}
+            if (not _violated_rule(point, rules) and _sequence_possible(point)
                     and all(evaluate(node, env) is True for node in branch)):
                 break
         else:
@@ -514,6 +513,10 @@ COUNTS = frozenset(v for v in NONNEGATIVE if v not in (
 
 
 DIRECTIONS = ('lambda_first_dir', 'lambda_last_dir')
+SEQUENCE_FIELDS = frozenset((*DIRECTIONS, 'n_messages', 'total_msgs', 'lambda_moves_up',
+                             'lambda_moves_down', 'lead_first_min', 'lead_last_min',
+                             'span_min', 'max_gap_min', 'lambda_net', 'lambda_abs_path',
+                             'lambda_unobserved_net', 'lambda_reversals'))
 PRODUCER_TIME_FIELDS = frozenset(('lead_first_min', 'lead_last_min', 'span_min', 'max_gap_min'))
 PRODUCER_PRECISION = dict.fromkeys((
     'lambda_first', 'lambda_last', 'lambda_net', 'lambda_abs_path', 'lambda_sd',
@@ -612,14 +615,58 @@ def _violated_rule(windows, rules):
     return False
 
 
-def _directions_valid(env):
-    for direction in DIRECTIONS:
-        value = env.get(direction)
-        if ((value == 1 and env.get('lambda_moves_up') == 0)
-                or (value == -1 and env.get('lambda_moves_down') == 0)
-                or (value == 0 and any(env.get(v, 0) > 0 for v in ('lambda_moves_up', 'lambda_moves_down')))):
+def _sequence_possible(windows):
+    """Check projected sign counts and the temporal consequences of one event."""
+    def bounds(name):
+        return windows.get(name, _numeric_domain(name))
+
+    _, max_messages = bounds('n_messages')
+    if max_messages == 1:
+        first_lo, first_hi = bounds('lead_first_min')
+        last_lo, last_hi = bounds('lead_last_min')
+        if (max(first_lo, last_lo) > min(first_hi, last_hi)
+                or bounds('span_min')[0] > 0 or bounds('max_gap_min')[0] > 0):
             return False
-    return True
+    limit = min(max_messages, bounds('total_msgs')[1])
+    up_lo, up_hi = bounds('lambda_moves_up')
+    down_lo, down_hi = bounds('lambda_moves_down')
+    first_lo, first_hi = bounds('lambda_first_dir')
+    last_lo, last_hi = bounds('lambda_last_dir')
+    for first, last in product((-1, 0, 1), repeat=2):
+        if not (first_lo <= first <= first_hi and last_lo <= last <= last_hi):
+            continue
+        if limit == 1:
+            net_lo, net_hi = bounds('lambda_net')
+            if first == 0:
+                net_lo, net_hi = max(net_lo, -LAMBDA_EPS), min(net_hi, LAMBDA_EPS)
+            elif first == 1:
+                net_lo = max(net_lo, LAMBDA_EPS)
+            else:
+                net_hi = min(net_hi, -LAMBDA_EPS)
+            if net_lo > net_hi:
+                continue
+            path_lo, path_hi = bounds('lambda_abs_path')
+            # With one Total event the endpoint change is the only movement.
+            if (max(net_lo, -net_hi, 0) > path_hi
+                    or max(abs(net_lo), abs(net_hi)) < path_lo
+                    or any(not lo <= 0 <= hi for lo, hi in
+                           (bounds('lambda_unobserved_net'), bounds('lambda_reversals')))):
+                continue
+        if first == last == 0:
+            if up_lo == down_lo == 0:
+                return True
+        elif first and last:
+            up = max(up_lo, int(1 in (first, last)))
+            down = max(down_lo, int(-1 in (first, last)))
+            # If a sequence starts and ends in one direction but contains the
+            # opposite direction, its two endpoint movements are distinct.
+            if first == last == 1 and down:
+                up = max(up, 2)
+            if first == last == -1 and up:
+                down = max(down, 2)
+            if up <= up_hi and down <= down_hi and up+down <= limit:
+                return True
+    return False
 
 
 def _domain_tautology(node):
@@ -896,7 +943,7 @@ def _evaluate_quality(plan, metadata, design, prior_plans, input_hash):
                 issue('competition_type', 'COMPETITION_FLAGS_INCONSISTENT')
             if (_violated_rule({v: (x, x) for v, x in known_values.items()},
                                ((terms, limit) for terms, limit in rules if terms.keys() <= known_values.keys()))
-                    or not _directions_valid(known_values)):
+                    or not _sequence_possible({v: (x, x) for v, x in known_values.items()})):
                 issue('variables', 'TRAJECTORY_INVARIANTS_VIOLATED')
             cell, strata_issues = _stratum_cell(variables, canonical['confounders'])
             if strata_issues:
