@@ -120,7 +120,7 @@ def is_lab_v4_owned(path):
 
 # Immutable B1 evidence is human-reviewed material; no automated publisher owns it.
 B1_AUDIT_FILES = frozenset({'evidence/b1/README.md', 'evidence/b1/real-plans.json',
-                            'evidence/b1/replay.json', 'evidence/b1/verification.json'})
+                            'evidence/b1/replay.json'})
 
 
 def owner_of(path):

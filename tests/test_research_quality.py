@@ -31,9 +31,11 @@ class QualityTest(unittest.TestCase):
         return validate_plan(raw)
 
     def test_positive_and_boolean_context(self):
-        self.assertEqual(self.quality()['quality_status'], 'SCIENTIFICALLY_TESTABLE')
+        for row in self.meta:
+            row['variables']['total_line_last'] = 2.5
+        self.assertEqual(self.quality()['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
         p = self.plan_with({'var': 'ctx_cup'})
-        self.assertEqual(self.quality(p)['quality_status'], 'SCIENTIFICALLY_TESTABLE')
+        self.assertEqual(self.quality(p)['quality_status'], 'INSUFFICIENT_DATA')
 
     def test_zero_micro_and_correct_units(self):
         for var, floor in [('p_home_net', .05), ('lambda_net', .1), ('total_line_net', .25), ('ah_line_net', .25)]:
@@ -176,3 +178,79 @@ class QualityTest(unittest.TestCase):
             q = self.quality(p, m=[])
             self.assertEqual(q['quality_status'], 'REJECTED')
             self.assertIn('IMMATERIAL_MOVEMENT', q['reasons'])
+
+
+class WorkRevisionTests(unittest.TestCase):
+    setUp = QualityTest.setUp
+    quality = QualityTest.quality
+    plan_with = QualityTest.plan_with
+    def test_logic_paths(self):
+        strong = {'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]}
+        weak = {'op': 'gt', 'args': [{'var': 'lambda_net'}, {'const': 0}]}
+        from h1lab.research_quality import _design
+        self.assertEqual(_design({'op': 'and', 'args': [strong, weak]}), (set(), set()))
+        self.assertIn('MATERIALITY_UNPROVEN', _design({'op': 'or', 'args': [strong, {'var': 'ctx_cup'}]})[1])
+        self.assertEqual(_design({'op': 'or', 'args': [strong, strong]}), (set(), set()))
+
+    def test_work_controls_and_support(self):
+        invalid = {'op': 'gt', 'args': [{'op': 'add', 'args': [
+            {'var': 'lambda_net'}, {'var': 'total_line_last'}]}, {'const': 0}]}
+        p = self.plan_with({'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]},
+                           control_condition=invalid)
+        self.assertIn('MIXED_MOVEMENT_UNITS', self.quality(p)['reasons'])
+        p = self.plan_with({'var': 'ctx_cup'}, control_condition={'var': 'ctx_league_other'},
+                           confounders=['competition_type'])
+        self.assertIn('COMMON_STRATUM_SUPPORT_MISSING', self.quality(p)['reasons'])
+        self.assertNotEqual(self.quality(p)['quality_status'], 'SCIENTIFICALLY_TESTABLE')
+
+    def test_work_182_418_and_182_43(self):
+        for i, row in enumerate(self.meta):
+            row['variables']['lambda_net'] = .2 if i < 182 else -.2
+            row['variables']['ctx_cup'] = 182 <= i < 225
+        group = {'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]}
+        q = self.quality(self.plan_with(group))
+        self.assertEqual((q['metrics']['group'], q['metrics']['control']), (182, 418))
+        q = self.quality(self.plan_with(group, control_condition={'var': 'ctx_cup'},
+                                       confounders=['competition_type']))
+        self.assertEqual((q['metrics']['group'], q['metrics']['control']), (182, 43))
+        self.assertIn('COMMON_STRATUM_SUPPORT_MISSING', q['reasons'])
+
+    def test_freeze_order_and_untrusted_flags(self):
+        self.assertIn('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE', self.quality()['reasons'])
+        self.meta[0]['feature_frozen_at'] = '2026-10-01T00:00:00+00:00'
+        self.assertIn('OBSERVATION_AFTER_FREEZE', self.quality()['reasons'])
+
+    def test_secure_exclusive_output(self):
+        import tempfile
+        from pathlib import Path
+        from scripts import lab_research_quality as cli
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli, 'ROOT', Path(tmp)):
+            for name in ('/tmp/escape.json', '../escape.json', 'data/a.json', 'a/../b.json'):
+                with self.assertRaises(ValueError): cli.write_diagnostic(name, {})
+            cli.write_diagnostic('new.json', {})
+            target = Path(tmp)/'work/b1-diagnostics/new.json'
+            original = target.read_bytes()
+            with self.assertRaises(FileExistsError): cli.write_diagnostic('new.json', {'bad': True})
+            self.assertEqual(target.read_bytes(), original)
+            link = target.with_name('link.json')
+            link.symlink_to(target)
+            with self.assertRaises(OSError): cli.write_diagnostic('link.json', {})
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli, 'ROOT', Path(tmp)):
+            (Path(tmp)/'work').symlink_to('/tmp', target_is_directory=True)
+            with self.assertRaises(OSError): cli.write_diagnostic('escape.json', {})
+
+    def test_history_tampering_fails_before_dataset(self):
+        import json
+        from pathlib import Path
+        from scripts.lab_research_quality import verify_history
+        proof = json.loads(Path('evidence/b1/real-plans.json').read_text())
+        import subprocess
+        check = subprocess.run(['git', 'cat-file', '-e', proof['source_commit']], capture_output=True)
+        if check.returncode:
+            self.skipTest('Historical Git objects unavailable in shallow checkout; CLI fails closed')
+        self.assertEqual(verify_history(proof)[1], proof['source_commit'])
+        for field, value in [('source_commit', 'a'*40), ('run_id', 123), ('memory_sha256', '0'*64)]:
+            bad = copy.deepcopy(proof); bad[field] = value
+            with self.assertRaises(ValueError): verify_history(bad)
+        bad = copy.deepcopy(proof); bad['records'][0]['results']['counts']['group'] += 1
+        with self.assertRaises(ValueError): verify_history(bad)

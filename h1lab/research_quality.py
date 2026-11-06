@@ -12,7 +12,7 @@ from collections import Counter
 
 from .research_dataset import OUTCOMES, VARIABLES
 from .research_dsl import variables_used
-from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership
+from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership, _bins
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
 from .v6_shadow import utc
 
@@ -79,34 +79,62 @@ def _design(expr):
 
     unit(expr)
 
-    def walk(n):
-        used = variables_used(n)
-        motion = used & FLOORS.keys()
-        op, args = n.get('op'), n.get('args', [])
-        if op in ('and', 'or'):
-            for a in args:
-                walk(a)
-        elif op == 'is_known':
-            pass  # availability guard, never evidence of material movement
-        elif motion:
-            if (op in ('ge', 'gt', 'le', 'lt') and len(args) == 2
-                    and args[0].get('var') in FLOORS and 'const' in args[1]):
-                name, bound = args[0]['var'], args[1]['const']
-                floor, _ = FLOORS[name]
-                if abs(bound) < floor:
-                    rejected.add('IMMATERIAL_MOVEMENT')
-                elif not ((op in ('ge', 'gt') and bound > 0)
-                          or (op in ('le', 'lt') and bound < 0)):
-                    deferred.add('MATERIAL_DIRECTION_UNPROVEN')
-            else:
-                units = {FLOORS[v][1] for v in motion}
-                if len(units) > 1:
-                    rejected.add('MIXED_MOVEMENT_UNITS')
+    def paths(n):
+        op = n.get('op')
+        if op == 'or':
+            return [p for a in n['args'] for p in paths(a)]
+        if op == 'and':
+            result = [[]]
+            for a in n['args']:
+                result = [x+y for x in result for y in paths(a)]
+                if len(result) > 64:
+                    raise ValueError('LOGIC_TOO_COMPLEX')
+            return result
+        return [[n]]
+
+    try:
+        branches = paths(expr)
+        all_motion = set().union(*(variables_used(n) & FLOORS.keys()
+                                  for branch in branches for n in branch
+                                  if n.get('op') != 'is_known'))
+        for branch in branches:
+            bounds = {}
+            complex_motion = False
+            for n in branch:
+                op, args = n.get('op'), n.get('args', [])
+                motion = variables_used(n) & FLOORS.keys()
+                if op == 'is_known':
+                    continue
+                if not variables_used(n):
+                    rejected.add('CONSTANT_CONDITION')
+                if not motion:
+                    continue
+                if (op in ('gt', 'ge', 'lt', 'le') and len(args) == 2
+                        and args[0].get('var') in FLOORS and 'const' in args[1]):
+                    v, bound = args[0]['var'], args[1]['const']
+                    lo, hi = bounds.get(v, (float('-inf'), float('inf')))
+                    if op in ('gt', 'ge'):
+                        lo = max(lo, bound)
+                    else:
+                        hi = min(hi, bound)
+                    bounds[v] = lo, hi
                 else:
+                    complex_motion = True
+            if complex_motion:
+                deferred.add('MATERIALITY_UNPROVEN')
+            for v in all_motion:
+                lo, hi = bounds.get(v, (float('-inf'), float('inf')))
+                floor = FLOORS[v][0]
+                if lo >= floor or hi <= -floor:
+                    continue
+                if v not in bounds or complex_motion:
                     deferred.add('MATERIALITY_UNPROVEN')
-        elif not used:
-            rejected.add('CONSTANT_CONDITION')
-    walk(expr)
+                elif max(abs(x) for x in (lo, hi) if abs(x) != float('inf')) < floor:
+                    rejected.add('IMMATERIAL_MOVEMENT')
+                else:
+                    deferred.add('MATERIAL_DIRECTION_UNPROVEN')
+    except ValueError:
+        deferred.add('MATERIALITY_UNPROVEN')
     return rejected, deferred
 
 
@@ -149,6 +177,9 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         defer |= d
         if ctrl:
             ctrl = inline(ctrl, canonical['indicators'])
+            r, d = _design(ctrl)
+            reject |= r
+            defer |= d
             if expr == ctrl:
                 reject.add('CONTROL_EQUALS_CONDITION')
         # Narrative is never evidence. Explicit unavailable claims fail closed;
@@ -165,6 +196,8 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         frozen = utc(design.get('frozen_at'))
         if design.get('threshold_origin') not in ('APRIORI', 'DISCOVERY') or not frozen:
             defer.add('THRESHOLD_PROVENANCE_MISSING')
+        # No production provenance adapter exists yet. JSON flags are not evidence.
+        cells = {}
         seen = set()
         for row in metadata:
             key = row.get('match_key')
@@ -191,6 +224,8 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                     defer.add('FEATURE_WINDOW_UNPROVEN')
                 elif dec and ko and (t > dec or t >= ko):
                     reject.add('POST_KICKOFF_INFORMATION')
+            if ff and any(utc(times.get(v)) and utc(times[v]) > ff for v in used):
+                reject.add('OBSERVATION_AFTER_FREEZE')
             g, c = membership(canonical, {'variables': row['variables']})
             if g is None:
                 counts['unknown'] += 1
@@ -204,6 +239,9 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 continue
             side = 'group' if g else 'control'
             counts[side] += 1
+            bins = _bins(row)
+            cell = tuple(bins[s] for s in canonical['confounders'])
+            cells.setdefault(cell, Counter())[side] += 1
             ft = row.get('ft_verified') is True and row.get('ft_source_verified') is True
             baseline = base is None or row.get('baseline_available', {}).get(base) is True
             counts['ft'] += int(ft)
@@ -245,6 +283,8 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             needed = strata_vars[s]
             if any(any(r['variables'].get(v) is None for v in needed) for r in metadata):
                 defer.add('CONFOUNDER_DATA_MISSING')
+        if not cells or any(min(c['group'], c['control']) < 2 for c in cells.values()):
+            defer.add('COMMON_STRATUM_SUPPORT_MISSING')
         duplicates = sum(p.get('fingerprint') == canonical['fingerprint'] for p in prior_plans)
         near = sum(p.get('outcome') == canonical['outcome'] and
                    set(p.get('variables_used', ())) == used and
@@ -258,11 +298,13 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
     except (PlanError, KeyError, TypeError, ValueError, AttributeError):
         reject.add('QUALITY_INPUT_INVALID')
         metrics = dict(counts)
+    design_status = 'REJECTED' if reject else 'INSUFFICIENT_DATA' if defer else 'SCIENTIFICALLY_TESTABLE'
+    defer.add('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE')
     status = 'REJECTED' if reject else 'INSUFFICIENT_DATA' if defer else 'SCIENTIFICALLY_TESTABLE'
-    return {'version': VERSION, 'quality_status': status, 'reasons': sorted(reject | defer),
+    return {'version': VERSION, 'quality_status': status, 'design_quality_status': design_status, 'reasons': sorted(reject | defer),
             'metrics': metrics, 'diagnostic_only': True, 'promotion_eligible': False,
             'alternative_explanations': 'TEXT_NOT_VERIFIED',
-            'confounding_scope': 'AVAILABILITY_ONLY_NOT_CAUSAL_PROOF',
+            'confounding_scope': 'COMMON_SUPPORT_REQUIRED_NOT_CAUSAL_PROOF',
             'scientific_status': 'EXPLORATORY_NOT_VALIDATED'}
 
 

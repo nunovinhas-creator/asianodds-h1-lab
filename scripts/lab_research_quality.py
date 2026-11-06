@@ -6,6 +6,8 @@ Source root must be the original run head, not a moving main checkout.
 import argparse
 import hashlib
 import json
+import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -15,7 +17,59 @@ from h1lab.research_memory import _hash
 from h1lab.research_plan import validate_plan
 
 
+ROOT = Path(__file__).resolve().parents[1]
+INPUT_COMMIT = 'ede8b771cc20a9236a0163df47ce2f6e7e915b25'
+PUBLICATION_COMMIT = '58c928893f0ba95df361b3ae43c17a3ecdba53e3'
+RUN_ID = 42202804803
+
+
+def git_object(spec):
+    return subprocess.check_output(['git', '-C', str(ROOT), 'show', spec])
+
+
+def verify_history(proof):
+    # Pinned original run, not caller-selected refs. Shallow/missing objects fail closed.
+    from h1lab.research_memory import _parse
+    memory = git_object(PUBLICATION_COMMIT + ':data/research/memory.jsonl')
+    history = _parse(memory)
+    expected = [r for r in history if r.get('cycle_id') == 'C84726a3448c725b'
+                and r.get('record_type') == 'EXPERIMENT' and r.get('origin') == 'LLM_LIVE']
+    if (proof['source_commit'] != PUBLICATION_COMMIT or proof['run_id'] != RUN_ID
+            or proof['memory_sha256'] != hashlib.sha256(memory).hexdigest()
+            or proof['records'] != expected or len(expected) != 3):
+        raise ValueError('HISTORICAL_PROVENANCE_MISMATCH')
+    message = git_object(PUBLICATION_COMMIT).decode()
+    if str(RUN_ID) not in message:
+        raise ValueError('RUN_PUBLICATION_LINK_UNPROVEN')
+    subprocess.run(['git', '-C', str(ROOT), 'merge-base', '--is-ancestor',
+                    INPUT_COMMIT, PUBLICATION_COMMIT], check=True)
+    return INPUT_COMMIT, PUBLICATION_COMMIT
+
+
+def write_diagnostic(name, report):
+    # Only a basename; root and both directory components are opened without
+    # following symlinks. Directory descriptors prevent path substitution races.
+    if not isinstance(name, str) or not name.endswith('.json') or Path(name).name != name or name in ('.', '..') or '/' in name or '\\' in name:
+        raise ValueError('DIAGNOSTIC_BASENAME_REQUIRED')
+    fd = os.open(ROOT, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for component in ('work', 'b1-diagnostics'):
+            try:
+                os.mkdir(component, dir_fd=fd)
+            except FileExistsError:
+                pass
+            child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        out = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
+        with os.fdopen(out, 'w') as stream:
+            stream.write(json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + '\n')
+    finally:
+        os.close(fd)
+
+
 def replay(source_root, proof):
+    input_commit, publication_commit = verify_history(proof)
     records = proof['records']
     for record in records:
         if _hash(record) != record['sha256']:
@@ -29,7 +83,8 @@ def replay(source_root, proof):
         path = (Path(source_root) / relative).resolve()
         if not path.is_relative_to(Path(source_root).resolve()):
             raise ValueError('SOURCE_PATH_OUTSIDE_ROOT')
-        if hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
+        blob = git_object(input_commit + ':' + relative)
+        if path.read_bytes() != blob or hashlib.sha256(blob).hexdigest() != expected_hash:
             raise ValueError('ORIGINAL_SOURCE_HASH_MISMATCH')
     now = datetime.fromisoformat(records[0]['recorded_at'])
     dataset = build_dataset(source_root, now=now)
@@ -48,7 +103,7 @@ def replay(source_root, proof):
     plans = [raw_plan(dict(r['plan'], question=r['question'], hypothesis=r['hypothesis'],
                            null_hypothesis=r['null_hypothesis'])) for r in records]
     report = shadow_report(plans, metadata)
-    report['provenance'] = {'source_commit': proof['source_commit'], 'run_id': proof['run_id'],
+    report['provenance'] = {'input_commit': input_commit, 'publication_commit': publication_commit, 'run_id': proof['run_id'],
                             'original_memory_sha256': proof['memory_sha256'],
                             'verified_source_files_sha256': source_hashes,
                             'original_dataset_sha256': expected,
@@ -71,13 +126,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-root', required=True, type=Path)
     parser.add_argument('--proof', type=Path, default=Path('evidence/b1/real-plans.json'))
-    parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--output', required=True, help='New JSON basename under repository work/b1-diagnostics')
     args = parser.parse_args()
-    if args.output.resolve().is_relative_to(Path('data').resolve()) or args.output.resolve().is_relative_to(Path('docs').resolve()):
-        parser.error('B1_OUTPUT_MUST_NOT_BE_OPERATIONAL_OR_PAGES')
     report = replay(args.source_root, json.loads(args.proof.read_text()))
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, sort_keys=True, allow_nan=False)+'\n')
+    write_diagnostic(args.output, report)
 
 
 if __name__ == '__main__':
