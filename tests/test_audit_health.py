@@ -34,9 +34,9 @@ class HealthTests(unittest.TestCase):
             r=check(t,datetime(2026,10,29,tzinfo=timezone.utc))
             self.assertEqual(r['status'],'FAILED')
             self.assertTrue(any(x['status']=='UNKNOWN' for x in r['checks']))
-    def test_real_snapshot_detects_stale_h1_independently_of_fresh_collector(self):
-        # Test semantic classification at a clock derived from the snapshot,
-        # rather than hard-coding production timestamps.
+    def test_real_snapshot_replays_h1_and_ft_without_assuming_fresh_collection(self):
+        # A dashboard may be regenerated while Telegram is down. Its generation
+        # clock does not establish a fresh collection checkpoint.
         root=Path(__file__).resolve().parents[1]
         now=datetime.fromisoformat(json.loads((root/'docs/data.json').read_text())['generated_at'])
         r=check(root,now)
@@ -48,7 +48,35 @@ class HealthTests(unittest.TestCase):
         self.assertEqual(report['coverage_diagnostics']['closed_unverified'],
                          report['status_counts'].get('EXPIRED_UNVERIFIED',0))
         self.assertEqual(statuses['h1_replay'],'OK')
-        self.assertEqual(statuses['collector'],'OK')
+        self.assertIn(statuses['collector'], ('OK', 'STALE', 'UNKNOWN'))
+        if statuses['collector'] != 'OK':
+            self.assertNotEqual(r['status'], 'OK')
+
+    def test_fresh_dashboard_does_not_refresh_a_stale_collector(self):
+        from datetime import timedelta
+        from h1lab.core import empty_state, public_data
+        now = datetime(2026, 11, 6, 12, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root/'data').mkdir()
+            (root/'docs').mkdir()
+            state = empty_state()
+            state['collector'] = {'last_poll_at': (now-timedelta(hours=6)).isoformat()}
+            def write_state():
+                (root/'data/state.json').write_text(json.dumps(state))
+            write_state()
+            (root/'docs/data.json').write_text(json.dumps(public_data(state, {}, now)))
+            (root/'data/result_audit.json').write_text('{}')
+            report = check(root, now)
+            statuses = {x['name']: x['status'] for x in report['checks']}
+            self.assertEqual(statuses['h1_replay'], 'OK')
+            self.assertEqual(statuses['collector'], 'STALE')
+            self.assertNotEqual(report['status'], 'OK')
+            # Only an actual new collector checkpoint makes this fixture fresh.
+            state['collector']['last_poll_at'] = now.isoformat()
+            write_state()
+            statuses = {x['name']: x['status'] for x in check(root, now)['checks']}
+            self.assertEqual(statuses['collector'], 'OK')
 
     def test_old_result_activity_detected_even_when_recollection_is_fresh(self):
         from datetime import timedelta
