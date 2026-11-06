@@ -24,10 +24,32 @@ RUN_ID = 42202804803
 
 
 def git_object(spec):
-    if ':' in spec:
-        oid = git_read(ROOT, 'rev-parse', spec).decode().strip()
-        return verified_git_object(ROOT, 'blob', oid)
-    return verified_git_object(ROOT, 'commit', spec)
+    commit_id, separator, path = spec.partition(':')
+    commit = verified_git_object(ROOT, 'commit', commit_id)
+    if not separator:
+        return commit
+    oid = commit.split(b'\n', 1)[0].removeprefix(b'tree ').decode('ascii')
+    parts = path.split('/')
+    for depth, part in enumerate(parts):
+        if part in ('', '.', '..'):
+            raise ValueError('INVALID_GIT_PATH')
+        raw = verified_git_object(ROOT, 'tree', oid)
+        offset, entries = 0, {}
+        while offset < len(raw):
+            end = raw.index(b'\0', offset)
+            mode, name = raw[offset:end].split(b' ', 1)
+            child = raw[end+1:end+21]
+            if len(child) != 20 or name in entries:
+                raise ValueError('INVALID_GIT_TREE')
+            entries[name] = (mode, child.hex())
+            offset = end+21
+        mode, oid = entries[part.encode()]
+        if depth < len(parts)-1:
+            if mode != b'40000':
+                raise ValueError('NON_DIRECTORY_GIT_PATH')
+        elif mode not in (b'100644', b'100755'):
+            raise ValueError('NON_REGULAR_GIT_BLOB')
+    return verified_git_object(ROOT, 'blob', oid)
 
 
 def verify_history(proof):
