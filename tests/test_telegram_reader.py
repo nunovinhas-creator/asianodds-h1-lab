@@ -179,3 +179,34 @@ class TelegramReaderTests(unittest.IsolatedAsyncioTestCase):
         self.save.assert_not_called()
         self.assertEqual(self.client.connect.await_count, 2)
         self.assertEqual(self.client.disconnect.await_count, 2)
+
+    async def test_primary_key_error_does_not_leave_an_unhandled_disconnect_future(self):
+        import gc
+        events = []
+        loop = asyncio.get_running_loop()
+        previous_handler = loop.get_exception_handler()
+        loop.set_exception_handler(lambda loop, context: events.append(context))
+        self.addCleanup(loop.set_exception_handler, previous_handler)
+        disconnected = loop.create_future()
+        disconnected.set_exception(errors.AuthKeyNotFound())
+        self.client.disconnected = disconnected
+        self.client.connect.side_effect = errors.AuthKeyNotFound()
+        with self.assertRaisesRegex(TelegramSessionError, "^TELEGRAM_AUTH_KEY_NOT_FOUND$"):
+            await cli.probe_telegram()
+        self.client.disconnected = None
+        del disconnected
+        gc.collect()
+        await asyncio.sleep(0)
+        self.assertEqual(events, [])
+
+    async def test_background_disconnect_failure_after_read_still_preserves_cursor(self):
+        disconnected = asyncio.get_running_loop().create_future()
+        disconnected.set_exception(RuntimeError("PRIVATE"))
+        self.client.disconnected = disconnected
+        self.client.get_messages.return_value = [SimpleNamespace(id=43)]
+        state = empty_state()
+        previous = deepcopy(state)
+        with self.assertRaisesRegex(TelegramSessionError, "^TELEGRAM_DISCONNECT_FAILED$"):
+            await cli.poll(state)
+        self.assertEqual(state, previous)
+        self.save.assert_not_called()

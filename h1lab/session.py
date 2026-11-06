@@ -124,4 +124,12 @@ async def authorized_channel():
             if not primary_error:
                 raise TelegramSessionError(reason) from None
         else:
+            # Telethon also stores the primary transport failure in its public
+            # disconnected future. Retrieve that completed failure so asyncio
+            # does not emit an unrelated "Future exception was never retrieved".
+            disconnected = client.disconnected
+            if isinstance(disconnected, asyncio.Future) and disconnected.done() and not disconnected.cancelled():
+                failure = disconnected.exception()
+                if failure is not None and not primary_error:
+                    raise TelegramSessionError("TELEGRAM_DISCONNECT_FAILED") from None
             print("TELEGRAM_PHASE_OK DISCONNECT", flush=True)
