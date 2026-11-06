@@ -50,6 +50,7 @@ async def authorized_channel():
     """Open the configured channel without entering Telethon's interactive start()."""
     from telethon import TelegramClient, errors
     from telethon.tl.functions.updates import GetStateRequest
+    from .telegram_transport import ConnectionTcpFullWithShortErrors
 
     try:
         api_id = int(os.environ["TG_API_ID"])
@@ -57,6 +58,7 @@ async def authorized_channel():
         raise TelegramSessionError("TELEGRAM_API_CONFIG_INVALID") from None
 
     client = TelegramClient(load_telegram_session(), api_id, os.environ["TG_API_HASH"],
+                            connection=ConnectionTcpFullWithShortErrors,
                             receive_updates=False, flood_sleep_threshold=0,
                             timeout=10, connection_retries=1, request_retries=1,
                             retry_delay=1, auto_reconnect=False, raise_last_call_error=True)

@@ -107,6 +107,8 @@ class TelegramReaderTests(unittest.IsolatedAsyncioTestCase):
         self.save.assert_not_called()
         self.assertEqual(self.factory.call_args.kwargs["request_retries"], 1)
         self.assertFalse(self.factory.call_args.kwargs["auto_reconnect"])
+        from h1lab.telegram_transport import ConnectionTcpFullWithShortErrors
+        self.assertIs(self.factory.call_args.kwargs["connection"], ConnectionTcpFullWithShortErrors)
 
     async def test_stalled_read_and_disconnect_preserve_cursor_and_primary_error(self):
         async def stalled(*args, **kwargs):
