@@ -8,9 +8,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import subprocess
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from h1lab.lab_archive import monthly_paths
 from h1lab.timeline import collect_timelines, read_sources, utc
@@ -115,10 +117,106 @@ def rates(rows, field):
             for key, v in sorted(groups.items())}
 
 
+# Keep this scope aligned with every data reader used by audit(). Unrelated
+# repository files (including this audit's reports) are not audit inputs.
+FIXED_INPUTS = ("data/state.json", "data/lab/v6-hypotheses.jsonl",
+                "docs/lab/v6-readiness.json", "docs/lab/v6-p0-gates.json")
+MONTHLY_INPUTS = ("markets", "v4-revisions", "v6-forecasts", "v6-memory-evidence")
+
+
+def is_audit_input(name):
+    path = PurePosixPath(name)
+    return (name in FIXED_INPUTS
+            or (path.parent == PurePosixPath("data/lab")
+                and any(path.match(prefix + "-*.jsonl") for prefix in MONTHLY_INPUTS))
+            or (path.is_relative_to("reports/incidents")
+                and path.name.endswith("receipt.json")))
+
+
+def git_read(root, *args):
+    # Ignore caller Git overrides, replacement objects and global config. Missing
+    # partial-clone objects must fail locally, never trigger a lazy network fetch.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env.update(GIT_NO_LAZY_FETCH="1", GIT_NO_REPLACE_OBJECTS="1",
+               GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0",
+               GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    try:
+        return subprocess.run(["git", "--no-replace-objects", "-C", str(root), *args],
+                              env=env, check=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError("Source commit verification failed: local Git objects unavailable") from exc
+
+
+def git_object(root, kind, oid):
+    raw = git_read(root, "cat-file", kind, oid)
+    # Do not trust a syntactically valid object ID or even a corrupt loose object.
+    actual = hashlib.sha1(kind.encode() + b" " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+    if actual != oid:
+        raise ValueError("Source Git object hash mismatch: " + oid)
+    return raw
+
+
+def verify_source_commit(root, source_sha):
+    """Offline commit -> verified trees -> exact input inventory -> original blobs.
+
+    This verifies a snapshot's provenance, not the historical truth of its rows.
+    No index, mtime, worktree HEAD, stored report or network service is evidence.
+    """
+    if len(source_sha) != 40 or any(c not in "0123456789abcdef" for c in source_sha):
+        raise ValueError("Full immutable source commit SHA required")
+    try:
+        top = Path(os.fsdecode(git_read(root, "rev-parse", "--show-toplevel")).strip()).resolve()
+        if top != root:
+            raise ValueError("Source root must be the Git checkout root")
+        commit = git_object(root, "commit", source_sha)
+        tree_line = commit.split(b"\n", 1)[0]
+        if not tree_line.startswith(b"tree ") or len(tree_line) != 45:
+            raise ValueError("Invalid source commit tree")
+        tree_oid = tree_line[5:].decode("ascii")
+        expected = {}
+
+        def walk(oid, prefix=""):
+            raw = git_object(root, "tree", oid)
+            offset = 0
+            while offset < len(raw):
+                end = raw.index(b"\0", offset)
+                mode, name = raw[offset:end].split(b" ", 1)
+                child = raw[end + 1:end + 21]
+                if len(child) != 20 or name in (b".", b"..") or b"/" in name:
+                    raise ValueError("Invalid source Git tree entry")
+                name = prefix + os.fsdecode(name)
+                if mode == b"40000":
+                    walk(child.hex(), name + "/")
+                elif is_audit_input(name):
+                    if mode not in (b"100644", b"100755") or name in expected:
+                        raise ValueError("Non-regular or duplicate source input: " + name)
+                    expected[name] = child.hex()
+                offset = end + 21
+
+        walk(tree_oid)
+        actual = {p.relative_to(root).as_posix(): p for p in input_paths(root)}
+        if set(actual) != set(expected) or not set(FIXED_INPUTS) <= set(expected):
+            raise ValueError("Source input inventory mismatch (missing or additional inputs)")
+        hashes = {}
+        for name, oid in sorted(expected.items()):
+            path = actual[name]
+            if any(p.is_symlink() for p in (path, *path.parents) if p != root):
+                raise ValueError("Symlinked source input: " + name)
+            original = git_object(root, "blob", oid)
+            content = path.read_bytes()
+            if content != original:
+                raise ValueError("Source input differs from declared commit: " + name)
+            hashes[name] = sha256(content)
+        return {"tree": tree_oid, "input_blobs": dict(sorted(expected.items())),
+                "input_sha256": hashes}
+    except (OSError, UnicodeError) as exc:
+        raise ValueError("Source commit verification failed: required input unavailable") from exc
+
+
 def input_paths(root):
-    paths = [root / x for x in ("data/state.json", "data/lab/v6-hypotheses.jsonl",
-                               "docs/lab/v6-readiness.json", "docs/lab/v6-p0-gates.json")]
-    for prefix in ("markets", "v4-revisions", "v6-forecasts", "v6-memory-evidence"):
+    paths = [root / x for x in FIXED_INPUTS]
+    for prefix in MONTHLY_INPUTS:
         monthly = monthly_paths(root, prefix)
         if not monthly:
             raise ValueError("Missing required journal/projection: " + prefix)
@@ -129,10 +227,9 @@ def input_paths(root):
 
 def audit(root, source_sha, as_of=None):
     root = Path(root).resolve()
-    if len(source_sha) != 40 or any(c not in "0123456789abcdef" for c in source_sha):
-        raise ValueError("Full immutable source commit SHA required")
+    proof = verify_source_commit(root, source_sha)
     paths = input_paths(root)
-    before = {str(p.relative_to(root)): sha256(p.read_bytes()) for p in paths}
+    before = proof["input_sha256"]
     published = json.loads((root / "docs/lab/v6-readiness.json").read_text())
     p0 = json.loads((root / "docs/lab/v6-p0-gates.json").read_text())
     now = utc(as_of or p0["evaluation_clock"])
@@ -160,7 +257,15 @@ def audit(root, source_sha, as_of=None):
     published_replay = measure(timelines, forecasts, utc(published["generated_at"]))
     if published_replay != published:
         raise ValueError("Published readiness does not replay from source inputs")
-    p0_ft = ft_chronology(forecasts, evidence, registered_at, now)
+    p0_clock = utc(p0["evaluation_clock"])
+    if p0_clock is None:
+        raise ValueError("Timezone-aware P0 evaluation clock required")
+    # Reconcile at the publication clock even when --as-of requests another one.
+    published_ft = ft_chronology(forecasts, evidence, registered_at, p0_clock)
+    if published_ft != p0["ft_knowledge_timeline"]:
+        raise ValueError("Published FT chronology does not replay from source inputs")
+    p0_ft = (published_ft if now == p0_clock else
+             ft_chronology(forecasts, evidence, registered_at, now))
     by_match, rev_by_match, alert_by_match = defaultdict(list), defaultdict(list), defaultdict(list)
     for f in forecasts:
         by_match[f["match_key"]].append(f)
@@ -216,12 +321,14 @@ def audit(root, source_sha, as_of=None):
     ft = ft_rows(forecasts, evidence, registered_at, now)
     receipts = [{"path": str(p.relative_to(root)), "receipt": json.loads(p.read_text())}
                 for p in paths if p.name.endswith("receipt.json")]
-    after = {str(p.relative_to(root)): sha256(p.read_bytes()) for p in paths}
-    if before != after:
+    after = verify_source_commit(root, source_sha)
+    if proof != after:
         raise ValueError("Input changed during audit")
     return {"schema_version": 1, "phase": "P1_A1_READ_ONLY",
             "status": "BLOCKED_PENDING_INDEPENDENT_RECEIPT_AUDIT",
-            "source_commit": source_sha, "evaluation_clock": now.isoformat(),
+            "source_commit": source_sha, "source_commit_verified": True,
+            "source_git_tree": proof["tree"], "input_git_blobs": proof["input_blobs"],
+            "evaluation_clock": now.isoformat(),
             "cost": {"llm_calls": 0, "neurons": 0, "provider_calls": 0},
             "input_sha256": before, "source_bytes_unchanged": True,
             "published_readiness_replayed": True,
@@ -232,7 +339,7 @@ def audit(root, source_sha, as_of=None):
             "matches": rows, "missing_matches": missing,
             "identity_exclusions": identity_exclusions,
             "ft_p0_replay": p0_ft,
-            "ft_published_reconciled": p0_ft == p0["ft_knowledge_timeline"],
+            "ft_published_reconciled": True, "ft_published_replay_clock": p0_clock.isoformat(),
             "ft_exact_reference_status_counts": dict(Counter(r["chronology_status"] for r in ft)),
             "ft_failure_counts": dict(Counter(c for r in ft for c in r["failure_codes"])),
             "ft_events": ft, "published_lineage": p0["data_lineage"],
