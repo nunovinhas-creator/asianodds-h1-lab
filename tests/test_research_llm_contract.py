@@ -235,6 +235,10 @@ class ContractSentToModel(unittest.TestCase):
         for phrase in ('and/or/not so recebem BOOL_EXPR', 'MAIUSCULAS', 'TEM de ser usado',
                        'variables.num/variables.bool', 'textos entre < > sao instrucoes'):
             self.assertIn(phrase, SYSTEM)
+        for phrase in ('relacoes CONCRETAS', 'probabilidade 1X2 sem margem',
+                       'Nao investigues dinheiro, volumes, stakes ou fluxos monetarios',
+                       'FT comprovado e resultados sao medidos APENAS pelo Python'):
+            self.assertIn(phrase, SYSTEM)
 
     def test_native_request_is_bounded_and_carries_the_schema(self):
         opener = NativeOpener(reply(*VALID))

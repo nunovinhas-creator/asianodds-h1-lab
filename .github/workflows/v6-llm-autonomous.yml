@@ -1,6 +1,6 @@
 # MASTER BRAIN autonomous exploratory research. Replaces the retired V6 candidate-pool
 # workflow (scripts/lab_v6_llm_autonomous.py, blocked by ScientificGateBlocked) in place:
-# same file, same cron, same concurrency group -> still exactly four daily opportunities.
+# same file, same cron, same concurrency group -> four zero-cost offline cycles daily.
 # One request per run, no model retries, same provider/model. Exploration only: the
 # scientific validation gate is unchanged and nothing published here is "validated".
 # Rollback: revert this file (old workflow returns) or set llm_live_enabled=false.
@@ -55,8 +55,17 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/research"
           python -m scripts.lab_research_cycle --mode packet > "$RUNNER_TEMP/research/packet.json"
+      - name: Scheduled exploratory research OFFLINE — zero provider calls
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/research"
+          if [ -f data/research/memory.jsonl ]; then cp data/research/memory.jsonl "$RUNNER_TEMP/research/memory.jsonl"; fi
+          python -m scripts.lab_research_cycle --mode offline \
+            --memory "$RUNNER_TEMP/research/memory.jsonl" --panel "$RUNNER_TEMP/research/panel.json" \
+            > "$RUNNER_TEMP/research/result.json"
+          git diff --exit-code
       - name: ONE bounded LLM call into a scratch copy of the operational memory, no retries
-        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live_once') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'live_once' }}
         env:
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
