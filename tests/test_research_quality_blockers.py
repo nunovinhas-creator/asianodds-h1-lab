@@ -80,14 +80,14 @@ class BlockerTests(unittest.TestCase):
                      self.plan_with(cmp('le', 'lambda_net', -.1), control_condition=expr,
                                     confounders=['competition_type']))
                 self.assertIn('CONTRADICTORY_SIGNAL_PATH', self.quality(p)['reasons'])
-        # Without the selected contract do not invent exclusivity.
-        self.assertNotIn('CONTRADICTORY_SIGNAL_PATH', _design(op('and', A, var('ctx_cup'), var('ctx_league_other')))[0])
+        # Competition flags come from the same producer even without that stratum.
+        self.assertIn('CONTRADICTORY_SIGNAL_PATH', _design(op('and', A, var('ctx_cup'), var('ctx_league_other')))[0])
 
     def test_three_value_knownness_and_nontransitive_approximate_equality(self):
-        # A Boolean expression can be known through one dominating operand.
+        # The DSL allows unknownness via a dominating operand, but admission requires X.
         c = op('and', op('not', op('is_known', X)), op('is_known', op('and', const(False), op('gt', X, const(1)))))
         self.assertIs(evaluate(c, {}), True)
-        self.assertNotIn('CONTRADICTORY_SIGNAL_PATH', _design(op('and', A, c))[0])
+        self.assertIn('CONTRADICTORY_SIGNAL_PATH', _design(op('and', A, c))[0])
         # Unknownness of a different total comparison still conflicts with a
         # known operand; undefined arithmetic does not.
         c = op('and', A, op('not', op('is_known', op('gt', X, const(1)))), op('ge', X, const(2)))
@@ -96,8 +96,9 @@ class BlockerTests(unittest.TestCase):
         self.assertIs(evaluate(c, {'lambda_net': .2, 'lambda_first': 2}), True)
         self.assertNotIn('CONTRADICTORY_SIGNAL_PATH', _design(c)[0])
         # Approximate equality is not transitive; never treat it as union/find.
-        c = op('and', op('eq', X, Y), op('eq', Y, const(0)), op('ne', X, const(0)))
-        self.assertIs(evaluate(c, {'lambda_first': 1.5e-9, 'lambda_last': .75e-9}), True)
+        a, b = var('ah_line_first'), var('ah_line_last')
+        c = op('and', op('eq', a, b), op('eq', b, const(0)), op('ne', a, const(0)))
+        self.assertIs(evaluate(c, {'ah_line_first': 1.5e-9, 'ah_line_last': .75e-9}), True)
         self.assertNotIn('CONTRADICTORY_SIGNAL_PATH', _design(op('and', A, c))[0])
         unknown = op('and', A, op('gt', op('mul', X, X), const(1)))
         self.assertIn('SATISFIABILITY_UNPROVEN', _design(unknown)[1])
@@ -154,9 +155,13 @@ class BlockerTests(unittest.TestCase):
                 self.assertEqual(calls.call_count, 599)
             metrics = q['metrics']
             self.assertEqual((metrics['rows'], metrics['group'], metrics['control'], metrics['unknown']), (600, 299, 300, 1))
-            self.assertEqual((metrics['group_eligible'], metrics['control_eligible'], metrics['rows_excluded']), (299, 300, 1))
-            self.assertEqual(sum(metrics['oos'].values()), 599)
-            self.assertEqual(metrics['common_support']['cells'][0]['pregame'], {'group': 299, 'control': 300})
+            diagnostic = metrics.get('unidentified_diagnostics', metrics)
+            self.assertEqual((diagnostic['group_eligible'], diagnostic['control_eligible'], metrics['rows_excluded']), (299, 300, 1))
+            self.assertEqual(sum(diagnostic['oos'].values()), 599)
+            self.assertEqual(diagnostic['common_support']['cells'][0]['pregame'], {'group': 299, 'control': 300})
+            if diagnostic is not metrics:
+                self.assertEqual(metrics['group_eligible'] + metrics['control_eligible'], 0)
+                self.assertFalse(metrics['common_support']['eligible'])
             self.assertEqual(metrics['exclusions'][0]['match_key'], m[1]['match_key'])
             self.assertEqual(q['quality_status'], 'REJECTED')
         # A control-only dependency is validated even for a row passing the signal.
@@ -176,12 +181,13 @@ class BlockerTests(unittest.TestCase):
             self.assertEqual(sum(q['metrics']['oos'].values()), 599)
             self.setUp()
         # Finite raw values can overflow or divide by zero in a derived indicator.
-        for calculation in (op('div', X, const(0)), op('mul', X, X)):
+        unbounded = var('lambda_abs_path')
+        for calculation in (op('div', X, const(0)), op('mul', unbounded, unbounded)):
             p = validate_plan(dict(LLM_PLAN, confounders=['line_bin'],
                  indicators=[{'name': 'X_DERIVED', 'description': 'Derived availability diagnostic', 'expr': calculation}],
                  condition=op('and', A, op('is_known', var('X_DERIVED')))))
             if calculation['op'] == 'mul':
-                self.meta[1]['variables']['lambda_first'] = 1e308
+                self.meta[1]['variables']['lambda_abs_path'] = 1e308
             q = self.quality(p)
             self.assertIn('SIGNAL_EXPRESSION_UNKNOWN', q['reasons'])
             self.assertLess(q['metrics']['group_eligible'] + q['metrics']['control_eligible'], 600)
@@ -311,7 +317,9 @@ class BlockerTests(unittest.TestCase):
             after = replay(root, proof)
             self.assertEqual(after, replay(root, proof))
         before = json.loads(Path('evidence/b1/replay.json').read_text())
-        for key in ('provenance', 'input_sha256', 'before', 'costs', 'limits', 'funnel'):
+        self.assertEqual(after['mode'], 'B1_SHADOW_3')
+        self.assertNotEqual(after['input_sha256'], before['input_sha256'])
+        for key in ('provenance', 'before', 'costs', 'limits', 'funnel'):
             self.assertEqual(after[key], before[key], key)
         for old, new in zip(before['agenda'], after['agenda']):
             for key in ('fingerprint', 'quality_status', 'design_quality_status', 'promotion_eligible'):

@@ -432,3 +432,66 @@ sistema existente usam apenas fixtures, mocks e memórias TEST temporárias.
 positivos de satisfatibilidade, combinações de knownness/overflow/tolerância,
 células elegíveis contaminadas, efeitos de exclusão no split, determinismo e
 relatórios malformados. Procurar contraexemplos além dos testes. Não fazer merge.
+
+## Correção estrutural após a auditoria de fbab0d53
+
+A referência é o relatório independente `MASTER-BRAIN-auditoria-B1-PR259.md`
+(SHA-256 `21325d17befbd1412d382aafa8450ba4b55009f29364603633abd3ce899d3cd1`).
+A sonda original foi executada no head rejeitado e no avaliador corrigido.
+A PR permanece em Draft e requer nova auditoria independente.
+
+| Caso | Antes | Depois |
+|---|---|---|
+| Net positivo e extremos iguais num ramo de OR | Desenho testável | `CONTRADICTORY_SIGNAL_PATH` |
+| Contagens incompatíveis e direção sem movimentos | Desenho testável | Ramo rejeitado |
+| Flags one-hot sem estrato de competição | Desenho testável | Ramo rejeitado |
+| Intervalo sem ponto na grelha do produtor ou dependência obrigatória desconhecida | Desenho testável | Ramo rejeitado |
+| Interseção explícita a 0,27 ausente da amostra | Desenho testável | `LOGICAL_GROUP_CONTROL_OVERLAP` |
+| Interseção com álgebra fora do fragmento | Podia depender da amostra | `CONTROL_DISJOINTNESS_UNPROVEN` |
+| Lead final e hora de kickoff incompatíveis | 600 elegíveis | Zero elegíveis nas duas mutações integrais |
+| Timestamp com sete casas | A diferença desaparecia | Linha excluída com `TIMESTAMP_PRECISION_UNSUPPORTED` |
+| Plano prévio duplicado | Mesmo hash com parecer diferente | SHA-256 de input distinto |
+| NaN numa chave adicional | API direta aprovava e shadow retinha contagens elegíveis | Ambas rejeitam, preservam contabilidade e devolvem zero elegíveis |
+| Fingerprint adulterado | APIs divergentes | Ambas rejeitam |
+| Restrição tautológica do domínio | Falso negativo de materialidade | Sinal material preservado |
+| Controlo neutro 182/100 | Válido | Válido, com disjunção demonstrada |
+
+O fragmento usa limites necessários do produtor, grelhas e uma testemunha
+conjunta reavaliada no intérprete DSL. Verifica também as relações entre
+contagens, extremos, movimentos, direções e leads nas dependências presentes.
+As grelhas estreitas são verificadas exaustivamente. Uma interseção sem
+contradição demonstrada nem testemunha fica por provar. A expansão continua
+limitada a 64 ramos, e a análise explícita admite até 64 pares de caminhos e
+4 096 vetores de testemunhas por análise. O modelo cobre os invariantes
+codificados do catálogo. A proveniência e a possibilidade de reconstruir uma
+sequência real de cotações continuam fora do alcance do diagnóstico. Os leads
+declarados são comparados com os timestamps com a tolerância existente de
+três segundos. A comparação direta entre os dois leads usa a monotonicidade
+do arredondamento do produtor.
+
+O contrato `B1_SHADOW_3` identifica planos submetidos, metadados, desenho e
+freeze e a representação canónica dos campos de planos prévios que influem
+na decisão. As contagens brutas de linhas e atribuições descrevem o input.
+Quando falta uma identidade JSON válida, a elegibilidade e o suporte
+admissíveis são zero. As contagens de linhas restantes ficam em
+`unidentified_diagnostics` para diagnóstico, incluindo as exclusões por jogo
+na contabilidade geral. A decisão continua independente de evidência FT para
+a atribuição bruta. `TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE` e
+`promotion_eligible=false` continuam obrigatórios.
+
+O replay histórico versionado conserva SHA-256
+`1dd93bc1fee284f2efaed7a58e287f77f2fd9b524b39fea25fbf260e568061c5`.
+O replay autenticado preserva o dataset
+`ba45b40bad2fda1380265c8afd2e1265dc720d596746cd0366415b8119743f4a`,
+os registos originais, os braços 78/65, 58/52 e 51/36 e três rejeições.
+O diagnóstico novo tem input
+`6a1e7cc60baf4c3a07ae7a92ebfd6fac21e912acba52dbc3c11ea42fb9d402da`
+e `output_sha256`
+`1efcaab0f611c123fdcb35431e4584592e833fb599eb4666f033cc71c16d4bfe`.
+A adulteração do registo e do blob de entrada falha fechada. Não há
+execuções B1, promoção, memória escrita ou chamadas a fornecedores.
+
+A próxima auditoria deve procurar caminhos conjuntamente impossíveis
+que o fragmento ainda aceite, sobreposição latente fora das regiões da
+amostra, fronteiras de precisão e pedidos com a mesma identidade mas
+decisões diferentes.

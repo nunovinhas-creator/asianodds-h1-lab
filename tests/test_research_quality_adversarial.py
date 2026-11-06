@@ -134,9 +134,9 @@ class IndependentPathTests(unittest.TestCase):
     def test_satisfiable_constraints_have_witnesses(self):
         goal = cmp('ge', 'lambda_net', .1)
         cases = [
-            (cmp('eq', 'lambda_first', 1), cmp('eq', 'lambda_first', 1+1.5e-9), 1+.75e-9),
-            (cmp('eq', 'lambda_first', 1), cmp('ne', 'lambda_first', 1+1.5e-9), 1-.75e-9),
-            (cmp('eq', 'lambda_first', 1), cmp('gt', 'lambda_first', 1), 1+.5e-9),
+            (cmp('eq', 'lambda_first', 1), cmp('eq', 'lambda_first', 1+.5e-9), 1),
+            (cmp('eq', 'lambda_first', 1), cmp('ne', 'lambda_first', 1+1.5e-9), 1),
+            (cmp('eq', 'lambda_first', 1.0001), cmp('gt', 'lambda_first', 1), 1.0001),
             (cmp('ge', 'lambda_first', 1), cmp('le', 'lambda_first', 1), 1),
             (op('between', var('lambda_first'), const(1), const(2)),
              cmp('ne', 'lambda_first', 1), 1.5),
@@ -154,13 +154,13 @@ class IndependentPathTests(unittest.TestCase):
                          (set(), set()))
 
     def test_interpreter_witnesses_never_rejected_as_contradictory(self):
-        # Independent finite witness oracle on a signed catalogue variable,
-        # including near-equality floats. Physical levels cannot be negative.
+        # Independent finite witness oracle on a signed producer grid.
+        # Continuous DSL values between ticks are not producer witnesses.
         predicates = [cmp(operator, 'lambda_unobserved_net', value)
                       for operator in ('gt', 'ge', 'lt', 'le', 'eq', 'ne')
                       for value in (-2, -1, 0, 1, 2)]
         samples = [value+delta for value in (-3, -2, -1, 0, 1, 2, 3)
-                   for delta in (-1.5e-9, -.5e-9, 0, .5e-9, 1.5e-9)]
+                   for delta in (-.0002, -.0001, 0, .0001, .0002)]
         for a, b in itertools.product(predicates, repeat=2):
             expr = op('and', cmp('ge', 'lambda_net', .1), a, b)
             if any(evaluate(expr, {'lambda_net': .2, 'lambda_unobserved_net': x}) is True
@@ -204,8 +204,12 @@ class IndependentStrataTests(unittest.TestCase):
         metrics = q['metrics']
         self.assertEqual((metrics['rows'], metrics['group'], metrics['control']), (600, 300, 300))
         self.assertEqual(metrics['strata_excluded'], excluded)
-        self.assertEqual(metrics['group_eligible'] + metrics['control_eligible'], 600-excluded)
-        self.assertEqual(sum(metrics['oos'].values()), 600-excluded)
+        diagnostic = metrics.get('unidentified_diagnostics', metrics)
+        self.assertEqual(diagnostic['group_eligible'] + diagnostic['control_eligible'], 600-excluded)
+        self.assertEqual(sum(diagnostic['oos'].values()), 600-excluded)
+        if diagnostic is not metrics:
+            self.assertEqual(metrics['group_eligible'] + metrics['control_eligible'], 0)
+            self.assertEqual(sum(metrics['oos'].values()), 0)
         self.assertEqual(len(metrics['strata_exclusions']), excluded)
         self.assertEqual(len({x['match_key'] for x in metrics['strata_exclusions']}), excluded)
         self.assertTrue(all(any(i['reason'] == reason for i in x['issues'])

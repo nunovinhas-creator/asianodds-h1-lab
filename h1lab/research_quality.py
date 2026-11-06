@@ -11,14 +11,16 @@ import math
 import re
 from collections import Counter
 from datetime import timedelta
+from itertools import islice, product
 
+from .market_math import LAM_MAX, LAM_MIN
 from .research_dataset import OUTCOMES, VARIABLES
 from .research_dsl import variables_used, evaluate
 from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
 from .v6_shadow import utc
 
-VERSION = 'B1_SHADOW_2'
+VERSION = 'B1_SHADOW_3'
 # Probability units are fractions: .05 == five percentage points.
 FLOORS = {'p_home_net': (.05, 'PROBABILITY_FRACTION'),
           'p_draw_net': (.05, 'PROBABILITY_FRACTION'),
@@ -146,14 +148,15 @@ def _logic_paths(n, negate=False):
     return [[{'op': 'not', 'args': [n]} if negate else n]]
 
 
-def _path_constraints(branch, *, competition_type=False):
-    """Prove simple independent scalar constraints; defer all other algebra.
+def _path_constraints(branch, *, competition_type=False, available=()):
+    """Prove scalar and catalogue constraints; defer unsupported algebra.
 
     Equality follows the DSL's 1e-9 tolerance, not exact Python equality.
     Outward rounding keeps contradiction proofs conservative at float edges.
     A concrete DSL witness is required before claiming satisfiability.
     """
     domains, literals, known, atoms = {}, {}, {}, {}
+    windows, witnesses = {}, {}
     required_known, unknown_exprs, order_edges = set(), [], []
 
     def identity(node):
@@ -258,7 +261,8 @@ def _path_constraints(branch, *, competition_type=False):
     def guaranteed_known(node):
         if identity(node) in required_known or 'const' in node:
             return True
-        if competition_type and node.get('var') in STRATA_VARIABLES['competition_type']:
+        if node.get('var') in available or (competition_type and
+                node.get('var') in STRATA_VARIABLES['competition_type']):
             return True
         op = node.get('op')
         if op == 'is_known':
@@ -286,15 +290,17 @@ def _path_constraints(branch, *, competition_type=False):
                     reach[i, j] = reach.get((i, j), False) or reach[i, k] or reach[k, j]
     if any(reach.get((v, v), False) for v in nodes):
         contradiction = True
-    if competition_type:
-        flags = STRATA_VARIABLES['competition_type']
-        assignments = [{v: v == chosen for v in flags} for chosen in flags]
-        if not any(all(env[v] == value for v, value in literals.items() if v in flags)
-                   and all(value or v not in flags for v, value in known.items())
-                   for env in assignments):
-            contradiction = True
-    if any(not value and identity({'var': v}) in required_known for v, value in known.items()):
+    flags = STRATA_VARIABLES['competition_type']
+    assignments = [{v: v == chosen for v in flags} for chosen in flags]
+    flag_witness = next((env for env in assignments if
+                         all(env[v] == value for v, value in literals.items() if v in flags)
+                         and all(value or v not in flags for v, value in known.items())), None)
+    if flag_witness is None:
         contradiction = True
+    if any(not value and guaranteed_known({'var': v}) for v, value in known.items()):
+        contradiction = True
+    if unknown_exprs and not contradiction:
+        unproven = True
     for v, (lo, hi, holes) in domains.items():
         # Domain restrictions prove feasibility, not the materiality of a
         # submitted threshold; keep the explicit bounds returned to _design.
@@ -322,8 +328,10 @@ def _path_constraints(branch, *, competition_type=False):
         if not intervals:
             contradiction = True
             continue
-        witness = False
+        witnesses[v] = set()
         discrete_possible = False
+        precision = PRODUCER_PRECISION.get(v, 1 if v in PRODUCER_TIME_FIELDS else None)
+        discrete = v in COUNTS or v in DIRECTIONS or v == 'kickoff_hour_utc' or precision is not None
         for l, li, h, hin in intervals:
             candidates = [l if li else math.nextafter(l, math.inf),
                           h if hin else math.nextafter(h, -math.inf),
@@ -332,34 +340,83 @@ def _path_constraints(branch, *, competition_type=False):
                 first = math.ceil(l) + int(not li and l == math.ceil(l))
                 last = math.floor(h) - int(not hin and h == math.floor(h)) if math.isfinite(h) else math.inf
                 discrete_possible |= first <= last
-                candidates = [first, last]
-            elif v in ('lambda_first_dir', 'lambda_last_dir'):
+                candidates = [first, last, first+1, last-1]
+            elif v in DIRECTIONS:
                 candidates = [-1, 0, 1]
                 discrete_possible |= any((x > l or (li and x == l)) and
                                          (x < h or (hin and x == h)) for x in candidates)
+            elif precision is not None:
+                scale = 10**precision
+                # Only prove an empty grid in a numerically stable bounded
+                # window. Outward endpoints preserve borderline DSL floats.
+                first = math.ceil(math.nextafter(l*scale, -math.inf)) if abs(l) <= 10**6 else None
+                last = math.floor(math.nextafter(h*scale, math.inf)) if abs(h) <= 10**6 else None
+                exhaustive = first is not None and last is not None and last-first <= 64
+                if exhaustive:
+                    candidates = [i/scale for i in range(first, last+1)]
+                else:
+                    discrete_possible = True
+                    if first is not None:
+                        candidates += [first/scale, (first+1)/scale]
+                    if last is not None:
+                        candidates += [last/scale, (last-1)/scale]
+                    candidates = [round(x, precision) for x in candidates if math.isfinite(x)]
             for x in candidates:
                 if (math.isfinite(x) and (x > l or (li and x == l))
                         and (x < h or (hin and x == h))
                         and all(evaluate(n, {v: x}) is True for n in atoms[v])):
-                    witness = True
-                    break
-        if not witness:
-            if (v in COUNTS or v in ('kickoff_hour_utc', 'lambda_first_dir', 'lambda_last_dir')) and not discrete_possible:
+                    witnesses[v].add(x)
+        windows[v] = (min(i[0] for i in intervals), max(i[2] for i in intervals))
+        if v in DIRECTIONS or v in COUNTS:
+            low, high = windows[v]
+            windows[v] = (math.ceil(low), math.floor(high) if math.isfinite(high) else high)
+        if not witnesses[v]:
+            if discrete and not discrete_possible:
                 contradiction = True
             else:
                 unproven = True
+
+    referenced = set().union(*(variables_used(node) for node in branch))
+    rules = _joint_rules(referenced | set(available), literals)
+    # Use domain bounds for required variables which have no scalar atoms.
+    windows = {v: windows.get(v, _numeric_domain(v)) for v in referenced | set(available)}
+    if _violated_rule(windows, rules):
+        contradiction = True
+    direction_fields = referenced & set((*DIRECTIONS, 'lambda_moves_up', 'lambda_moves_down'))
+    fixed = {v: lo for v, (lo, hi) in windows.items() if v in direction_fields and lo == hi}
+    if not _directions_valid(fixed):
+        contradiction = True
+    if not contradiction and not unproven:
+        involved = set().union(*(terms.keys() for terms, _ in rules)) | direction_fields
+        for v in involved - witnesses.keys():
+            lo, hi = windows[v]
+            witnesses[v] = {x for x in (lo, hi, 0, 1, 2) if math.isfinite(x) and lo <= x <= hi}
+        names = sorted(witnesses)
+        defaults = dict(literals)
+        defaults.update({v: flag_witness[v] for v in referenced & set(flags)})
+        for v in referenced - defaults.keys() - witnesses.keys():
+            defaults[v] = False if VARIABLES[v][0] == 'bool' else _default_value(v)
+        for values in islice(product(*(sorted(witnesses[v]) for v in names)), 4096):
+            env = dict(defaults, **dict(zip(names, values)))
+            if (not _violated_rule({v: (env[v], env[v]) for v in involved}, rules)
+                    and _directions_valid(env)
+                    and all(evaluate(node, env) is True for node in branch)):
+                break
+        else:
+            unproven = True
     return contradiction, unproven, domains
 
 
-def _design(expr, *, material=True, competition_type=False):
+def _design(expr, *, material=True, competition_type=False, available=()):
     """Every explicit path must be satisfiable; signal paths also material."""
     rejected, deferred = _dimensions(expr)
+    available = set(available) | variables_used(expr)
     try:
         branches = _logic_paths(expr)
         if not branches:
             rejected.add('CONSTANT_CONDITION')
         for branch in branches:
-            contradictory, uncertain, bounds = _path_constraints(branch, competition_type=competition_type)
+            contradictory, uncertain, bounds = _path_constraints(branch, competition_type=competition_type, available=available)
             if contradictory:
                 rejected.add('CONTRADICTORY_SIGNAL_PATH')
                 continue
@@ -368,7 +425,7 @@ def _design(expr, *, material=True, competition_type=False):
             if not material:
                 continue
             branch_motion = set().union(*(variables_used(n) & FLOORS.keys() for n in branch
-                                          if n.get('op') != 'is_known'))
+                                          if n.get('op') != 'is_known' and not _domain_tautology(n)))
             if not branch_motion:
                 deferred.add('MATERIALITY_UNPROVEN')
             for v in branch_motion:
@@ -442,7 +499,7 @@ def _stratum_cell(variables, selected):
 
 
 # trajectory_variables rounds lead to 0.1 minute: half a quantum = 3 seconds.
-# This tolerance applies only to inferred first-event times, never feature lateness.
+# This tolerance applies only to inferred event times, never feature lateness.
 LEAD_ROUNDING_SECONDS = 3
 IDENTIFIER = re.compile(r'[^\s\x00-\x1f\x7f]{1,256}')
 NONNEGATIVE = frozenset(('n_messages', 'n_episodes', 'lead_first_min', 'lead_last_min',
@@ -456,22 +513,179 @@ COUNTS = frozenset(v for v in NONNEGATIVE if v not in (
     'total_line_last', 'lambda_first', 'lambda_last', 'lambda_abs_path', 'lambda_sd'))
 
 
+DIRECTIONS = ('lambda_first_dir', 'lambda_last_dir')
+PRODUCER_TIME_FIELDS = frozenset(('lead_first_min', 'lead_last_min', 'span_min', 'max_gap_min'))
+PRODUCER_PRECISION = dict.fromkeys((
+    'lambda_first', 'lambda_last', 'lambda_net', 'lambda_abs_path', 'lambda_sd',
+    'lambda_unobserved_net', 'lambda_velocity_h', 'lambda_accel_h',
+    'p_home_first', 'p_home_last', 'p_home_net', 'p_draw_net', 'p_away_net',
+    'total_line_net', 'ah_line_net',
+    'trigger_total_share'), 4)
+
+
+def _joint_rules(names, literals):
+    """Necessary inequalities from trajectory_variables, projected to available fields."""
+    rules = []
+
+    def add(positive, negative=(), limit=0):
+        terms = {**dict.fromkeys(positive, 1), **dict.fromkeys(negative, -1)}
+        # Existentially project omitted fields using the most favourable
+        # values allowed by their producer domains. Never assume a missing
+        # endpoint or count has a particular value.
+        missing = terms.keys() - names
+        projected = {v: sign for v, sign in terms.items() if v in names}
+        if not projected:
+            return
+        for v in sorted(missing):
+            lo, hi = _numeric_domain(v)
+            minimum = lo if terms[v] == 1 else -hi
+            if not math.isfinite(minimum):
+                return
+            limit -= minimum
+            if isinstance(limit, float):
+                limit = math.nextafter(limit, math.inf)
+        rules.append((projected, limit))
+
+    for count in ('total_msgs', 'x12_msgs', 'ah_msgs', 'n_episodes'):
+        add((count,), ('n_messages',))
+    for counts, market in (
+        (('total_line_ups', 'total_line_downs'), 'total_msgs'),
+        (('lambda_moves_up', 'lambda_moves_down'), 'total_msgs'),
+        (('lambda_reversals',), 'total_msgs'), (('lambda_max_run',), 'total_msgs'),
+        (('x12_reversals',), 'x12_msgs'), (('ah_line_moves',), 'ah_msgs'),
+        (('total_ah_same_msg',), 'total_msgs'), (('total_ah_same_msg',), 'ah_msgs'),
+        (('total_1x2_same_msg',), 'total_msgs'), (('total_1x2_same_msg',), 'x12_msgs'),
+    ):
+        add(counts, (market,))
+        add(counts, ('n_messages',))
+    if 'total_unobserved_changes' in names:
+        add(('total_unobserved_changes',), ('total_msgs',), -1)
+    for feature, minimum in (('lambda_velocity_h', 2), ('lambda_accel_h', 3)):
+        if feature in names:
+            add((), ('total_msgs',), -minimum)
+            add((), ('n_messages',), -minimum)
+    for market, prefix in (('total_msgs', 'lambda_'), ('total_msgs', 'total_line_'),
+                           ('ah_msgs', 'ah_line_'), ('x12_msgs', 'p_')):
+        if any(name.startswith(prefix) for name in names):
+            add((), (market,), -1)
+    for first, last, net, rounded_values in (
+        ('lambda_first', 'lambda_last', 'lambda_net', 0),
+        ('total_line_first', 'total_line_last', 'total_line_net', 1),
+        ('ah_line_first', 'ah_line_last', 'ah_line_net', 1),
+        ('p_home_first', 'p_home_last', 'p_home_net', 0),
+    ):
+        # Implied lambda and fair 1X2 probabilities already use the same grid
+        # before the subtraction. Raw market lines can require final rounding.
+        limit = rounded_values / 20000
+        add((first, net), (last,), limit)
+        add((last,), (first, net), limit)
+    probability_changes = ('p_home_net', 'p_draw_net', 'p_away_net')
+    add(probability_changes, limit=6 / 20000)
+    add((), probability_changes, limit=6 / 20000)
+    add(('lead_last_min',), ('lead_first_min',))
+    add(('max_gap_min',), ('span_min',))
+    for flag, up, down in (('line_up_then_lambda_down', 'total_line_ups', 'lambda_moves_down'),
+                           ('line_down_then_lambda_up', 'lambda_moves_up', 'total_line_downs')):
+        if literals.get(flag) is True:
+            add((), (up,), -1)
+            add((), (down,), -1)
+    return rules
+
+
+def _violated_rule(windows, rules):
+    for terms, limit in rules:
+        bounds = [windows[v][0] if sign == 1 else -windows[v][1]
+                  for v, sign in terms.items()]
+        if all(math.isfinite(x) for x in bounds):
+            # Integer sums have exact bounds. Rounded features allow floating
+            # error from the producer's subtraction and this interval sum.
+            if all(v in COUNTS for v in terms):
+                if sum(bounds) > limit:
+                    return True
+            else:
+                allowance = sum(math.ulp(x) for x in bounds) if len(bounds) > 2 or limit else 0
+                try:
+                    if math.fsum(bounds) > limit + allowance:
+                        return True
+                except OverflowError:
+                    continue
+    return False
+
+
+def _directions_valid(env):
+    for direction in DIRECTIONS:
+        value = env.get(direction)
+        if ((value == 1 and env.get('lambda_moves_up') == 0)
+                or (value == -1 and env.get('lambda_moves_down') == 0)
+                or (value == 0 and any(env.get(v, 0) > 0 for v in ('lambda_moves_up', 'lambda_moves_down')))):
+            return False
+    return True
+
+
+def _domain_tautology(node):
+    op = node.get('op')
+    if op not in ('ge', 'le'):
+        return False
+    left, right = node['args']
+    var, bound = (left, right) if op == 'ge' else (right, left)
+    if 'var' in var and 'const' in bound:
+        return bound['const'] <= _numeric_domain(var['var'])[0]
+    if 'const' in var and 'var' in bound:
+        return var['const'] >= _numeric_domain(bound['var'])[1]
+    return False
+
+
+def _default_value(name):
+    lo, hi = _numeric_domain(name)
+    return min(hi, max(lo, 0))
+
+
+def _arm_separation(signal, control, available):
+    """Prove all pairwise intersections empty, or return a bounded diagnostic."""
+    try:
+        signals, controls = _logic_paths(signal), _logic_paths(control)
+    except ValueError:
+        return 'CONTROL_DISJOINTNESS_UNPROVEN'
+    if len(signals) * len(controls) > 64:
+        return 'CONTROL_DISJOINTNESS_UNPROVEN'
+    uncertain = False
+    for left, right in product(signals, controls):
+        impossible, unproven, _ = _path_constraints(left + right, available=available)
+        if not impossible:
+            if not unproven:
+                return 'LOGICAL_GROUP_CONTROL_OVERLAP'
+            uncertain = True
+    return 'CONTROL_DISJOINTNESS_UNPROVEN' if uncertain else None
+
+
 def _numeric_domain(name):
     # One catalogue contract for row admission AND logical witnesses. Never
     # prove satisfiability with values that row validation would exclude.
+    if name in ('n_messages', 'n_episodes'):
+        return 1, math.inf
+    if name in ('lambda_first', 'lambda_last'):
+        return LAM_MIN, LAM_MAX
+    if name == 'lambda_net':
+        return round(LAM_MIN-LAM_MAX, 4), round(LAM_MAX-LAM_MIN, 4)
     if name in SIGNAL_DOMAINS:
         return SIGNAL_DOMAINS[name]
     if name in ('p_home_first', 'p_home_last', 'trigger_total_share'):
         return 0, 1
-    if name in ('lambda_first_dir', 'lambda_last_dir'):
+    if name in DIRECTIONS:
         return -1, 1
     if name == 'kickoff_hour_utc':
         return 0, 23
     return (0, math.inf) if name in NONNEGATIVE else (-math.inf, math.inf)
 
 
+def _excess_precision(value):
+    return type(value) is str and re.search(r'[.,]\d{7}', value) is not None
+
+
 def _time(value):
     """B1 boundary wrapper; UTC conversion can overflow near year 1/9999."""
+    if _excess_precision(value):
+        return None
     try:
         return utc(value)
     except (OverflowError, TypeError, ValueError):
@@ -501,7 +715,8 @@ def _variable_issues(variables, names):
             elif ((not _numeric_domain(name)[0] <= value <= _numeric_domain(name)[1])
                   or (name in COUNTS and value != int(value))
                   or (name in ('lambda_first_dir', 'lambda_last_dir') and value not in (-1, 0, 1))
-                  or (name == 'kickoff_hour_utc' and value != int(value))):
+                  or (name == 'kickoff_hour_utc' and value != int(value))
+                  or (name in PRODUCER_PRECISION and round(value, PRODUCER_PRECISION[name]) != value)):
                 reason = 'SIGNAL_VALUE_OUT_OF_DOMAIN'
         if reason:
             issues.append({'variable': name, 'reason': reason})
@@ -521,7 +736,40 @@ def _support_metrics(cells, eligible_cells, period_cells):
     return rows
 
 
+def _prior_identity(prior_plans):
+    if type(prior_plans) not in (tuple, list):
+        raise ValueError('INVALID_PRIOR_PLANS')
+    result = []
+    for prior in prior_plans:
+        if type(prior) is not dict:
+            raise ValueError('INVALID_PRIOR_PLAN')
+        used = prior.get('variables_used', [])
+        if type(used) not in (tuple, list) or any(type(v) is not str for v in used):
+            raise ValueError('INVALID_PRIOR_VARIABLES')
+        entry = {key: prior.get(key) for key in ('fingerprint', 'outcome')}
+        if any(value is not None and type(value) is not str for value in entry.values()):
+            raise ValueError('INVALID_PRIOR_IDENTITY')
+        result.append(dict(entry, variables_used=sorted(set(used))))
+    return sorted(result, key=sha)
+
+
+def _request_hash(plans, metadata, design, prior_plans):
+    try:
+        payload = {'contract': VERSION, 'plans': plans, 'metadata': metadata,
+                   'design': design, 'prior_plans': _prior_identity(prior_plans)}
+        _json_input(payload)
+        return sha(payload)
+    except (TypeError, ValueError, OverflowError, RecursionError):
+        return None
+
+
 def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
+    """Evaluate one canonical plan using the same identity contract as shadow."""
+    input_hash = _request_hash([plan], metadata, design, prior_plans)
+    return _evaluate_quality(plan, metadata, design, prior_plans, input_hash)
+
+
+def _evaluate_quality(plan, metadata, design, prior_plans, input_hash):
     """Diagnostic admission only; strict pregame inputs precede membership.
 
     Raw assignment never uses FT/baseline availability. Pregame support requires
@@ -530,6 +778,8 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
     report attrition, not a correction for missing-outcome selection bias.
     """
     reject, defer = set(), set()
+    if input_hash is None:
+        reject.add('INPUT_IDENTITY_UNAVAILABLE')
     rows_ok = type(metadata) is list
     counts = Counter(rows=len(metadata) if rows_ok else 0, group=0, control=0, unknown=0,
                      overlap=0, unassigned=0, ft=0, baseline=0, group_eligible=0, control_eligible=0,
@@ -549,26 +799,28 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         reject.add('QUALITY_INPUT_INVALID')
     if canonical and rows_ok:
         expr = inline(canonical['condition'], canonical['indicators'])
-        competition = 'competition_type' in canonical['confounders']
-        r, d = _design(expr, competition_type=competition)
+        used = set(canonical['variables_used'])
+        temporal_used = used | set().union(*(set(STRATA_VARIABLES[s]) for s in canonical['confounders']))
+        r, d = _design(expr, available=temporal_used)
         reject |= r
         defer |= d
         ctrl = canonical.get('control_condition')
         if ctrl:
             ctrl = inline(ctrl, canonical['indicators'])
-            r, d = _design(ctrl, material=False, competition_type=competition)
+            r, d = _design(ctrl, material=False, available=temporal_used)
             reject |= r
             defer |= d
             if expr == ctrl:
                 reject.add('CONTROL_EQUALS_CONDITION')
+            separation = _arm_separation(expr, ctrl, temporal_used)
+            if separation:
+                (reject if separation == 'LOGICAL_GROUP_CONTROL_OVERLAP' else defer).add(separation)
         narrative = ' '.join(str(canonical.get(k, '')) for k in
                              ('question', 'hypothesis', 'rationale', 'alternative_explanations'))
         if UNAVAILABLE.search(narrative):
             reject.add('UNOBSERVED_CONCEPT')
-        used = set(canonical['variables_used'])
         if not used:
             reject.add('NO_OBSERVABLE_SIGNAL')
-        temporal_used = used | set().union(*(set(STRATA_VARIABLES[s]) for s in canonical['confounders']))
         base = OUTCOMES[canonical['market']][canonical['outcome']]
         if design is None:
             design = {}
@@ -576,8 +828,19 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             reject.add('QUALITY_INPUT_INVALID')
             design = {}
         frozen = _time(design.get('frozen_at'))
+        freeze_unusable = design.get('frozen_at') is not None and frozen is None
+        discovery_precision_invalid = (design.get('threshold_origin') == 'DISCOVERY'
+                                       and _excess_precision(design.get('discovery_end')))
+        if freeze_unusable:
+            reject.add('DESIGN_FREEZE_INVALID')
+        if discovery_precision_invalid:
+            reject.add('TIMESTAMP_PRECISION_UNSUPPORTED')
         if design.get('threshold_origin') not in ('APRIORI', 'DISCOVERY') or not frozen:
             defer.add('THRESHOLD_PROVENANCE_MISSING')
+        trajectory_rules = _joint_rules(temporal_used, {})
+        contextual_rules = {flag: _joint_rules(temporal_used, {flag: True})[len(trajectory_rules):]
+                            for flag in ('line_up_then_lambda_down', 'line_down_then_lambda_up')
+                            if flag in temporal_used}
         # Exclude every occurrence of a duplicate, so row order cannot select a winner.
         key_counts = Counter(r.get('match_key') for r in metadata
                              if type(r) is dict and _identifier(r.get('match_key')))
@@ -597,6 +860,14 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 counts['rows_excluded'] += 1
                 exclusions.append({'row_index': index, 'issues': issues})
                 continue
+            try:
+                _json_input(row)
+            except (TypeError, ValueError, OverflowError, RecursionError):
+                issue('row', 'METADATA_ROW_NOT_CANONICAL_JSON')
+            if freeze_unusable:
+                issue('design.frozen_at', 'DESIGN_FREEZE_INVALID')
+            if discovery_precision_invalid:
+                issue('design.discovery_end', 'TIMESTAMP_PRECISION_UNSUPPORTED')
             key = row.get('match_key')
             identity_ok = _identifier(key)
             if not identity_ok:
@@ -614,6 +885,19 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             signal_issues = _variable_issues(variables, used)
             for entry in signal_issues:
                 issue(**entry, missing=entry['reason'] == 'SIGNAL_DATA_MISSING')
+            invalid_variables = {entry['variable'] for entry in signal_issues}
+            invalid_variables.update(entry['variable'] for entry in
+                                     _variable_issues(variables, temporal_used - used))
+            known_values = {v: variables[v] for v in temporal_used - invalid_variables}
+            rules = trajectory_rules + [rule for flag, additional in contextual_rules.items()
+                                        if known_values.get(flag) is True for rule in additional]
+            flags = [known_values[v] for v in STRATA_VARIABLES['competition_type'] if v in known_values]
+            if sum(flags) > 1 or (len(flags) == 3 and not any(flags)):
+                issue('competition_type', 'COMPETITION_FLAGS_INCONSISTENT')
+            if (_violated_rule({v: (x, x) for v, x in known_values.items()},
+                               ((terms, limit) for terms, limit in rules if terms.keys() <= known_values.keys()))
+                    or not _directions_valid(known_values)):
+                issue('variables', 'TRAJECTORY_INVARIANTS_VIOLATED')
             cell, strata_issues = _stratum_cell(variables, canonical['confounders'])
             if strata_issues:
                 counts['strata_excluded'] += 1
@@ -622,6 +906,9 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 strata_exclusions.append({'match_key': key if _identifier(key) else None,
                                           'issues': strata_issues})
                 defer.add('COMMON_STRATUM_SUPPORT_MISSING')
+            for field in ('decision_at', 'kickoff_utc', 'feature_frozen_at'):
+                if _excess_precision(row.get(field)):
+                    issue(field, 'TIMESTAMP_PRECISION_UNSUPPORTED')
             dec, ko = _time(row.get('decision_at')), _time(row.get('kickoff_utc'))
             if dec is None or ko is None:
                 issue('decision_at/kickoff_utc', 'DECISION_WINDOW_UNPROVEN', missing=True)
@@ -646,6 +933,8 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             if ff and ((dec and ff > dec) or (ko and ff >= ko)):
                 issue('feature_frozen_at', 'POST_DECISION_FEATURE_FREEZE')
             for v in sorted(temporal_used):
+                if _excess_precision(times.get(v)):
+                    issue(v, 'TIMESTAMP_PRECISION_UNSUPPORTED')
                 t = _time(times.get(v))
                 if t is None:
                     issue(v, 'FEATURE_WINDOW_UNPROVEN', missing=True)
@@ -654,17 +943,21 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                         issue(v, 'POST_KICKOFF_INFORMATION')
                     if ff and t > ff:
                         issue(v, 'OBSERVATION_AFTER_FREEZE')
-            if 'lead_first_min' in temporal_used and not _variable_issues(variables, {'lead_first_min'}) and ko:
+            if ko and 'kickoff_hour_utc' in known_values and known_values['kickoff_hour_utc'] != ko.hour:
+                issue('kickoff_hour_utc', 'KICKOFF_HOUR_MISMATCH')
+            for lead, label in (('lead_first_min', 'FIRST'), ('lead_last_min', 'LAST')):
+                if lead not in known_values or ko is None:
+                    continue
                 try:
-                    first = ko - timedelta(minutes=variables['lead_first_min'])
+                    inferred = ko - timedelta(minutes=known_values[lead])
                     tolerance = timedelta(seconds=LEAD_ROUNDING_SECONDS)
                     for boundary, time in (('decision_at', dec), ('feature_frozen_at', ff),
-                                           ('feature_observed_at', _time(times.get('lead_first_min'))),
+                                           ('feature_observed_at', _time(times.get(lead))),
                                            ('kickoff_utc', ko)):
-                        if time and first > time and first-time > tolerance:
-                            issue('lead_first_min', 'LEAD_FIRST_AFTER_' + boundary.upper())
+                        if time and inferred > time and inferred-time > tolerance:
+                            issue(lead, 'LEAD_' + label + '_AFTER_' + boundary.upper())
                 except (OverflowError, ValueError):
-                    issue('lead_first_min', 'LEAD_TIMESTAMP_OUT_OF_RANGE')
+                    issue(lead, 'LEAD_TIMESTAMP_OUT_OF_RANGE')
             # Validate derived values as well: IS_KNOWN must not turn undefined
             # arithmetic into an eligible complement/control observation.
             derived_issues = []
@@ -783,11 +1076,11 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             defer.add('COMMON_STRATUM_SUPPORT_MISSING')
         if not period_support:
             defer.add('COMMON_STRATUM_PERIOD_SUPPORT_MISSING')
-        if (type(prior_plans) not in (tuple, list) or any(
-                type(p) is not dict or type(p.get('variables_used', [])) not in (tuple, list)
-                or any(type(v) is not str for v in p.get('variables_used', [])) for p in prior_plans)):
+        try:
+            prior_plans = _prior_identity(prior_plans)
+        except ValueError:
             reject.add('QUALITY_INPUT_INVALID')
-            prior_plans = ()
+            prior_plans = []
         duplicates = sum(p.get('fingerprint') == canonical['fingerprint'] for p in prior_plans)
         near = sum(p.get('outcome') == canonical['outcome'] and
                    set(p.get('variables_used', ())) == used and
@@ -809,6 +1102,20 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             metrics['strata_exclusions'] = sorted(strata_exclusions, key=lambda x: (x['match_key'] or '', sha(x['issues'])))
         if exclusions:
             metrics['exclusions'] = sorted(exclusions, key=lambda x: (x.get('match_key', ''), x.get('row_index', -1), sha(x['issues'])))
+    if input_hash is None:
+        # Raw accounting is retained. Results from unaffected rows may explain
+        # exclusions, but cannot constitute eligible support for this request.
+        for name in ('group_eligible', 'control_eligible', 'oos', 'common_support'):
+            if name in metrics:
+                metrics.setdefault('unidentified_diagnostics', {})[name] = metrics.pop(name)
+        metrics.update(group_eligible=0, control_eligible=0)
+        diagnostic = metrics['unidentified_diagnostics']
+        if 'oos' in diagnostic:
+            metrics['oos'] = dict.fromkeys(diagnostic['oos'], 0)
+            metrics['common_support'] = {'pregame': False, 'eligible': False,
+                                         'by_period': False, 'cells': []}
+        if 'attrition' in metrics:
+            metrics['unidentified_diagnostics']['attrition'] = metrics.pop('attrition')
     design_status = 'REJECTED' if reject else 'INSUFFICIENT_DATA' if defer else 'SCIENTIFICALLY_TESTABLE'
     defer.add('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE')
     return {'version': VERSION, 'quality_status': 'REJECTED' if reject else 'INSUFFICIENT_DATA',
@@ -826,14 +1133,8 @@ def shadow_report(plans, metadata, *, design=None, prior_plans=()):
     unsupported objects or cycles have no such identity; retain diagnostics for
     every auditable row but reject all cards and expose input_sha256=None.
     """
-    identity_reason = None
-    try:
-        payload = {'plans': plans, 'metadata': metadata, 'design': design}
-        _json_input(payload)
-        input_hash = sha(payload)
-    except (TypeError, ValueError, OverflowError, RecursionError):
-        input_hash = None
-        identity_reason = 'INPUT_IDENTITY_UNAVAILABLE'
+    input_hash = _request_hash(plans, metadata, design, prior_plans)
+    identity_reason = 'INPUT_IDENTITY_UNAVAILABLE' if input_hash is None else None
     received = len(plans) if type(plans) is list else None
     if type(metadata) is not list:
         identity_reason = identity_reason or 'QUALITY_INPUT_INVALID'
@@ -848,8 +1149,9 @@ def shadow_report(plans, metadata, *, design=None, prior_plans=()):
             cards.append({'structural_status': 'REJECTED', 'reasons': ['STRUCTURAL_INVALID']})
             continue
         valid += 1
+        submitted = raw if type(raw) is dict and 'fingerprint' in raw else p
         card = dict(fingerprint=p['fingerprint'], structural_status='STRUCTURALLY_VALID',
-                    **evaluate_quality(p, metadata, design=design, prior_plans=prior_plans))
+                    **_evaluate_quality(submitted, metadata, design, prior_plans, input_hash))
         if identity_reason:
             card.update(quality_status='REJECTED', design_quality_status='REJECTED',
                         reasons=sorted(set(card['reasons']) | {identity_reason}))
