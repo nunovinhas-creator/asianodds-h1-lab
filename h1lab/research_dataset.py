@@ -90,7 +90,6 @@ VARIABLES = {
 }
 UNAVAILABLE_PHENOMENA = {
     'bookmaker_divergence': 'Identidade do operador não existe nas fontes; não comparável.',
-    'money_flow': 'Montantes, apostas e volume casado por operador/mercado nao sao capturados com proveniencia; nao inferir dinheiro de odds.',
     'live_in_play': 'Sem cotações temporais em jogo; só pré-início.',
     'btts_market_price': 'Preço Ambas Marcam não é capturado (campo não verificado no V4).',
 }
