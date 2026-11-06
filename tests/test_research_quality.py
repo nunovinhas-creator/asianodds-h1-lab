@@ -126,6 +126,26 @@ class QualityTest(unittest.TestCase):
         other = self.plan_with({'op': 'not', 'args': [{'var': 'ctx_cup'}]})
         self.assertIn('NEAR_DUPLICATE_REVIEW', self.quality(p, prior_plans=[other])['reasons'])
 
+    def test_committed_replay_hashes_and_membership_parity(self):
+        import json
+        from pathlib import Path
+        from h1lab.research_quality import sha
+        report = json.loads(Path('evidence/b1/replay.json').read_text())
+        recorded_hash = report.pop('output_sha256')
+        self.assertEqual(recorded_hash, sha(report))
+        proof = json.loads(Path('evidence/b1/real-plans.json').read_text())
+        self.assertEqual(report['provenance']['proof_sha256'], sha(proof))
+        self.assertEqual(report['provenance']['original_dataset_sha256'],
+                         report['provenance']['replayed_dataset_sha256'])
+        self.assertEqual(report['funnel']['quality'], {'REJECTED': 3})
+        self.assertEqual(report['funnel']['executed'], 0)
+        for after, before in zip(report['agenda'], report['before']):
+            for key in ('rows', 'group', 'control', 'unknown', 'overlap'):
+                self.assertEqual(after['metrics'][key], before['counts'][key])
+            for side in ('group', 'control'):
+                self.assertEqual(after['metrics'][side + '_ft_present'],
+                                 before['counts'][side] - before['counts'][side + '_pending_ft'])
+
     def test_original_real_records(self):
         import json
         from pathlib import Path

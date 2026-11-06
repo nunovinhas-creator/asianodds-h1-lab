@@ -4,16 +4,33 @@ Example: python -m scripts.lab_research_quality --source-root work/frozen --outp
 Source root must be the original run head, not a moving main checkout.
 """
 import argparse
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
 
 from h1lab.research_dataset import build_dataset
 from h1lab.research_quality import raw_plan, sha, shadow_report
+from h1lab.research_memory import _hash
+from h1lab.research_plan import validate_plan
 
 
 def replay(source_root, proof):
     records = proof['records']
+    for record in records:
+        if _hash(record) != record['sha256']:
+            raise ValueError('ORIGINAL_RECORD_HASH_MISMATCH')
+        plan = raw_plan(dict(record['plan'], question=record['question'],
+                             hypothesis=record['hypothesis'], null_hypothesis=record['null_hypothesis']))
+        if validate_plan(plan)['fingerprint'] != record['fingerprint']:
+            raise ValueError('ORIGINAL_PLAN_FINGERPRINT_MISMATCH')
+    source_hashes = records[0]['data']['sources_sha256']
+    for relative, expected_hash in source_hashes.items():
+        path = (Path(source_root) / relative).resolve()
+        if not path.is_relative_to(Path(source_root).resolve()):
+            raise ValueError('SOURCE_PATH_OUTSIDE_ROOT')
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
+            raise ValueError('ORIGINAL_SOURCE_HASH_MISMATCH')
     now = datetime.fromisoformat(records[0]['recorded_at'])
     dataset = build_dataset(source_root, now=now)
     expected = records[0]['data']['dataset_sha256']
@@ -33,6 +50,7 @@ def replay(source_root, proof):
     report = shadow_report(plans, metadata)
     report['provenance'] = {'source_commit': proof['source_commit'], 'run_id': proof['run_id'],
                             'original_memory_sha256': proof['memory_sha256'],
+                            'verified_source_files_sha256': source_hashes,
                             'original_dataset_sha256': expected,
                             'replayed_dataset_sha256': dataset['digest'], 'proof_sha256': sha(proof)}
     report['before'] = [{'fingerprint': r['fingerprint'], 'counts': r['results']['counts'],

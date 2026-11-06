@@ -49,7 +49,8 @@ file at that commit. The artifact API identified artifact 13495242713, but its
 direct download returned HTTP 403; the committed output supplies immutable proof.
 
 `replay.json` verifies the rebuilt dataset digest against the original experiment
-records before producing any comparison. Same plans, same original dataset,
+records before producing any comparison. It also verifies each original record hash,
+plan fingerprint and every recorded source-file SHA-256. Same plans, same original dataset,
 no new outcomes or experiment recomputation. The three zero-threshold plans are
 REJECTED (`IMMATERIAL_MOVEMENT`):
 
@@ -78,7 +79,7 @@ From repository root (offline, using already available Git objects):
 
 ```sh
 mkdir -p /tmp/b1-frozen
-git archive ede8b771cc20a9236a0163df47ce2f6e7e915b25 data | tar -x -C /tmp/b1-frozen
+git archive ede8b771cc20a9236a0163df47ce2f6e7e915b25 data docs/lab | tar -x -C /tmp/b1-frozen
 python -m scripts.lab_research_quality --source-root /tmp/b1-frozen --output /tmp/b1-replay.json
 python -m unittest discover -s tests -p test_research_quality.py -v
 python -m compileall -q h1lab scripts
