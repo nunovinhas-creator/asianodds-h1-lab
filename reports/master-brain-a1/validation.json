@@ -1,0 +1,122 @@
+{
+  "artifacts": {
+    "run-receipt-excerpts.json": {
+      "bytes": 7756,
+      "sha256": "f25d9a5a04344ea924bff5f3d241a0471f51d8ae98a5ea6af66ed19e70786272"
+    },
+    "snapshot-9d52a5bb.json": {
+      "bytes": 1778244,
+      "sha256": "7c1731a91a5871156a19288be3179d25c1881d40cb09fc72461b93b269f5c42d"
+    },
+    "snapshot-9d52a5bb.json.gz": {
+      "bytes": 231156,
+      "sha256": "950a8e095fe03823ab416e72850d46842b8ef58236855e4167ac6d14c021133a"
+    }
+  },
+  "compile": "PASS",
+  "cost": {
+    "llm_calls": 0,
+    "neurons": 0,
+    "provider_calls": 0
+  },
+  "full_suite": {
+    "command": "python -m unittest discover -s tests -v",
+    "first_attempt": {
+      "errors": 79,
+      "failures": 11,
+      "skipped": 15,
+      "tests": 1848
+    },
+    "limitations": [
+      "Repository copy remains partial: some discovery pages, FT indexes and v6-ft-events journals were not hydrated.",
+      "Local Python lacks Telethon.",
+      "Four localhost HTTP timeout tests fail because the environment forbids socket creation.",
+      "Three assertions failed in existing dashboard/research integration tests; no baseline equivalence or CI pass is claimed."
+    ],
+    "log_sha256": "63ccd998160233e14b242c11c8cea86a1ce0e105b6e36b1b65762679df930fd4",
+    "second_attempt": {
+      "error_headers": [
+        "ERROR: test_invalid_execution_status_blocks_operational_gate (test_audit_health.HealthTests.test_invalid_execution_status_blocks_operational_gate) (invalid='BROKEN_SCHEMA')",
+        "ERROR: test_invalid_execution_status_blocks_operational_gate (test_audit_health.HealthTests.test_invalid_execution_status_blocks_operational_gate) (invalid=None)",
+        "ERROR: test_invalid_execution_status_blocks_operational_gate (test_audit_health.HealthTests.test_invalid_execution_status_blocks_operational_gate) (invalid=1)",
+        "ERROR: test_invalid_execution_status_blocks_operational_gate (test_audit_health.HealthTests.test_invalid_execution_status_blocks_operational_gate) (invalid=[])",
+        "ERROR: test_invalid_execution_status_blocks_operational_gate (test_audit_health.HealthTests.test_invalid_execution_status_blocks_operational_gate) (invalid={})",
+        "ERROR: test_real_snapshot_replays_h1_and_ft_without_assuming_fresh_collection (test_audit_health.HealthTests.test_real_snapshot_replays_h1_and_ft_without_assuming_fresh_collection)",
+        "ERROR: test_block_file_is_committed_with_the_other_notification_state (test_collect_telegram_infra.CollectTelegramInfraTests.test_block_file_is_committed_with_the_other_notification_state)",
+        "ERROR: test_complete_offline_producer_replay_with_real_inputs (test_discovery_public_pages.DiscoveryPublicPagesTests.test_complete_offline_producer_replay_with_real_inputs)",
+        "ERROR: test_growing_real_snapshot_fits_without_mutating_history_or_latest (test_discovery_public_size.DiscoveryPublicSizeTests.test_growing_real_snapshot_fits_without_mutating_history_or_latest)",
+        "ERROR: test_inventory_lists_real_consumers_but_cannot_claim_completeness (test_lab_discovery_activation_preflight.SegmentationActivationPreflightTests.test_inventory_lists_real_consumers_but_cannot_claim_completeness)",
+        "ERROR: test_real_state_byte_exact_semantics_publication_and_stress (test_lab_discovery_activation_preflight.SegmentationActivationPreflightTests.test_real_state_byte_exact_semantics_publication_and_stress)",
+        "ERROR: test_bootstrap_byte_exact_and_idempotency_rejected (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_bootstrap_byte_exact_and_idempotency_rejected)",
+        "ERROR: test_dual_producer_replays_real_inputs_and_retains_mirror (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_dual_producer_replays_real_inputs_and_retains_mirror)",
+        "ERROR: test_mirror_cap_enforced_before_segmented_write (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_mirror_cap_enforced_before_segmented_write)",
+        "ERROR: test_missing_corrupt_or_divergent_segment_never_falls_back (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_missing_corrupt_or_divergent_segment_never_falls_back)",
+        "ERROR: test_production_default_does_not_activate_segmented_store (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_production_default_does_not_activate_segmented_store)",
+        "ERROR: test_stale_writer_rejected_without_touching_mirror (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_stale_writer_rejected_without_touching_mirror)",
+        "ERROR: test_unknown_mode_symlinked_mirror_and_invalid_bootstrap_fail (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_unknown_mode_symlinked_mirror_and_invalid_bootstrap_fail)",
+        "ERROR: test_write_dual_changes_generation_and_preserves_previous (test_lab_discovery_dual_state.DualDiscoveryStateTests.test_write_dual_changes_generation_and_preserves_previous)",
+        "ERROR: test_byte_exact_real_state_reader_and_writer_compatibility (test_lab_discovery_store.DiscoveryStoreTests.test_byte_exact_real_state_reader_and_writer_compatibility)",
+        "ERROR: test_real_index_produces_only_score_free_locators_and_preserves_all_finals (test_lab_ft_index_probe.StrictIndexProbeTests.test_real_index_produces_only_score_free_locators_and_preserves_all_finals)",
+        "ERROR: test_real_baseline_has_one_row_per_pending_no_false_irrecoverability (test_lab_ft_recovery_audit.RecoveryAuditTests.test_real_baseline_has_one_row_per_pending_no_false_irrecoverability)",
+        "ERROR: test_every_frozen_fixture_is_reported_without_invented_coverage_or_http (test_lab_old_cohort_audit.OldCohortAuditTests.test_every_frozen_fixture_is_reported_without_invented_coverage_or_http)",
+        "ERROR: test_corrupt_ft_blocks_only_ft_operation (test_research_gates.SyntheticCorruption.test_corrupt_ft_blocks_only_ft_operation)",
+        "ERROR: test_refused_connection_is_a_connect_failure (test_research_llm_timeout.RealUrllibAgainstLocalSlowServer.test_refused_connection_is_a_connect_failure)",
+        "ERROR: test_slow_body_times_out_while_reading (test_research_llm_timeout.RealUrllibAgainstLocalSlowServer.test_slow_body_times_out_while_reading)",
+        "ERROR: test_slow_but_within_timeout_succeeds (test_research_llm_timeout.RealUrllibAgainstLocalSlowServer.test_slow_but_within_timeout_succeeds)",
+        "ERROR: test_slow_reply_times_out_waiting_for_the_status_line (test_research_llm_timeout.RealUrllibAgainstLocalSlowServer.test_slow_reply_times_out_waiting_for_the_status_line)",
+        "ERROR: test_telegram_reader (unittest.loader._FailedTest.test_telegram_reader)",
+        "ERROR: test_telegram_transport (unittest.loader._FailedTest.test_telegram_transport)",
+        "FAIL: test_contracts (test_audit_dashboard_contract.DashboardContractTests.test_contracts)",
+        "FAIL: test_valid_llm_plan_reaches_python_memory_and_panel (test_research_llm_contract.EndToEndOnRealData.test_valid_llm_plan_reaches_python_memory_and_panel)",
+        "FAIL: test_live_mode_refused_by_default_and_offline_runs_on_real_data (test_research_memory_cycle.CLI.test_live_mode_refused_by_default_and_offline_runs_on_real_data)"
+      ],
+      "errors": 30,
+      "failures": 3,
+      "seconds": 372.712,
+      "skipped": 4,
+      "status": "NOT_GREEN",
+      "tests": 1903
+    },
+    "status": "NOT_GREEN_IN_LOCAL_PARTIAL_SNAPSHOT"
+  },
+  "isolation": {
+    "no_audit_mutator_calls": "PASS",
+    "protected_files_checked": 353,
+    "status": "PASS_BYTE_IDENTICAL"
+  },
+  "post_merge_h1_e5_cycles": {
+    "status": "PENDING_MERGE_REQUIRES_EXPLICIT_USER_AUTHORIZATION",
+    "verified_cycles": 0
+  },
+  "protected_diff": {
+    "command": "git diff --exit-code -- h1lab/ data/ docs/ config/ .github/ scheduler/",
+    "production_paths_changed": 0,
+    "status": "PASS"
+  },
+  "publication": {
+    "branch": "codex/p1-a1-scientific-data-audit",
+    "files_uploaded": 0,
+    "pull_request_created": false,
+    "reason": "Automatic approval review requires explicit authorization to upload generated code to this public repository.",
+    "repository": "nunovinhas-creator/asianodds-h1-lab",
+    "status": "AUTO_APPROVAL_REJECTED"
+  },
+  "real_replay": {
+    "coverage": "992/1030",
+    "ft_consistent_unproven": 360,
+    "ft_events": 420,
+    "ft_invalid": 60,
+    "missing": 38,
+    "source_inputs_unchanged": true,
+    "status": "PASS"
+  },
+  "scientific_acceptance": "BLOCKED_PENDING_INDEPENDENT_RECEIPT_AND_HISTORY_AUDIT",
+  "source_blob_verification": "All hydrated tracked inputs matched GitHub blob SHA-1 at the pinned source commit",
+  "source_commit": "9d52a5bbf03d9301a6a3479b0e9c95e01945388c",
+  "targeted": {
+    "command": "python -m unittest tests.test_master_brain_a1_audit tests.test_v6_readiness tests.test_v6_p0_gates tests.test_v6_shadow tests.test_v4_revisions -v",
+    "log_sha256": "3ac9d3c9674e0a3c490393483eba4c61620e61446de011a02dd981b372916545",
+    "status": "PASS",
+    "tests": 48
+  }
+}
