@@ -20,7 +20,7 @@
       "falsification_checks": [
         {
           "code": "F01_EPISODE_INDEPENDENCE",
-          "n": 168,
+          "n": 169,
           "name": "Episódios independentes",
           "required": "10 selected freezes with captured context; strict >= 80%",
           "result": "PASS"
@@ -34,42 +34,42 @@
         },
         {
           "code": "F03_1X2_AH_CONSISTENCY",
-          "n": 62,
+          "n": 63,
           "name": "Concordância entre mercados",
           "required": "10 comparable simultaneous AH/1X2 direction events",
           "result": "PASS"
         },
         {
           "code": "F04_LEAD_TIME_STRATA",
-          "n": 48,
+          "n": 49,
           "name": "Antecedência do alerta",
           "required": "two lead-time strata each with >=20 eligible FT",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F05_COMPETITION_CONTEXT",
-          "n": 48,
+          "n": 49,
           "name": "Contexto da competição",
           "required": "two heuristic competition types with >=20 scored FT each",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F06_LEAVE_DAY_OUT_AND_TRIM",
-          "n": 48,
+          "n": 49,
           "name": "Robustez entre dias",
           "required": "30 selected FT spanning 3 days, leave-one-day-out and trim highest 5% absolute residual",
           "result": "FAIL"
         },
         {
           "code": "F07_RESIDUAL_VS_MARKET",
-          "n": 48,
+          "n": 49,
           "name": "Diferença face ao mercado",
           "required": ">=1000 FT after hypothesis registration across >=3 weeks; mean residual > 5 pp",
           "result": "INSUFFICIENT_N"
         },
         {
           "code": "F08_COMPETING_MARKET_LINE",
-          "n": 48,
+          "n": 49,
           "name": "Linha como explicação alternativa",
           "required": "two market-line bins with >=20 selected AND 20 controls each",
           "result": "INSUFFICIENT_N"
@@ -83,7 +83,7 @@
         },
         {
           "code": "F10_PROSPECTIVE_CONFIRMATION",
-          "n": 48,
+          "n": 49,
           "name": "Validação cronológica",
           "required": "1000 registered genuine FT in >=3 weeks AND source coverage 14-day gate",
           "result": "INSUFFICIENT_N"
@@ -91,7 +91,7 @@
       ],
       "falsification_status": "VERIFIED_AGAINST_CURRENT_JOURNAL_TAIL",
       "frozen_matches": 1528,
-      "ft_verified": 431,
+      "ft_verified": 434,
       "games": [
         {
           "event_id": "3571094759:52955",
@@ -15835,14 +15835,14 @@
           "frozen_known_at": "2026-11-06T22:36:50+00:00",
           "ft": {
             "checked_at": null,
-            "event_id": null,
-            "evidence_level": null,
+            "event_id": "FT6:0ea5f5c24b73a00064ab8a82028f",
+            "evidence_level": "NOT_YET_VERIFIED",
             "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
             "scientific_event_sha256": null,
             "score": null,
-            "sha256": null,
+            "sha256": "93bea01626e95b2dae5a59af0782a7c456d14e012857829041512b227472598e",
             "source_url": null,
-            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+            "status": "PENDING"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-07T10:30:00+00:00",
@@ -17750,14 +17750,14 @@
           "frozen_known_at": "2026-11-06T22:51:48+00:00",
           "ft": {
             "checked_at": null,
-            "event_id": null,
-            "evidence_level": null,
+            "event_id": "FT6:cc9b7f0cc454cb722377e6e97897",
+            "evidence_level": "NOT_YET_VERIFIED",
             "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
             "scientific_event_sha256": null,
             "score": null,
-            "sha256": null,
+            "sha256": "5cad31b87538e28558ce2748a4ff866a75c4120a5dc3e918fed42d7b85b0755a",
             "source_url": null,
-            "status": "NOT_REGISTERED_IN_FT_JOURNAL"
+            "status": "PENDING"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-07T01:30:00+00:00",
@@ -19221,15 +19221,21 @@
           },
           "frozen_known_at": "2026-11-06T18:56:46+00:00",
           "ft": {
-            "checked_at": null,
-            "event_id": "FT6:a5fce189b6342526d3109ea84c36",
-            "evidence_level": "NOT_YET_VERIFIED",
-            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
-            "scientific_event_sha256": null,
-            "score": null,
-            "sha256": "df42967496c10da2a905802cc89623ccedbbab7e0425cb526a9272aec6d6f49b",
-            "source_url": null,
-            "status": "PENDING"
+            "checked_at": "2026-11-06T22:56:46+00:00",
+            "event_id": "FT6:ccf22eed07072d6d3a836614be25",
+            "evidence_level": "SINGLE_PROVIDER",
+            "science_status": "SCIENCE_FT_CONFIRMED",
+            "scientific_event_sha256": "b1667a413afae0cccf1488b2572b7fb76d4ec4e4b1a98ae199870babb37b1cf2",
+            "score": {
+              "away": 1,
+              "evidence": "bsd_only",
+              "home": 3,
+              "identity_match": "CORE_NAME",
+              "source": "https://sports.bzzoiro.com/api/v2/events/210526/"
+            },
+            "sha256": "8793b81f337c64b79a22a260cb029dff9a2540912e569fdcef97d22e49fb70cd",
+            "source_url": "https://sports.bzzoiro.com/api/v2/events/210526/",
+            "status": "FINAL_WITH_AFTER_KICKOFF_VERIFICATION"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-06T19:45:00+00:00",
@@ -19293,15 +19299,21 @@
           },
           "frozen_known_at": "2026-10-31T22:36:24+00:00",
           "ft": {
-            "checked_at": null,
-            "event_id": "FT6:c0a02c8f47d14793ce3d4bb57bd3",
-            "evidence_level": "NOT_YET_VERIFIED",
-            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
-            "scientific_event_sha256": null,
-            "score": null,
-            "sha256": "78f779f149fa5b8ab4f8c8f21c8b0317a23f53a10a8e0dd1f23f0b0b0186f739",
-            "source_url": null,
-            "status": "PENDING"
+            "checked_at": "2026-11-06T22:56:46+00:00",
+            "event_id": "FT6:a86b0641f11d0d006aefcc70a89a",
+            "evidence_level": "SINGLE_PROVIDER",
+            "science_status": "SCIENCE_FT_CONFIRMED",
+            "scientific_event_sha256": "cd570947e2e65e7c23e1c102f2d38a73a32fdbb9bde98a0805ccaa6759fdc3a9",
+            "score": {
+              "away": 4,
+              "evidence": "bsd_only",
+              "home": 2,
+              "identity_match": null,
+              "source": "https://sports.bzzoiro.com/api/v2/events/642914/"
+            },
+            "sha256": "3fe0cf8ba721b1e09369c04b3b0c687019398355805bf89006735d62a9ffc4bb",
+            "source_url": "https://sports.bzzoiro.com/api/v2/events/642914/",
+            "status": "FINAL_WITH_AFTER_KICKOFF_VERIFICATION"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-06T19:45:00+00:00",
@@ -19686,15 +19698,21 @@
           },
           "frozen_known_at": "2026-11-03T09:31:49+00:00",
           "ft": {
-            "checked_at": null,
-            "event_id": "FT6:85720cf4febe540a82392238e8b5",
-            "evidence_level": "NOT_YET_VERIFIED",
-            "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
-            "scientific_event_sha256": null,
-            "score": null,
-            "sha256": "3adb258ad52f580dcadf9eb2a30750b76832b8451b156323af0d32099d6db500",
-            "source_url": null,
-            "status": "PENDING"
+            "checked_at": "2026-11-06T22:56:46+00:00",
+            "event_id": "FT6:9f68b78974ffe0da6df139d4e2f3",
+            "evidence_level": "SINGLE_PROVIDER",
+            "science_status": "SCIENCE_FT_CONFIRMED",
+            "scientific_event_sha256": "c001b31c91c7e420ff0c4aa550f57b48ab03c9fd4c86ab035be0015c266a06ef",
+            "score": {
+              "away": 1,
+              "evidence": "sportscore_only",
+              "home": 3,
+              "identity_match": null,
+              "source": "https://sportscore.com/football/match/hamburger-sv-vs-borussia-monchengladbach/y39mp1h6nkn0moj/"
+            },
+            "sha256": "e9ba951403b0e24492b4be12bbac7e77336523d55ee71e9db3e23012535c5640",
+            "source_url": "https://sportscore.com/football/match/hamburger-sv-vs-borussia-monchengladbach/y39mp1h6nkn0moj/",
+            "status": "FINAL_WITH_AFTER_KICKOFF_VERIFICATION"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-06T19:30:00+00:00",
@@ -27986,15 +28004,15 @@
           },
           "frozen_known_at": "2026-11-05T12:56:59+00:00",
           "ft": {
-            "checked_at": "2026-11-06T01:32:09+00:00",
-            "event_id": "FT6:eb991693c4cbdc99bf164741a2af",
+            "checked_at": null,
+            "event_id": "FT6:ebd9ba4ecb7d06a359d67dfffd73",
             "evidence_level": "NOT_YET_VERIFIED",
             "science_status": "NOT_YET_IN_V6_SCIENTIFIC_EVIDENCE",
             "scientific_event_sha256": null,
             "score": null,
-            "sha256": "caef1983c5a71a9bec1a10b497f76d4fde2843233cf7e5d3103a971d05e79e9b",
+            "sha256": "94f0297281eb50b1e8fbb028478c2b3d65a92f9b195e2931baf98f43bffdc9c4",
             "source_url": null,
-            "status": "PENDING"
+            "status": "EXPIRED_UNVERIFIED"
           },
           "hypothesis_id": "V6-POSTHOC-20261028-NO-DOWN",
           "kickoff_utc": "2026-11-05T22:30:00+00:00",
@@ -124242,24 +124260,23 @@
     "forecasts": "0c986fcd8d428cfb5787bae7f348f69dafe80967d431cb5e91d4b58c7455557a",
     "observations": "4f1b766d61d808124dfd6f4234126f5a5769a1128c476699e68818e8ba9e8384",
     "patterns": "762355d21a387b1735280b49dc5a0721b331c437b381197aac4eedd3555b4029",
-    "science_evidence": "27901319331bfb03589623b4cf040719c1d48eeda3e0a2ba2544b4543aef2e48",
-    "universal_ft": "3b1e087f2bc7a2f23b106380914a08eab4571d7675c127daa263bcb2960189fc",
+    "science_evidence": "b1667a413afae0cccf1488b2572b7fb76d4ec4e4b1a98ae199870babb37b1cf2",
+    "universal_ft": "93bea01626e95b2dae5a59af0782a7c456d14e012857829041512b227472598e",
     "v4_revisions": "12b4eeb48810ee3f6620b7943f2ebc6f3dc46da68ee2b65fddb5a97b13b3ef6a"
   },
   "status": "V6_SCIENTIFIC_RADAR_SHADOW_NOT_VALIDATED",
   "title": "MASTER BRAIN — Radar Científico V6.2",
   "totals": {
     "evidence_quality": {
-      "EXPIRED_UNVERIFIED": 767,
-      "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 431,
+      "EXPIRED_UNVERIFIED": 768,
+      "FINAL_WITH_AFTER_KICKOFF_VERIFICATION": 434,
       "IDENTITY_CONFLICT": 1,
-      "NOT_REGISTERED_IN_FT_JOURNAL": 2,
-      "PENDING": 327,
+      "PENDING": 325,
       "V4_HISTORY_NOT_PROVEN_AT_FREEZE": 113,
       "V4_VERSION_VERIFIED_BEFORE_FREEZE": 1415
     },
     "frozen_snapshots": 2150,
-    "ft_universal_events": 3436,
+    "ft_universal_events": 3444,
     "unique_matches": 1528,
     "v4_revision_events": 2665
   }
