@@ -146,6 +146,12 @@ class QualityTest(unittest.TestCase):
                 self.assertEqual(after['metrics'][side + '_ft_present'],
                                  before['counts'][side] - before['counts'][side + '_pending_ft'])
 
+    def test_evidence_is_manual_review_owned(self):
+        from scripts.publication_ownership import B1_AUDIT_FILES, MANUAL_REVIEW, owner_of
+        for path in B1_AUDIT_FILES:
+            self.assertEqual(owner_of(path), MANUAL_REVIEW)
+        self.assertIsNone(owner_of('evidence/unregistered.json'))
+
     def test_original_real_records(self):
         import json
         from pathlib import Path

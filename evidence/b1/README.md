@@ -92,7 +92,8 @@ hashes. `output_sha256` hashes the report before that field is inserted. The CLI
 requires explicit output and refuses data/ and docs/; it produces a standalone
 JSON diagnostic panel/agenda, never publishes Pages. Existing operational agenda,
 ranker, executor, memory chain, config and cron remain unchanged. Isolation allowlist
-adds only the four exact B1 audit-evidence paths; no previous rule/test is relaxed.
+adds only the four exact B1 audit-evidence paths; the ownership matrix
+registers those same paths as MANUAL_REVIEW with no automated publisher; no previous rule/test is relaxed.
 
 Costs: zero live LLM calls, zero neurons, zero provider queries, zero paid services,
 zero money operations. `llm_schedule_live_enabled=false` unchanged. H1, E5,
