@@ -2,6 +2,39 @@
 
 Relacionada com a issue [#256](https://github.com/nunovinhas-creator/asianodds-h1-lab/issues/256) e PR Draft [#257](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/257). Sem merge. Apenas diagnóstico de leitura; sem alteração de produção, gates, fontes, históricos, alertas ou autonomia.
 
+## Correções obrigatórias da revisão da PR #257
+
+Esta entrega responde aos [dois bloqueadores da revisão independente](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/257#issuecomment-6684517832). Código e testes corrigidos no commit `be67062ba113c280de6abbf0c0d3a26446fabe34`. As provas novas estão em `validation.json`, na chave `pr257_review_corrections`; as provas anteriores abaixo são preservadas como histórico.
+
+**Origem Git, prioridade alta:** a auditoria exige um checkout Git local correto. Lê o objeto commit, percorre as árvores, recalcula os IDs dos objetos e compara o inventário e os bytes de todos os inputs com os blobs originais. São verificados os quatro ficheiros fixos, todas as partições dos quatro streams consumidos e todos os recibos de incidente. No commit original são **13 inputs, 17 845 028 bytes**, ancorados na árvore `afa73947f4f509ec6e0b63e7d309cf025cfd6df7`. O inventário e os conteúdos são verificados novamente antes do retorno. Só depois destas verificações pode existir `source_commit_verified=true`.
+
+A verificação ignora overrides Git do chamador e objetos de substituição, desativa locks opcionais e lazy fetch, não usa o index/mtime como prova e não consulta serviços de rede. Commits inexistentes, commits cujo inventário/conteúdo difere, inputs modificados/ausentes/adicionais, symlinks e objetos necessários indisponíveis ou corrompidos bloqueiam a execução. Um commit diferente que contenha exatamente os mesmos inputs continua a ser uma origem válida desses bytes; a prova é de pertença ao commit declarado, não de identidade entre HEAD e esse commit. Objetos sem checkout correto ou um snapshot JSON isolado não substituem esta prova.
+
+**Cronologia FT, prioridade média:** a função `ft_chronology` é reproduzida ao relógio publicado do P0 (`2026-11-06T10:42:04+00:00`). Qualquer diferença levanta `ValueError` antes de criar o diretório de saída ou escrever relatório. `--as-of` pode alterar o relógio da análise solicitada, mas não contorna a reconciliação independente ao relógio publicado, registado em `ft_published_replay_clock`.
+
+**Testes adversariais:** 29 testes A1 direcionados passaram. Os testes usam repositórios Git locais reais e adulteram cada input, retiram objetos commit/árvore/blob, corrompem um blob, introduzem inputs adicionais, objetos de substituição, symlink e um clone parcial com blob disponível no remoto: a verificação recusa esse blob ausente sem o buscar. Há testes distintos para uma publicação FT divergente mas legitimamente commitada e para divergência deliberada na função de replay, também com `--as-of`. Todas as rejeições verificam ausência de escrita/criação da saída. O replay real testa ainda um recibo introduzido durante a auditoria, bloqueado pela segunda verificação do inventário.
+
+**Reprodução positiva e negativa real:** o novo CLI executou sobre um checkout descartável integral do commit `9d52a5bbf03d9301a6a3479b0e9c95e01945388c` e confirmou **992/1030 (96,3106796%), 38 lacunas e 420 FT: 360 consistentes não certificados / 60 inválidos**. Todos os campos do snapshot histórico coincidem; só foram acrescentados quatro campos de prova. O JSON novo tem SHA-256 `8bcacfe09f74f5921b67e1147b07fb3fa12a2b42a0b7c1657cbffffadf5c915d`. O gzip original mantém SHA-256 `950a8e095fe03823ab416e72850d46842b8ef58236855e4167ac6d14c021133a`.
+
+Oito rejeições adicionais foram reproduzidas sobre essa cópia real: commit inexistente, commit existente errado (`bd3cdecd94069574c7bc4de08bff2ae74863871a`), estado modificado, estado ausente, mês adicional, recibo adicional, checkout Git ausente e divergência FT simulada. Nenhum caso criou diretório/relatório de saída. Os inputs originais foram repostos e novamente verificados no fim. As mutações adversariais ocorreram apenas em cópias temporárias.
+
+## Validação das correções
+
+Suite integral local: **1932 testes OK, um skip, 363,135 s**. A descoberta dessa execução ocorreu antes de acrescentar o último teste de clone parcial; a versão final tem **29 testes A1 direcionados OK**, sem skips, e foi integralmente descoberta na CI abaixo. Compilação Python, três testes UI e um teste cron também passaram.
+
+| Execução no código `be67062ba113` | Resultado confirmado |
+| --- | --- |
+| [H1 push 42217183910](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/42217183910) | **1933 testes OK, quatro skips, 464,035 s**; checkout do próprio commit |
+| [H1 PR 42217191103](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/42217191103) | **1933 testes OK, quatro skips, 348,785 s**; merge de teste `d3e46cc341c0b83ca7fd0b774adf54a21236e793` |
+| [UI 42217191064](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/42217191064) | success |
+| [V6 offline 42217191115](https://github.com/nunovinhas-creator/asianodds-h1-lab/actions/runs/42217191115) | gate/evaluate success, publish skipped |
+
+São **cinco checks success e um publish skipped**, todos completed. Os dois H1 passaram igualmente os passos dry-run E5, paridade Telegram, replay P0/archives/memórias/FT e cron, sem notificações ou promoção. Os hashes SHA-256 dos logs UTF-8 e as conclusões de cada passo constam do JSON de validação.
+
+Os quatro skips da CI são explícitos: root público já paginado, replay A1 sem objeto Git original no checkout raso, e dois testes históricos sem os respetivos commits. O skip A1 não é contado como aprovação do replay original: este passou no clone integral local, tanto nos testes como no CLI separado com prova dos objetos Git. Nenhum skip foi ocultado ou convertido em prova.
+
+**Recomendação atual:** submeter esta correção à **nova verificação independente do Work**. As duas falhas têm testes de rejeição e a reprodução histórica foi preservada; isto fundamenta a nova revisão técnica. A aprovação do Work continua pendente e o merge permanece bloqueado nesta entrega. PR em Draft, sem merge, B1 não iniciada. Nenhum gate científico, dado histórico ou componente de produção foi alterado; nenhum FT foi certificado. Zero chamadas LLM/fornecedor, zero serviços pagos e nenhum fluxo de dinheiro.
+
 ## Fotografia auditada e conclusão
 
 Fonte `9d52a5bbf03d9301a6a3479b0e9c95e01945388c`, relógio `2026-11-06T10:42:04+00:00`. O snapshot original comprimido permanece byte a byte intacto (SHA-256 `950a8e095fe03823ab416e72850d46842b8ef58236855e4167ac6d14c021133a`).
@@ -12,7 +45,7 @@ Todas as 38 lacunas foram cruzadas por SHA de revisão com commits/recibos ou co
 
 A investigação A1 está documentada para revisão; a aceitação científica e certificação temporal independente **não estão concluídas**. CI técnica não transforma dados em provas científicas.
 
-## Checks e suite completa em checkout integral
+## Provas anteriores — checks e suite completa em checkout integral
 
 | Run | Ref efetiva | Suite / conclusão |
 | --- | --- | --- |
@@ -161,11 +194,20 @@ Falta prova independente de entrega/receção Telegram para atribuir a causa ant
 
 Para FT falta o recibo/resposta original do fornecedor, com identidade do jogo, assertion FT e timestamp verificável independente ligado ao evento. Um checked_at de ledger mutável ou written_at do journal não o substitui. Os 52 eventos anteriores ao registo não podem ser tornados prospectivos retroativamente. Falta ainda uma auditoria Git commit a commit fora das publicações aqui cruzadas e os dois ciclos operacionais reais pós-merge; estes não podem ser alegados antes de merge autorizado.
 
-**Recomendação:** tecnicamente apta para revisão independente como diagnóstico somente de leitura, com merge condicionado à revisão do Work e autorização explícita do utilizador. Não recomendar merge como sinal de aceitação científica, cobertura ≥99% ou certificação FT. Sem merge nesta tarefa. B1 não foi iniciada.
+**Recomendação atualizada:** repetir a verificação independente do Work sobre as duas correções. A aprovação técnica e o merge continuam pendentes dessa revisão e de autorização explícita do utilizador. Não recomendar merge como sinal de aceitação científica, cobertura ≥99% ou certificação FT. Sem merge nesta tarefa. B1 não foi iniciada.
 
 ## Reprodução e integridade
 
-No checkout integral do head de código `f7dee41833d31afabe4530081885f52e5d523ba5`, instalar `requirements-test.txt`, executar `python -m unittest discover -s tests -v`; o checkout do push conserva os inputs do snapshot. Para o replay: `python -m scripts.master_brain_a1_audit --root . --source-sha 9d52a5bbf03d9301a6a3479b0e9c95e01945388c --output /tmp/a1-novo.json`. O output tem de ser novo; não sobrescrever provas.
+Num clone integral, selecionar o commit de código `be67062ba113c280de6abbf0c0d3a26446fabe34`, instalar `requirements-test.txt` e executar os comandos abaixo. A cópia da fonte é criada a partir de objetos já locais, sem rede; o CLI executado é o código corrigido. Usar caminhos temporários novos, sem sobrescrever provas.
+
+```sh
+python -m unittest discover -s tests -v
+git clone --shared --no-checkout . /tmp/a1-source-257
+git -C /tmp/a1-source-257 checkout --detach 9d52a5bbf03d9301a6a3479b0e9c95e01945388c
+python -m scripts.master_brain_a1_audit --root /tmp/a1-source-257 --source-sha 9d52a5bbf03d9301a6a3479b0e9c95e01945388c --output /tmp/a1-257-novo.json
+```
+
+A auditoria falha se os objetos Git necessários não existirem; não faz fetch nem aceita o snapshot comprimido como substituto. O teste real pode ser explicitamente skipped num clone raso, pelo que a reprodução acima em clone integral continua obrigatória para a revisão independente.
 
 Para verificar uma linha: obter o log do job referenciado, confirmar recibo push/PUBLISHED e SHA do commit; ler o diff da revisão correspondente e comparar o `sha256` com o journal do snapshot. No lote recuperado, comparar os dois blobs documentados e o merged_at de #254. Verificar os SHA-256 dos logs decodificados em UTF-8 e dos artefactos no JSON de validação. O snapshot inicial permanece imutável; os factos adicionais são anexados ao ficheiro de recibos.
 
