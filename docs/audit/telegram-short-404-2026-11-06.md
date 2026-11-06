@@ -99,6 +99,14 @@ production runs were not disabled, cancelled or counted as successful recovery.
   becomes AuthKeyNotFound without key generation. Tests also verify primary-error
   preservation, no unhandled disconnect future and no checkpoint after failure.
 - Compile and whitespace checks pass; no production-data diff is present.
+- The initial full suite ran 1,892 tests and exposed one **baseline** failure:
+  `test_audit_health` assumed the real collector was fresh although its checkpoint
+  was 19:36:21 and the dashboard had been regenerated at 00:33:50. The identical
+  failure was reproduced on unmodified main baseline `94f34b0`. Production health
+  correctly reported STALE. The test now accepts truthful real-snapshot health
+  and adds a deterministic stale/fresh collector fixture proving that dashboard
+  regeneration cannot refresh the collector. All 17 health tests pass. No health
+  threshold, production timestamp, historical data or monitoring logic changed.
 - [PR 253 checks](https://github.com/nunovinhas-creator/asianodds-h1-lab/pull/253/checks)
   are authoritative for full Python 3.11 CI on the final head. Do not infer
   their final outcome from the focused offline pass.
