@@ -10,6 +10,7 @@ import json
 import math
 import re
 from collections import Counter
+from datetime import timedelta
 
 from .research_dataset import OUTCOMES, VARIABLES
 from .research_dsl import variables_used, evaluate
@@ -17,7 +18,7 @@ from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
 from .v6_shadow import utc
 
-VERSION = 'B1_SHADOW_1'
+VERSION = 'B1_SHADOW_2'
 # Probability units are fractions: .05 == five percentage points.
 FLOORS = {'p_home_net': (.05, 'PROBABILITY_FRACTION'),
           'p_draw_net': (.05, 'PROBABILITY_FRACTION'),
@@ -32,6 +33,29 @@ SIGNAL_DOMAINS = {'lambda_abs_path': (0, math.inf),
 STRATA_VARIABLES = {'lead_bin': ('lead_first_min',), 'line_bin': ('total_line_last',),
                     'competition_type': ('ctx_cup', 'ctx_youth_reserve', 'ctx_league_other')}
 UNAVAILABLE = re.compile(r'\b(bookmaker|operator|operador|live|in.play|btts price|post.kickoff|pós.kickoff|score|scores|ganhos|profit)\b', re.I)
+
+
+def _finite(value):
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
+def _json_input(value):
+    """Reject JSON coercions (tuples, numeric keys, custom objects), not values."""
+    if type(value) is dict:
+        if any(type(key) is not str for key in value):
+            raise ValueError('NON_STRING_JSON_KEY')
+        for child in value.values():
+            _json_input(child)
+    elif type(value) is list:
+        for child in value:
+            _json_input(child)
+    elif type(value) not in (str, int, float, bool, type(None)):
+        raise ValueError('NON_JSON_VALUE')
+    elif type(value) is float and not _finite(value):
+        raise ValueError('NONFINITE_JSON_VALUE')
 
 
 def sha(value):
@@ -122,7 +146,7 @@ def _logic_paths(n, negate=False):
     return [[{'op': 'not', 'args': [n]} if negate else n]]
 
 
-def _path_constraints(branch):
+def _path_constraints(branch, *, competition_type=False):
     """Prove simple independent scalar constraints; defer all other algebra.
 
     Equality follows the DSL's 1e-9 tolerance, not exact Python equality.
@@ -130,6 +154,19 @@ def _path_constraints(branch):
     A concrete DSL witness is required before claiming satisfiability.
     """
     domains, literals, known, atoms = {}, {}, {}, {}
+    required_known, unknown_exprs, order_edges = set(), [], []
+
+    def identity(node):
+        return json.dumps(node, sort_keys=True, separators=(',', ':'))
+
+    def require_known(node):
+        required_known.add(identity(node))
+        # A known arithmetic/comparison result requires every operand. Boolean
+        # AND/OR may be known through a dominating operand with unknown siblings.
+        if node.get('op') not in ('and', 'or', 'is_known'):
+            for arg in node.get('args', []):
+                require_known(arg)
+
     equalities, inequalities = set(), set()
     predicates = {}
     unproven = False
@@ -141,6 +178,32 @@ def _path_constraints(branch):
             continue
         neg = op == 'not'
         atom = args[0] if neg else n
+        require_known(atom)
+        if not variables_used(n):
+            value = evaluate(n, {})
+            if value is False:
+                contradiction = True
+            elif value is None:
+                unproven = True
+            continue
+        if atom.get('op') == 'is_known':
+            target = atom['args'][0]
+            if neg:
+                unknown_exprs.append(target)
+            else:
+                require_known(target)
+        if op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne'):
+            left, right = args
+            if left == right:
+                if op in ('gt', 'lt', 'ne'):
+                    contradiction = True
+                # Reflexive comparisons require a known value; unknown != false.
+                unproven |= 'var' not in left
+                continue
+            if op in ('gt', 'ge', 'lt', 'le'):
+                a, b = (right, left) if op in ('gt', 'ge') else (left, right)
+                order_edges.append((identity(a), identity(b), op in ('gt', 'lt')))
+
         predicate, polarity = atom, not neg
         # Complementary opaque predicates are contradictory too, even when
         # their arithmetic cannot otherwise be solved by this scalar fragment.
@@ -192,7 +255,45 @@ def _path_constraints(branch):
                 atoms.setdefault(v, []).append(n)
                 continue
         unproven = True
-    if any(not value and (v in literals or v in domains) for v, value in known.items()):
+    def guaranteed_known(node):
+        if identity(node) in required_known or 'const' in node:
+            return True
+        if competition_type and node.get('var') in STRATA_VARIABLES['competition_type']:
+            return True
+        op = node.get('op')
+        if op == 'is_known':
+            return True
+        # These operators are total on known finite inputs. ADD/MUL/SUB/DIV
+        # are deliberately absent: overflow or zero divisors can yield None.
+        if op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne', 'between', 'not',
+                  'and', 'or', 'abs', 'neg', 'sign', 'min', 'max'):
+            return all(guaranteed_known(a) for a in node['args'])
+        return False
+
+    if any(guaranteed_known(node) for node in unknown_exprs):
+        contradiction = True
+    # Strict ordering is transitive over finite known DSL values. This graph
+    # proves impossible cycles without inventing a numeric epsilon or assuming
+    # approximate EQ is transitive. Unsupported algebra still defers below.
+    reach = {}
+    for a, b, strict in order_edges:
+        reach[a, b] = reach.get((a, b), False) or strict
+    nodes = sorted({v for edge in order_edges for v in edge[:2]})
+    for k in nodes:
+        for i in nodes:
+            for j in nodes:
+                if (i, k) in reach and (k, j) in reach:
+                    reach[i, j] = reach.get((i, j), False) or reach[i, k] or reach[k, j]
+    if any(reach.get((v, v), False) for v in nodes):
+        contradiction = True
+    if competition_type:
+        flags = STRATA_VARIABLES['competition_type']
+        assignments = [{v: v == chosen for v in flags} for chosen in flags]
+        if not any(all(env[v] == value for v, value in literals.items() if v in flags)
+                   and all(value or v not in flags for v, value in known.items())
+                   for env in assignments):
+            contradiction = True
+    if any(not value and identity({'var': v}) in required_known for v, value in known.items()):
         contradiction = True
     for v, (lo, hi, holes) in domains.items():
         # Domain restrictions prove feasibility, not the materiality of a
@@ -237,7 +338,7 @@ def _path_constraints(branch):
     return contradiction, unproven, domains
 
 
-def _design(expr, *, material=True):
+def _design(expr, *, material=True, competition_type=False):
     """Every explicit path must be satisfiable; signal paths also material."""
     rejected, deferred = _dimensions(expr)
     try:
@@ -245,7 +346,7 @@ def _design(expr, *, material=True):
         if not branches:
             rejected.add('CONSTANT_CONDITION')
         for branch in branches:
-            contradictory, uncertain, bounds = _path_constraints(branch)
+            contradictory, uncertain, bounds = _path_constraints(branch, competition_type=competition_type)
             if contradictory:
                 rejected.add('CONTRADICTORY_SIGNAL_PATH')
                 continue
@@ -304,7 +405,7 @@ def _stratum_cell(variables, selected):
                     issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_TYPE_INVALID'})
             elif type(value) not in (int, float):
                 issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_TYPE_INVALID'})
-            elif isinstance(value, float) and not math.isfinite(value):
+            elif not _finite(value):
                 issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_NONFINITE'})
             elif value < 0:
                 issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_OUT_OF_DOMAIN'})
@@ -327,44 +428,114 @@ def _stratum_cell(variables, selected):
     return (None if issues else tuple(bins[s] for s in selected)), issues
 
 
-def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
-    """Canonical plan + pregame metadata only. Never accepts outcome-bearing rows.
+# trajectory_variables rounds lead to 0.1 minute: half a quantum = 3 seconds.
+# This tolerance applies only to inferred first-event times, never feature lateness.
+LEAD_ROUNDING_SECONDS = 3
+IDENTIFIER = re.compile(r'[^\s\x00-\x1f\x7f]{1,256}')
+NONNEGATIVE = frozenset(('n_messages', 'n_episodes', 'lead_first_min', 'lead_last_min',
+    'span_min', 'max_gap_min', 'total_msgs', 'total_line_first', 'total_line_last',
+    'total_line_ups', 'total_line_downs', 'lambda_first', 'lambda_last', 'lambda_abs_path',
+    'lambda_sd', 'lambda_moves_up', 'lambda_moves_down', 'lambda_reversals', 'lambda_max_run',
+    'total_unobserved_changes', 'x12_msgs', 'x12_reversals', 'ah_msgs', 'ah_line_moves',
+    'total_ah_same_msg', 'total_1x2_same_msg'))
+COUNTS = frozenset(v for v in NONNEGATIVE if v not in (
+    'lead_first_min', 'lead_last_min', 'span_min', 'max_gap_min', 'total_line_first',
+    'total_line_last', 'lambda_first', 'lambda_last', 'lambda_abs_path', 'lambda_sd'))
 
-    Metadata rows: match_key, variables, decision_at, kickoff_utc,
-    feature_observed_at (every used variable), feature_frozen_at,
-    source_event_ids, ft_verified (bool), ft_source_verified (bool),
-    baseline_available (mapping of baseline key -> bool).
-    design: threshold_origin=APRIORI or DISCOVERY, frozen_at; DISCOVERY also
-    discovery_end. Every decision must follow freezing; discovery precedes holdout.
-    Availability is counted only after group assignment and cannot define signals.
+
+def _time(value):
+    """B1 boundary wrapper; UTC conversion can overflow near year 1/9999."""
+    try:
+        return utc(value)
+    except (OverflowError, TypeError, ValueError):
+        return None
+
+
+def _identifier(value):
+    return type(value) is str and IDENTIFIER.fullmatch(value) is not None
+
+
+def _variable_issues(variables, names):
+    issues = []
+    for name in sorted(names):
+        value = variables.get(name)
+        reason = None
+        if value is None:
+            reason = 'SIGNAL_DATA_MISSING'
+        elif VARIABLES[name][0] == 'bool':
+            if type(value) is not bool:
+                reason = 'SIGNAL_VALUE_TYPE_INVALID'
+        elif type(value) not in (int, float):
+            reason = 'SIGNAL_VALUE_TYPE_INVALID'
+        else:
+            finite = _finite(value)
+            if not finite:
+                reason = 'SIGNAL_VALUE_NONFINITE'
+            elif ((name in NONNEGATIVE and value < 0)
+                  or (name in COUNTS and value != int(value))
+                  or (name in ('lambda_first_dir', 'lambda_last_dir') and value not in (-1, 0, 1))
+                  or (name == 'kickoff_hour_utc' and (value != int(value) or not 0 <= value <= 23))
+                  or (name in ('p_home_first', 'p_home_last', 'trigger_total_share') and not 0 <= value <= 1)
+                  or (name in SIGNAL_DOMAINS and not SIGNAL_DOMAINS[name][0] <= value <= SIGNAL_DOMAINS[name][1])):
+                reason = 'SIGNAL_VALUE_OUT_OF_DOMAIN'
+        if reason:
+            issues.append({'variable': name, 'reason': reason})
+    return issues
+
+
+def _support_metrics(cells, eligible_cells, period_cells):
+    """Preserve all pregame-assigned cells, including those emptied by attrition."""
+    rows = []
+    for cell in sorted(cells):
+        pre, eligible = cells[cell], eligible_cells.get(cell, Counter())
+        periods = period_cells.get(cell, Counter())
+        rows.append({'cell': list(cell),
+                     'pregame': {s: pre[s] for s in ('group', 'control')},
+                     'eligible': {s: eligible[s] for s in ('group', 'control')},
+                     'oos': {p+'_'+s: periods[p+'_'+s] for p in ('train', 'test') for s in ('group', 'control')}})
+    return rows
+
+
+def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
+    """Diagnostic admission only; strict pregame inputs precede membership.
+
+    Raw assignment never uses FT/baseline availability. Pregame support requires
+    known chronology; eligible support additionally requires baseline and verified
+    FT. The same cells must have >=2 per arm globally AND in train/test. Exclusions
+    report attrition, not a correction for missing-outcome selection bias.
     """
     reject, defer = set(), set()
-    counts = Counter(rows=len(metadata), group=0, control=0, unknown=0, overlap=0,
-                     unassigned=0, ft=0, baseline=0, group_eligible=0, control_eligible=0)
-    safe = []
-    forbidden = {'outcome', 'score', 'scores', 'home', 'away', 'profit', 'gains'}
+    rows_ok = type(metadata) is list
+    counts = Counter(rows=len(metadata) if rows_ok else 0, group=0, control=0, unknown=0,
+                     overlap=0, unassigned=0, ft=0, baseline=0, group_eligible=0, control_eligible=0,
+                     group_pregame=0, control_pregame=0, rows_excluded=0)
+    metrics = dict(counts, accounting_complete=False)
+    exclusions, strata_exclusions, safe = [], [], []
+    pregame_days = set()
+    cells, eligible_cells, period_cells = {}, {}, {}
     try:
-        raw = raw_plan(plan)
-        canonical = validate_plan(raw)
+        canonical = validate_plan(raw_plan(plan))
         if canonical['fingerprint'] != plan.get('fingerprint'):
             reject.add('NONCANONICAL_PLAN')
-        if any(forbidden & set(r) for r in metadata):
-            reject.add('OUTCOME_METADATA_FORBIDDEN')
-            metadata = []
+    except (PlanError, KeyError, TypeError, ValueError, AttributeError, OverflowError):
+        canonical = None
+        reject.add('QUALITY_INPUT_INVALID')
+    if not rows_ok:
+        reject.add('QUALITY_INPUT_INVALID')
+    if canonical and rows_ok:
         expr = inline(canonical['condition'], canonical['indicators'])
-        ctrl = canonical.get('control_condition')
-        r, d = _design(expr)
+        competition = 'competition_type' in canonical['confounders']
+        r, d = _design(expr, competition_type=competition)
         reject |= r
         defer |= d
+        ctrl = canonical.get('control_condition')
         if ctrl:
             ctrl = inline(ctrl, canonical['indicators'])
-            r, d = _design(ctrl, material=False)
+            r, d = _design(ctrl, material=False, competition_type=competition)
             reject |= r
             defer |= d
             if expr == ctrl:
                 reject.add('CONTROL_EQUALS_CONDITION')
-        # Narrative is never evidence. Explicit unavailable claims fail closed;
-        # absence of these words does not prove the claim is observable.
         narrative = ' '.join(str(canonical.get(k, '')) for k in
                              ('question', 'hypothesis', 'rationale', 'alternative_explanations'))
         if UNAVAILABLE.search(narrative):
@@ -374,124 +545,224 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             reject.add('NO_OBSERVABLE_SIGNAL')
         temporal_used = used | set().union(*(set(STRATA_VARIABLES[s]) for s in canonical['confounders']))
         base = OUTCOMES[canonical['market']][canonical['outcome']]
-        design = design or {}
-        frozen = utc(design.get('frozen_at'))
+        if design is None:
+            design = {}
+        elif type(design) is not dict:
+            reject.add('QUALITY_INPUT_INVALID')
+            design = {}
+        frozen = _time(design.get('frozen_at'))
         if design.get('threshold_origin') not in ('APRIORI', 'DISCOVERY') or not frozen:
             defer.add('THRESHOLD_PROVENANCE_MISSING')
-        # No production provenance adapter exists yet. JSON flags are not evidence.
-        cells = {}
-        strata_exclusions = []
-        seen = set()
-        for row in metadata:
-            key = row.get('match_key')
-            if not key or key in seen:
-                reject.add('DUPLICATE_MATCH_UNIT')
+        # Exclude every occurrence of a duplicate, so row order cannot select a winner.
+        key_counts = Counter(r.get('match_key') for r in metadata
+                             if type(r) is dict and _identifier(r.get('match_key')))
+        forbidden = {'outcome', 'score', 'scores', 'home', 'away', 'profit', 'gains'}
+        for index, row in enumerate(metadata):
+            issues = []
+
+            def issue(variable, reason, *, missing=False):
+                (defer if missing else reject).add(reason)
+                entry = {'variable': variable, 'reason': reason}
+                if entry not in issues:
+                    issues.append(entry)
+
+            if type(row) is not dict:
+                issue('row', 'METADATA_ROW_INVALID')
+                counts['unknown'] += 1
+                counts['rows_excluded'] += 1
+                exclusions.append({'row_index': index, 'issues': issues})
                 continue
-            seen.add(key)
-            temporal_ok = True
-            dec, ko = utc(row.get('decision_at')), utc(row.get('kickoff_utc'))
+            key = row.get('match_key')
+            identity_ok = _identifier(key)
+            if not identity_ok:
+                issue('match_key', 'MATCH_ID_INVALID')
+            elif key_counts[key] != 1:
+                issue('match_key', 'DUPLICATE_MATCH_UNIT')
+                identity_ok = False
+            for name in sorted(forbidden & set(row)):
+                issue(name, 'OUTCOME_METADATA_FORBIDDEN')
+            variables = row.get('variables')
+            variables_ok = type(variables) is dict
+            if not variables_ok:
+                issue('variables', 'VARIABLES_METADATA_INVALID')
+                variables = {}
+            signal_issues = _variable_issues(variables, used)
+            for entry in signal_issues:
+                issue(**entry, missing=entry['reason'] == 'SIGNAL_DATA_MISSING')
+            cell, strata_issues = _stratum_cell(variables, canonical['confounders'])
+            if strata_issues:
+                counts['strata_excluded'] += 1
+                for entry in strata_issues:
+                    issue(**entry, missing=entry['reason'] == 'CONFOUNDER_DATA_MISSING')
+                strata_exclusions.append({'match_key': key if _identifier(key) else None,
+                                          'issues': strata_issues})
+                defer.add('COMMON_STRATUM_SUPPORT_MISSING')
+            dec, ko = _time(row.get('decision_at')), _time(row.get('kickoff_utc'))
             if dec is None or ko is None:
-                temporal_ok = False
-                defer.add('DECISION_WINDOW_UNPROVEN')
+                issue('decision_at/kickoff_utc', 'DECISION_WINDOW_UNPROVEN', missing=True)
             elif dec >= ko:
-                temporal_ok = False
-                reject.add('POST_KICKOFF_INFORMATION')
+                issue('decision_at', 'POST_KICKOFF_INFORMATION')
             if frozen and dec and frozen > dec:
-                temporal_ok = False
-                reject.add('DESIGN_NOT_FROZEN_BEFORE_DECISION')
-            times = row.get('feature_observed_at', {})
-            ff = utc(row.get('feature_frozen_at'))
-            if not row.get('source_event_ids') or ff is None or dec is None or ko is None:
-                temporal_ok = False
-                defer.add('FEATURE_FREEZE_UNPROVEN')
+                issue('design.frozen_at', 'DESIGN_NOT_FROZEN_BEFORE_DECISION')
+            times = row.get('feature_observed_at')
+            if times is None:
+                times = {}
+            elif type(times) is not dict:
+                issue('feature_observed_at', 'FEATURE_METADATA_INVALID')
+                times = {}
+            ff = _time(row.get('feature_frozen_at'))
+            ids = row.get('source_event_ids')
+            ids_valid = (type(ids) is list and bool(ids) and all(_identifier(v) for v in ids)
+                         and len(set(ids)) == len(ids))
+            if ids is not None and not ids_valid:
+                issue('source_event_ids', 'PROVENANCE_IDENTIFIERS_INVALID')
+            if not ids_valid or ff is None or dec is None or ko is None:
+                issue('feature_frozen_at/source_event_ids', 'FEATURE_FREEZE_UNPROVEN', missing=True)
             if ff and ((dec and ff > dec) or (ko and ff >= ko)):
-                temporal_ok = False
-                reject.add('POST_DECISION_FEATURE_FREEZE')
-            for v in temporal_used:
-                t = utc(times.get(v))
+                issue('feature_frozen_at', 'POST_DECISION_FEATURE_FREEZE')
+            for v in sorted(temporal_used):
+                t = _time(times.get(v))
                 if t is None:
-                    temporal_ok = False
-                    defer.add('FEATURE_WINDOW_UNPROVEN')
+                    issue(v, 'FEATURE_WINDOW_UNPROVEN', missing=True)
                 else:
                     if (dec and t > dec) or (ko and t >= ko):
-                        temporal_ok = False
-                        reject.add('POST_KICKOFF_INFORMATION')
+                        issue(v, 'POST_KICKOFF_INFORMATION')
                     if ff and t > ff:
-                        temporal_ok = False
-                        reject.add('OBSERVATION_AFTER_FREEZE')
-            cell, issues = _stratum_cell(row['variables'], canonical['confounders'])
-            if issues:
-                temporal_ok = False
-                for issue in issues:
-                    (defer if issue['reason'] == 'CONFOUNDER_DATA_MISSING' else reject).add(issue['reason'])
-                counts['strata_excluded'] += 1
-                strata_exclusions.append({'match_key': key, 'issues': issues})
-                defer.add('COMMON_STRATUM_SUPPORT_MISSING')
-            try:
-                g, c = membership(canonical, {'variables': row['variables']})
-            except (TypeError, ValueError, OverflowError):
-                if not issues:
-                    raise
-                # A malformed stratum can also occur in the signal/control.
-                # Keep its exclusion and count the raw assignment as unknown;
-                # one bad value must not abort accounting for later rows.
-                g, c = None, None
+                        issue(v, 'OBSERVATION_AFTER_FREEZE')
+            if 'lead_first_min' in temporal_used and not _variable_issues(variables, {'lead_first_min'}) and ko:
+                try:
+                    first = ko - timedelta(minutes=variables['lead_first_min'])
+                    tolerance = timedelta(seconds=LEAD_ROUNDING_SECONDS)
+                    for boundary, time in (('decision_at', dec), ('feature_frozen_at', ff),
+                                           ('feature_observed_at', _time(times.get('lead_first_min'))),
+                                           ('kickoff_utc', ko)):
+                        if time and first > time and first-time > tolerance:
+                            issue('lead_first_min', 'LEAD_FIRST_AFTER_' + boundary.upper())
+                except (OverflowError, ValueError):
+                    issue('lead_first_min', 'LEAD_TIMESTAMP_OUT_OF_RANGE')
+            # Validate derived values as well: IS_KNOWN must not turn undefined
+            # arithmetic into an eligible complement/control observation.
+            derived_issues = []
+            if variables_ok and not signal_issues:
+                env = dict(variables)
+                for indicator in canonical['indicators']:
+                    value = evaluate(indicator['expr'], env)
+                    env[indicator['name']] = value
+                    if value is None:
+                        derived_issues.append(indicator['name'])
+                def check_expression(node):
+                    for arg in node.get('args', []):
+                        check_expression(arg)
+                    if node.get('op') and evaluate(node, env) is None:
+                        derived_issues.append('condition/control_condition')
+                check_expression(expr)
+                if ctrl:
+                    check_expression(ctrl)
+            for variable in sorted(set(derived_issues)):
+                issue(variable, 'SIGNAL_EXPRESSION_UNKNOWN', missing=True)
+            # No invalid/unknown signal operand reaches the coercive shared DSL.
+            # Stratification/chronology defects preserve a computable raw arm.
+            g, c = None, None
+            if variables_ok and identity_ok and not signal_issues and not derived_issues:
+                try:
+                    g, c = membership(canonical, {'variables': variables})
+                except (TypeError, ValueError, OverflowError):
+                    issue('condition/control_condition', 'SIGNAL_EVALUATION_INVALID')
+            side = None
             if g is None:
                 counts['unknown'] += 1
-                continue
-            if g == 'OVERLAP':
+                if not signal_issues:
+                    issue('condition/control_condition', 'SIGNAL_RESULT_UNKNOWN', missing=True)
+            elif g == 'OVERLAP':
                 counts['overlap'] += 1
-                reject.add('GROUP_CONTROL_OVERLAP')
-                continue
-            if not g and not c:
+                issue('condition/control_condition', 'GROUP_CONTROL_OVERLAP')
+            elif not g and not c:
                 counts['unassigned'] += 1
-                continue
-            side = 'group' if g else 'control'
-            counts[side] += 1
-            # Preserve each selected cell, but late/unknown rows cannot supply support.
-            if cell is not None:
-                support = cells.setdefault(cell, Counter())
-                if temporal_ok:
-                    support[side] += 1
+                issues.append({'variable': 'condition/control_condition', 'reason': 'ARM_UNASSIGNED'})
             else:
+                side = 'group' if g else 'control'
+                counts[side] += 1
+            # FT and baseline are deliberately checked AFTER raw arm assignment.
+            pregame_ok = not issues
+            if side and cell is not None:
+                support = cells.setdefault(cell, Counter())
+                if pregame_ok:
+                    support[side] += 1
+                    counts[side + '_pregame'] += 1
+                    pregame_days.add(ko.date().isoformat())
+            elif side:
                 counts[side + '_strata_excluded'] += 1
+            for flag in ('ft_verified', 'ft_source_verified'):
+                if row.get(flag) is not None and type(row[flag]) is not bool:
+                    issue(flag, 'AVAILABILITY_METADATA_INVALID')
             ft = row.get('ft_verified') is True and row.get('ft_source_verified') is True
-            baseline = base is None or row.get('baseline_available', {}).get(base) is True
-            counts['ft'] += int(ft)
-            counts[side + '_ft_present'] += int(row.get('ft_verified') is True)
-            counts[side + '_ft_verified_source'] += int(ft)
-            counts[side + '_baseline'] += int(baseline)
-            counts['baseline'] += int(baseline)
+            baselines = row.get('baseline_available')
+            if baselines is None:
+                baselines = {}
+            elif type(baselines) is not dict:
+                issue('baseline_available', 'AVAILABILITY_METADATA_INVALID')
+                baselines = {}
+            if base is not None and baselines.get(base) is not None and type(baselines[base]) is not bool:
+                issue('baseline_available.' + base, 'AVAILABILITY_METADATA_INVALID')
+            baseline = base is None or baselines.get(base) is True
+            if side:
+                counts['ft'] += int(ft)
+                counts[side + '_ft_present'] += int(row.get('ft_verified') is True)
+                counts[side + '_ft_verified_source'] += int(ft)
+                counts[side + '_baseline'] += int(baseline)
+                counts['baseline'] += int(baseline)
             if not ft:
-                defer.add('VERIFIED_FT_PROVENANCE_MISSING')
+                issue('ft_verified/ft_source_verified', 'VERIFIED_FT_PROVENANCE_MISSING', missing=True)
             if not baseline:
-                defer.add('BASELINE_MISSING')
-            if ft and baseline and temporal_ok:
+                issue('baseline_available', 'BASELINE_MISSING', missing=True)
+            if side and not issues:
                 counts[side + '_eligible'] += 1
-                if ko:
-                    safe.append((ko.date().isoformat(), side))
+                eligible_cells.setdefault(cell, Counter())[side] += 1
+                safe.append((ko.date().isoformat(), side, cell))
+            else:
+                counts['rows_excluded'] += 1
+            if issues:
+                record = {'match_key': key, 'issues': sorted(issues, key=lambda x: (x['variable'], x['reason']))}
+                if not _identifier(key):
+                    record = {'row_index': index, 'issues': record['issues']}
+                exclusions.append(record)
         if not metadata:
             defer.add('NO_METADATA')
         if metadata and counts['unknown'] == 0 and min(counts['group'], counts['control']) == 0:
             reject.add('TRIVIAL_PARTITION')
         if min(counts['group_eligible'], counts['control_eligible']) < MIN_N:
             defer.add('MIN_N_NOT_MET')
-        days = sorted({d for d, _ in safe})
+        # Freeze the period boundary from valid pregame assignments, before
+        # FT/baseline attrition. Missing outcomes cannot move the holdout.
+        days = sorted(pregame_days)
         cut = days[min(len(days)-1, max(1, int(len(days)*OOS_TRAIN_SHARE)))] if len(days) >= 4 else None
         oos = Counter({'train_group': 0, 'train_control': 0, 'test_group': 0, 'test_control': 0})
         if cut:
-            for day, side in safe:
-                oos[('train_' if day < cut else 'test_') + side] += 1
+            for day, side, cell in safe:
+                name = ('train_' if day < cut else 'test_') + side
+                oos[name] += 1
+                period_cells.setdefault(cell, Counter())[name] += 1
         if not cut or min(oos.values()) < 5:
             defer.add('CHRONOLOGICAL_OOS_INSUFFICIENT')
         if design.get('threshold_origin') == 'DISCOVERY':
-            end = utc(design.get('discovery_end'))
+            end = _time(design.get('discovery_end'))
             if not end or not frozen or not cut:
                 defer.add('DISCOVERY_BOUNDARY_UNPROVEN')
             elif end > frozen or end.date().isoformat() >= cut:
                 reject.add('DISCOVERY_HOLDOUT_CONTAMINATION')
-        if not cells or any(min(c['group'], c['control']) < 2 for c in cells.values()):
+        support = _support_metrics(cells, eligible_cells, period_cells)
+        pre_support = bool(support) and all(min(c['pregame'].values()) >= 2 for c in support)
+        eligible_support = bool(support) and all(min(c['eligible'].values()) >= 2 for c in support)
+        period_support = bool(cut and support) and all(min(c['oos'].values()) >= 2 for c in support)
+        if not pre_support or not eligible_support:
             defer.add('COMMON_STRATUM_SUPPORT_MISSING')
+        if not period_support:
+            defer.add('COMMON_STRATUM_PERIOD_SUPPORT_MISSING')
+        if (type(prior_plans) not in (tuple, list) or any(
+                type(p) is not dict or type(p.get('variables_used', [])) not in (tuple, list)
+                or any(type(v) is not str for v in p.get('variables_used', [])) for p in prior_plans)):
+            reject.add('QUALITY_INPUT_INVALID')
+            prior_plans = ()
         duplicates = sum(p.get('fingerprint') == canonical['fingerprint'] for p in prior_plans)
         near = sum(p.get('outcome') == canonical['outcome'] and
                    set(p.get('variables_used', ())) == used and
@@ -500,17 +771,23 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             reject.add('DUPLICATE_QUESTION')
         if near:
             defer.add('NEAR_DUPLICATE_REVIEW')
-        metrics = dict(counts, coverage=(counts['group']+counts['control'])/counts['rows'] if counts['rows'] else 0,
-                       split_day=cut, oos=dict(oos), duplicates=duplicates, near_duplicates=near)
+        metrics = dict(counts, accounting_complete=True, coverage=(counts['group']+counts['control'])/counts['rows'] if counts['rows'] else 0,
+                       split_day=cut, oos=dict(oos), duplicates=duplicates, near_duplicates=near,
+                       common_support={'pregame': pre_support, 'eligible': eligible_support,
+                                       'by_period': period_support, 'cells': support},
+                       attrition={s: {'assigned': counts[s], 'pregame': counts[s+'_pregame'],
+                                     'eligible': counts[s+'_eligible'],
+                                     'excluded_after_assignment': counts[s]-counts[s+'_eligible'],
+                                     'ft_source_missing': counts[s]-counts[s+'_ft_verified_source']}
+                                  for s in ('group', 'control')})
         if strata_exclusions:
-            metrics['strata_exclusions'] = strata_exclusions
-    except (PlanError, KeyError, TypeError, ValueError, AttributeError):
-        reject.add('QUALITY_INPUT_INVALID')
-        metrics = dict(counts)
+            metrics['strata_exclusions'] = sorted(strata_exclusions, key=lambda x: (x['match_key'] or '', sha(x['issues'])))
+        if exclusions:
+            metrics['exclusions'] = sorted(exclusions, key=lambda x: (x.get('match_key', ''), x.get('row_index', -1), sha(x['issues'])))
     design_status = 'REJECTED' if reject else 'INSUFFICIENT_DATA' if defer else 'SCIENTIFICALLY_TESTABLE'
     defer.add('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE')
-    status = 'REJECTED' if reject else 'INSUFFICIENT_DATA' if defer else 'SCIENTIFICALLY_TESTABLE'
-    return {'version': VERSION, 'quality_status': status, 'design_quality_status': design_status, 'reasons': sorted(reject | defer),
+    return {'version': VERSION, 'quality_status': 'REJECTED' if reject else 'INSUFFICIENT_DATA',
+            'design_quality_status': design_status, 'reasons': sorted(reject | defer),
             'metrics': metrics, 'diagnostic_only': True, 'promotion_eligible': False,
             'alternative_explanations': 'TEXT_NOT_VERIFIED',
             'confounding_scope': 'COMMON_SUPPORT_REQUIRED_NOT_CAUSAL_PROOF',
@@ -518,20 +795,45 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
 
 
 def shadow_report(plans, metadata, *, design=None, prior_plans=()):
-    """Before/after diagnostic agenda. Zero executions and no memory writes."""
+    """Zero executions/writes; unhashable input fails closed without fake hashes.
+
+    A canonical JSON hash identifies the exact supplied order and values. NaN,
+    unsupported objects or cycles have no such identity; retain diagnostics for
+    every auditable row but reject all cards and expose input_sha256=None.
+    """
+    identity_reason = None
+    try:
+        payload = {'plans': plans, 'metadata': metadata, 'design': design}
+        _json_input(payload)
+        input_hash = sha(payload)
+    except (TypeError, ValueError, OverflowError, RecursionError):
+        input_hash = None
+        identity_reason = 'INPUT_IDENTITY_UNAVAILABLE'
+    received = len(plans) if type(plans) is list else None
+    if type(metadata) is not list:
+        identity_reason = identity_reason or 'QUALITY_INPUT_INVALID'
+    if type(plans) is not list:
+        plans = []
+        identity_reason = 'QUALITY_INPUT_INVALID'
     cards, valid = [], 0
     for raw in plans:
         try:
-            p = validate_plan(raw_plan(raw) if 'fingerprint' in raw else raw)
-        except (PlanError, TypeError, AttributeError):
+            p = validate_plan(raw_plan(raw) if type(raw) is dict and 'fingerprint' in raw else raw)
+        except (PlanError, TypeError, AttributeError, KeyError, ValueError, OverflowError):
             cards.append({'structural_status': 'REJECTED', 'reasons': ['STRUCTURAL_INVALID']})
             continue
         valid += 1
-        cards.append(dict(fingerprint=p['fingerprint'], structural_status='STRUCTURALLY_VALID',
-                          **evaluate_quality(p, metadata, design=design, prior_plans=prior_plans)))
+        card = dict(fingerprint=p['fingerprint'], structural_status='STRUCTURALLY_VALID',
+                    **evaluate_quality(p, metadata, design=design, prior_plans=prior_plans))
+        if identity_reason:
+            card.update(quality_status='REJECTED', design_quality_status='REJECTED',
+                        reasons=sorted(set(card['reasons']) | {identity_reason}))
+        cards.append(card)
     statuses = Counter(c.get('quality_status') for c in cards if 'quality_status' in c)
-    return {'mode': VERSION, 'input_sha256': sha({'plans': plans, 'metadata': metadata, 'design': design}),
-            'funnel': {'received': len(plans), 'structurally_valid': valid,
-                       'before_eligible_by_syntax': valid, 'after_eligible': statuses['SCIENTIFICALLY_TESTABLE'],
+    return {'mode': VERSION, 'input_sha256': input_hash,
+            'report_status': 'REJECTED' if identity_reason else 'DIAGNOSTIC_ONLY',
+            'reasons': [identity_reason] if identity_reason else [],
+            'funnel': {'received': received, 'structurally_valid': valid,
+                       'before_eligible_by_syntax': valid, 'after_eligible': 0,
                        'quality': dict(sorted(statuses.items())), 'executed': 0},
             'agenda': cards, 'validated': [], 'memory_written': False}

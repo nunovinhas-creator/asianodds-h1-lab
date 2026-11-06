@@ -17,6 +17,10 @@ class QualityTest(unittest.TestCase):
             self.meta.append({k: copy.deepcopy(r[k]) for k in
                               ('match_key', 'variables', 'decision_at', 'kickoff_utc', 'source_event_ids')})
             m = self.meta[-1]
+            # Synthetic lead must place the first event before the decision.
+            decision_lead = (datetime.fromisoformat(r['kickoff_utc']) -
+                             datetime.fromisoformat(r['decision_at'])).total_seconds() / 60
+            m['variables']['lead_first_min'] = max(m['variables']['lead_first_min'], decision_lead)
             m.update(feature_observed_at={v: r['decision_at'] for v in r['variables']},
                      feature_frozen_at=r['decision_at'], ft_verified=True, ft_source_verified=True,
                      baseline_available={k: True for k in r['baselines']})

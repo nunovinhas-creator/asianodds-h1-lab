@@ -184,6 +184,9 @@ class IndependentStrataTests(unittest.TestCase):
 
     def prepare(self, stratum):
         for i, row in enumerate(self.meta):
+            row['decision_at'] = (datetime.fromisoformat(row['kickoff_utc'])-timedelta(minutes=30)).isoformat()
+            row['feature_frozen_at'] = row['decision_at']
+            row['feature_observed_at'] = dict.fromkeys(row['variables'], row['decision_at'])
             row['variables'].update(lambda_net=.2 if i % 2 else -.2,
                                     total_line_last=2.5, lead_first_min=60,
                                     ctx_cup=False, ctx_youth_reserve=False, ctx_league_other=True)
@@ -387,7 +390,10 @@ class IndependentStrataTests(unittest.TestCase):
         p = self.prepare('line_bin')
         for row in self.meta[:4]:
             row['variables']['total_line_last'] = 4
-        self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
+        initial = self.quality(p)
+        self.assertTrue(initial['metrics']['common_support']['pregame'])
+        self.assertTrue(initial['metrics']['common_support']['eligible'])
+        self.assertIn('COMMON_STRATUM_PERIOD_SUPPORT_MISSING', initial['reasons'])
         row = self.meta[0]  # control; only two controls in this selected cell
         row['feature_observed_at']['total_line_last'] = (
             datetime.fromisoformat(row['decision_at'])+timedelta(seconds=1)).isoformat()

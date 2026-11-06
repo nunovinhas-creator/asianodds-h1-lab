@@ -233,3 +233,197 @@ fronteiras físicas/tolerância de igualdade, tipos malformados em ambos os bra�
 combinações incompletas e contraditórias de estratos e elegibilidade/OOS.
 Testes verdes não constituem aprovação científica. Zero LLM real, custos,
 alterações históricas, workflows, gates ou integração operacional.
+
+## Terceira auditoria — bloqueadores do head 0b8045f6a4d6e392c621b2c00706d54c842338fb
+
+Esta revisão substitui os limites anteriores sobre coerência de lead, validação
+apenas dos estratos e suporte agregado. PR #259 continua **Draft**. Não autoriza
+merge, experiências B1, LLM real, promoção ou qualquer alteração operacional.
+Somente o avaliador B1, três ficheiros de testes e este README são alterados.
+`research_dsl`, `research_executor`, H1, E5, Telegram, FT, Pages, históricos,
+ledgers, quotas, workflows e gates permanecem intactos.
+
+### Contrato e provas lógicas
+
+Cada alternativa explícita continua auditada, incluindo alternativas mortas em
+OR, em ambos os braços. A seleção de `competition_type` acrescenta o contrato de
+exatamente um contexto verdadeiro. Não se pressupõe esse contrato quando o
+estrato não está selecionado. Negação, De Morgan e ordem das alternativas não
+alteram a classificação.
+
+O fragmento de prova verifica constantes com o próprio intérprete DSL,
+comparações reflexivas, exigências de disponibilidade de expressões e ciclos de
+ordenação estrita. A ordenação não usa epsilon. `EQ`/`NE` continuam com a tolerância
+**real da DSL, 1e-9**; igualdade aproximada não é tratada como transitiva. Os
+intervalos escalares continuam arredondados para fora e só demonstram
+satisfatibilidade após uma testemunha concreta da DSL. A disponibilidade de
+aritmética que pode transbordar ou dividir por zero não é inferida só pela
+disponibilidade dos operandos. A lógica de três valores do intérprete não mudou.
+
+Nas linhas abaixo, `A = lambda_net >= .10`, `x = lambda_first`, `y = lambda_last`;
+cada `C` é usado em `OR(A, AND(A, C))`, no sinal **e** no controlo. O estado
+anterior refere-se à análise lógica: ausência de rejeição da contradição não é
+aprovação científica.
+
+| C / família | Head rejeitado | Revisão |
+| --- | --- | --- |
+| `AND(ctx_cup, ctx_league_other)`, competição selecionada | Não identificava contradição; sinal podia passar o desenho | REJECTED / `CONTRADICTORY_SIGNAL_PATH` |
+| Três flags falsas; exclusão das três por NOT/OR; ordens e aninhamentos | Não identificava o domínio exclusivo | Mesma rejeição; os três estados one-hot válidos preservados |
+| `EQ(1, 2)` | `SATISFIABILITY_UNPROVEN` | REJECTED / `CONTRADICTORY_SIGNAL_PATH` |
+| `LT(ADD(1, 2), 3)` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição |
+| `GT(x, x)` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição |
+| `NE(x, x)` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição |
+| `AND(NOT IS_KNOWN(GT(x, 1)), GT(x, 1))` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição |
+| `AND(GT(x, y), GE(y, x))` | `SATISFIABILITY_UNPROVEN` | Mesma rejeição, por ciclo estrito |
+| Expressões satisfazíveis, incluindo EQ aproximada não transitiva e AND conhecido por operando dominante | Regressões positivas | Não rejeitadas como contraditórias; testemunhas independentes na DSL |
+| Álgebra geral, razões compostas, aritmética indefinida | Revisão manual | INSUFFICIENT_DATA quando não há prova; nunca aprovação por suposição |
+| OR com `false`, `NOT true`, falso aninhado, complementos opacos e booleanos; intervalos incompatíveis; controlo OR morto | Já corrigidos na auditoria anterior | Regressões preservadas |
+| OR material, AND redundante, controlo neutro 182/100; domínio de caminho absoluto e diferenças de probabilidades | Controlos positivos/negativos anteriores | Regressões preservadas, mesma diferença de materialidade entre sinal e controlo |
+
+### Validação antes da atribuição e contabilização completa
+
+Todas as variáveis transitivas do sinal e controlo são validadas **antes** de
+`membership`: tipos exatos (bool não é número), finitude, domínios provenientes do
+catálogo e disponibilidade. Não há conversão de strings. Indicadores derivados e
+subexpressões indefinidas são verificados antes da atribuição. Dados ausentes
+adiam; valores objetivamente inválidos rejeitam. Um valor inválido num ramo
+booleano dominado não é autorizado a entrar pela alternativa/complemento.
+
+Cada linha conserva a contagem bruta e recebe motivos por jogo e variável. Uma
+linha inválida nas dependências de atribuição é `unknown`, nunca controlo. Uma
+linha com atribuição calculável e defeito de cronologia/estrato conserva o braço
+bruto, mas não entra no suporte pré-jogo, elegibilidade ou OOS. FT e baseline só
+são consultados **depois** da atribuição. Os contadores de elegibilidade são
+apenas diagnósticos; o funil científico continua bloqueado e `executed=0`.
+
+A amostra base tem 600 linhas, 300 por braço. Nas substituições de uma variável
+do sinal, a linha afetada era do grupo. G/C significa grupo/controlo.
+
+| Caso | Antes | Bruto após validação (G/C/desconhecido) | Excluídas | Pré-jogo G/C | Elegíveis G/C | OOS total |
+| --- | --- | --- | --- | --- | --- | --- |
+| Controlo positivo | 300/300 | 300/300/0 | 0 | 300/300 | 300/300 | 600 |
+| `lambda_net=NaN` | Migrava para controlo: 299/301 | 299/300/1 | 1 | 299/300 | 299/300 | 599 |
+| `lambda_net=Infinity`, `True`, `"0.2"` (um por execução) | Aceitava/coagia a observação | 299/300/1 | 1 | 299/300 | 299/300 | 599 |
+| Mesmo defeito no controlo explícito, complemento e indicador derivado | Fronteira não validada integralmente | Mesma exclusão sem contaminação do outro braço | 1 | 299/300 | 299/300 | 599 |
+| Lead 0; decisão a -31 minutos | Não confrontava o lead com a decisão | 300/300/0 | 1 | 299/300 | 299/300 | 599 |
+| HIGH com 2 G/2 C; os 2 G sem FT certificado | Suporte agregado aparentemente suficiente | 300/300/0 | 2 | 300/300 | 298/300 | 598 |
+| `total_line_last=NaN` numa linha do grupo | `shadow_report` lançava ValueError ao criar hash | 300/300/0 | 1 | 299/300 | 299/300 | 599 |
+| `feature_observed_at=None` numa linha do grupo | Relatório parcialmente contabilizado / QUALITY_INPUT_INVALID | 300/300/0 | 1 | 299/300 | 299/300 | 599 |
+| Timestamp `0001-01-01T00:00:00+01:00` | OverflowError na conversão UTC | 300/300/0 | 1 | 299/300 | 299/300 | 599 |
+| Tipos errados em variables, timestamps, baseline/FT ou IDs de proveniência | Podia aprovar ou interromper a contabilização | 600 linhas contabilizadas; atribuição desconhecida se variables/identidade inválidas | 1 | Só 599 contribuem | Só 599 contribuem | 599 |
+| NaN + linha sem timestamps + linha não objeto, simultaneamente | Primeiro erro podia esconder os seguintes | 600 linhas contabilizadas | 3, todas identificadas | 597 no total | 597 no total | 597 |
+| Todos os contextos falsos/duplicados, lead negativo, linha Total não finita, tipos e domínios inválidos dos estratos | Exemplos da segunda auditoria | REJECTED; regressões anteriores preservadas | Todas as afetadas | Não contribuem | Não contribuem | Não contribuem |
+
+A indisponibilidade de dependências é uma regra de admissão B1; não altera o
+resultado ternário do intérprete DSL nem o executor partilhado. Duplicados são
+excluídos em **todas** as suas ocorrências, sem escolher a primeira linha. As
+exclusões identificadas são ordenadas deterministicamente por identidade e
+motivos; `row_index` conserva intencionalmente a posição original quando não há
+identificador auditável.
+
+`shadow_report` verifica a identidade JSON sem converter tuplos, chaves numéricas,
+objetos Python ou valores não finitos. Quando não há representação canónica
+exata, devolve `report_status=REJECTED`, `input_sha256=null` e
+`INPUT_IDENTITY_UNAVAILABLE`, com diagnósticos das linhas ainda contabilizáveis.
+Não inventa hashes, não substitui NaN, não perde o resto da amostra e não escreve.
+
+### Cronologia de lead
+
+`lead_first_min` é arredondado na origem a 0,1 minuto. A tolerância explícita é
+**3 segundos**, metade dessa unidade; só se aplica à primeira observação
+inferida. Observações de features continuam sem tolerância de atraso:
+`observação <= freeze <= decisão < kickoff`. A primeira observação inferida deve
+preceder observação de disponibilidade do próprio lead, freeze, decisão e kickoff.
+Os motivos `LEAD_FIRST_AFTER_*` identificam a fronteira violada. Overflow de data
+ou timedelta é contabilizado, sem interromper as restantes linhas.
+
+Com decisão a -31 min: lead 30,95 é compatível com o arredondamento; 30,94 já não
+é. Lead 31 e lead 5000 são válidos se as restantes fronteiras forem compatíveis.
+A disponibilidade de uma feature agregada não é confundida com a primeira
+mensagem: não se exige igualdade entre esses horários.
+
+### Suporte comum e possível viés por exclusão
+
+`common_support` apresenta separadamente os contadores pré-jogo, elegíveis e por
+período de cada célula. A célula HIGH do contraexemplo continua **2/2 pré-jogo**,
+mas fica **0/2 elegível**, causando `COMMON_STRATUM_SUPPORT_MISSING`. As células
+que perdem todos os elegíveis são conservadas; não se escolhem estratos depois
+de conhecer a disponibilidade de FT.
+
+A decisão P2 é exigir **>=2 observações de cada braço em cada célula no treino e
+no teste**, além do mínimo global OOS já existente. O desenho declara comparação
+estratificada fora da amostra; suporte agregado não a demonstra. HIGH com grupo
+só no treino e controlo só no teste tem suporte global, mas recebe
+`COMMON_STRATUM_PERIOD_SUPPORT_MISSING`. O dia de corte é fixado com as atribuições
+pré-jogo cronologicamente válidas, antes da exclusão por FT/baseline. Excluir FT
+de dias inteiros não pode mover esse dia ou redefinir os braços.
+
+`attrition` apresenta atribuições, pré-jogo, elegíveis, exclusões após atribuição
+e FT sem origem verificada, por braço; as células permitem localizar perdas
+assimétricas. No contraexemplo perdem-se 2/300 do grupo e 0/300 do controlo, com
+a perda concentrada em HIGH. Isso torna visível seleção potencialmente informativa.
+Sem resultados certificados para os ausentes, estes metadados não provam ausência
+de viés por missing-not-at-random, nem justificam imputação, ponderação ou nova
+atribuição. A comparação fica bloqueada, sem conclusões de efeito preditivo.
+
+### Replay autenticado e diferenças exclusivamente diagnósticas
+
+Os ficheiros históricos `real-plans.json` e `replay.json` não são alterados.
+A regressão reconstrói os 11 blobs autenticados num diretório temporário e executa
+o replay duas vezes, exigindo determinismo. Confere igualdade integral de
+`provenance`, `input_sha256`, `before`, `costs`, `limits`, `funnel`, fingerprints,
+estados, contagens de braços, disponibilidade histórica FT/baseline e OOS.
+Os três planos continuam REJECTED e os seis braços têm zero elegibilidade B1.
+
+A versão diagnóstica passa a `B1_SHADOW_2`. Acrescenta métricas de exclusão, atrito,
+suporte e três razões: `SIGNAL_DATA_MISSING`, `BASELINE_MISSING` (agora também
+registada nas linhas sem atribuição) e `COMMON_STRATUM_PERIOD_SUPPORT_MISSING`.
+A validação prévia das dependências reclassifica linhas antigas não atribuídas
+como desconhecidas; a soma das duas categorias é exatamente preservada:
+
+| Plano (prefixo) | G/C históricos intactos | Desconhecidas antes/depois | Não atribuídas antes/depois | Pré-jogo G/C | Elegíveis G/C |
+| --- | --- | --- | --- | --- | --- |
+| `676a5e49` | 78/65 | 868/955 | 607/520 | 0/0 | 0/0 |
+| `b2c9b2b7` | 58/52 | 921/922 | 587/586 | 0/0 | 0/0 |
+| `a362ed8a` | 51/36 | 868/955 | 663/576 | 0/0 | 0/0 |
+
+| Identidade | SHA-256 |
+| --- | --- |
+| Prova original, bytes | `6280ff9aacce4f9987bfee8aea02c79e968f6f7ded9268c996f823c3c18938f0` |
+| Replay histórico, bytes intactos | `1dd93bc1fee284f2efaed7a58e287f77f2fd9b524b39fea25fbf260e568061c5` |
+| Replay histórico, output_sha256 | `334731885529019ee3a2e0a453c435c76474e8533d554993bf6f9304427f0617` |
+| Input do replay, intacto | `398d66b985c441c905daa4eb0ddf83d7713fddb8898f77022b5976ced2115077` |
+| Dataset original/reconstruído, intacto | `ba45b40bad2fda1380265c8afd2e1265dc720d596746cd0366415b8119743f4a` |
+| Replay B1_SHADOW_2, bytes | `25ba8a1f44eb4a5296ec127c251e341be6fb4698053e5c83fdd92b0bbcd7582d` |
+| Replay B1_SHADOW_2, output_sha256 | `15788d58012e806fe62f12ac98229a642cf71211ebf715cf7a70a3933b7aa16f` |
+
+Para reproduzir, usar o comando anterior com um basename novo de diagnóstico.
+A diferença de bytes é esperada e limitada às alterações diagnósticas acima;
+não se apresenta uma identidade integral que não existe.
+
+### Regressões, isolamento e limites remanescentes
+
+São 54 testes B1: os 42 anteriores, com fixtures cronologicamente válidos e uma
+expectativa de suporte por período explicitada, mais 12 novos métodos. Incluem
+permutações de OR, AND, linhas e duplicados; estados booleanos completos;
+testemunhas finitas e fronteiras float; entradas inválidas monotónicas;
+contaminação de sinal/controlo; disponibilidade derivada; erro simultâneo em
+várias linhas; proveniência e replay autenticado. Não há dependências novas.
+
+A suite integral, Research, preflight sem PyYAML, 30 testes UI, 7 scheduler,
+isolamento e os quatro workflows CI são reportados no comentário de entrega da
+PR, associados ao SHA completo. Falhas de sandbox/loopback e skips são reportados
+separadamente dos resultados finais, sem os apresentar como verdes.
+
+Limites mantidos: fragmento lógico deliberadamente incompleto (máximo 64 caminhos;
+álgebra não demonstrada adia), álgebra dimensional geral ainda sujeita a revisão,
+lead inferido não autentica eventos e metadados não demonstram ignorabilidade da
+perda de FT. Não existe adaptador genérico confiável:
+**`TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE`**, **`promotion_eligible=false`**.
+Zero experiências B1, zero promoções, zero LLM real e zero custos. Os testes do
+sistema existente usam apenas fixtures, mocks e memórias TEST temporárias.
+
+**Solicita-se nova auditoria independente Claude/Work**, especialmente para falsos
+positivos de satisfatibilidade, combinações de knownness/overflow/tolerância,
+células elegíveis contaminadas, efeitos de exclusão no split, determinismo e
+relatórios malformados. Procurar contraexemplos além dos testes. Não fazer merge.
