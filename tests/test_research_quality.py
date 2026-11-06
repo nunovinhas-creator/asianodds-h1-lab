@@ -257,6 +257,9 @@ class WorkRevisionTests(unittest.TestCase):
         if check.returncode:
             self.skipTest('Historical Git objects unavailable in shallow checkout; CLI fails closed')
         self.assertEqual(verify_history(proof)[1], proof['source_commit'])
+        import os
+        with patch.dict(os.environ, {'GIT_DIR': '/nonexistent', 'GIT_WORK_TREE': '/nonexistent'}):
+            self.assertEqual(verify_history(proof)[1], proof['source_commit'])
         for field, value in [('source_commit', 'a'*40), ('run_id', 123), ('memory_sha256', '0'*64)]:
             bad = copy.deepcopy(proof); bad[field] = value
             with self.assertRaises(ValueError): verify_history(bad)

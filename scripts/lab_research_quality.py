@@ -7,10 +7,10 @@ import argparse
 import hashlib
 import json
 import os
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from scripts.master_brain_a1_audit import git_read, git_object as verified_git_object
 from h1lab.research_dataset import build_dataset
 from h1lab.research_quality import raw_plan, sha, shadow_report
 from h1lab.research_memory import _hash
@@ -24,7 +24,10 @@ RUN_ID = 42202804803
 
 
 def git_object(spec):
-    return subprocess.check_output(['git', '-C', str(ROOT), 'show', spec])
+    if ':' in spec:
+        oid = git_read(ROOT, 'rev-parse', spec).decode().strip()
+        return verified_git_object(ROOT, 'blob', oid)
+    return verified_git_object(ROOT, 'commit', spec)
 
 
 def verify_history(proof):
@@ -41,8 +44,8 @@ def verify_history(proof):
     message = git_object(PUBLICATION_COMMIT).decode()
     if str(RUN_ID) not in message:
         raise ValueError('RUN_PUBLICATION_LINK_UNPROVEN')
-    subprocess.run(['git', '-C', str(ROOT), 'merge-base', '--is-ancestor',
-                    INPUT_COMMIT, PUBLICATION_COMMIT], check=True)
+    git_object(INPUT_COMMIT)
+    git_read(ROOT, 'merge-base', '--is-ancestor', INPUT_COMMIT, PUBLICATION_COMMIT)
     return INPUT_COMMIT, PUBLICATION_COMMIT
 
 
