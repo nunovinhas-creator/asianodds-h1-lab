@@ -96,9 +96,28 @@ def verify_state(before, after):
     if type(new.get("last_id")) is not int or new["last_id"] < 0:
         _refuse("Invalid Telegram checkpoint")
     current = {field: _keyed(new[field], key, field) for field, key in IMMUTABLE_COLLECTIONS}
+    from h1lab.fixture_identity import blocked_keys, validate
+    try:
+        validate(new)
+    except (ValueError, KeyError, TypeError, AttributeError):
+        _refuse("Invalid fixture quarantine evidence")
+    quarantined = _keyed(new.get("fixture_quarantine", []), "event_id", "fixture_quarantine")
     if before is None:
         return {"alerts_added": len(new["alerts"]), "last_id": new["last_id"]}
     old = _json(before, own.COLLECT_STATE)
+    for ident, row in _keyed(old.get("fixture_quarantine", []), "event_id",
+                             "fixture_quarantine").items():
+        if quarantined.get(ident) != row:
+            _refuse("Fixture quarantine removed or rewritten: " + ident)
+    blocked = blocked_keys(new)
+    old_signals = {r["signal_id"] for r in old.get("signals", [])}
+    old_tickets = {r["ticket_id"] for r in old.get("tickets", [])}
+    if any(r["signal_id"] not in old_signals and r["match_key"] in blocked
+           for r in new["signals"]):
+        _refuse("New H1 signal for quarantined fixture")
+    if any(r["ticket_id"] not in old_tickets and blocked.intersection(r["match_keys"])
+           for r in new["tickets"]):
+        _refuse("New H1 ticket for quarantined fixture")
     if new["last_id"] < old.get("last_id", 0):
         _refuse("Telegram checkpoint went back: %s -> %s" % (old.get("last_id"), new["last_id"]))
     for field, key in IMMUTABLE_COLLECTIONS:

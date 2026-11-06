@@ -402,12 +402,19 @@ def process(rows, ledger, now, sender, enabled, *, research=None, pace=None, clo
 
 # --------------------------------------------------------------------------- I/O
 def load_rows(root, now):
+    from .fixture_identity import blocked_keys
+    state = json.loads((Path(root) / "data/state.json").read_text(encoding="utf-8"))
+    blocked = blocked_keys(state)
     alerts, markets, errors = read_sources(root)
     # Nothing observed after the decision instant may influence it.
     alerts = [a for a in alerts if utc(a.get("observed_at")) and utc(a["observed_at"]) <= now]
     markets = [m for m in markets if utc(m.get("observed_at")) and utc(m["observed_at"]) <= now]
     timelines, issues, excluded = collect_timelines(alerts, markets, source_errors=errors)
-    return evaluate_all(timelines, now), len(issues), len(excluded)
+    rows = evaluate_all(timelines, now)
+    for row in rows:
+        if row["match_key"] in blocked:
+            row.update(state=EXCLUDED, reason="IDENTIDADE_EM_QUARENTENA")
+    return rows, len(issues), len(excluded)
 
 
 def _research(root):
