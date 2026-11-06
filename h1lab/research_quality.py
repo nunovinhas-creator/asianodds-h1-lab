@@ -13,7 +13,7 @@ from collections import Counter
 
 from .research_dataset import OUTCOMES, VARIABLES
 from .research_dsl import variables_used, evaluate
-from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership, _bins
+from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
 from .v6_shadow import utc
 
@@ -25,6 +25,12 @@ FLOORS = {'p_home_net': (.05, 'PROBABILITY_FRACTION'),
           'lambda_net': (.10, 'IMPLIED_GOALS'),
           'lambda_abs_path': (.10, 'IMPLIED_GOALS'),
           'total_line_net': (.25, 'TOTAL_LINE'), 'ah_line_net': (.25, 'AH_LINE')}
+# Proven by trajectory_variables: absolute sums are nonnegative; differences
+# of fair probabilities in [0, 1] are in [-1, 1]. No fitted domain limits.
+SIGNAL_DOMAINS = {'lambda_abs_path': (0, math.inf),
+                  **{v: (-1, 1) for v in ('p_home_net', 'p_draw_net', 'p_away_net')}}
+STRATA_VARIABLES = {'lead_bin': ('lead_first_min',), 'line_bin': ('total_line_last',),
+                    'competition_type': ('ctx_cup', 'ctx_youth_reserve', 'ctx_league_other')}
 UNAVAILABLE = re.compile(r'\b(bookmaker|operator|operador|live|in.play|btts price|post.kickoff|pós.kickoff|score|scores|ganhos|profit)\b', re.I)
 
 
@@ -63,7 +69,8 @@ def _dimensions(expr):
                 return 'HOUR_OF_DAY'
             return 'COUNT_OR_DIRECTION'
         op = n['op']
-        units = {u for a in n['args'] if (u := unit(a)) is not None}
+        operand_units = [unit(a) for a in n['args']]
+        units = {u for u in operand_units if u is not None}
         if op in ('and', 'or', 'not', 'is_known'):
             return 'BOOL'
         if len(units) > 1:
@@ -72,6 +79,10 @@ def _dimensions(expr):
             deferred.add('COMPOUND_UNITS_REVIEW')
         if op in ('gt', 'ge', 'lt', 'le', 'eq', 'ne', 'between'):
             return 'BOOL'
+        if op == 'div' and operand_units[0] is not None and operand_units[0] == operand_units[1]:
+            # Equal dimensions cancel. This does not prove a nonzero divisor,
+            # satisfiability or materiality: compound algebra still defers.
+            return 'DIMENSIONLESS'
         return next(iter(units)) if units else None
 
     unit(expr)
@@ -82,7 +93,11 @@ def _dimensions(expr):
 
 
 def _logic_paths(n, negate=False):
-    """Bounded DNF in three-valued logic; do not erase dead AND alternatives."""
+    """Bounded DNF retaining every explicit dead alternative, including constants.
+
+    An empty conjunction denotes true. False is an explicit atom, never an
+    absent branch: OR(false, signal) must still audit the false alternative.
+    """
     op, args = n.get('op'), n.get('args', [])
     if op == 'not':
         return _logic_paths(args[0], not negate)
@@ -91,14 +106,12 @@ def _logic_paths(n, negate=False):
         result = [] if union else [[]]
         for arg in args:
             part = _logic_paths(arg, negate)
-            if not union and not part:
-                part = [[{'const': False}]]
             result = result + part if union else [x+y for x in result for y in part]
             if len(result) > 64:
                 raise ValueError('LOGIC_TOO_COMPLEX')
         return result
     if 'const' in n:
-        return [[]] if bool(n['const']) != negate else []
+        return [[]] if bool(n['const']) != negate else [[{'const': False}]]
     if op == 'between':
         v, lo, hi = args
         return _logic_paths({'op': 'and', 'args': [
@@ -163,8 +176,8 @@ def _path_constraints(branch):
                     (equalities if op == 'eq' else inequalities).add(key)
                     if key in equalities and key in inequalities:
                         contradiction = True
-                lo, hi, holes = domains.setdefault(v, [(float('-inf'), False),
-                                                       (float('inf'), False), []])
+                lo, hi, holes = domains.setdefault(v, [(-math.inf, False),
+                                                       (math.inf, False), []])
                 if op in ('ge', 'gt'):
                     lo = max(lo, (b, op == 'gt'))
                 elif op in ('le', 'lt'):
@@ -182,6 +195,11 @@ def _path_constraints(branch):
     if any(not value and (v in literals or v in domains) for v, value in known.items()):
         contradiction = True
     for v, (lo, hi, holes) in domains.items():
+        # Domain restrictions prove feasibility, not the materiality of a
+        # submitted threshold; keep the explicit bounds returned to _design.
+        domain_lo, domain_hi = SIGNAL_DOMAINS.get(v, (-math.inf, math.inf))
+        lo = max(lo, (domain_lo, False))
+        hi = min(hi, (domain_hi, math.isfinite(domain_hi)))
         low, strict = lo
         high, inclusive = hi
         if low > high or (low == high and (strict or not inclusive)):
@@ -268,6 +286,47 @@ def raw_plan(plan):
     return raw
 
 
+def _stratum_cell(variables, selected):
+    """B1-only value contract. Never bin missing, malformed or impossible data.
+
+    The shared executor has other consumers; its permissive _bins is deliberately
+    not used here. Return field-level exclusion reasons, without coercing values.
+    """
+    issues, bins = [], {}
+    for stratum in selected:
+        names = STRATA_VARIABLES[stratum]
+        for name in names:
+            value = variables.get(name)
+            if value is None:
+                issues.append({'variable': name, 'reason': 'CONFOUNDER_DATA_MISSING'})
+            elif stratum == 'competition_type':
+                if type(value) is not bool:
+                    issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_TYPE_INVALID'})
+            elif type(value) not in (int, float):
+                issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_TYPE_INVALID'})
+            elif isinstance(value, float) and not math.isfinite(value):
+                issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_NONFINITE'})
+            elif value < 0:
+                issues.append({'variable': name, 'reason': 'CONFOUNDER_VALUE_OUT_OF_DOMAIN'})
+        if stratum == 'competition_type':
+            values = [variables.get(name) for name in names]
+            # Partial unknowns cannot hide a proven double assignment.
+            if (sum(value is True for value in values) > 1 or
+                    (all(type(value) is bool for value in values) and not any(values))):
+                issues.append({'variable': stratum, 'reason': 'CONFOUNDER_COMPETITION_CONTRADICTION'})
+        if any(issue['variable'] in (*names, stratum) for issue in issues):
+            continue
+        if stratum == 'lead_bin':
+            value = variables['lead_first_min']
+            bins[stratum] = 'LT_6H' if value < 360 else '6_24H' if value <= 1440 else 'GT_24H'
+        elif stratum == 'line_bin':
+            value = variables['total_line_last']
+            bins[stratum] = 'LOW' if value <= 2.25 else 'HIGH' if value >= 3.25 else 'MID'
+        else:
+            bins[stratum] = ('CUP', 'YOUTH_RESERVE', 'LEAGUE_OTHER')[values.index(True)]
+    return (None if issues else tuple(bins[s] for s in selected)), issues
+
+
 def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
     """Canonical plan + pregame metadata only. Never accepts outcome-bearing rows.
 
@@ -313,9 +372,7 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
         used = set(canonical['variables_used'])
         if not used:
             reject.add('NO_OBSERVABLE_SIGNAL')
-        strata_vars = {'lead_bin': {'lead_first_min'}, 'line_bin': {'total_line_last'},
-                       'competition_type': {'ctx_cup', 'ctx_youth_reserve', 'ctx_league_other'}}
-        temporal_used = used | set().union(*(strata_vars[s] for s in canonical['confounders']))
+        temporal_used = used | set().union(*(set(STRATA_VARIABLES[s]) for s in canonical['confounders']))
         base = OUTCOMES[canonical['market']][canonical['outcome']]
         design = design or {}
         frozen = utc(design.get('frozen_at'))
@@ -323,6 +380,7 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             defer.add('THRESHOLD_PROVENANCE_MISSING')
         # No production provenance adapter exists yet. JSON flags are not evidence.
         cells = {}
+        strata_exclusions = []
         seen = set()
         for row in metadata:
             key = row.get('match_key')
@@ -361,11 +419,23 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                     if ff and t > ff:
                         temporal_ok = False
                         reject.add('OBSERVATION_AFTER_FREEZE')
-            if any(row['variables'].get(v) is None for s in canonical['confounders']
-                   for v in strata_vars[s]):
+            cell, issues = _stratum_cell(row['variables'], canonical['confounders'])
+            if issues:
                 temporal_ok = False
-                defer.add('CONFOUNDER_DATA_MISSING')
-            g, c = membership(canonical, {'variables': row['variables']})
+                for issue in issues:
+                    (defer if issue['reason'] == 'CONFOUNDER_DATA_MISSING' else reject).add(issue['reason'])
+                counts['strata_excluded'] += 1
+                strata_exclusions.append({'match_key': key, 'issues': issues})
+                defer.add('COMMON_STRATUM_SUPPORT_MISSING')
+            try:
+                g, c = membership(canonical, {'variables': row['variables']})
+            except (TypeError, ValueError, OverflowError):
+                if not issues:
+                    raise
+                # A malformed stratum can also occur in the signal/control.
+                # Keep its exclusion and count the raw assignment as unknown;
+                # one bad value must not abort accounting for later rows.
+                g, c = None, None
             if g is None:
                 counts['unknown'] += 1
                 continue
@@ -378,12 +448,13 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
                 continue
             side = 'group' if g else 'control'
             counts[side] += 1
-            bins = _bins(row)
-            cell = tuple(bins[s] for s in canonical['confounders'])
             # Preserve each selected cell, but late/unknown rows cannot supply support.
-            support = cells.setdefault(cell, Counter())
-            if temporal_ok:
-                support[side] += 1
+            if cell is not None:
+                support = cells.setdefault(cell, Counter())
+                if temporal_ok:
+                    support[side] += 1
+            else:
+                counts[side + '_strata_excluded'] += 1
             ft = row.get('ft_verified') is True and row.get('ft_source_verified') is True
             baseline = base is None or row.get('baseline_available', {}).get(base) is True
             counts['ft'] += int(ft)
@@ -431,6 +502,8 @@ def evaluate_quality(plan, metadata, *, design=None, prior_plans=()):
             defer.add('NEAR_DUPLICATE_REVIEW')
         metrics = dict(counts, coverage=(counts['group']+counts['control'])/counts['rows'] if counts['rows'] else 0,
                        split_day=cut, oos=dict(oos), duplicates=duplicates, near_duplicates=near)
+        if strata_exclusions:
+            metrics['strata_exclusions'] = strata_exclusions
     except (PlanError, KeyError, TypeError, ValueError, AttributeError):
         reject.add('QUALITY_INPUT_INVALID')
         metrics = dict(counts)

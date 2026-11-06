@@ -30,6 +30,69 @@ class IndependentPathTests(unittest.TestCase):
     quality = quality_fixture.QualityTest.quality
     plan_with = quality_fixture.QualityTest.plan_with
 
+    def test_explicit_false_alternatives_survive_nested_expansion(self):
+        goal = cmp('ge', 'lambda_net', .1)
+        line = cmp('ge', 'total_line_net', .25)
+        for false in (const(False), op('not', const(True)),
+                      op('not', op('not', const(False)))):
+            for args in ((goal, false), (false, goal)):
+                for expr in (op('or', *args), op('and', goal, op('or', line, false)),
+                             op('or', line, op('and', goal, op('or', line, false)))):
+                    for arm in ('signal', 'control'):
+                        with self.subTest(expr=expr, arm=arm):
+                            p = (self.plan_with(expr) if arm == 'signal' else
+                                 self.plan_with(cmp('le', 'lambda_net', -.1), control_condition=expr))
+                            q = self.quality(p)
+                            self.assertEqual(q['design_quality_status'], 'REJECTED')
+                            self.assertIn('CONTRADICTORY_SIGNAL_PATH', q['reasons'])
+        neutral = op('between', var('lambda_net'), const(-.02), const(.02))
+        q = self.quality(self.plan_with(goal, control_condition=op('or', neutral, const(False))))
+        self.assertIn('CONTRADICTORY_SIGNAL_PATH', q['reasons'])
+        self.assertEqual(_design(neutral, material=False), (set(), set()))
+
+    def test_true_identities_and_demorgan_preserve_valid_paths(self):
+        goal = cmp('ge', 'lambda_net', .1)
+        line = cmp('ge', 'total_line_net', .25)
+        for expr in (op('and', goal, const(True)), op('and', const(True), goal),
+                     op('and', goal, op('not', const(False))),
+                     op('not', op('and', op('not', goal), op('not', line))),
+                     op('not', op('or', op('not', goal), const(False))),
+                     op('or', goal, op('and', line, const(True)))):
+            self.assertEqual(_design(expr), (set(), set()), expr)
+
+    def test_p2_proven_physical_domains_in_both_arms(self):
+        for expr in (cmp('le', 'lambda_abs_path', -.2),
+                     cmp('ge', 'p_home_net', 5), cmp('lt', 'p_draw_net', -1),
+                     cmp('gt', 'p_away_net', 1),
+                     op('gt', const(-.2), var('lambda_abs_path'))):
+            for material in (False, True):
+                self.assertIn('CONTRADICTORY_SIGNAL_PATH', _design(expr, material=material)[0])
+            self.assertIn('CONTRADICTORY_SIGNAL_PATH',
+                          _design(op('or', cmp('ge', 'lambda_net', .1), expr))[0])
+        for expr in (cmp('ge', 'lambda_abs_path', .1), cmp('ge', 'p_home_net', .05),
+                     cmp('eq', 'p_home_net', 1), cmp('le', 'p_home_net', -1)):
+            self.assertEqual(_design(expr), (set(), set()), expr)
+
+    def test_p2_legitimate_dimensionless_ratios_defer_without_false_rejection(self):
+        # Equal dimensions cancel, but unit compatibility is not proof of
+        # compound feasibility or a nonzero divisor. No scientific acceptance.
+        from h1lab.research_quality import _dimensions
+        expr = op('ge', op('div', var('lambda_net'), var('lambda_first')),
+                  op('div', var('p_home_net'), var('p_home_last')))
+        self.assertIs(evaluate(expr, {'lambda_net': .2, 'lambda_first': 2,
+                                     'p_home_net': .01, 'p_home_last': .5}), True)
+        rejected, deferred = _dimensions(expr)
+        self.assertEqual(rejected, set())
+        self.assertIn('COMPOUND_UNITS_REVIEW', deferred)
+        rejected, deferred = _design(expr)
+        self.assertEqual(rejected, set())
+        self.assertIn('SATISFIABILITY_UNPROVEN', deferred)
+        self.assertNotIn('MIXED_MOVEMENT_UNITS', _dimensions(
+            op('ge', op('div', var('lambda_net'), const(2)), const(.1)))[0])
+        # Ratios with incompatible dimensions remain rejected.
+        self.assertIn('MIXED_MOVEMENT_UNITS', _dimensions(
+            op('ge', op('div', var('lambda_net'), var('p_home_last')), const(.1)))[0])
+
     def test_audit_counterexamples_in_both_arms_and_orders(self):
         goal = cmp('ge', 'lambda_net', .1)
         line = cmp('ge', 'total_line_net', .25)
@@ -125,6 +188,170 @@ class IndependentStrataTests(unittest.TestCase):
                                     total_line_last=2.5, lead_first_min=60,
                                     ctx_cup=False, ctx_youth_reserve=False, ctx_league_other=True)
         return self.plan_with(cmp('ge', 'lambda_net', .1), confounders=[stratum])
+
+    def assert_excluded(self, plan, metadata, reason, status, excluded=600):
+        before = copy.deepcopy(metadata)
+        q = self.quality(plan, m=metadata)
+        self.assertEqual(q['design_quality_status'], status)
+        self.assertIn(reason, q['reasons'])
+        self.assertIn('COMMON_STRATUM_SUPPORT_MISSING', q['reasons'])
+        self.assertIn('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE', q['reasons'])
+        self.assertFalse(q['promotion_eligible'])
+        metrics = q['metrics']
+        self.assertEqual((metrics['rows'], metrics['group'], metrics['control']), (600, 300, 300))
+        self.assertEqual(metrics['strata_excluded'], excluded)
+        self.assertEqual(metrics['group_eligible'] + metrics['control_eligible'], 600-excluded)
+        self.assertEqual(sum(metrics['oos'].values()), 600-excluded)
+        self.assertEqual(len(metrics['strata_exclusions']), excluded)
+        self.assertEqual(len({x['match_key'] for x in metrics['strata_exclusions']}), excluded)
+        self.assertTrue(all(any(i['reason'] == reason for i in x['issues'])
+                            for x in metrics['strata_exclusions']))
+        # Values, including NaN, must remain untouched (identity for NaN avoids
+        # making float NaN equality an assertion about the production contract).
+        self.assertEqual(repr(metadata), repr(before))
+        return q
+
+    def test_claude_invalid_strata_counterexamples(self):
+        for stratum, changes, reason in (
+            ('competition_type', dict(ctx_cup=False, ctx_youth_reserve=False, ctx_league_other=False),
+             'CONFOUNDER_COMPETITION_CONTRADICTION'),
+            ('competition_type', dict(ctx_cup=True, ctx_league_other=True),
+             'CONFOUNDER_COMPETITION_CONTRADICTION'),
+            ('lead_bin', dict(lead_first_min=-30), 'CONFOUNDER_VALUE_OUT_OF_DOMAIN'),
+            ('line_bin', dict(total_line_last=float('nan')), 'CONFOUNDER_VALUE_NONFINITE')):
+            with self.subTest(stratum=stratum, changes=changes):
+                p = self.prepare(stratum)
+                for row in self.meta:
+                    row['variables'].update(changes)
+                self.assert_excluded(p, self.meta, reason, 'REJECTED')
+
+    def test_strata_numeric_types_nonfinite_and_missing(self):
+        for stratum, variable in (('lead_bin', 'lead_first_min'), ('line_bin', 'total_line_last')):
+            for value, reason, status in (
+                (None, 'CONFOUNDER_DATA_MISSING', 'INSUFFICIENT_DATA'),
+                ('2.5', 'CONFOUNDER_VALUE_TYPE_INVALID', 'REJECTED'),
+                (True, 'CONFOUNDER_VALUE_TYPE_INVALID', 'REJECTED'),
+                (False, 'CONFOUNDER_VALUE_TYPE_INVALID', 'REJECTED'),
+                ([], 'CONFOUNDER_VALUE_TYPE_INVALID', 'REJECTED'),
+                ({}, 'CONFOUNDER_VALUE_TYPE_INVALID', 'REJECTED'),
+                (float('nan'), 'CONFOUNDER_VALUE_NONFINITE', 'REJECTED'),
+                (float('inf'), 'CONFOUNDER_VALUE_NONFINITE', 'REJECTED'),
+                (-float('inf'), 'CONFOUNDER_VALUE_NONFINITE', 'REJECTED'),
+                (-.01, 'CONFOUNDER_VALUE_OUT_OF_DOMAIN', 'REJECTED')):
+                with self.subTest(stratum=stratum, value=value):
+                    p = self.prepare(stratum)
+                    for row in self.meta:
+                        row['variables'][variable] = value
+                    self.assert_excluded(p, self.meta, reason, status)
+            p = self.prepare(stratum)
+            for row in self.meta:
+                del row['variables'][variable]
+            self.assert_excluded(p, self.meta, 'CONFOUNDER_DATA_MISSING', 'INSUFFICIENT_DATA')
+
+    def test_competition_strict_one_hot_partial_unknown_and_contradictions(self):
+        for variable in ('ctx_cup', 'ctx_youth_reserve', 'ctx_league_other'):
+            for value in (0, 1, 'false', 'true', [], {}, float('nan'), float('inf')):
+                p = self.prepare('competition_type')
+                for row in self.meta:
+                    row['variables'][variable] = value
+                self.assert_excluded(p, self.meta, 'CONFOUNDER_VALUE_TYPE_INVALID', 'REJECTED')
+            for remove in (False, True):
+                p = self.prepare('competition_type')
+                for row in self.meta:
+                    if remove:
+                        del row['variables'][variable]
+                    else:
+                        row['variables'][variable] = None
+                self.assert_excluded(p, self.meta, 'CONFOUNDER_DATA_MISSING', 'INSUFFICIENT_DATA')
+        for selected in itertools.product((False, True), repeat=3):
+            p = self.prepare('competition_type')
+            for row in self.meta:
+                row['variables'].update(zip(('ctx_cup', 'ctx_youth_reserve', 'ctx_league_other'), selected))
+            if sum(selected) == 1:
+                self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
+            else:
+                self.assert_excluded(p, self.meta, 'CONFOUNDER_COMPETITION_CONTRADICTION', 'REJECTED')
+        p = self.prepare('competition_type')
+        for row in self.meta:
+            row['variables'].update(ctx_cup=True, ctx_youth_reserve=True, ctx_league_other=None)
+        q = self.assert_excluded(p, self.meta, 'CONFOUNDER_COMPETITION_CONTRADICTION', 'REJECTED')
+        self.assertIn('CONFOUNDER_DATA_MISSING', q['reasons'])
+
+    def test_invalid_rows_in_either_arm_cannot_supply_support_or_oos(self):
+        for side in (0, 1):
+            p = self.prepare('line_bin')
+            for row in self.meta[side::2]:
+                row['variables']['total_line_last'] = float('nan')
+            q = self.assert_excluded(p, self.meta, 'CONFOUNDER_VALUE_NONFINITE', 'REJECTED', 300)
+            arm = 'control' if side == 0 else 'group'
+            self.assertEqual(q['metrics'][arm + '_eligible'], 0)
+            self.assertEqual(q['metrics'][arm + '_strata_excluded'], 300)
+            self.assertEqual(q['metrics']['oos']['train_' + arm], 0)
+            self.assertEqual(q['metrics']['oos']['test_' + arm], 0)
+        p = self.prepare('line_bin')
+        self.meta[0]['variables']['total_line_last'] = float('nan')
+        self.assert_excluded(p, self.meta, 'CONFOUNDER_VALUE_NONFINITE', 'REJECTED', 1)
+
+    def test_malformed_stratum_used_in_signal_keeps_all_row_accounting(self):
+        self.prepare('line_bin')
+        expr = op('and', cmp('ge', 'lambda_net', .1), cmp('ge', 'total_line_last', 0))
+        p = self.plan_with(expr, confounders=['line_bin'])
+        for side in (0, 1):
+            m = copy.deepcopy(self.meta)
+            m[side]['variables']['total_line_last'] = []
+            q = self.quality(p, m=m)
+            self.assertIn('CONFOUNDER_VALUE_TYPE_INVALID', q['reasons'])
+            self.assertNotIn('QUALITY_INPUT_INVALID', q['reasons'])
+            self.assertEqual(q['metrics']['rows'], 600)
+            self.assertEqual(q['metrics']['unknown'], 1)
+            self.assertEqual(q['metrics']['group'] + q['metrics']['control'], 599)
+            self.assertEqual(q['metrics']['group_eligible'] + q['metrics']['control_eligible'], 599)
+            self.assertEqual(q['metrics']['strata_exclusions'][0]['match_key'], m[side]['match_key'])
+
+    def test_joint_strata_unknown_does_not_hide_proven_invalid_value(self):
+        self.prepare('lead_bin')
+        p = self.plan_with(cmp('ge', 'lambda_net', .1),
+                           confounders=['competition_type', 'lead_bin', 'line_bin'])
+        for row in self.meta:
+            row['variables'].update(ctx_cup=None, lead_first_min=-30, total_line_last=float('inf'))
+        q = self.assert_excluded(p, self.meta, 'CONFOUNDER_VALUE_NONFINITE', 'REJECTED')
+        self.assertIn('CONFOUNDER_VALUE_OUT_OF_DOMAIN', q['reasons'])
+        self.assertIn('CONFOUNDER_DATA_MISSING', q['reasons'])
+
+    def test_b1_bins_match_executor_only_for_valid_selected_values(self):
+        from h1lab.research_executor import _bins
+        from h1lab.research_quality import _stratum_cell
+        self.prepare('lead_bin')
+        for lead, line, ctx in itertools.product((0, 359.9, 360, 1440, 1440.1, 5000),
+                                                (0, 2.25, 2.5, 3.25, 5), range(3)):
+            row = copy.deepcopy(self.meta[0])
+            row['variables'].update(lead_first_min=lead, total_line_last=line,
+                                    ctx_cup=ctx == 0, ctx_youth_reserve=ctx == 1, ctx_league_other=ctx == 2)
+            selected = ['lead_bin', 'line_bin', 'competition_type']
+            cell, issues = _stratum_cell(row['variables'], selected)
+            self.assertEqual(issues, [])
+            self.assertEqual(cell, tuple(_bins(row)[s] for s in selected))
+        # An unused malformed value must never be sent through shared _bins.
+        p = self.prepare('lead_bin')
+        for row in self.meta:
+            row['variables']['total_line_last'] = 'unused'
+        self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
+
+    def test_p2_large_first_lead_with_late_final_observation_is_possible(self):
+        from h1lab.research_dataset import trajectory_variables
+        p = self.prepare('lead_bin')
+        for row in self.meta:
+            ko = datetime.fromisoformat(row['kickoff_utc'])
+            events = [{'observed_at': (ko-timedelta(minutes=lead)).isoformat(), 'snapshots': {}}
+                      for lead in (5000, 10)]
+            computed = trajectory_variables(events, ko, 'League')
+            self.assertEqual((computed['lead_first_min'], computed['lead_last_min'], computed['span_min']),
+                             (5000, 10, 4990))
+            row['variables']['lead_first_min'] = computed['lead_first_min']
+            row['decision_at'] = events[-1]['observed_at']
+            row['feature_frozen_at'] = row['decision_at']
+            row['feature_observed_at'] = dict.fromkeys(row['variables'], row['decision_at'])
+        self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
 
     def test_all_selected_strata_variables_and_arms(self):
         dependencies = {'line_bin': ['total_line_last'], 'lead_bin': ['lead_first_min'],

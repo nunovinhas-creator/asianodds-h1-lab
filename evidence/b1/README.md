@@ -138,3 +138,98 @@ operacionais não são alterados por esta correção.
 **Nova auditoria independente solicitada: procurar contraexemplos não antecipados
 pelos testes, especialmente negações/OR aninhados, tolerância das igualdades,
 dependências temporais dos estratos e suporte comum nos dois braços.**
+
+## Segunda auditoria Claude — correção do head c7914dcffd2a96be9a17ab3edf1d34b22393b656
+
+PR #259 permanece **Draft**, sem merge, ativação operacional ou promoção científica.
+Esta secção substitui as afirmações anteriores sobre cobertura dos ramos falsos e
+dos valores de estratificação. O head rejeitado passou os 30 testes anteriores,
+mas admitiu todos os oito contraexemplos obrigatórios desta auditoria.
+
+### Matriz reproduzida antes/depois
+
+Os estados abaixo são de **desenho**, não autorização científica. Em todos os
+casos mantém-se `TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE` e `promotion_eligible=false`.
+Os quatro casos P1 usam 600 linhas, com 300 em cada braço.
+
+| Contraexemplo | Head rejeitado | Esperado e corrigido |
+| --- | --- | --- |
+| `OR(lambda_net >= .10, false)` | Aceite | REJECTED / `CONTRADICTORY_SIGNAL_PATH` |
+| `OR(lambda_net >= .10, NOT true)` | Aceite | REJECTED / `CONTRADICTORY_SIGNAL_PATH` |
+| `AND(lambda_net >= .10, OR(total_line_net >= .25, false))` | Aceite | REJECTED / `CONTRADICTORY_SIGNAL_PATH` |
+| Controlo `OR(between(lambda_net, -.02, .02), false)` | Aceite | REJECTED / `CONTRADICTORY_SIGNAL_PATH` |
+| Três contextos `False` | Aceite, 600 elegíveis | REJECTED / `CONFOUNDER_COMPETITION_CONTRADICTION`, zero elegíveis/OOS |
+| `ctx_cup=True`, `ctx_league_other=True` | Aceite, 600 elegíveis | REJECTED / `CONFOUNDER_COMPETITION_CONTRADICTION`, zero elegíveis/OOS |
+| `lead_first_min=-30` | Aceite, 600 elegíveis | REJECTED / `CONFOUNDER_VALUE_OUT_OF_DOMAIN`, zero elegíveis/OOS |
+| `total_line_last=NaN` | Aceite como MID, 600 elegíveis | REJECTED / `CONFOUNDER_VALUE_NONFINITE`, zero elegíveis/OOS |
+| Estrato ausente ou `None` | Adiado | INSUFFICIENT_DATA / `CONFOUNDER_DATA_MISSING`, zero suporte/elegibilidade/OOS dessa linha |
+| Estrato numérico infinito ou de tipo incorreto | Podia ser categorizado ou abortar a avaliação | REJECTED / `CONFOUNDER_VALUE_NONFINITE` ou `CONFOUNDER_VALUE_TYPE_INVALID`, exclusão rastreável |
+| `lambda_abs_path <= -.2` (P2) | Aceite pela análise do desenho | REJECTED / `CONTRADICTORY_SIGNAL_PATH`, domínio não negativo |
+| `p_home_net >= 5` (P2) | Aceite pela análise do desenho | REJECTED / `CONTRADICTORY_SIGNAL_PATH`, domínio [-1, 1] |
+| `lead_first_min=5000`, observação final a 10 min (P2) | Aceite | Aceite se a primeira mensagem foi a 5000 min: trajetória legítima, sem inferir incoerência |
+| Comparar `lambda_net/lambda_first` com `p_home_net/p_home_last` (P2) | Rejeição dimensional indevida | Unidades cancelam; adiado por `COMPOUND_UNITS_REVIEW` / `SATISFIABILITY_UNPROVEN` |
+| OR com duas alternativas materiais, AND redundante e controlo neutro 182/100 | Aceite | Aceite, preservando bloqueio de proveniência |
+
+### Implementação e fronteiras
+
+- `_logic_paths` representa um caminho verdadeiro por conjunção vazia e um
+  caminho falso por átomo `false` explícito. Nenhum OR descarta esse ramo.
+  Mantêm-se os limites da expansão, a lógica ternária e a prova por caminho em
+  ambos os braços. Identidades verdadeiras e De Morgan têm controlos positivos.
+- `_stratum_cell` é exclusivo do B1; `research_executor._bins` e todos os seus
+  consumidores permanecem inalterados. Só categoriza dependências dos estratos
+  pré-especificados após validação. Numéricos têm de ser `int`/`float` finitos,
+  excluindo booleanos; lead e linha Total não podem ser negativos. Não se inventam
+  máximos nem se exige uma grelha de quartos sem prova do contrato da fonte.
+  Contextos têm de ser booleanos estritos e exatamente um verdadeiro. Dois
+  verdadeiros rejeitam mesmo quando o terceiro está em falta; um contexto
+  desconhecido não se transforma numa competição conhecida.
+- Linhas excluídas mantêm `rows`, atribuições brutas, disponibilidade FT/baseline
+  e os dados de origem intactos. Quando a própria atribuição não é avaliável,
+  conta como `unknown` sem interromper as linhas seguintes. `strata_excluded`,
+  contadores por braço e `strata_exclusions` identificam `match_key`, variável e
+  motivo. Não entram em células válidas, elegibilidade ou split OOS. Não se
+  declara suporte comum quando o estrato de uma linha selecionada é desconhecido.
+  Os novos campos só aparecem havendo exclusões, preservando o replay histórico.
+- Os limites P2 decorrem diretamente de `trajectory_variables`: soma de valores
+  absolutos >= 0 e diferença de probabilidades em [-1, 1]. Estes limites provam
+  viabilidade, sem alterar os limiares submetidos usados na materialidade.
+- O caso lead 5000/10 foi reconstruído por `trajectory_variables` com duas
+  mensagens: primeira a 5000 min, última a 10 min, span 4990 min. O timestamp de
+  disponibilidade de uma feature agregada não identifica a primeira mensagem.
+  **P2 separado para futura auditoria:** coerência completa entre lead, span,
+  eventos e horários exige um adaptador autenticado que distinga primeiro evento,
+  último evento e freeze. Não se impõe igualdade com `feature_observed_at` nem um
+  teto arbitrário de lead. A álgebra dimensional geral (produtos, recíprocos,
+  conversões de minutos/horas) também fica fora desta correção; apenas se prova
+  cancelamento de dimensões iguais, mantendo revisão manual da álgebra composta.
+
+### Verificação desta revisão
+
+42 testes B1: 30 anteriores (uma expectativa antiga incompatível com o contrato
+foi corrigida) e 12 novos métodos com casos parametrizados. Incluem os oito
+contraexemplos Claude, ordens e braços, negações aninhadas, desconhecidos versus
+inválidos, os oito estados booleanos de competição, fronteiras dos bins, valores
+finitos/não finitos, tipos, exclusão de uma linha e de um braço inteiro, estrato
+usado no sinal e os P2. Preservam os 900 pares de predicados com testemunhas DSL,
+cronologia, sobreposição, proveniência e controlo neutro 182/100.
+
+Replay autenticado byte a byte idêntico a `evidence/b1/replay.json`:
+SHA-256 `1dd93bc1fee284f2efaed7a58e287f77f2fd9b524b39fea25fbf260e568061c5`.
+Prova original intacta:
+`6280ff9aacce4f9987bfee8aea02c79e968f6f7ded9268c996f823c3c18938f0`.
+Os três planos continuam REJECTED, sem experiências novas ou promoção.
+
+UI: 30 testes; scheduler: 7; V6 offline: 35, sem skips. Gate:
+`SCIENTIFICALLY_BLOCKED`, sem avaliação/publicação. A suite integral, smoke,
+preflight e isolamento finais, com eventuais falhas/skips e links CI, serão
+registados na conversa da PR. Comandos reproduzíveis são os da secção anterior,
+usando `--base c7914dcffd2a96be9a17ab3edf1d34b22393b656` para esta correção.
+Usar nomes de output novos, porque o CLI recusa sobrescrita.
+
+**Solicita-se nova auditoria independente Claude/Work do novo head**, incluindo
+erros adicionais não antecipados: caminhos DNF aninhados, constantes sob negação,
+fronteiras físicas/tolerância de igualdade, tipos malformados em ambos os braços,
+combinações incompletas e contraditórias de estratos e elegibilidade/OOS.
+Testes verdes não constituem aprovação científica. Zero LLM real, custos,
+alterações históricas, workflows, gates ou integração operacional.

@@ -190,7 +190,8 @@ class WorkRevisionTests(unittest.TestCase):
         from h1lab.research_quality import _design
         self.assertEqual(_design({'op': 'and', 'args': [strong, weak]}), (set(), set()))
         self.assertEqual(_design({'op': 'and', 'args': [strong, {'const': True}]}), (set(), set()))
-        self.assertEqual(_design({'op': 'or', 'args': [strong, {'const': False}]}), (set(), set()))
+        self.assertIn('CONTRADICTORY_SIGNAL_PATH',
+                      _design({'op': 'or', 'args': [strong, {'const': False}]})[0])
         self.assertIn('MATERIALITY_UNPROVEN', _design({'op': 'or', 'args': [strong, {'var': 'ctx_cup'}]})[1])
         self.assertEqual(_design({'op': 'or', 'args': [strong, strong]}), (set(), set()))
 
