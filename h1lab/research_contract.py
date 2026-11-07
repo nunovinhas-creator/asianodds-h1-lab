@@ -69,6 +69,7 @@ def variable_unit(v):
 VARIABLE_UNITS = {v: variable_unit(v) for v in VARIABLES}
 
 
+@lru_cache(maxsize=128)
 def _numeric_domain(name):
     # One catalogue contract for row admission AND logical witnesses. Never
     # prove satisfiability with values that row validation would exclude.
@@ -416,6 +417,15 @@ def producer_impossible(windows, literals=None):
 
 
 def value_valid(name, value):
+    # Never key a scientific verdict by object identity or an unvalidated custom
+    # hash. Include the exact scalar type: True must not reuse the verdict for 1.
+    if type(value) not in (int, float, bool, type(None)):
+        return False
+    return _value_valid_cached(name, type(value), value)
+
+
+@lru_cache(maxsize=8192)
+def _value_valid_cached(name, kind, value):
     if value is None:
         return True  # Availability is checked separately for required features.
     if VARIABLES[name][0] == 'bool':
@@ -446,9 +456,17 @@ def value_valid(name, value):
 
 
 def summary_impossible(values):
-    """Shared validation of every supplied catalogue value, including unused ones."""
+    """Validate supplied values before memoizing immutable catalogue tuples."""
     if any(not value_valid(v, x) for v, x in values.items() if v in VARIABLES):
         return True
+    # Missing and None both mean missing evidence in this boundary. The request
+    # hash remains independent and always identifies every original JSON value.
+    return _summary_cached(tuple(values.get(v) for v in VARIABLES))
+
+
+@lru_cache(maxsize=4096)
+def _summary_cached(scalars):
+    values = dict(zip(VARIABLES, scalars))
     known = {v: x for v, x in values.items() if v in VARIABLES and x is not None}
     windows = {v: (x, x) for v, x in known.items() if VARIABLES[v][0] == 'num'}
     literals = {v: x for v, x in known.items() if VARIABLES[v][0] == 'bool'}

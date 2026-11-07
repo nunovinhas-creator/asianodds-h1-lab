@@ -11,7 +11,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from h1lab.research_contract import (CONTRACT_VERSION, SAT, UNSAT, UNKNOWN,
-    produce_witness, summary_impossible, witness_matches)
+    produce_witness, summary_impossible, witness_matches, value_valid)
 from h1lab.research_dataset import trajectory_variables
 from h1lab.research_dsl import evaluate
 from h1lab.research_quality import prove_path, _design, _arm_separation, evaluate_quality
@@ -111,6 +111,17 @@ class JointProducerTests(unittest.TestCase):
         self.assertEqual(_arm_separation(A, opaque, set()), 'CONTROL_DISJOINTNESS_UNPROVEN')
 
     def test_valid_neutral_and_complexity_limits(self):
+        for numeric in (1, 1.0):
+            self.assertTrue(value_valid('n_messages', numeric))
+            self.assertFalse(value_valid('n_messages', True))
+            self.assertFalse(value_valid('n_messages', []))
+        values = b1_produced_metadata()['variables']
+        self.assertFalse(summary_impossible(values))
+        old_run = values['lambda_max_run']
+        values['lambda_max_run'] = 0
+        self.assertTrue(summary_impossible(values))
+        values['lambda_max_run'] = old_run
+        self.assertFalse(summary_impossible(values))
         neutral = join('between', v('lambda_net'), c(-.02), c(.02))
         self.assertEqual(_design(neutral, material=False), (set(), set()))
         # DNF has 128 paths. No branch may be approved by a complexity fallback.
