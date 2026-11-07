@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-07T06:07:10+00:00",
+ "generated_at": "2026-11-07T06:12:02+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -22,23 +22,23 @@
  "sampling": {
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
-  "timelines_omitted": 265,
+  "timelines_omitted": 266,
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "ebb101372a9be0fce740bd35840ac56db6ac7ed6",
+ "source_commit": "c4cce6ddbe1532de4259758697a32e20af466c6c",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
-  "matches": 1809,
+  "matches": 1812,
   "matches_with_identity_inconsistency": 3,
   "max_messages_per_match": 7,
-  "messages": 2795,
+  "messages": 2799,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1651,
+  "messages_on_repeated_matches": 1653,
   "messages_v4_only": 3,
-  "messages_with_v4": 2721,
-  "movement_episodes_upper_bound": 2689,
+  "messages_with_v4": 2725,
+  "movement_episodes_upper_bound": 2693,
   "possibly_redundant_snapshots": 83,
   "post_kickoff_messages": 106,
   "related_message_pairs": 106,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 23
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 665,
+  "repeated_matches": 666,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 117,
-   "V4_EXPLICIT": 4501
+   "V4_EXPLICIT": 4509
   },
-  "total_line_reversals_on_repeated": 416,
+  "total_line_reversals_on_repeated": 417,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 97,
-   "CONTINUOUS": 532,
+   "CONTINUOUS": 533,
    "SAME_MOVEMENT_REPEAT": 106,
    "UNOBSERVED_CHANGE": 250
   },
   "v4_vs_h1_record_agreement": {
-   "asian_handicap:AGREE": 905,
-   "one_x_two:AGREE": 873,
-   "total:AGREE": 2715
+   "asian_handicap:AGREE": 907,
+   "one_x_two:AGREE": 875,
+   "total:AGREE": 2719
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:53386",
+    "3571094759:53396"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:53386",
+     "message_id": 53386,
+     "minutes_to_kickoff": 52.3,
+     "observed_at": "2026-11-07T05:37:42+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 2.02,
+        "under_price": 2.01
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.76,
+        "under_price": 2.01
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:53396",
+     "message_id": 53396,
+     "minutes_to_kickoff": 22.2,
+     "observed_at": "2026-11-07T06:07:50+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.75,
+        "over_price": 1.77,
+        "under_price": 2.01
+       },
+       "before": {
+        "line": 3.0,
+        "over_price": 2.02,
+        "under_price": 2.01
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-07T05:37:42+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-07T06:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-07T06:07:50+00:00",
+   "match_key": "2026-11-07,10040527,1713",
+   "match_label": "Wuxi Wugou vs Changchun Yatai",
+   "movement_episodes": [
+    [
+     "3571094759:53386"
+    ],
+    [
+     "3571094759:53396"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    1808.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.75,
+     "last_observed_line": 2.75,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 2.75,
+       "event_id": "3571094759:53386",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.75,
+       "before": 3.0,
+       "event_id": "3571094759:53396",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:53386",
+       "at_event": "3571094759:53396",
+       "evidence": "intra",
+       "from": "UP",
+       "to": "DOWN"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:53386",
+       "line": "CONTINUOUS",
+       "next_before_line": 3.0,
+       "previous_after_line": 3.0,
+       "prices_at_line": "UNCHANGED",
+       "to": "3571094759:53396"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 3,
    "event_ids": [
@@ -98762,143 +98908,6 @@
        "previous_after_line": 3.25,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:51789"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:51712",
-    "3571094759:51783"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:51712",
-     "message_id": 51712,
-     "minutes_to_kickoff": 146.4,
-     "observed_at": "2026-10-31T09:33:34+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 2.5,
-        "over_price": 2.04,
-        "under_price": 1.83
-       },
-       "before": {
-        "line": 2.25,
-        "over_price": 1.79,
-        "under_price": 2.08
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:51783",
-     "message_id": 51783,
-     "minutes_to_kickoff": 35.5,
-     "observed_at": "2026-10-31T11:24:28+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 2.5,
-        "over_price": 2.05,
-        "under_price": 1.81
-       },
-       "before": {
-        "line": 2.25,
-        "over_price": 1.8,
-        "under_price": 2.05
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-31T09:33:34+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-31T12:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-31T11:24:28+00:00",
-   "match_key": "2026-10-31,29010,28981",
-   "match_label": "Surkhon Termez vs FK Nasaf Qarshi",
-   "movement_episodes": [
-    [
-     "3571094759:51712"
-    ],
-    [
-     "3571094759:51783"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 0,
-   "related_messages": [],
-   "seconds_between_messages": [
-    6654.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 2.25,
-     "last_observed_line": 2.5,
-     "net_observed_change": 0.25,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 2.5,
-       "before": 2.25,
-       "event_id": "3571094759:51712",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 2.5,
-       "before": 2.25,
-       "event_id": "3571094759:51783",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [],
-     "transitions": [
-      {
-       "from": "3571094759:51712",
-       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
-       "next_before_line": 2.25,
-       "previous_after_line": 2.5,
-       "to": "3571094759:51783"
       }
      ]
     }
