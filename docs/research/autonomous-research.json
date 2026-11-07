@@ -4,13 +4,20 @@
   "exploration": "EXPLORATION_ALLOWED",
   "limitations": [
    "Scientific validation gate is SCIENTIFICALLY_BLOCKED: exploratory findings cannot be promoted and must be labelled exploratory.",
-   "14_days source coverage WARMUP (ratio=0.9648): partial sample, conclusions limited to observed games.",
-   "7_days source coverage BELOW_99_PERCENT (ratio=0.9586): partial sample, conclusions limited to observed games."
+   "14_days source coverage WARMUP (ratio=0.9638): partial sample, conclusions limited to observed games.",
+   "7_days source coverage BELOW_99_PERCENT (ratio=0.9603): partial sample, conclusions limited to observed games."
   ],
   "scientific_validation": "SCIENTIFICALLY_BLOCKED"
  },
- "generated_at": "2026-11-06T20:10:23+00:00",
+ "generated_at": "2026-11-07T07:51:44+00:00",
  "investigating": [
+  {
+   "avoid_condition": "{\"args\":[{\"var\":\"lambda_first\"},{\"const\":2.7869}],\"op\":\"le\"}",
+   "experiment_id": "H008985baf280321-v1",
+   "kind": "EXPLORE_ALTERNATIVE",
+   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "ready": true
+  },
   {
    "avoid_condition": "{\"args\":[{\"var\":\"p_home_net\"},{\"const\":-0.016}],\"op\":\"le\"}",
    "experiment_id": "H01238e036b7ecbf-v1",
@@ -33,6 +40,13 @@
    "ready": true
   },
   {
+   "avoid_condition": "{\"args\":[{\"var\":\"lambda_abs_path\"},{\"const\":0.1882}],\"op\":\"ge\"}",
+   "experiment_id": "H02bb20bd09ee942-v1",
+   "kind": "EXPLORE_ALTERNATIVE",
+   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "ready": true
+  },
+  {
    "avoid_condition": "{\"args\":[{\"var\":\"p_draw_net\"},{\"const\":0.0035}],\"op\":\"ge\"}",
    "experiment_id": "H02da5d46d8514e0-v1",
    "kind": "EXPLORE_ALTERNATIVE",
@@ -41,7 +55,7 @@
   },
   {
    "avoid_condition": "{\"args\":[{\"var\":\"ah_line_last\"},{\"const\":-0.5}],\"op\":\"le\"}",
-   "experiment_id": "H03077c15830b189-v3",
+   "experiment_id": "H03077c15830b189-v4",
    "kind": "EXPLORE_ALTERNATIVE",
    "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
    "ready": true
@@ -61,9 +75,9 @@
    "ready": true
   },
   {
-   "experiment_id": "H042622b1cef679c-v5",
-   "ft_now": 352,
-   "ft_then": 352,
+   "experiment_id": "H042622b1cef679c-v6",
+   "ft_now": 373,
+   "ft_then": 373,
    "kind": "RETEST_WHEN_DATA_GROWS",
    "question": "Repetir quando houver mais jogos com FT verificado: Controlo precisa de >= 15 jogos com FT verificado e baseline; tem 0.",
    "ready": false
@@ -84,7 +98,7 @@
   },
   {
    "avoid_condition": "{\"args\":[{\"var\":\"ah_line_moves\"},{\"const\":1.0}],\"op\":\"ge\"}",
-   "experiment_id": "H05858f7646bb010-v2",
+   "experiment_id": "H05858f7646bb010-v3",
    "kind": "EXPLORE_ALTERNATIVE",
    "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
    "ready": true
@@ -97,8 +111,15 @@
    "ready": true
   },
   {
+   "avoid_condition": "{\"args\":[{\"var\":\"lambda_sd\"},{\"const\":0.0824}],\"op\":\"ge\"}",
+   "experiment_id": "H09c1471276f98ba-v1",
+   "kind": "EXPLORE_ALTERNATIVE",
+   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "ready": true
+  },
+  {
    "experiment_id": "H0a839cf1372a667-v1",
-   "ft_now": 352,
+   "ft_now": 373,
    "ft_then": 345,
    "kind": "RETEST_WHEN_DATA_GROWS",
    "question": "Repetir quando houver mais jogos com FT verificado: Grupo precisa de >= 15 jogos com FT verificado e baseline; tem 10.",
@@ -106,7 +127,7 @@
   },
   {
    "avoid_condition": "{\"args\":[{\"var\":\"p_draw_net\"},{\"const\":0.0036}],\"op\":\"ge\"}",
-   "experiment_id": "H0bc68fd3a306cfd-v1",
+   "experiment_id": "H0bc68fd3a306cfd-v2",
    "kind": "EXPLORE_ALTERNATIVE",
    "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
    "ready": true
@@ -119,46 +140,25 @@
    "ready": true
   },
   {
+   "avoid_condition": "{\"args\":[{\"var\":\"total_overround_last\"},{\"const\":0.03671}],\"op\":\"le\"}",
+   "experiment_id": "H0d3e944d65ba14a-v1",
+   "kind": "EXPLORE_ALTERNATIVE",
+   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "ready": true
+  },
+  {
    "avoid_condition": "{\"args\":[{\"var\":\"lambda_last_dir\"},{\"const\":0.0}],\"op\":\"le\"}",
    "experiment_id": "H0defe5554a7bedf-v1",
-   "kind": "EXPLORE_ALTERNATIVE",
-   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "ready": true
-  },
-  {
-   "avoid_condition": "{\"args\":[{\"var\":\"total_msgs\"},{\"const\":2.0}],\"op\":\"ge\"}",
-   "experiment_id": "H0e8e68a531371e0-v1",
-   "kind": "EXPLORE_ALTERNATIVE",
-   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "ready": true
-  },
-  {
-   "avoid_condition": "{\"args\":[{\"var\":\"p_home_first\"},{\"const\":0.503}],\"op\":\"ge\"}",
-   "experiment_id": "H0f3d33021ceeb28-v1",
-   "kind": "EXPLORE_ALTERNATIVE",
-   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "ready": true
-  },
-  {
-   "avoid_condition": "{\"args\":[{\"var\":\"total_line_last\"},{\"const\":2.5}],\"op\":\"le\"}",
-   "experiment_id": "H0ffa97f0c908969-v1",
-   "kind": "EXPLORE_ALTERNATIVE",
-   "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "ready": true
-  },
-  {
-   "avoid_condition": "{\"args\":[{\"var\":\"lead_last_min\"},{\"const\":703.5}],\"op\":\"ge\"}",
-   "experiment_id": "H10262b065a83938-v1",
    "kind": "EXPLORE_ALTERNATIVE",
    "question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
    "ready": true
   }
  ],
  "last_cycle": {
-  "cycle_id": "Cf585ad2207c750b",
+  "cycle_id": "C9d5efb9f1d5927a",
   "experiments_run": 40,
   "funnel": {
-   "cycle_id": "Cf585ad2207c750b",
+   "cycle_id": "C9d5efb9f1d5927a",
    "experiments_from_llm": 0,
    "experiments_from_offline": 40,
    "label": "offline",
@@ -171,40 +171,83 @@
    "plans_received": 0,
    "plans_rejected": 0,
    "provenance_source": "CYCLE_RECORD_V3",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "rejection_reasons": {},
    "tokens": null
   },
   "label": "offline",
   "llm_calls": 0,
   "plans_rejected": 0,
-  "recorded_at": "2026-11-06T20:09:45+00:00",
+  "recorded_at": "2026-11-07T07:51:14+00:00",
   "states": {
+   "INCONCLUSIVE": 2,
    "INSUFFICIENT_DATA": 6,
-   "NO_SUPPORT_IN_DATA": 34
+   "NO_SUPPORT_IN_DATA": 32
   },
-  "verified_ft_in_dataset": 352
+  "verified_ft_in_dataset": 373
  },
  "memory": {
-  "cycles": 5,
-  "distinct_questions": 172,
-  "experiments": 200,
-  "last_sha256": "5449c5d8e3aec04900f2716bd826985d14fcc32e2e16b5570e2d2df6819d1e86",
-  "records": 211
+  "cycles": 6,
+  "distinct_questions": 198,
+  "experiments": 240,
+  "last_sha256": "77c118f71f4a6bcef7bd60d4c5285a2daa360d5db65a88a46a3d4e8e227a2c0f",
+  "records": 252
  },
  "needs_more_data": [
+  {
+   "checks": {
+    "F1_PERMUTATION": "PASS",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 107,
+   "control_rate": 0.3084,
+   "effect": 0.145,
+   "effect_ci95": [
+    0.0056,
+    0.2877
+   ],
+   "experiment_id": "Hf171ba82c81b1ac-v1",
+   "group_n": 62,
+   "group_rate": 0.5,
+   "hypothesis": "Jogos com Variação da probabilidade do visitante no terço superior (>= 0.014) têm AWAY_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Acumular mais jogos e repetir; o resultado atual não distingue as explicações.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AWAY_WIN",
+   "p_value": 0.036982,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.628694,
+   "question": "Variação da probabilidade do visitante no terço superior (>= 0.014) altera AWAY_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "INCONCLUSIVE",
+   "variables": [
+    "p_away_net"
+   ],
+   "version": 1
+  },
   {
    "checks": {},
    "control_n": 0,
    "control_rate": null,
    "effect": null,
    "effect_ci95": null,
-   "experiment_id": "He6cb9c6526c08a9-v5",
-   "group_n": 164,
-   "group_rate": 0.4939,
+   "experiment_id": "He6cb9c6526c08a9-v6",
+   "group_n": 175,
+   "group_rate": 0.5043,
    "hypothesis": "Jogos com Mensagens com handicap asiático no terço superior (>= 1) têm AH_HOME_COVER diferente do esperado pelo mercado.",
    "limitations": [
-    "1540 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "1635 jogos sem FT verificado excluídos (pendente, não derrota).",
     "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
    ],
    "market": "ASIAN_HANDICAP",
@@ -220,26 +263,26 @@
    "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
    "q_value": null,
    "question": "Mensagens com handicap asiático no terço superior (>= 1) altera AH_HOME_COVER face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "scientific_status": "EXPLORATORY_NOT_VALIDATED",
    "state": "INSUFFICIENT_DATA",
    "variables": [
     "ah_msgs"
    ],
-   "version": 5
+   "version": 6
   },
   {
    "checks": {},
-   "control_n": 160,
-   "control_rate": 0.3812,
+   "control_n": 169,
+   "control_rate": 0.3787,
    "effect": null,
    "effect_ci95": null,
-   "experiment_id": "Hc96389011571641-v5",
+   "experiment_id": "Hc96389011571641-v6",
    "group_n": 0,
    "group_rate": null,
    "hypothesis": "Jogos com Mensagens com 1X2 no terço inferior (<= 0) têm AWAY_WIN diferente do esperado pelo mercado.",
    "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
    ],
    "market": "1X2",
    "missing": [
@@ -254,13 +297,13 @@
    "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
    "q_value": null,
    "question": "Mensagens com 1X2 no terço inferior (<= 0) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "scientific_status": "EXPLORATORY_NOT_VALIDATED",
    "state": "INSUFFICIENT_DATA",
    "variables": [
     "x12_msgs"
    ],
-   "version": 5
+   "version": 6
   },
   {
    "checks": {},
@@ -268,12 +311,12 @@
    "control_rate": null,
    "effect": null,
    "effect_ci95": null,
-   "experiment_id": "H87cedd4abe6d151-v5",
-   "group_n": 160,
-   "group_rate": 0.3812,
+   "experiment_id": "H87cedd4abe6d151-v6",
+   "group_n": 169,
+   "group_rate": 0.3787,
    "hypothesis": "Jogos com Mensagens com 1X2 no terço superior (>= 1) têm AWAY_WIN diferente do esperado pelo mercado.",
    "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
    ],
    "market": "1X2",
    "missing": [
@@ -288,26 +331,68 @@
    "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
    "q_value": null,
    "question": "Mensagens com 1X2 no terço superior (>= 1) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "scientific_status": "EXPLORATORY_NOT_VALIDATED",
    "state": "INSUFFICIENT_DATA",
    "variables": [
     "x12_msgs"
    ],
-   "version": 5
+   "version": 6
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "PASS",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 269,
+   "control_rate": 0.5688,
+   "effect": -0.1265,
+   "effect_ci95": [
+    -0.2398,
+    -0.0473
+   ],
+   "experiment_id": "H439ebc787c52f1a-v1",
+   "group_n": 104,
+   "group_rate": 0.4423,
+   "hypothesis": "Jogos com Margem do último preço Over/Under no terço superior (>= 0.0676) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Acumular mais jogos e repetir; o resultado atual não distingue as explicações.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.036482,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.628694,
+   "question": "Margem do último preço Over/Under no terço superior (>= 0.0676) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "INCONCLUSIVE",
+   "variables": [
+    "total_overround_last"
+   ],
+   "version": 1
   },
   {
    "checks": {},
-   "control_n": 160,
-   "control_rate": 0.425,
+   "control_n": 169,
+   "control_rate": 0.4142,
    "effect": null,
    "effect_ci95": null,
-   "experiment_id": "H27769e159e4fc98-v5",
+   "experiment_id": "H27769e159e4fc98-v6",
    "group_n": 0,
    "group_rate": null,
    "hypothesis": "Jogos com Mensagens com 1X2 no terço inferior (<= 0) têm HOME_WIN diferente do esperado pelo mercado.",
    "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
    ],
    "market": "1X2",
    "missing": [
@@ -322,26 +407,26 @@
    "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
    "q_value": null,
    "question": "Mensagens com 1X2 no terço inferior (<= 0) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "scientific_status": "EXPLORATORY_NOT_VALIDATED",
    "state": "INSUFFICIENT_DATA",
    "variables": [
     "x12_msgs"
    ],
-   "version": 5
+   "version": 6
   },
   {
    "checks": {},
-   "control_n": 164,
-   "control_rate": 0.4939,
+   "control_n": 175,
+   "control_rate": 0.5043,
    "effect": null,
    "effect_ci95": null,
-   "experiment_id": "H1e75d8884263aef-v5",
+   "experiment_id": "H1e75d8884263aef-v6",
    "group_n": 0,
    "group_rate": null,
    "hypothesis": "Jogos com Mensagens com handicap asiático no terço inferior (<= 0) têm AH_HOME_COVER diferente do esperado pelo mercado.",
    "limitations": [
-    "1540 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "1635 jogos sem FT verificado excluídos (pendente, não derrota).",
     "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
    ],
    "market": "ASIAN_HANDICAP",
@@ -357,13 +442,13 @@
    "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
    "q_value": null,
    "question": "Mensagens com handicap asiático no terço inferior (<= 0) altera AH_HOME_COVER face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "scientific_status": "EXPLORATORY_NOT_VALIDATED",
    "state": "INSUFFICIENT_DATA",
    "variables": [
     "ah_msgs"
    ],
-   "version": 5
+   "version": 6
   },
   {
    "checks": {},
@@ -371,12 +456,12 @@
    "control_rate": null,
    "effect": null,
    "effect_ci95": null,
-   "experiment_id": "H042622b1cef679c-v5",
-   "group_n": 160,
-   "group_rate": 0.425,
+   "experiment_id": "H042622b1cef679c-v6",
+   "group_n": 169,
+   "group_rate": 0.4142,
    "hypothesis": "Jogos com Mensagens com 1X2 no terço superior (>= 1) têm HOME_WIN diferente do esperado pelo mercado.",
    "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
    ],
    "market": "1X2",
    "missing": [
@@ -391,13 +476,13 @@
    "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
    "q_value": null,
    "question": "Mensagens com 1X2 no terço superior (>= 1) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
    "scientific_status": "EXPLORATORY_NOT_VALIDATED",
    "state": "INSUFFICIENT_DATA",
    "variables": [
     "x12_msgs"
    ],
-   "version": 5
+   "version": 6
   },
   {
    "checks": {},
@@ -928,16 +1013,1356 @@
    "OFFLINE_PROPOSER_ONLY"
   ],
   "experiments_from_live_llm": 6,
-  "experiments_from_offline": 194,
+  "experiments_from_offline": 234,
   "first_cycle_at": "2026-11-05T11:49:58+00:00",
   "is_current_autonomous_research": true,
   "kind": "OPERATIONAL",
   "note": "Investigação operacional: ciclos executados pelo sistema sobre os dados publicados.",
   "real_llm_calls": 4,
-  "reference_time": "2026-11-06T20:09:45+00:00",
+  "reference_time": "2026-11-07T07:51:14+00:00",
   "simulated_or_file_llm_cycles": 0
  },
  "rejected": [
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 108,
+   "control_rate": 0.4074,
+   "effect": 0.0798,
+   "effect_ci95": [
+    -0.0578,
+    0.2119
+   ],
+   "experiment_id": "Hee8b1aa0c9104ea-v1",
+   "group_n": 61,
+   "group_rate": 0.4262,
+   "hypothesis": "Jogos com Variação da probabilidade do visitante no terço inferior (<= -0.015) têm HOME_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "HOME_WIN",
+   "p_value": 0.236882,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.732181,
+   "question": "Variação da probabilidade do visitante no terço inferior (<= -0.015) altera HOME_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_away_net"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 107,
+   "control_rate": 0.4579,
+   "effect": -0.0597,
+   "effect_ci95": [
+    -0.2002,
+    0.1077
+   ],
+   "experiment_id": "Heb121d0991ec3d8-v1",
+   "group_n": 62,
+   "group_rate": 0.3387,
+   "hypothesis": "Jogos com Variação da probabilidade do visitante no terço superior (>= 0.014) têm HOME_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "HOME_WIN",
+   "p_value": 0.412294,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Variação da probabilidade do visitante no terço superior (>= 0.014) altera HOME_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_away_net"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 248,
+   "control_rate": 0.504,
+   "effect": 0.088,
+   "effect_ci95": [
+    -0.0316,
+    0.2208
+   ],
+   "experiment_id": "Hea5ca666639a883-v1",
+   "group_n": 125,
+   "group_rate": 0.592,
+   "hypothesis": "Jogos com Golos implícitos na última observação no terço superior (>= 3.2215) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.130935,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.650532,
+   "question": "Golos implícitos na última observação no terço superior (>= 3.2215) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_last"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 256,
+   "control_rate": 0.5234,
+   "effect": 0.0321,
+   "effect_ci95": [
+    -0.0621,
+    0.1147
+   ],
+   "experiment_id": "He7ec2d4c6cc4a11-v1",
+   "group_n": 117,
+   "group_rate": 0.5556,
+   "hypothesis": "Jogos com Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0723) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.555222,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.955361,
+   "question": "Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0723) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_abs_path"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 129,
+   "control_rate": 0.5039,
+   "effect": 0.0453,
+   "effect_ci95": [
+    -0.0934,
+    0.1924
+   ],
+   "experiment_id": "He163852af4e70a5-v1",
+   "group_n": 244,
+   "group_rate": 0.5492,
+   "hypothesis": "Jogos com Variação líquida da linha Total no terço inferior (<= 0.0) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.443778,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.955361,
+   "question": "Variação líquida da linha Total no terço inferior (<= 0.0) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "total_line_net"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 261,
+   "control_rate": 0.5364,
+   "effect": -0.0096,
+   "effect_ci95": [
+    -0.131,
+    0.0786
+   ],
+   "experiment_id": "Hdd4342775c126a0-v1",
+   "group_n": 112,
+   "group_rate": 0.5268,
+   "hypothesis": "Jogos com Soma das variações absolutas observadas dos golos implícitos no terço superior (>= 0.1882) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.911044,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.967984,
+   "question": "Soma das variações absolutas observadas dos golos implícitos no terço superior (>= 0.1882) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_abs_path"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 109,
+   "control_rate": 0.5505,
+   "effect": -0.1237,
+   "effect_ci95": [
+    -0.2853,
+    -0.0205
+   ],
+   "experiment_id": "Hdc5c23f566f322f-v2",
+   "group_n": 66,
+   "group_rate": 0.428,
+   "hypothesis": "Jogos com Linha AH (casa) na 1.ª observação no terço inferior (<= -0.5) têm AH_HOME_COVER diferente do esperado pelo mercado.",
+   "limitations": [
+    "1039 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "596 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
+   ],
+   "market": "ASIAN_HANDICAP",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AH_HOME_COVER",
+   "p_value": 0.07996,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.64228,
+   "question": "Linha AH (casa) na 1.ª observação no terço inferior (<= -0.5) altera AH_HOME_COVER face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "ah_line_first"
+   ],
+   "version": 2
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 253,
+   "control_rate": 0.5257,
+   "effect": 0.0243,
+   "effect_ci95": [
+    -0.0638,
+    0.1094
+   ],
+   "experiment_id": "Hd4f74b35e6cc69e-v1",
+   "group_n": 120,
+   "group_rate": 0.55,
+   "hypothesis": "Jogos com Desvio-padrão dos golos implícitos observados (estabilidade) no terço inferior (<= 0.0369) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.753123,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.955361,
+   "question": "Desvio-padrão dos golos implícitos observados (estabilidade) no terço inferior (<= 0.0369) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_sd"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 239,
+   "control_rate": 0.5439,
+   "effect": -0.029,
+   "effect_ci95": [
+    -0.1032,
+    0.0483
+   ],
+   "experiment_id": "Hd191766783db0a9-v1",
+   "group_n": 134,
+   "group_rate": 0.5149,
+   "hypothesis": "Jogos com Sentido do último movimento (-1, 0, 1) no terço inferior (<= -1) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.668166,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.955361,
+   "question": "Sentido do último movimento (-1, 0, 1) no terço inferior (<= -1) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_last_dir"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 108,
+   "control_rate": 0.4074,
+   "effect": -0.1155,
+   "effect_ci95": [
+    -0.2178,
+    -0.0088
+   ],
+   "experiment_id": "Hd0c74cee6cfad51-v1",
+   "group_n": 61,
+   "group_rate": 0.3279,
+   "hypothesis": "Jogos com Variação da probabilidade do visitante no terço inferior (<= -0.015) têm AWAY_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AWAY_WIN",
+   "p_value": 0.094453,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.64228,
+   "question": "Variação da probabilidade do visitante no terço inferior (<= -0.015) altera AWAY_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_away_net"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 203,
+   "control_rate": 0.532,
+   "effect": 0.0033,
+   "effect_ci95": [
+    -0.0764,
+    0.0928
+   ],
+   "experiment_id": "Hcfdbe6e4d9497fe-v1",
+   "group_n": 170,
+   "group_rate": 0.5353,
+   "hypothesis": "Jogos com Margem do último preço Over/Under no terço inferior (<= 0.0367) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 1.0,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 1.0,
+   "question": "Margem do último preço Over/Under no terço inferior (<= 0.0367) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "total_overround_last"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 170,
+   "control_rate": 0.5588,
+   "effect": 0.0202,
+   "effect_ci95": [
+    -0.1208,
+    0.1984
+   ],
+   "experiment_id": "Ha7be8184e2182b0-v1",
+   "group_n": 90,
+   "group_rate": 0.6222,
+   "hypothesis": "Jogos com Mensagens com golos implícitos a subir >= 0,05 no terço superior (>= 1) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.781609,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Mensagens com golos implícitos a subir >= 0,05 no terço superior (>= 1) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_moves_up"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 177,
+   "control_rate": 0.6441,
+   "effect": -0.0296,
+   "effect_ci95": [
+    -0.1108,
+    0.0483
+   ],
+   "experiment_id": "H98acacc6b1077bf-v1",
+   "group_n": 83,
+   "group_rate": 0.4458,
+   "hypothesis": "Jogos com Golos implícitos na 1.ª observação no terço inferior (<= 2.7869) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.622189,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Golos implícitos na 1.ª observação no terço inferior (<= 2.7869) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_first"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 205,
+   "control_rate": 0.5756,
+   "effect": 0.0154,
+   "effect_ci95": [
+    -0.1406,
+    0.145
+   ],
+   "experiment_id": "H8a1c49ce0350a50-v1",
+   "group_n": 55,
+   "group_rate": 0.6,
+   "hypothesis": "Jogos com Minutos entre a última mensagem pré-início e o início no terço superior (>= 690.0) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.829585,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Minutos entre a última mensagem pré-início e o início no terço superior (>= 690.0) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lead_last_min"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 120,
+   "control_rate": 0.45,
+   "effect": 0.0132,
+   "effect_ci95": [
+    -0.0733,
+    0.1083
+   ],
+   "experiment_id": "H8037b56f6a9311c-v1",
+   "group_n": 49,
+   "group_rate": 0.2041,
+   "hypothesis": "Jogos com Prob. sem margem da casa na 1.ª observação no terço superior (>= 0.5035) têm AWAY_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AWAY_WIN",
+   "p_value": 0.853573,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Prob. sem margem da casa na 1.ª observação no terço superior (>= 0.5035) altera AWAY_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_home_first"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 159,
+   "control_rate": 0.5849,
+   "effect": -0.0029,
+   "effect_ci95": [
+    -0.1113,
+    0.1378
+   ],
+   "experiment_id": "H7bfc7a48030a6bc-v1",
+   "group_n": 101,
+   "group_rate": 0.5743,
+   "hypothesis": "Jogos com Minutos entre a última mensagem pré-início e o início no terço inferior (<= 51.1) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.956522,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.985508,
+   "question": "Minutos entre a última mensagem pré-início e o início no terço inferior (<= 51.1) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lead_last_min"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 186,
+   "control_rate": 0.5914,
+   "effect": -0.0188,
+   "effect_ci95": [
+    -0.1446,
+    0.1631
+   ],
+   "experiment_id": "H789a1e7b5dfafb4-v1",
+   "group_n": 74,
+   "group_rate": 0.5541,
+   "hypothesis": "Jogos com Variação líquida dos golos implícitos no terço inferior (<= -0.0333) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.774113,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Variação líquida dos golos implícitos no terço inferior (<= -0.0333) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_net"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 63,
+   "control_rate": 0.5238,
+   "effect": -0.0285,
+   "effect_ci95": [
+    -0.2124,
+    0.1455
+   ],
+   "experiment_id": "H5fe83b6e17c9a49-v2",
+   "group_n": 112,
+   "group_rate": 0.4933,
+   "hypothesis": "Jogos com Alterações de linha AH observadas numa mensagem no terço inferior (<= 0) têm AH_HOME_COVER diferente do esperado pelo mercado.",
+   "limitations": [
+    "1039 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "596 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
+   ],
+   "market": "ASIAN_HANDICAP",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AH_HOME_COVER",
+   "p_value": 0.681159,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Alterações de linha AH observadas numa mensagem no terço inferior (<= 0) altera AH_HOME_COVER face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "ah_line_moves"
+   ],
+   "version": 2
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 85,
+   "control_rate": 0.4794,
+   "effect": 0.0509,
+   "effect_ci95": [
+    -0.0432,
+    0.1871
+   ],
+   "experiment_id": "H544381f68d2474f-v2",
+   "group_n": 90,
+   "group_rate": 0.5278,
+   "hypothesis": "Jogos com Linha AH (casa) na 1.ª observação no terço superior (>= 0.0) têm AH_HOME_COVER diferente do esperado pelo mercado.",
+   "limitations": [
+    "1039 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "596 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
+   ],
+   "market": "ASIAN_HANDICAP",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AH_HOME_COVER",
+   "p_value": 0.467266,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Linha AH (casa) na 1.ª observação no terço superior (>= 0.0) altera AH_HOME_COVER face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "ah_line_first"
+   ],
+   "version": 2
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 120,
+   "control_rate": 0.3333,
+   "effect": -0.0238,
+   "effect_ci95": [
+    -0.1718,
+    0.1214
+   ],
+   "experiment_id": "H4f5bb7a4b346d7f-v1",
+   "group_n": 49,
+   "group_rate": 0.6122,
+   "hypothesis": "Jogos com Prob. sem margem da casa na 1.ª observação no terço superior (>= 0.5035) têm HOME_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "HOME_WIN",
+   "p_value": 0.743128,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Prob. sem margem da casa na 1.ª observação no terço superior (>= 0.5035) altera HOME_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_home_first"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 143,
+   "control_rate": 0.6294,
+   "effect": -0.1142,
+   "effect_ci95": [
+    -0.2009,
+    0.0019
+   ],
+   "experiment_id": "H44961fab2e0ed16-v1",
+   "group_n": 117,
+   "group_rate": 0.5214,
+   "hypothesis": "Jogos com Minutos entre a 1.ª mensagem e o início no terço inferior (<= 186.3) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.05947,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.64228,
+   "question": "Minutos entre a 1.ª mensagem e o início no terço inferior (<= 186.3) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lead_first_min"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 144,
+   "control_rate": 0.5972,
+   "effect": 0.0101,
+   "effect_ci95": [
+    -0.1152,
+    0.1145
+   ],
+   "experiment_id": "H2c17da2ccae9ebf-v1",
+   "group_n": 116,
+   "group_rate": 0.5603,
+   "hypothesis": "Jogos com Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0723) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.866067,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0723) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_abs_path"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 141,
+   "control_rate": 0.6099,
+   "effect": -0.017,
+   "effect_ci95": [
+    -0.1447,
+    0.0827
+   ],
+   "experiment_id": "H2b74b0555c72a28-v1",
+   "group_n": 119,
+   "group_rate": 0.5462,
+   "hypothesis": "Jogos com Desvio-padrão dos golos implícitos observados (estabilidade) no terço inferior (<= 0.0369) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.763618,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Desvio-padrão dos golos implícitos observados (estabilidade) no terço inferior (<= 0.0369) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_sd"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 86,
+   "control_rate": 0.4971,
+   "effect": 0.0141,
+   "effect_ci95": [
+    -0.1134,
+    0.1677
+   ],
+   "experiment_id": "H249aadbd64dfab0-v3",
+   "group_n": 89,
+   "group_rate": 0.5112,
+   "hypothesis": "Jogos com Linha AH (casa) na última observação no terço superior (>= 0.0) têm AH_HOME_COVER diferente do esperado pelo mercado.",
+   "limitations": [
+    "1039 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "596 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
+   ],
+   "market": "ASIAN_HANDICAP",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AH_HOME_COVER",
+   "p_value": 0.824588,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Linha AH (casa) na última observação no terço superior (>= 0.0) altera AH_HOME_COVER face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "ah_line_last"
+   ],
+   "version": 3
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 110,
+   "control_rate": 0.4455,
+   "effect": -0.0906,
+   "effect_ci95": [
+    -0.263,
+    0.0891
+   ],
+   "experiment_id": "H2284cfe57466a64-v2",
+   "group_n": 59,
+   "group_rate": 0.3559,
+   "hypothesis": "Jogos com Variação da probabilidade da casa no terço inferior (<= -0.0157) têm HOME_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "HOME_WIN",
+   "p_value": 0.183408,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.692875,
+   "question": "Variação da probabilidade da casa no terço inferior (<= -0.0157) altera HOME_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_home_net"
+   ],
+   "version": 2
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 139,
+   "control_rate": 0.5899,
+   "effect": -0.0102,
+   "effect_ci95": [
+    -0.1242,
+    0.0788
+   ],
+   "experiment_id": "H0d3e944d65ba14a-v1",
+   "group_n": 121,
+   "group_rate": 0.5702,
+   "hypothesis": "Jogos com Margem do último preço Over/Under no terço inferior (<= 0.0367) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.871064,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Margem do último preço Over/Under no terço inferior (<= 0.0367) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "total_overround_last"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 113,
+   "control_rate": 0.354,
+   "effect": 0.087,
+   "effect_ci95": [
+    -0.0601,
+    0.2158
+   ],
+   "experiment_id": "H0bc68fd3a306cfd-v2",
+   "group_n": 56,
+   "group_rate": 0.4286,
+   "hypothesis": "Jogos com Variação da probabilidade do empate no terço superior (>= 0.0036) têm AWAY_WIN diferente do esperado pelo mercado.",
+   "limitations": [
+    "1072 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "569 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "1X2",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AWAY_WIN",
+   "p_value": 0.224888,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.732181,
+   "question": "Variação da probabilidade do empate no terço superior (>= 0.0036) altera AWAY_WIN face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "p_draw_net"
+   ],
+   "version": 2
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 263,
+   "control_rate": 0.5095,
+   "effect": 0.0814,
+   "effect_ci95": [
+    -0.0603,
+    0.1925
+   ],
+   "experiment_id": "H09c1471276f98ba-v1",
+   "group_n": 110,
+   "group_rate": 0.5909,
+   "hypothesis": "Jogos com Desvio-padrão dos golos implícitos observados (estabilidade) no terço superior (>= 0.0824) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.175912,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.692875,
+   "question": "Desvio-padrão dos golos implícitos observados (estabilidade) no terço superior (>= 0.0824) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_sd"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 112,
+   "control_rate": 0.4933,
+   "effect": 0.0285,
+   "effect_ci95": [
+    -0.1542,
+    0.212
+   ],
+   "experiment_id": "H05858f7646bb010-v3",
+   "group_n": 63,
+   "group_rate": 0.5238,
+   "hypothesis": "Jogos com Alterações de linha AH observadas numa mensagem no terço superior (>= 1) têm AH_HOME_COVER diferente do esperado pelo mercado.",
+   "limitations": [
+    "1039 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "596 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
+   ],
+   "market": "ASIAN_HANDICAP",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AH_HOME_COVER",
+   "p_value": 0.688656,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Alterações de linha AH observadas numa mensagem no terço superior (>= 1) altera AH_HOME_COVER face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "ah_line_moves"
+   ],
+   "version": 3
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 113,
+   "control_rate": 0.5332,
+   "effect": -0.0809,
+   "effect_ci95": [
+    -0.2675,
+    0.0313
+   ],
+   "experiment_id": "H03077c15830b189-v4",
+   "group_n": 62,
+   "group_rate": 0.4516,
+   "hypothesis": "Jogos com Linha AH (casa) na última observação no terço inferior (<= -0.5) têm AH_HOME_COVER diferente do esperado pelo mercado.",
+   "limitations": [
+    "1039 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
+    "596 jogos sem FT verificado excluídos (pendente, não derrota).",
+    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
+   ],
+   "market": "ASIAN_HANDICAP",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "RETEST_NEW_DATA",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "AH_HOME_COVER",
+   "p_value": 0.258871,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.733468,
+   "question": "Linha AH (casa) na última observação no terço inferior (<= -0.5) altera AH_HOME_COVER face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "ah_line_last"
+   ],
+   "version": 4
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "FAIL",
+    "F4_CONFOUNDING": "FAIL",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 191,
+   "control_rate": 0.5602,
+   "effect": 0.0243,
+   "effect_ci95": [
+    -0.0682,
+    0.1339
+   ],
+   "experiment_id": "H02bb20bd09ee942-v1",
+   "group_n": 69,
+   "group_rate": 0.6377,
+   "hypothesis": "Jogos com Soma das variações absolutas observadas dos golos implícitos no terço superior (>= 0.1882) têm OVER_2_5 diferente do esperado pelo mercado.",
+   "limitations": [
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "TOTAL_GOALS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "OVER_2_5",
+   "p_value": 0.718641,
+   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+   "q_value": 0.955361,
+   "question": "Soma das variações absolutas observadas dos golos implícitos no terço superior (>= 0.1882) altera OVER_2_5 face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_abs_path"
+   ],
+   "version": 1
+  },
+  {
+   "checks": {
+    "F1_PERMUTATION": "FAIL",
+    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
+    "F3_PERIOD_STABILITY": "PASS",
+    "F4_CONFOUNDING": "PASS",
+    "F5_MULTIPLICITY": "FAIL"
+   },
+   "control_n": 262,
+   "control_rate": 0.5611,
+   "effect": -0.0926,
+   "effect_ci95": [
+    -0.2036,
+    0.0046
+   ],
+   "experiment_id": "H008985baf280321-v1",
+   "group_n": 111,
+   "group_rate": 0.4685,
+   "hypothesis": "Jogos com Golos implícitos na 1.ª observação no terço inferior (<= 2.7869) têm BTTS_YES diferente do esperado pelo mercado.",
+   "limitations": [
+    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
+    "1437 jogos sem FT verificado excluídos (pendente, não derrota)."
+   ],
+   "market": "BTTS",
+   "missing": [],
+   "new_indicators": [],
+   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
+   "novelty": "VARIANT",
+   "origin": "OFFLINE_PROPOSER",
+   "outcome": "BTTS_YES",
+   "p_value": 0.133933,
+   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
+   "q_value": 0.650532,
+   "question": "Golos implícitos na 1.ª observação no terço inferior (<= 2.7869) altera BTTS_YES face ao baseline do mercado?",
+   "recorded_at": "2026-11-07T07:51:14+00:00",
+   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+   "state": "NO_SUPPORT_IN_DATA",
+   "variables": [
+    "lambda_first"
+   ],
+   "version": 1
+  },
   {
    "checks": {
     "F1_PERMUTATION": "FAIL",
@@ -1273,1343 +2698,6 @@
     "p_away_net"
    ],
    "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 151,
-   "control_rate": 0.6026,
-   "effect": -0.0437,
-   "effect_ci95": [
-    -0.1828,
-    0.1417
-   ],
-   "experiment_id": "Ha606b399cd0a97c-v1",
-   "group_n": 95,
-   "group_rate": 0.5684,
-   "hypothesis": "Jogos com Mensagens com o mercado Total no terço superior (>= 2) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.489255,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Mensagens com o mercado Total no terço superior (>= 2) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "total_msgs"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 173,
-   "control_rate": 0.6012,
-   "effect": -0.0228,
-   "effect_ci95": [
-    -0.1444,
-    0.1601
-   ],
-   "experiment_id": "Ha122653afd7a365-v1",
-   "group_n": 73,
-   "group_rate": 0.5616,
-   "hypothesis": "Jogos com Variação líquida dos golos implícitos no terço inferior (<= -0.033) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.733133,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.923205,
-   "question": "Variação líquida dos golos implícitos no terço inferior (<= -0.033) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 109,
-   "control_rate": 0.4587,
-   "effect": -0.0821,
-   "effect_ci95": [
-    -0.2598,
-    0.0753
-   ],
-   "experiment_id": "H8210d1d885085b8-v1",
-   "group_n": 51,
-   "group_rate": 0.3529,
-   "hypothesis": "Jogos com Variação da probabilidade do empate no terço inferior (<= -0.004) têm HOME_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "HOME_WIN",
-   "p_value": 0.281359,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Variação da probabilidade do empate no terço inferior (<= -0.004) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_draw_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 75,
-   "control_rate": 0.5867,
-   "effect": 0.0437,
-   "effect_ci95": [
-    -0.0993,
-    0.2095
-   ],
-   "experiment_id": "H7df8bb48110c60b-v1",
-   "group_n": 171,
-   "group_rate": 0.5906,
-   "hypothesis": "Jogos com Variação líquida da linha Total no terço inferior (<= 0.0) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.533233,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Variação líquida da linha Total no terço inferior (<= 0.0) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "total_line_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "NOT_APPLICABLE",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 112,
-   "control_rate": 0.3393,
-   "effect": -0.0154,
-   "effect_ci95": [
-    -0.1716,
-    0.1258
-   ],
-   "experiment_id": "H7bbd0d7f5a7d753-v1",
-   "group_n": 48,
-   "group_rate": 0.625,
-   "hypothesis": "Jogos com Prob. sem margem da casa na 1.ª observação no terço superior (>= 0.5028) têm HOME_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "HOME_WIN",
-   "p_value": 0.844578,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.957188,
-   "question": "Prob. sem margem da casa na 1.ª observação no terço superior (>= 0.5028) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_first"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 239,
-   "control_rate": 0.5272,
-   "effect": -0.0051,
-   "effect_ci95": [
-    -0.1361,
-    0.0886
-   ],
-   "experiment_id": "H7afaaed8cf647df-v1",
-   "group_n": 113,
-   "group_rate": 0.5221,
-   "hypothesis": "Jogos com Golos implícitos na última observação no terço inferior (<= 2.7832) têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 1.0,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 1.0,
-   "question": "Golos implícitos na última observação no terço inferior (<= 2.7832) altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_last"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "NOT_APPLICABLE",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 118,
-   "control_rate": 0.4492,
-   "effect": 0.0052,
-   "effect_ci95": [
-    -0.1122,
-    0.0918
-   ],
-   "experiment_id": "H779bdc9dcf0e22d-v1",
-   "group_n": 42,
-   "group_rate": 0.1905,
-   "hypothesis": "Jogos com Prob. sem margem da casa na última observação no terço superior (>= 0.4956) têm AWAY_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AWAY_WIN",
-   "p_value": 0.952524,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 1.0,
-   "question": "Prob. sem margem da casa na última observação no terço superior (>= 0.4956) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_last"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 165,
-   "control_rate": 0.6303,
-   "effect": 0.0427,
-   "effect_ci95": [
-    -0.042,
-    0.1312
-   ],
-   "experiment_id": "H72a924689787063-v1",
-   "group_n": 81,
-   "group_rate": 0.5062,
-   "hypothesis": "Jogos com Linha Total na 1.ª observação no terço inferior (<= 2.5) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.556222,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Linha Total na 1.ª observação no terço inferior (<= 2.5) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "total_line_first"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 225,
-   "control_rate": 0.5378,
-   "effect": -0.0338,
-   "effect_ci95": [
-    -0.1388,
-    0.0759
-   ],
-   "experiment_id": "H6f976370b09d89d-v1",
-   "group_n": 127,
-   "group_rate": 0.5039,
-   "hypothesis": "Jogos com Variação líquida dos golos implícitos no terço inferior (<= -0.033) têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 0.586207,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 0.833237,
-   "question": "Variação líquida dos golos implícitos no terço inferior (<= -0.033) altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 106,
-   "control_rate": 0.4623,
-   "effect": -0.1154,
-   "effect_ci95": [
-    -0.2703,
-    0.0812
-   ],
-   "experiment_id": "H6c7529d4db54b1c-v1",
-   "group_n": 54,
-   "group_rate": 0.3519,
-   "hypothesis": "Jogos com Variação da probabilidade do empate no terço superior (>= 0.0036) têm HOME_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "HOME_WIN",
-   "p_value": 0.132434,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Variação da probabilidade do empate no terço superior (>= 0.0036) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_draw_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 104,
-   "control_rate": 0.3173,
-   "effect": 0.1347,
-   "effect_ci95": [
-    0.0043,
-    0.2635
-   ],
-   "experiment_id": "H685efba71abdb61-v1",
-   "group_n": 56,
-   "group_rate": 0.5,
-   "hypothesis": "Jogos com Variação da probabilidade do visitante no terço superior (>= 0.0142) têm AWAY_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AWAY_WIN",
-   "p_value": 0.066467,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Variação da probabilidade do visitante no terço superior (>= 0.0142) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_away_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 174,
-   "control_rate": 0.5977,
-   "effect": -0.03,
-   "effect_ci95": [
-    -0.1131,
-    0.0675
-   ],
-   "experiment_id": "H6757bb9e505d95b-v1",
-   "group_n": 72,
-   "group_rate": 0.5694,
-   "hypothesis": "Jogos com Sentido do último movimento (-1, 0, 1) no terço inferior (<= -1) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.637181,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Sentido do último movimento (-1, 0, 1) no terço inferior (<= -1) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_last_dir"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 94,
-   "control_rate": 0.234,
-   "effect": 0.0779,
-   "effect_ci95": [
-    -0.1075,
-    0.2535
-   ],
-   "experiment_id": "H66dc4bc626ed8aa-v1",
-   "group_n": 66,
-   "group_rate": 0.5909,
-   "hypothesis": "Jogos com Prob. sem margem da casa na última observação no terço inferior (<= 0.336) têm AWAY_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AWAY_WIN",
-   "p_value": 0.257871,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Prob. sem margem da casa na última observação no terço inferior (<= 0.336) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_last"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 94,
-   "control_rate": 0.5851,
-   "effect": -0.1077,
-   "effect_ci95": [
-    -0.2431,
-    0.0212
-   ],
-   "experiment_id": "H5f494fbdf7e70b8-v1",
-   "group_n": 66,
-   "group_rate": 0.197,
-   "hypothesis": "Jogos com Prob. sem margem da casa na última observação no terço inferior (<= 0.336) têm HOME_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "HOME_WIN",
-   "p_value": 0.138931,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Prob. sem margem da casa na última observação no terço inferior (<= 0.336) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_last"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "NOT_APPLICABLE",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 118,
-   "control_rate": 0.3475,
-   "effect": -0.0189,
-   "effect_ci95": [
-    -0.1581,
-    0.1212
-   ],
-   "experiment_id": "H5dae688fc76e242-v1",
-   "group_n": 42,
-   "group_rate": 0.6429,
-   "hypothesis": "Jogos com Prob. sem margem da casa na última observação no terço superior (>= 0.4956) têm HOME_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "HOME_WIN",
-   "p_value": 0.814093,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.954454,
-   "question": "Prob. sem margem da casa na última observação no terço superior (>= 0.4956) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_last"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 94,
-   "control_rate": 0.6277,
-   "effect": -0.0496,
-   "effect_ci95": [
-    -0.1712,
-    0.0608
-   ],
-   "experiment_id": "H5bdbad6285ecd61-v1",
-   "group_n": 152,
-   "group_rate": 0.5658,
-   "hypothesis": "Jogos com Descidas de linha Total observadas numa mensagem no terço inferior (<= 0) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.424288,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Descidas de linha Total observadas numa mensagem no terço inferior (<= 0) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "total_line_downs"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 109,
-   "control_rate": 0.3578,
-   "effect": 0.0441,
-   "effect_ci95": [
-    -0.0812,
-    0.2028
-   ],
-   "experiment_id": "H3b8c70bd4a2a9ba-v1",
-   "group_n": 51,
-   "group_rate": 0.4314,
-   "hypothesis": "Jogos com Variação da probabilidade do empate no terço inferior (<= -0.004) têm AWAY_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "997 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "547 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AWAY_WIN",
-   "p_value": 0.54023,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Variação da probabilidade do empate no terço inferior (<= -0.004) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_draw_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 136,
-   "control_rate": 0.5956,
-   "effect": 0.0321,
-   "effect_ci95": [
-    -0.0766,
-    0.1296
-   ],
-   "experiment_id": "H3a8e1344f36053a-v1",
-   "group_n": 110,
-   "group_rate": 0.5818,
-   "hypothesis": "Jogos com Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0729) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.616692,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0729) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_abs_path"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 134,
-   "control_rate": 0.6269,
-   "effect": -0.093,
-   "effect_ci95": [
-    -0.1775,
-    0.0582
-   ],
-   "experiment_id": "H2a3673b0aeaab10-v1",
-   "group_n": 112,
-   "group_rate": 0.5446,
-   "hypothesis": "Jogos com Minutos entre a 1.ª mensagem e o início no terço inferior (<= 178.9) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.173913,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Minutos entre a 1.ª mensagem e o início no terço inferior (<= 178.9) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lead_first_min"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 81,
-   "control_rate": 0.4907,
-   "effect": 0.0056,
-   "effect_ci95": [
-    -0.1275,
-    0.1631
-   ],
-   "experiment_id": "H249aadbd64dfab0-v2",
-   "group_n": 83,
-   "group_rate": 0.497,
-   "hypothesis": "Jogos com Linha AH (casa) na última observação no terço superior (>= 0.0) têm AH_HOME_COVER diferente do esperado pelo mercado.",
-   "limitations": [
-    "964 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "576 jogos sem FT verificado excluídos (pendente, não derrota).",
-    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
-   ],
-   "market": "ASIAN_HANDICAP",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "RETEST_NEW_DATA",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AH_HOME_COVER",
-   "p_value": 0.935032,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 1.0,
-   "question": "Linha AH (casa) na última observação no terço superior (>= 0.0) altera AH_HOME_COVER face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "ah_line_last"
-   ],
-   "version": 2
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 168,
-   "control_rate": 0.5238,
-   "effect": 0.0327,
-   "effect_ci95": [
-    -0.0913,
-    0.1268
-   ],
-   "experiment_id": "H1d7938310655c3a-v1",
-   "group_n": 78,
-   "group_rate": 0.7308,
-   "hypothesis": "Jogos com Golos implícitos na 1.ª observação no terço superior (>= 3.2165) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.632684,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Golos implícitos na 1.ª observação no terço superior (>= 3.2165) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_first"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 235,
-   "control_rate": 0.4979,
-   "effect": 0.0833,
-   "effect_ci95": [
-    -0.0313,
-    0.2222
-   ],
-   "experiment_id": "H173dbf395185436-v1",
-   "group_n": 117,
-   "group_rate": 0.5812,
-   "hypothesis": "Jogos com Golos implícitos na 1.ª observação no terço superior (>= 3.2165) têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 0.168916,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 0.833237,
-   "question": "Golos implícitos na 1.ª observação no terço superior (>= 3.2165) altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_first"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 243,
-   "control_rate": 0.5391,
-   "effect": -0.0437,
-   "effect_ci95": [
-    -0.1805,
-    0.0846
-   ],
-   "experiment_id": "H1608235e5b661e6-v1",
-   "group_n": 109,
-   "group_rate": 0.4954,
-   "hypothesis": "Jogos com Variação líquida dos golos implícitos no terço superior (>= 0.0677) têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 0.511244,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 0.833237,
-   "question": "Variação líquida dos golos implícitos no terço superior (>= 0.0677) altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_net"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 200,
-   "control_rate": 0.58,
-   "effect": 0.0487,
-   "effect_ci95": [
-    -0.1013,
-    0.1577
-   ],
-   "experiment_id": "H10262b065a83938-v1",
-   "group_n": 46,
-   "group_rate": 0.6304,
-   "hypothesis": "Jogos com Minutos entre a última mensagem pré-início e o início no terço superior (>= 703.5) têm OVER_2_5 diferente do esperado pelo mercado.",
-   "limitations": [
-    "1352 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "TOTAL_GOALS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "OVER_2_5",
-   "p_value": 0.516242,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Minutos entre a última mensagem pré-início e o início no terço superior (>= 703.5) altera OVER_2_5 face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lead_last_min"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "FAIL",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 108,
-   "control_rate": 0.4931,
-   "effect": 0.0007,
-   "effect_ci95": [
-    -0.1954,
-    0.2002
-   ],
-   "experiment_id": "H05858f7646bb010-v2",
-   "group_n": 56,
-   "group_rate": 0.4955,
-   "hypothesis": "Jogos com Alterações de linha AH observadas numa mensagem no terço superior (>= 1) têm AH_HOME_COVER diferente do esperado pelo mercado.",
-   "limitations": [
-    "964 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "576 jogos sem FT verificado excluídos (pendente, não derrota).",
-    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
-   ],
-   "market": "ASIAN_HANDICAP",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "RETEST_NEW_DATA",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AH_HOME_COVER",
-   "p_value": 0.992504,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 1.0,
-   "question": "Alterações de linha AH observadas numa mensagem no terço superior (>= 1) altera AH_HOME_COVER face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "ah_line_moves"
-   ],
-   "version": 2
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "NOT_APPLICABLE",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 105,
-   "control_rate": 0.5143,
-   "effect": -0.0554,
-   "effect_ci95": [
-    -0.2349,
-    0.0483
-   ],
-   "experiment_id": "H03077c15830b189-v3",
-   "group_n": 59,
-   "group_rate": 0.4576,
-   "hypothesis": "Jogos com Linha AH (casa) na última observação no terço inferior (<= -0.5) têm AH_HOME_COVER diferente do esperado pelo mercado.",
-   "limitations": [
-    "964 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "576 jogos sem FT verificado excluídos (pendente, não derrota).",
-    "AH: resultado como fração de cobertura (meia vitória=0,75, push=0,5)."
-   ],
-   "market": "ASIAN_HANDICAP",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "RETEST_NEW_DATA",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AH_HOME_COVER",
-   "p_value": 0.450275,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.833237,
-   "question": "Linha AH (casa) na última observação no terço inferior (<= -0.5) altera AH_HOME_COVER face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T20:09:45+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "ah_line_last"
-   ],
-   "version": 3
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 93,
-   "control_rate": 0.5806,
-   "effect": -0.1005,
-   "effect_ci95": [
-    -0.2386,
-    0.0436
-   ],
-   "experiment_id": "Hf37969290e4080d-v1",
-   "group_n": 64,
-   "group_rate": 0.2031,
-   "hypothesis": "Jogos com Prob. sem margem da casa na 1.ª observação no terço inferior (<= 0.3322) têm HOME_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "955 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "506 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "HOME_WIN",
-   "p_value": 0.156422,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.554724,
-   "question": "Prob. sem margem da casa na 1.ª observação no terço inferior (<= 0.3322) altera HOME_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T10:31:37+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_first"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 326,
-   "control_rate": 0.5368,
-   "effect": -0.1684,
-   "effect_ci95": [
-    -0.3231,
-    -0.0104
-   ],
-   "experiment_id": "Hc8cb2dbe4e65489-v1",
-   "group_n": 19,
-   "group_rate": 0.3684,
-   "hypothesis": "Jogos com Subida de linha seguida de descida posterior dos golos implícitos verdadeiro têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1273 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "NEW",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 0.173413,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 0.554724,
-   "question": "Subida de linha seguida de descida posterior dos golos implícitos verdadeiro altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T10:31:37+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "line_up_then_lambda_down"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "PASS",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 93,
-   "control_rate": 0.2366,
-   "effect": 0.0622,
-   "effect_ci95": [
-    -0.1443,
-    0.2204
-   ],
-   "experiment_id": "Hb475e40e9337f88-v1",
-   "group_n": 64,
-   "group_rate": 0.5781,
-   "hypothesis": "Jogos com Prob. sem margem da casa na última observação no terço inferior (<= 0.3363) têm AWAY_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "955 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "506 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AWAY_WIN",
-   "p_value": 0.387306,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.820839,
-   "question": "Prob. sem margem da casa na última observação no terço inferior (<= 0.3363) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T10:31:37+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_home_last"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 235,
-   "control_rate": 0.5106,
-   "effect": 0.053,
-   "effect_ci95": [
-    -0.0239,
-    0.1396
-   ],
-   "experiment_id": "Hae05a5fc6870cba-v1",
-   "group_n": 110,
-   "group_rate": 0.5636,
-   "hypothesis": "Jogos com Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0732) têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1273 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 0.411794,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 0.820839,
-   "question": "Soma das variações absolutas observadas dos golos implícitos no terço inferior (<= 0.0732) altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T10:31:37+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_abs_path"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "FAIL",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 121,
-   "control_rate": 0.5124,
-   "effect": 0.0233,
-   "effect_ci95": [
-    -0.0798,
-    0.1136
-   ],
-   "experiment_id": "Had33d709ed8130a-v1",
-   "group_n": 224,
-   "group_rate": 0.5357,
-   "hypothesis": "Jogos com Sentido do primeiro movimento (-1, 0, 1) no terço inferior (<= 0) têm BTTS_YES diferente do esperado pelo mercado.",
-   "limitations": [
-    "Sem preço de mercado para BTTS_YES: comparação apenas de frequências; não mede informação além do mercado.",
-    "1273 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "BTTS",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "BTTS_YES",
-   "p_value": 0.732134,
-   "primary_statistic": "DIFFERENCE_IN_OBSERVED_FREQUENCY_NO_MARKET_BASELINE",
-   "q_value": 0.948147,
-   "question": "Sentido do primeiro movimento (-1, 0, 1) no terço inferior (<= 0) altera BTTS_YES face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T10:31:37+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "lambda_first_dir"
-   ],
-   "version": 1
-  },
-  {
-   "checks": {
-    "F1_PERMUTATION": "FAIL",
-    "F2_OUT_OF_SAMPLE_SIGN": "FAIL",
-    "F3_PERIOD_STABILITY": "PASS",
-    "F4_CONFOUNDING": "PASS",
-    "F5_MULTIPLICITY": "FAIL"
-   },
-   "control_n": 103,
-   "control_rate": 0.3204,
-   "effect": 0.1157,
-   "effect_ci95": [
-    -0.0161,
-    0.2661
-   ],
-   "experiment_id": "Ha2f249bd9c1a428-v1",
-   "group_n": 54,
-   "group_rate": 0.4815,
-   "hypothesis": "Jogos com Variação da probabilidade do visitante no terço superior (>= 0.0145) têm AWAY_WIN diferente do esperado pelo mercado.",
-   "limitations": [
-    "955 jogos com variáveis desconhecidas excluídos (nunca usados como controlo).",
-    "506 jogos sem FT verificado excluídos (pendente, não derrota)."
-   ],
-   "market": "1X2",
-   "missing": [],
-   "new_indicators": [],
-   "next_question": "Sem diferença face ao mercado; testar uma interação com outro mercado (1X2 ou AH) em vez de repetir a mesma condição.",
-   "novelty": "VARIANT",
-   "origin": "OFFLINE_PROPOSER",
-   "outcome": "AWAY_WIN",
-   "p_value": 0.11994,
-   "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
-   "q_value": 0.554724,
-   "question": "Variação da probabilidade do visitante no terço superior (>= 0.0145) altera AWAY_WIN face ao baseline do mercado?",
-   "recorded_at": "2026-11-06T10:31:37+00:00",
-   "scientific_status": "EXPLORATORY_NOT_VALIDATED",
-   "state": "NO_SUPPORT_IN_DATA",
-   "variables": [
-    "p_away_net"
-   ],
-   "version": 1
   }
  ],
  "rejected_plans": [
@@ -2772,8 +2860,8 @@
    "real_llm_calls": 4
   },
   "deterministic": {
-   "distinct_questions": 166,
-   "experiments_executed": 194,
+   "distinct_questions": 192,
+   "experiments_executed": 234,
    "limitations": [
     "Hipóteses geradas por uma grelha fixa de tercis das variáveis do catálogo, sem uso de resultados.",
     "Não formula relações novas nem explicações alternativas: é uma varredura determinística.",
@@ -2782,9 +2870,9 @@
    "proposer": "OFFLINE_PROPOSER",
    "states": {
     "FALSIFIED_EXPLORATORY": 1,
-    "INCONCLUSIVE": 4,
+    "INCONCLUSIVE": 6,
     "INSUFFICIENT_DATA": 8,
-    "NO_SUPPORT_IN_DATA": 153
+    "NO_SUPPORT_IN_DATA": 177
    }
   }
  },
