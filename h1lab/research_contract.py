@@ -436,7 +436,10 @@ def value_valid(name, value):
         return False
     # Source table lines are quarter goals with the parser's explicit tolerance.
     if name in ('total_line_first', 'total_line_last', 'ah_line_first', 'ah_line_last'):
-        return number(value, 'line') is not None
+        try:
+            return number(value, 'line') is not None
+        except (OverflowError, ValueError):
+            return False
     if name == 'total_overround_last':
         return -.998 <= value <= 1 and round(value, 5) == value
     return True

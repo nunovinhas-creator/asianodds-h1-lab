@@ -138,7 +138,7 @@ class JointProducerTests(unittest.TestCase):
                      dict(lead_first_min=120.01), dict(lambda_moves_up=1, lambda_max_run=0),
                      dict(total_unobserved_changes=0, lambda_unobserved_net=1),
                      dict(lambda_sd=6.1), dict(trigger_total_share=.3333),
-                     dict(lambda_net=.2, lambda_velocity_h=0, span_min=60)]
+                     dict(lambda_net=.2, lambda_velocity_h=0, span_min=60), dict(ah_line_first=1e308)]
         for changes in mutations:
             altered = copy.deepcopy(rows)
             altered[1]['variables'].update(changes)
