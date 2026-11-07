@@ -1,0 +1,741 @@
+{
+  "memory_sha256": "db3ee17d7af38516340189584cdd1c704432f8f4a5c1dc341d743e68739dc287",
+  "records": [
+    {
+      "cycle_id": "C84726a3448c725b",
+      "data": {
+        "dataset_sha256": "ba45b40bad2fda1380265c8afd2e1265dc720d596746cd0366415b8119743f4a",
+        "dataset_version": 1,
+        "decision_rule": "Vari\u00e1veis apenas de mensagens observadas antes do in\u00edcio",
+        "information_available_until": "2026-11-06T10:31:37+00:00",
+        "sources_sha256": {
+          "data/lab/ft-ledger.json": "cd4b3d4979a3204a7fec164c8d2106a35353c1de85fb29677344d3c9511baaee",
+          "data/lab/markets-2026-10.jsonl": "5efc19bfe60b7ebd6eabd08e729374c203e8e675d13bc7100cdc351fcb47008e",
+          "data/lab/markets-2026-11.jsonl": "aa90bd3a696e5eba8deb5303b783a9769363eb0be03f2453f29732b4941a0bdd",
+          "data/lab/v6-ft-events-2026-10.jsonl": "4d7f1701aa35541adb6d82120c6f8d3aad39e79025ab8ff41955a0c3c5384aeb",
+          "data/lab/v6-ft-events-2026-11.jsonl": "aa3b5accff43683513ca90247b9fcb2fc471a4036d0a243831fa840ba1732cfc",
+          "data/state.json": "3b7f8b72b662795ec09a42aa6eedbbfb16089b11a0c9ffe44bfacc5f8f60190c",
+          "docs/lab/pattern-research.json": "97131d11429a5eff54c5cff3938b7d307f008444420e87f88c6feafd9b8e5e1e",
+          "docs/lab/v6-falsification.json": "ed689f50a9481c41a252d13106730bf700078a672e3f56e179778a20fc1c3345",
+          "docs/lab/v6-p0-gates.json": "6d4262e74ab33a83c260aa01618944c456b8c96e5ddae75e14ce0aa08bf7326c",
+          "docs/lab/v6-readiness.json": "6dcc4d4dbaf268b353b1b9d191b4104928d2c2fc48e28b15e80ce276b28b23e6",
+          "docs/lab/v6-weekly-drift.json": "66393f386875121ac1b59d5704fc14973b4c650527d5f5ec0340d24dba9cafb5"
+        }
+      },
+      "experiment_id": "H676a5e49f4a5f43-v1",
+      "fingerprint": "676a5e49f4a5f4355a05c68a9a4a1c445caf8917cf75b075b4bdf6f256805e6a",
+      "hypothesis": "A varia\u00e7\u00e3o da probabilidade da casa est\u00e1 relacionada \u00e0 varia\u00e7\u00e3o da linha Total.",
+      "hypothesis_id": "H676a5e49f4a5f43",
+      "limitations": [
+        "868 jogos com vari\u00e1veis desconhecidas exclu\u00eddos (nunca usados como controlo).",
+        "106 jogos sem FT verificado exclu\u00eddos (pendente, n\u00e3o derrota)."
+      ],
+      "next_question": "Acumular mais jogos e repetir; o resultado atual n\u00e3o distingue as explica\u00e7\u00f5es.",
+      "novelty": "VARIANT",
+      "null_hypothesis": "A varia\u00e7\u00e3o da probabilidade da casa n\u00e3o est\u00e1 relacionada \u00e0 varia\u00e7\u00e3o da linha Total.",
+      "origin": "LLM_LIVE",
+      "plan": {
+        "alternative_explanations": [
+          "A varia\u00e7\u00e3o da probabilidade da casa pode ser influenciada por outros fatores, como a for\u00e7a da equipe advers\u00e1ria."
+        ],
+        "condition": {
+          "args": [
+            {
+              "args": [
+                {
+                  "var": "X_PROB_HOME_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "gt"
+            },
+            {
+              "args": [
+                {
+                  "var": "X_TOTAL_LINE_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "gt"
+            }
+          ],
+          "op": "and"
+        },
+        "confounders": [
+          "lead_bin",
+          "line_bin"
+        ],
+        "control_condition": {
+          "args": [
+            {
+              "args": [
+                {
+                  "var": "X_PROB_HOME_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "lt"
+            },
+            {
+              "args": [
+                {
+                  "var": "X_TOTAL_LINE_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "lt"
+            }
+          ],
+          "op": "and"
+        },
+        "indicators": [
+          {
+            "description": "Varia\u00e7\u00e3o da probabilidade da casa",
+            "expr": {
+              "var": "p_home_net"
+            },
+            "id": "6d2d0c2c991a9430",
+            "name": "X_PROB_HOME_NET",
+            "type": "num",
+            "uses": [
+              "p_home_net"
+            ]
+          },
+          {
+            "description": "Varia\u00e7\u00e3o da linha Total",
+            "expr": {
+              "var": "total_line_net"
+            },
+            "id": "e821c4b892f4ca65",
+            "name": "X_TOTAL_LINE_NET",
+            "type": "num",
+            "uses": [
+              "total_line_net"
+            ]
+          }
+        ],
+        "market": "1X2",
+        "outcome": "HOME_WIN",
+        "rationale": "",
+        "test_version": "RX1",
+        "variables_closure": [
+          "p_home_net",
+          "total_line_net"
+        ],
+        "variables_used": [
+          "p_home_net",
+          "total_line_net"
+        ]
+      },
+      "prev_sha256": "0945d8abb6fd6eedb734319d2350e0d1fda48a0c5fa2177a72cdff41804de573",
+      "question": "Existe uma rela\u00e7\u00e3o entre a varia\u00e7\u00e3o da probabilidade da casa e a varia\u00e7\u00e3o da linha Total?",
+      "record_type": "EXPERIMENT",
+      "recorded_at": "2026-11-06T10:31:37+00:00",
+      "related_to": [
+        "H01238e036b7ecbf-v1",
+        "H43008b6e915c745-v1",
+        "H9f2d49a80f08255-v1"
+      ],
+      "results": {
+        "baseline": "p_home",
+        "checks": {
+          "F1_PERMUTATION": "PASS",
+          "F2_OUT_OF_SAMPLE_SIGN": "NOT_APPLICABLE",
+          "F3_PERIOD_STABILITY": "PASS",
+          "F4_CONFOUNDING": "PASS",
+          "F5_MULTIPLICITY": "FAIL"
+        },
+        "confounding": {
+          "lead_bin": {
+            "adjusted_effect": 0.316,
+            "cells": {
+              "6_24H": {
+                "control_n": 6,
+                "effect": 0.6205,
+                "group_n": 8
+              },
+              "GT_24H": {
+                "control_n": 3,
+                "effect": -0.0819,
+                "group_n": 2
+              },
+              "LT_6H": {
+                "control_n": 11,
+                "effect": 0.1836,
+                "group_n": 7
+              }
+            }
+          },
+          "line_bin": {
+            "adjusted_effect": 0.3065,
+            "cells": {
+              "HIGH": {
+                "control_n": 3,
+                "effect": 0.2964,
+                "group_n": 6
+              },
+              "LOW": {
+                "control_n": 2,
+                "effect": null,
+                "group_n": 0
+              },
+              "MID": {
+                "control_n": 15,
+                "effect": 0.3096,
+                "group_n": 11
+              }
+            }
+          }
+        },
+        "control": {
+          "baseline_brier": 0.1586,
+          "baseline_log_loss": 0.4927,
+          "days": 7,
+          "hits": 9,
+          "market_probability_mean": 0.5086,
+          "n": 20,
+          "observed_rate": 0.45,
+          "observed_rate_ci95": [
+            0.2582,
+            0.6579
+          ],
+          "residual_mean": -0.0587
+        },
+        "counts": {
+          "control": 65,
+          "control_pending_ft": 45,
+          "control_without_baseline": 0,
+          "group": 78,
+          "group_pending_ft": 61,
+          "group_without_baseline": 0,
+          "overlap": 0,
+          "rows": 1618,
+          "unknown": 868
+        },
+        "effect": 0.277,
+        "effect_ci95_day_bootstrap": [
+          0.0315,
+          0.5371
+        ],
+        "executor_version": "RX1",
+        "fisher_p_descriptive": 0.184525,
+        "frequency_difference_ci95": [
+          -0.0596,
+          0.5065
+        ],
+        "group": {
+          "baseline_brier": 0.2361,
+          "baseline_log_loss": 0.6709,
+          "days": 8,
+          "hits": 12,
+          "market_probability_mean": 0.4875,
+          "n": 17,
+          "observed_rate": 0.7059,
+          "observed_rate_ci95": [
+            0.4687,
+            0.8672
+          ],
+          "residual_mean": 0.2183
+        },
+        "multiplicity_family_size": 129,
+        "out_of_sample": {
+          "group_offset_from_train": 0.0902,
+          "split_day": "2026-11-02",
+          "test": {
+            "control_n": 2,
+            "effect": 0.3382,
+            "group_n": 3
+          },
+          "test_group_log_loss": {
+            "market_baseline": 0.5574,
+            "train_offset_model": 0.4902
+          },
+          "train": {
+            "control_n": 18,
+            "effect": 0.2705,
+            "group_n": 14
+          },
+          "train_share_of_days": 0.7
+        },
+        "p_bonferroni_cumulative": 1.0,
+        "p_value": 0.034483,
+        "p_value_method": "DAY_STRATIFIED_PERMUTATION_2000",
+        "periods": {
+          "first_half": {
+            "control_n": 10,
+            "effect": 0.2049,
+            "group_n": 9
+          },
+          "second_half": {
+            "control_n": 10,
+            "effect": 0.3459,
+            "group_n": 8
+          }
+        },
+        "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+        "promotion_eligible": false,
+        "q_value_bh_cycle": 0.341077,
+        "requires_for_validation": [
+          "Pr\u00e9-registo do plano antes de novos jogos",
+          "Avalia\u00e7\u00e3o em jogos futuros independentes (fora da amostra prospetiva)",
+          "SCIENTIFIC_VALIDATION_GATE autorizado (cobertura >=99%, cronologia, >=1000 FT OOS)"
+        ],
+        "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+        "verified_ft_in_dataset": 345
+      },
+      "run_kind": "OPERATIONAL",
+      "schema_version": 1,
+      "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+      "seq": 130,
+      "sha256": "feb5e1b7a9009bc69853040be264915ee73ece58811f772875113475d60d8efb",
+      "state": "INCONCLUSIVE",
+      "variables": {
+        "p_home_net": {
+          "description": "Varia\u00e7\u00e3o da probabilidade da casa",
+          "market": "1X2",
+          "type": "num"
+        },
+        "total_line_net": {
+          "description": "Varia\u00e7\u00e3o l\u00edquida da linha Total",
+          "market": "TOTAL",
+          "type": "num"
+        }
+      },
+      "version": 1
+    },
+    {
+      "cycle_id": "C84726a3448c725b",
+      "data": {
+        "dataset_sha256": "ba45b40bad2fda1380265c8afd2e1265dc720d596746cd0366415b8119743f4a",
+        "dataset_version": 1,
+        "decision_rule": "Vari\u00e1veis apenas de mensagens observadas antes do in\u00edcio",
+        "information_available_until": "2026-11-06T10:31:37+00:00",
+        "sources_sha256": {
+          "data/lab/ft-ledger.json": "cd4b3d4979a3204a7fec164c8d2106a35353c1de85fb29677344d3c9511baaee",
+          "data/lab/markets-2026-10.jsonl": "5efc19bfe60b7ebd6eabd08e729374c203e8e675d13bc7100cdc351fcb47008e",
+          "data/lab/markets-2026-11.jsonl": "aa90bd3a696e5eba8deb5303b783a9769363eb0be03f2453f29732b4941a0bdd",
+          "data/lab/v6-ft-events-2026-10.jsonl": "4d7f1701aa35541adb6d82120c6f8d3aad39e79025ab8ff41955a0c3c5384aeb",
+          "data/lab/v6-ft-events-2026-11.jsonl": "aa3b5accff43683513ca90247b9fcb2fc471a4036d0a243831fa840ba1732cfc",
+          "data/state.json": "3b7f8b72b662795ec09a42aa6eedbbfb16089b11a0c9ffe44bfacc5f8f60190c",
+          "docs/lab/pattern-research.json": "97131d11429a5eff54c5cff3938b7d307f008444420e87f88c6feafd9b8e5e1e",
+          "docs/lab/v6-falsification.json": "ed689f50a9481c41a252d13106730bf700078a672e3f56e179778a20fc1c3345",
+          "docs/lab/v6-p0-gates.json": "6d4262e74ab33a83c260aa01618944c456b8c96e5ddae75e14ce0aa08bf7326c",
+          "docs/lab/v6-readiness.json": "6dcc4d4dbaf268b353b1b9d191b4104928d2c2fc48e28b15e80ce276b28b23e6",
+          "docs/lab/v6-weekly-drift.json": "66393f386875121ac1b59d5704fc14973b4c650527d5f5ec0340d24dba9cafb5"
+        }
+      },
+      "experiment_id": "Hb2c9b2b70782dad-v1",
+      "fingerprint": "b2c9b2b70782dad4d4fd2b766079bd11acaec18d2bf7c5cc21e11e3098adb493",
+      "hypothesis": "A varia\u00e7\u00e3o dos golos impl\u00edcitos est\u00e1 relacionada \u00e0 varia\u00e7\u00e3o da linha AH.",
+      "hypothesis_id": "Hb2c9b2b70782dad",
+      "limitations": [
+        "921 jogos com vari\u00e1veis desconhecidas exclu\u00eddos (nunca usados como controlo).",
+        "84 jogos sem FT verificado exclu\u00eddos (pendente, n\u00e3o derrota).",
+        "AH: resultado como fra\u00e7\u00e3o de cobertura (meia vit\u00f3ria=0,75, push=0,5)."
+      ],
+      "next_question": "Repetir quando houver mais jogos com FT verificado: Grupo precisa de >= 15 jogos com FT verificado e baseline; tem 11.",
+      "novelty": "NEW",
+      "null_hypothesis": "A varia\u00e7\u00e3o dos golos impl\u00edcitos n\u00e3o est\u00e1 relacionada \u00e0 varia\u00e7\u00e3o da linha AH.",
+      "origin": "LLM_LIVE",
+      "plan": {
+        "alternative_explanations": [
+          "A varia\u00e7\u00e3o dos golos impl\u00edcitos pode ser influenciada por outros fatores, como a for\u00e7a da equipe advers\u00e1ria."
+        ],
+        "condition": {
+          "args": [
+            {
+              "args": [
+                {
+                  "var": "X_LAMBDA_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "gt"
+            },
+            {
+              "args": [
+                {
+                  "var": "X_AH_LINE_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "gt"
+            }
+          ],
+          "op": "and"
+        },
+        "confounders": [
+          "lead_bin",
+          "line_bin"
+        ],
+        "control_condition": {
+          "args": [
+            {
+              "args": [
+                {
+                  "var": "X_LAMBDA_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "lt"
+            },
+            {
+              "args": [
+                {
+                  "var": "X_AH_LINE_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "lt"
+            }
+          ],
+          "op": "and"
+        },
+        "indicators": [
+          {
+            "description": "Varia\u00e7\u00e3o dos golos impl\u00edcitos",
+            "expr": {
+              "var": "lambda_net"
+            },
+            "id": "aa088a19609c183c",
+            "name": "X_LAMBDA_NET",
+            "type": "num",
+            "uses": [
+              "lambda_net"
+            ]
+          },
+          {
+            "description": "Varia\u00e7\u00e3o da linha AH",
+            "expr": {
+              "var": "ah_line_net"
+            },
+            "id": "e50b893e49cc61b3",
+            "name": "X_AH_LINE_NET",
+            "type": "num",
+            "uses": [
+              "ah_line_net"
+            ]
+          }
+        ],
+        "market": "ASIAN_HANDICAP",
+        "outcome": "AH_HOME_COVER",
+        "rationale": "",
+        "test_version": "RX1",
+        "variables_closure": [
+          "ah_line_net",
+          "lambda_net"
+        ],
+        "variables_used": [
+          "ah_line_net",
+          "lambda_net"
+        ]
+      },
+      "prev_sha256": "feb5e1b7a9009bc69853040be264915ee73ece58811f772875113475d60d8efb",
+      "question": "Existe uma rela\u00e7\u00e3o entre a varia\u00e7\u00e3o dos golos impl\u00edcitos e a varia\u00e7\u00e3o da linha AH?",
+      "record_type": "EXPERIMENT",
+      "recorded_at": "2026-11-06T10:31:37+00:00",
+      "related_to": [],
+      "results": {
+        "baseline": "p_ah_home",
+        "checks": {},
+        "control": {
+          "baseline_brier": 0.2098,
+          "baseline_log_loss": 0.6877,
+          "days": 8,
+          "market_probability_mean": 0.4921,
+          "n": 15,
+          "observed_rate": 0.25,
+          "residual_mean": -0.2421
+        },
+        "counts": {
+          "control": 52,
+          "control_pending_ft": 37,
+          "control_without_baseline": 0,
+          "group": 58,
+          "group_pending_ft": 47,
+          "group_without_baseline": 0,
+          "overlap": 0,
+          "rows": 1618,
+          "unknown": 921
+        },
+        "executor_version": "RX1",
+        "group": {
+          "baseline_brier": 0.2327,
+          "baseline_log_loss": 0.6926,
+          "days": 6,
+          "market_probability_mean": 0.5087,
+          "n": 11,
+          "observed_rate": 0.5682,
+          "residual_mean": 0.0595
+        },
+        "missing": [
+          "Grupo precisa de >= 15 jogos com FT verificado e baseline; tem 11."
+        ],
+        "p_value": null,
+        "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+        "promotion_eligible": false,
+        "requires_for_validation": [
+          "Pr\u00e9-registo do plano antes de novos jogos",
+          "Avalia\u00e7\u00e3o em jogos futuros independentes (fora da amostra prospetiva)",
+          "SCIENTIFIC_VALIDATION_GATE autorizado (cobertura >=99%, cronologia, >=1000 FT OOS)"
+        ],
+        "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+        "verified_ft_in_dataset": 345
+      },
+      "run_kind": "OPERATIONAL",
+      "schema_version": 1,
+      "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+      "seq": 131,
+      "sha256": "212b9efb7cc3b7e8698903078b683bcc11cfbba6946e3448a68fb2be32903974",
+      "state": "INSUFFICIENT_DATA",
+      "variables": {
+        "ah_line_net": {
+          "description": "Varia\u00e7\u00e3o l\u00edquida da linha AH",
+          "market": "AH",
+          "type": "num"
+        },
+        "lambda_net": {
+          "description": "Varia\u00e7\u00e3o l\u00edquida dos golos impl\u00edcitos",
+          "market": "TOTAL",
+          "type": "num"
+        }
+      },
+      "version": 1
+    },
+    {
+      "cycle_id": "C84726a3448c725b",
+      "data": {
+        "dataset_sha256": "ba45b40bad2fda1380265c8afd2e1265dc720d596746cd0366415b8119743f4a",
+        "dataset_version": 1,
+        "decision_rule": "Vari\u00e1veis apenas de mensagens observadas antes do in\u00edcio",
+        "information_available_until": "2026-11-06T10:31:37+00:00",
+        "sources_sha256": {
+          "data/lab/ft-ledger.json": "cd4b3d4979a3204a7fec164c8d2106a35353c1de85fb29677344d3c9511baaee",
+          "data/lab/markets-2026-10.jsonl": "5efc19bfe60b7ebd6eabd08e729374c203e8e675d13bc7100cdc351fcb47008e",
+          "data/lab/markets-2026-11.jsonl": "aa90bd3a696e5eba8deb5303b783a9769363eb0be03f2453f29732b4941a0bdd",
+          "data/lab/v6-ft-events-2026-10.jsonl": "4d7f1701aa35541adb6d82120c6f8d3aad39e79025ab8ff41955a0c3c5384aeb",
+          "data/lab/v6-ft-events-2026-11.jsonl": "aa3b5accff43683513ca90247b9fcb2fc471a4036d0a243831fa840ba1732cfc",
+          "data/state.json": "3b7f8b72b662795ec09a42aa6eedbbfb16089b11a0c9ffe44bfacc5f8f60190c",
+          "docs/lab/pattern-research.json": "97131d11429a5eff54c5cff3938b7d307f008444420e87f88c6feafd9b8e5e1e",
+          "docs/lab/v6-falsification.json": "ed689f50a9481c41a252d13106730bf700078a672e3f56e179778a20fc1c3345",
+          "docs/lab/v6-p0-gates.json": "6d4262e74ab33a83c260aa01618944c456b8c96e5ddae75e14ce0aa08bf7326c",
+          "docs/lab/v6-readiness.json": "6dcc4d4dbaf268b353b1b9d191b4104928d2c2fc48e28b15e80ce276b28b23e6",
+          "docs/lab/v6-weekly-drift.json": "66393f386875121ac1b59d5704fc14973b4c650527d5f5ec0340d24dba9cafb5"
+        }
+      },
+      "experiment_id": "Ha362ed8af62cd17-v1",
+      "fingerprint": "a362ed8af62cd17a527adf71a9f78a43b836acfa27eee80f2a219aade3a245c5",
+      "hypothesis": "A varia\u00e7\u00e3o da probabilidade do empate est\u00e1 relacionada \u00e0 varia\u00e7\u00e3o da linha Total.",
+      "hypothesis_id": "Ha362ed8af62cd17",
+      "limitations": [
+        "868 jogos com vari\u00e1veis desconhecidas exclu\u00eddos (nunca usados como controlo).",
+        "67 jogos sem FT verificado exclu\u00eddos (pendente, n\u00e3o derrota)."
+      ],
+      "next_question": "Repetir quando houver mais jogos com FT verificado: Grupo precisa de >= 15 jogos com FT verificado e baseline; tem 8. Controlo precisa de >= 15 jogos com FT verificado e baseline; tem 12.",
+      "novelty": "NEW",
+      "null_hypothesis": "A varia\u00e7\u00e3o da probabilidade do empate n\u00e3o est\u00e1 relacionada \u00e0 varia\u00e7\u00e3o da linha Total.",
+      "origin": "LLM_LIVE",
+      "plan": {
+        "alternative_explanations": [
+          "A varia\u00e7\u00e3o da probabilidade do empate pode ser influenciada por outros fatores, como a for\u00e7a da equipe advers\u00e1ria."
+        ],
+        "condition": {
+          "args": [
+            {
+              "args": [
+                {
+                  "var": "X_PROB_DRAW_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "gt"
+            },
+            {
+              "args": [
+                {
+                  "var": "X_TOTAL_LINE_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "gt"
+            }
+          ],
+          "op": "and"
+        },
+        "confounders": [
+          "lead_bin",
+          "line_bin"
+        ],
+        "control_condition": {
+          "args": [
+            {
+              "args": [
+                {
+                  "var": "X_PROB_DRAW_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "lt"
+            },
+            {
+              "args": [
+                {
+                  "var": "X_TOTAL_LINE_NET"
+                },
+                {
+                  "const": 0.0
+                }
+              ],
+              "op": "lt"
+            }
+          ],
+          "op": "and"
+        },
+        "indicators": [
+          {
+            "description": "Varia\u00e7\u00e3o da probabilidade do empate",
+            "expr": {
+              "var": "p_draw_net"
+            },
+            "id": "960af87a7dd88273",
+            "name": "X_PROB_DRAW_NET",
+            "type": "num",
+            "uses": [
+              "p_draw_net"
+            ]
+          },
+          {
+            "description": "Varia\u00e7\u00e3o da linha Total",
+            "expr": {
+              "var": "total_line_net"
+            },
+            "id": "e821c4b892f4ca65",
+            "name": "X_TOTAL_LINE_NET",
+            "type": "num",
+            "uses": [
+              "total_line_net"
+            ]
+          }
+        ],
+        "market": "1X2",
+        "outcome": "DRAW",
+        "rationale": "",
+        "test_version": "RX1",
+        "variables_closure": [
+          "p_draw_net",
+          "total_line_net"
+        ],
+        "variables_used": [
+          "p_draw_net",
+          "total_line_net"
+        ]
+      },
+      "prev_sha256": "212b9efb7cc3b7e8698903078b683bcc11cfbba6946e3448a68fb2be32903974",
+      "question": "Existe uma rela\u00e7\u00e3o entre a varia\u00e7\u00e3o da probabilidade do empate e a varia\u00e7\u00e3o da linha Total?",
+      "record_type": "EXPERIMENT",
+      "recorded_at": "2026-11-06T10:31:37+00:00",
+      "related_to": [],
+      "results": {
+        "baseline": "p_draw",
+        "checks": {},
+        "control": {
+          "baseline_brier": 0.1925,
+          "baseline_log_loss": 0.5756,
+          "days": 7,
+          "hits": 3,
+          "market_probability_mean": 0.2434,
+          "n": 12,
+          "observed_rate": 0.25,
+          "observed_rate_ci95": [
+            0.0889,
+            0.5323
+          ],
+          "residual_mean": 0.0066
+        },
+        "counts": {
+          "control": 36,
+          "control_pending_ft": 24,
+          "control_without_baseline": 0,
+          "group": 51,
+          "group_pending_ft": 43,
+          "group_without_baseline": 0,
+          "overlap": 0,
+          "rows": 1618,
+          "unknown": 868
+        },
+        "executor_version": "RX1",
+        "group": {
+          "baseline_brier": 0.1851,
+          "baseline_log_loss": 0.5542,
+          "days": 6,
+          "hits": 2,
+          "market_probability_mean": 0.2306,
+          "n": 8,
+          "observed_rate": 0.25,
+          "observed_rate_ci95": [
+            0.0715,
+            0.5907
+          ],
+          "residual_mean": 0.0194
+        },
+        "missing": [
+          "Grupo precisa de >= 15 jogos com FT verificado e baseline; tem 8.",
+          "Controlo precisa de >= 15 jogos com FT verificado e baseline; tem 12."
+        ],
+        "p_value": null,
+        "primary_statistic": "DIFFERENCE_IN_MEAN_RESIDUAL_VS_MARKET",
+        "promotion_eligible": false,
+        "requires_for_validation": [
+          "Pr\u00e9-registo do plano antes de novos jogos",
+          "Avalia\u00e7\u00e3o em jogos futuros independentes (fora da amostra prospetiva)",
+          "SCIENTIFIC_VALIDATION_GATE autorizado (cobertura >=99%, cronologia, >=1000 FT OOS)"
+        ],
+        "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+        "verified_ft_in_dataset": 345
+      },
+      "run_kind": "OPERATIONAL",
+      "schema_version": 1,
+      "scientific_status": "EXPLORATORY_NOT_VALIDATED",
+      "seq": 132,
+      "sha256": "865069063960cb0fce57eb02f08accacb948c26bdda173cd05a5f71ab6a70737",
+      "state": "INSUFFICIENT_DATA",
+      "variables": {
+        "p_draw_net": {
+          "description": "Varia\u00e7\u00e3o da probabilidade do empate",
+          "market": "1X2",
+          "type": "num"
+        },
+        "total_line_net": {
+          "description": "Varia\u00e7\u00e3o l\u00edquida da linha Total",
+          "market": "TOTAL",
+          "type": "num"
+        }
+      },
+      "version": 1
+    }
+  ],
+  "run_id": 42202804803,
+  "source_commit": "58c928893f0ba95df361b3ae43c17a3ecdba53e3"
+}

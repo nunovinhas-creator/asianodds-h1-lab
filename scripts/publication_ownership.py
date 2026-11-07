@@ -118,8 +118,15 @@ def is_lab_v4_owned(path):
         bool(LAB_V4_JOURNALS.fullmatch(path))
 
 
+# Immutable B1 evidence is human-reviewed material; no automated publisher owns it.
+B1_AUDIT_FILES = frozenset({'evidence/b1/README.md', 'evidence/b1/real-plans.json',
+                            'evidence/b1/replay.json'})
+
+
 def owner_of(path):
     """Return the single owner of ``path`` (``docs/data.json`` -> COLLECTOR; H1 re-renders it)."""
+    if path in B1_AUDIT_FILES:
+        return MANUAL_REVIEW
     if path.startswith(PROGRAM_PREFIXES) or path in PROGRAM_FILES:
         return PROGRAM
     if is_collector_owned(path):
