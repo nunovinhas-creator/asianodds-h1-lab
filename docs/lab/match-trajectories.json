@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-07T01:02:03+00:00",
+ "generated_at": "2026-11-07T01:12:01+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -22,23 +22,23 @@
  "sampling": {
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
-  "timelines_omitted": 258,
+  "timelines_omitted": 259,
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "7f6f22763b0be734b35d81b1fcd515ce98a5a2a1",
+ "source_commit": "9ce5b552faa090a19ee04ec3b16fa4f5f8de77d5",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 1771,
   "matches_with_identity_inconsistency": 3,
   "max_messages_per_match": 7,
-  "messages": 2745,
+  "messages": 2746,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1632,
+  "messages_on_repeated_matches": 1634,
   "messages_v4_only": 3,
-  "messages_with_v4": 2671,
-  "movement_episodes_upper_bound": 2640,
+  "messages_with_v4": 2672,
+  "movement_episodes_upper_bound": 2641,
   "possibly_redundant_snapshots": 82,
   "post_kickoff_messages": 106,
   "related_message_pairs": 105,
@@ -50,25 +50,163 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 23
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 658,
+  "repeated_matches": 659,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 117,
-   "V4_EXPLICIT": 4421
+   "V4_EXPLICIT": 4422
   },
   "total_line_reversals_on_repeated": 411,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 96,
    "CONTINUOUS": 527,
    "SAME_MOVEMENT_REPEAT": 105,
-   "UNOBSERVED_CHANGE": 245
+   "UNOBSERVED_CHANGE": 246
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 890,
    "one_x_two:AGREE": 858,
-   "total:AGREE": 2665
+   "total:AGREE": 2666
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:53335",
+    "3571094759:53343"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:53335",
+     "message_id": 53335,
+     "minutes_to_kickoff": 345.4,
+     "observed_at": "2026-11-06T23:14:37+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 3.0,
+        "over_price": 1.85,
+        "under_price": 1.93
+       },
+       "before": {
+        "line": 3.25,
+        "over_price": 2.0,
+        "under_price": 1.89
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:53343",
+     "message_id": 53343,
+     "minutes_to_kickoff": 231.1,
+     "observed_at": "2026-11-07T01:08:56+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.5,
+        "over_price": 1.78,
+        "under_price": 1.95
+       },
+       "before": {
+        "line": 2.75,
+        "over_price": 1.9,
+        "under_price": 1.88
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-06T23:14:37+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-07T05:00:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-07T01:08:56+00:00",
+   "match_key": "2026-11-07,35917,33677",
+   "match_label": "Fukushima United FC vs FC Ryūkyū",
+   "movement_episodes": [
+    [
+     "3571094759:53335"
+    ],
+    [
+     "3571094759:53343"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    6859.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 3.25,
+     "last_observed_line": 2.5,
+     "net_observed_change": -0.75,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 3.0,
+       "before": 3.25,
+       "event_id": "3571094759:53335",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.5,
+       "before": 2.75,
+       "event_id": "3571094759:53343",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [],
+     "transitions": [
+      {
+       "from": "3571094759:53335",
+       "line": "UNOBSERVED_CHANGE",
+       "next_before_line": 2.75,
+       "previous_after_line": 3.0,
+       "to": "3571094759:53343",
+       "unobserved_direction": "DOWN"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -98284,152 +98422,6 @@
        "previous_after_line": 3.5,
        "to": "3571094759:51763",
        "unobserved_direction": "DOWN"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:51690",
-    "3571094759:51759"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:51690",
-     "message_id": 51690,
-     "minutes_to_kickoff": 107.5,
-     "observed_at": "2026-10-31T08:12:32+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.0,
-        "over_price": 1.82,
-        "under_price": 1.81
-       },
-       "before": {
-        "line": 3.25,
-        "over_price": 1.83,
-        "under_price": 1.91
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:51759",
-     "message_id": 51759,
-     "minutes_to_kickoff": -0.1,
-     "observed_at": "2026-10-31T10:00:05+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.25,
-        "over_price": 1.93,
-        "under_price": 1.78
-       },
-       "before": {
-        "line": 3.0,
-        "over_price": 1.83,
-        "under_price": 1.91
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-31T08:12:32+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-31T10:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-31T10:00:05+00:00",
-   "match_key": "2026-10-31,64775,75844",
-   "match_label": "FK Vojvodina U19 vs FK Vozdovac U19",
-   "movement_episodes": [
-    [
-     "3571094759:51690"
-    ],
-    [
-     "3571094759:51759"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 1,
-   "related_messages": [],
-   "seconds_between_messages": [
-    6453.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 3.25,
-     "last_observed_line": 3.25,
-     "net_observed_change": 0.0,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 3.0,
-       "before": 3.25,
-       "event_id": "3571094759:51690",
-       "move": "DOWN",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 3.25,
-       "before": 3.0,
-       "event_id": "3571094759:51759",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [
-      {
-       "after_event": "3571094759:51690",
-       "at_event": "3571094759:51759",
-       "evidence": "intra",
-       "from": "DOWN",
-       "to": "UP"
-      }
-     ],
-     "transitions": [
-      {
-       "from": "3571094759:51690",
-       "line": "CONTINUOUS",
-       "next_before_line": 3.0,
-       "previous_after_line": 3.0,
-       "prices_at_line": "CHANGED_UNOBSERVED",
-       "to": "3571094759:51759"
       }
      ]
     }
