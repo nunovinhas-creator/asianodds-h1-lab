@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T08:02:09+00:00",
+  "generated_at": "2026-11-07T08:07:08+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,19 +32,19 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 261,
+      "matches": 262,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 65.2
+      "percentage_descriptive": 65.5
     },
     "both_total_and_1x2": {
-      "matches": 258,
+      "matches": 257,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 64.5
+      "percentage_descriptive": 64.2
     },
     "opposing_intra_alert_directions": {
-      "matches": 126,
+      "matches": 127,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 31.5
+      "percentage_descriptive": 31.8
     },
     "with_ambiguous_repeats": {
       "matches": 59,
@@ -100,6 +100,19 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-07,1610,71488",
       "match_label": " vs "
+    },
+    {
+      "directions": [
+        "UP",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:52360",
+        "3571094759:53469"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-11-07,206,1080",
+      "match_label": "1. FC Nürnberg vs SV Darmstadt 1898"
     },
     {
       "directions": [
@@ -254,53 +267,38 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-07,26870,94539",
       "match_label": "Al Gharafa SC vs Al Duhail SC"
-    },
-    {
-      "directions": [
-        "UP",
-        "FLAT",
-        "DOWN"
-      ],
-      "event_ids": [
-        "3571094759:50861",
-        "3571094759:51924",
-        "3571094759:51939"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-31,26901,35746",
-      "match_label": "Al Hilal (KSA) vs Al Fateh"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1861,
+    "all_distinct_matches": 1862,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
     "events_analysed": 1018,
-    "messages_in_source": 2871,
+    "messages_in_source": 2873,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 682,
-    "repeated_matches_omitted": 282,
+    "repeated_matches_in_source": 683,
+    "repeated_matches_omitted": 283,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "e116d623d3fbd9f5d54424398a4b6525a1180d04",
-  "source_generated_at": "2026-11-07T08:02:07+00:00",
+  "source_commit": "595bf13ac92f92276183fd4b24eb2253d7650cc9",
+  "source_generated_at": "2026-11-07T08:07:06+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 30,
-      "T_0_TO_60": 191,
+      "T_0_TO_60": 190,
       "T_360_TO_1440": 174,
-      "T_60_TO_360": 139,
+      "T_60_TO_360": 140,
       "T_OVER_1440": 166,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 33,
-      "T_0_TO_60": 262,
+      "T_0_TO_60": 261,
       "T_360_TO_1440": 241,
-      "T_60_TO_360": 212,
+      "T_60_TO_360": 213,
       "T_OVER_1440": 270,
       "UNKNOWN": 0
     },
@@ -313,13 +311,13 @@
     },
     "direction_pct_of_messages_with_total": {
       "DOWN": 35.5,
-      "FLAT": 27.6,
-      "UP": 36.9
+      "FLAT": 27.5,
+      "UP": 37.0
     },
     "down": 361,
-    "flat": 281,
+    "flat": 280,
     "messages_with_total": 1017,
-    "up": 375,
+    "up": 376,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
