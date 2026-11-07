@@ -1,7 +1,7 @@
 {
   "classification": {
     "closed_unverified": 869,
-    "future": 301,
+    "future": 305,
     "in_3h_grace": 14,
     "past_due_never_checked": 87,
     "past_due_unverified": 113,
@@ -23,20 +23,32 @@
   ],
   "last_run_providers": {
     "api_football": {
-      "cached_days": 0,
-      "configured": false,
-      "date_errors": {},
-      "date_requests": 0,
+      "cached_days": 1,
+      "configured": true,
+      "date_errors": {
+        "2026-11-06": {
+          "category": "PROVIDER_ERRORS",
+          "http_status": 200,
+          "provider_errors": "access: Your account is suspended, check on [url]"
+        }
+      },
+      "date_requests": 1,
       "id_requests": 0,
       "one_shot_activation": false,
-      "reason_counts": {},
-      "requested_days": [],
-      "requests": 0,
+      "reason_counts": {
+        "api_football_unavailable": 9
+      },
+      "requested_days": [
+        "2026-11-06"
+      ],
+      "requests": 1,
       "reviewed_errors": {},
       "reviewed_outcomes": {},
       "reviewed_targets": 0,
-      "rotation_days": [],
-      "scheduled_poll_enabled": false,
+      "rotation_days": [
+        "2026-11-06"
+      ],
+      "scheduled_poll_enabled": true,
       "strict_index_probe": {
         "fallback_outcomes": {},
         "id_batch_limit": 1,
@@ -56,14 +68,14 @@
     },
     "bsd": {
       "core_name_results_recovered": 0,
-      "date_complete_days": 0,
-      "date_days_examined": 0,
+      "date_complete_days": 1,
+      "date_days_examined": 1,
       "date_detail_requests": 0,
       "date_incomplete_days": 0,
-      "date_list_requests": 0,
+      "date_list_requests": 1,
       "fallback_results_recovered": 0,
       "lookup_reason_counts": {
-        "bsd_date_cooldown_deferred": 28
+        "bsd_no_exact_match_in_date": 9
       }
     },
     "goal": {
@@ -81,32 +93,36 @@
       "verified_in_run": 0
     },
     "openfoot": {
-      "cached_days": 0,
+      "cached_days": 1,
       "configured": true,
       "date_errors": {},
       "poll_enabled": true,
-      "reason_counts": {},
-      "requested_days": [],
-      "requests": 0,
-      "rotation_days": [],
+      "reason_counts": {
+        "openfoot_identity_no_core_match": 9
+      },
+      "requested_days": [
+        "2026-11-06"
+      ],
+      "requests": 1,
+      "rotation_days": [
+        "2026-11-06"
+      ],
       "verified_in_run": 0
     },
     "sportscore": {
-      "cached_date_team_queries": 5,
+      "cached_date_team_queries": 4,
       "competition_core_targets": 0,
       "competition_core_verified": 0,
-      "confirmed_in_run": 3,
+      "confirmed_in_run": 0,
       "reason_counts": {
-        "source_home_away_conflict": 3,
-        "sportscore_no_exact_match": 22,
-        "verified_sportscore_ft": 3
+        "sportscore_no_exact_match": 9
       },
-      "requests": 25,
+      "requests": 13,
       "reviewed_alias_ft_in_run": 0,
-      "targeted_searches": 20
+      "targeted_searches": 9
     },
     "thesportsdb": {
-      "cooldown_deferred": 28
+      "cooldown_deferred": 9
     }
   },
   "limitations": [
@@ -124,7 +140,7 @@
     "No missing FT becomes a loss, an invented score, or an H1 settlement.",
     "A single observed result is not an independently corroborated source."
   ],
-  "measured_at": "2026-11-07T09:41:52+00:00",
+  "measured_at": "2026-11-07T09:59:10+00:00",
   "overdue_by_kickoff_utc_day": {
     "2026-11-06": {
       "last_check_without_provider": {
@@ -172,7 +188,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,54378,34260",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 20.7,
+      "overdue_hours": 21.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -194,7 +210,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10022326,26718",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 20.2,
+      "overdue_hours": 20.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -216,7 +232,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,76286,24850",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 20.0,
+      "overdue_hours": 20.3,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -238,7 +254,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10085213,34048",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 19.7,
+      "overdue_hours": 20.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -260,7 +276,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,54165,10043669",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 19.7,
+      "overdue_hours": 20.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -282,9 +298,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,85857,59659",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 19.4,
+      "overdue_hours": 19.7,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -304,9 +320,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,24852,24856",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 19.2,
+      "overdue_hours": 19.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -326,9 +342,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,42257,10010162",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 18.2,
+      "overdue_hours": 18.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -348,7 +364,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,26211,26217",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 16.7,
+      "overdue_hours": 17.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -370,7 +386,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,36925,36928",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 16.7,
+      "overdue_hours": 17.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -392,7 +408,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,62924,55785",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 16.7,
+      "overdue_hours": 17.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -414,7 +430,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,76596,57607",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 16.7,
+      "overdue_hours": 17.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -436,7 +452,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,86038,30979",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 16.7,
+      "overdue_hours": 17.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -458,7 +474,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,26866,26880",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 16.4,
+      "overdue_hours": 16.7,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -480,7 +496,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,35746,35858",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 16.2,
+      "overdue_hours": 16.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -502,7 +518,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10102771,26906",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 15.8,
+      "overdue_hours": 16.1,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -524,7 +540,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10016874,49014",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 15.7,
+      "overdue_hours": 16.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -546,7 +562,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,23571,10014819",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 15.7,
+      "overdue_hours": 16.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -568,7 +584,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,26238,10051820",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 15.7,
+      "overdue_hours": 16.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -590,7 +606,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,73076,10055048",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 15.7,
+      "overdue_hours": 16.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -612,7 +628,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,22207,1688",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 15.2,
+      "overdue_hours": 15.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -634,7 +650,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10072017,10077676",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 14.7,
+      "overdue_hours": 15.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -656,7 +672,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,27348,10053070",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 14.7,
+      "overdue_hours": 15.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -678,7 +694,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,30948,29042",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 14.7,
+      "overdue_hours": 15.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -700,7 +716,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,834,45589",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 14.7,
+      "overdue_hours": 15.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -722,9 +738,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10051394,10107346",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -744,9 +760,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10105130,35418",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -766,9 +782,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,21648,54380",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -788,9 +804,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,25151,10044547",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -810,9 +826,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,27368,48536",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -832,9 +848,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,29206,10038002",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -854,9 +870,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,30179,993",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -876,9 +892,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,36030,23035",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -898,9 +914,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,676,625",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.7,
+      "overdue_hours": 14.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -920,9 +936,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1497,32174",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 13.4,
+      "overdue_hours": 13.7,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -942,7 +958,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1252,65653",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 12.2,
+      "overdue_hours": 12.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -964,7 +980,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,29582,47021",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 12.2,
+      "overdue_hours": 12.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -986,7 +1002,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,344,1369",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 12.2,
+      "overdue_hours": 12.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1008,7 +1024,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10053619,1687",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.9,
+      "overdue_hours": 12.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1030,7 +1046,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10050336,10050410",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1052,7 +1068,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1157,1495",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1074,7 +1090,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1513,27852",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1096,7 +1112,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,25452,353",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1118,7 +1134,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,32626,24642",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1140,7 +1156,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,35509,68023",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1162,7 +1178,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,47910,32202",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1184,7 +1200,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,49625,49622",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1206,7 +1222,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,49634,49636",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1228,7 +1244,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,49818,49822",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1250,7 +1266,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,49894,49821",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1272,7 +1288,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,49903,49630",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1294,7 +1310,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,72661,37660",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.7,
+      "overdue_hours": 12.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1316,7 +1332,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,275,960",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 11.4,
+      "overdue_hours": 11.7,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1338,7 +1354,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1361,36277",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 11.2,
+      "overdue_hours": 11.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1360,7 +1376,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,138,118",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 11.2,
+      "overdue_hours": 11.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1382,7 +1398,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,804,24689",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 11.2,
+      "overdue_hours": 11.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1404,7 +1420,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,992,999",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 11.2,
+      "overdue_hours": 11.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1426,7 +1442,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1354,57198",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 10.9,
+      "overdue_hours": 11.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1448,7 +1464,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,41202,41174",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 10.9,
+      "overdue_hours": 11.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1470,7 +1486,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,42312,242",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 10.9,
+      "overdue_hours": 11.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1492,7 +1508,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,50534,1341",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 10.9,
+      "overdue_hours": 11.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1514,7 +1530,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,56501,24172",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 10.9,
+      "overdue_hours": 11.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1536,7 +1552,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,932,10051128",
       "next_eligible_at": "2026-11-07T11:41:47+00:00",
-      "overdue_hours": 10.9,
+      "overdue_hours": 11.2,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1558,7 +1574,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1174,84584",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 10.7,
+      "overdue_hours": 11.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1580,7 +1596,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,26972,26978",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 10.7,
+      "overdue_hours": 11.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1602,7 +1618,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,97842,48553",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 10.7,
+      "overdue_hours": 11.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1624,7 +1640,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10016080,23458",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 9.7,
+      "overdue_hours": 10.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1646,7 +1662,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,32826,26015",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 8.2,
+      "overdue_hours": 8.5,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1668,7 +1684,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,10005673,10016690",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 7.7,
+      "overdue_hours": 8.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1690,7 +1706,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,1653,26061",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 7.7,
+      "overdue_hours": 8.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1712,7 +1728,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-06,98350,10015733",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 7.7,
+      "overdue_hours": 8.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1734,7 +1750,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,52267,10027766",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 5.7,
+      "overdue_hours": 6.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1756,7 +1772,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,997,29970",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 5.7,
+      "overdue_hours": 6.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1778,9 +1794,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,30903,30904",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 5.2,
+      "overdue_hours": 5.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1800,9 +1816,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,61345,29997",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 4.7,
+      "overdue_hours": 5.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1822,9 +1838,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,86169,10066023",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 4.7,
+      "overdue_hours": 5.0,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1844,7 +1860,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,53102,63875",
       "next_eligible_at": "2026-11-07T10:21:49+00:00",
-      "overdue_hours": 3.7,
+      "overdue_hours": 4.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1866,7 +1882,7 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,54921,48685",
       "next_eligible_at": "2026-11-07T11:02:00+00:00",
-      "overdue_hours": 2.7,
+      "overdue_hours": 3.0,
       "provider_attempts": {},
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
@@ -1888,9 +1904,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10040527,1713",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1910,9 +1926,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10040534,10094123",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1932,9 +1948,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10049800,10032267",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1954,9 +1970,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10049800,10049760",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1976,9 +1992,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10059952,10059950",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -1998,9 +2014,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10060048,10071607",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2020,9 +2036,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,10089470,10071683",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2042,9 +2058,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,29253,10073170",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2064,9 +2080,9 @@
       "legacy_last_checked_at": null,
       "match_key": "2026-11-07,78674,10059456",
       "next_eligible_at": "2026-11-07T13:41:52+00:00",
-      "overdue_hours": 0.2,
+      "overdue_hours": 0.5,
       "provider_attempts": {},
-      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
       "status": "PENDING"
     },
@@ -2094,7 +2110,7 @@
       "legacy_last_checked_at": "2026-11-06T19:41:49+00:00",
       "match_key": "2026-11-06,49060,64888",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 18.7,
+      "overdue_hours": 19.0,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2132,7 +2148,7 @@
       "legacy_last_checked_at": "2026-11-06T19:41:49+00:00",
       "match_key": "2026-11-06,79724,48236",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 18.7,
+      "overdue_hours": 19.0,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2170,7 +2186,7 @@
       "legacy_last_checked_at": "2026-11-06T19:41:49+00:00",
       "match_key": "2026-11-06,10086751,28732",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 14.2,
+      "overdue_hours": 14.5,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2208,7 +2224,7 @@
       "legacy_last_checked_at": "2026-11-06T19:41:49+00:00",
       "match_key": "2026-11-06,27342,27349",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 14.2,
+      "overdue_hours": 14.5,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2246,7 +2262,7 @@
       "legacy_last_checked_at": "2026-11-06T19:41:49+00:00",
       "match_key": "2026-11-06,599,744",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 14.2,
+      "overdue_hours": 14.5,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2284,7 +2300,7 @@
       "legacy_last_checked_at": "2026-11-06T19:41:49+00:00",
       "match_key": "2026-11-06,26891,26889",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 14.0,
+      "overdue_hours": 14.3,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2322,7 +2338,7 @@
       "legacy_last_checked_at": "2026-11-06T21:01:48+00:00",
       "match_key": "2026-11-06,10054369,10085749",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 17.7,
+      "overdue_hours": 18.0,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2360,7 +2376,7 @@
       "legacy_last_checked_at": "2026-11-06T21:01:48+00:00",
       "match_key": "2026-11-06,34723,10020301",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 17.7,
+      "overdue_hours": 18.0,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2398,7 +2414,7 @@
       "legacy_last_checked_at": "2026-11-06T21:01:48+00:00",
       "match_key": "2026-11-06,49895,49275",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 17.7,
+      "overdue_hours": 18.0,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2436,7 +2452,7 @@
       "legacy_last_checked_at": "2026-11-06T21:01:48+00:00",
       "match_key": "2026-11-06,63326,73332",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 17.7,
+      "overdue_hours": 18.0,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2474,7 +2490,7 @@
       "legacy_last_checked_at": "2026-11-06T21:01:48+00:00",
       "match_key": "2026-11-06,65650,35977",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 17.7,
+      "overdue_hours": 18.0,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2512,7 +2528,7 @@
       "legacy_last_checked_at": "2026-11-06T21:01:48+00:00",
       "match_key": "2026-11-06,87221,1143",
       "next_eligible_at": "2026-11-07T13:01:57+00:00",
-      "overdue_hours": 17.7,
+      "overdue_hours": 18.0,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2550,7 +2566,7 @@
       "legacy_last_checked_at": "2026-11-07T01:26:47+00:00",
       "match_key": "2026-11-06,49884,49909",
       "next_eligible_at": "2026-11-07T13:26:47+00:00",
-      "overdue_hours": 17.2,
+      "overdue_hours": 17.5,
       "provider_attempts": {
         "openfoot": {
           "confirmed": 0,
@@ -2562,348 +2578,6 @@
       },
       "queue_state": "ADAPTIVE_COOLDOWN",
       "stable_confirmations": 1,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "First Vienna FC 1894",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "FK Austria Wien Amateurs",
-      "kickoff_utc": "2026-11-06T17:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,1636,24679",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 13.2,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Neom SC",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "Al Ittihad (KSA)",
-      "kickoff_utc": "2026-11-06T17:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,26897,10061713",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 13.2,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Werder Bremen Women",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "FC Bayern München Women",
-      "kickoff_utc": "2026-11-06T17:30:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,28158,35966",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 13.2,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "TSV Hartberg II",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "SU Tillmitsch",
-      "kickoff_utc": "2026-11-06T18:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,10010983,10053835",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 12.7,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Fuerte San Francisco Women",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "CD FAS Women",
-      "kickoff_utc": "2026-11-06T18:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,10020886,10073535",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 12.7,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Elite 3000 Helsingor",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "Sundby BK",
-      "kickoff_utc": "2026-11-06T18:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,23065,23059",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 12.7,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "CD Lugo",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "CP Cacereño",
-      "kickoff_utc": "2026-11-06T18:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,31488,23609",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 12.7,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Aalborg BK",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "HB Køge",
-      "kickoff_utc": "2026-11-06T18:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,34420,332",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 12.7,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
-      "status": "PENDING"
-    },
-    {
-      "attempts": 3,
-      "away": "Vendsyssel FF",
-      "evidence_attempts": 3,
-      "examined_provider_days": {
-        "openfoot": {
-          "day": "2026-11-06",
-          "last_confirmed_at": null,
-          "stable_confirmations": 0
-        }
-      },
-      "goal_id_last_attempt_at": null,
-      "goal_last_substantive_evidence": null,
-      "home": "Akademisk Boldklub",
-      "kickoff_utc": "2026-11-06T18:00:00+00:00",
-      "last_attempt_provider_reasons": {
-        "openfoot": "openfoot_identity_no_core_match"
-      },
-      "last_checked_at": "2026-11-07T05:41:57+00:00",
-      "last_queue_visit_at": "2026-11-07T05:41:57+00:00",
-      "last_stable_at": null,
-      "legacy_last_checked_at": "2026-11-07T05:41:57+00:00",
-      "match_key": "2026-11-06,639,54106",
-      "next_eligible_at": "2026-11-07T09:41:57+00:00",
-      "overdue_hours": 12.7,
-      "provider_attempts": {
-        "openfoot": {
-          "confirmed": 0,
-          "first_at": "2026-11-06T21:01:48+00:00",
-          "invocations": 3,
-          "last_at": "2026-11-07T05:41:57+00:00",
-          "last_reason": "openfoot_identity_no_core_match"
-        }
-      },
-      "queue_state": "VISIT_COOLDOWN",
-      "stable_confirmations": 0,
       "status": "PENDING"
     },
     {
@@ -2936,7 +2610,7 @@
       "legacy_last_checked_at": "2026-11-07T08:21:50+00:00",
       "match_key": "2026-11-07,23024,33312",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 1.7,
+      "overdue_hours": 2.0,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -2987,7 +2661,7 @@
       "legacy_last_checked_at": "2026-11-07T08:21:50+00:00",
       "match_key": "2026-11-07,26842,38174",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 1.7,
+      "overdue_hours": 2.0,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -3038,7 +2712,7 @@
       "legacy_last_checked_at": "2026-11-07T08:21:50+00:00",
       "match_key": "2026-11-07,28373,38032",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 1.7,
+      "overdue_hours": 2.0,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -3089,7 +2763,7 @@
       "legacy_last_checked_at": "2026-11-07T08:21:50+00:00",
       "match_key": "2026-11-07,799,1480",
       "next_eligible_at": "2026-11-07T12:21:50+00:00",
-      "overdue_hours": 1.7,
+      "overdue_hours": 2.0,
       "provider_attempts": {
         "goal": {
           "confirmed": 0,
@@ -3108,6 +2782,348 @@
       },
       "queue_state": "VISIT_COOLDOWN",
       "stable_confirmations": 0,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "First Vienna FC 1894",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "FK Austria Wien Amateurs",
+      "kickoff_utc": "2026-11-06T17:30:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,1636,24679",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.5,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Neom SC",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Al Ittihad (KSA)",
+      "kickoff_utc": "2026-11-06T17:30:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,26897,10061713",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.5,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Werder Bremen Women",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "FC Bayern München Women",
+      "kickoff_utc": "2026-11-06T17:30:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,28158,35966",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.5,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "TSV Hartberg II",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "SU Tillmitsch",
+      "kickoff_utc": "2026-11-06T18:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,10010983,10053835",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.0,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Fuerte San Francisco Women",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "CD FAS Women",
+      "kickoff_utc": "2026-11-06T18:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,10020886,10073535",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.0,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Elite 3000 Helsingor",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Sundby BK",
+      "kickoff_utc": "2026-11-06T18:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,23065,23059",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.0,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "CD Lugo",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "CP Cacereño",
+      "kickoff_utc": "2026-11-06T18:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,31488,23609",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.0,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Aalborg BK",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "HB Køge",
+      "kickoff_utc": "2026-11-06T18:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,34420,332",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.0,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
+      "status": "PENDING"
+    },
+    {
+      "attempts": 3,
+      "away": "Vendsyssel FF",
+      "evidence_attempts": 3,
+      "examined_provider_days": {
+        "openfoot": {
+          "day": "2026-11-06",
+          "last_confirmed_at": "2026-11-07T09:59:10+00:00",
+          "stable_confirmations": 1
+        }
+      },
+      "goal_id_last_attempt_at": null,
+      "goal_last_substantive_evidence": null,
+      "home": "Akademisk Boldklub",
+      "kickoff_utc": "2026-11-06T18:00:00+00:00",
+      "last_attempt_provider_reasons": {
+        "openfoot": "openfoot_identity_no_core_match"
+      },
+      "last_checked_at": "2026-11-07T09:59:10+00:00",
+      "last_queue_visit_at": "2026-11-07T09:59:10+00:00",
+      "last_stable_at": "2026-11-07T09:59:10+00:00",
+      "legacy_last_checked_at": "2026-11-07T09:59:10+00:00",
+      "match_key": "2026-11-06,639,54106",
+      "next_eligible_at": "2026-11-07T21:59:10+00:00",
+      "overdue_hours": 13.0,
+      "provider_attempts": {
+        "openfoot": {
+          "confirmed": 0,
+          "first_at": "2026-11-06T21:01:48+00:00",
+          "invocations": 4,
+          "last_at": "2026-11-07T09:59:10+00:00",
+          "last_reason": "openfoot_identity_no_core_match"
+        }
+      },
+      "queue_state": "VISITED_NO_NEW_EVIDENCE",
+      "stable_confirmations": 1,
       "status": "PENDING"
     }
   ],
@@ -3136,7 +3152,7 @@
       },
       "openfoot": {
         "confirmed": 15,
-        "invocations": 192
+        "invocations": 201
       },
       "reviewed_public": {
         "confirmed": 0,
@@ -3152,13 +3168,17 @@
       }
     },
     "api_football_account_gate": {
-      "observed_at_utc": "2026-11-07T05:41:57+00:00",
-      "reason": "PROVIDER_CONFIRMED_ACCOUNT_SUSPENSION",
-      "retry_not_before_utc": "2026-11-07T09:41:57+00:00",
-      "status": "DEFERRED"
+      "reason": "NO_ACTIVE_ACCOUNT_SUSPENSION",
+      "status": "ELIGIBLE"
     },
     "api_football_complete_index_days": 5,
-    "api_football_date_errors": {},
+    "api_football_date_errors": {
+      "2026-11-06": {
+        "category": "PROVIDER_ERRORS",
+        "http_status": 200,
+        "provider_errors": "access: Your account is suspended, check on [url]"
+      }
+    },
     "api_football_history_access": {
       "confirmed_restrictions": {
         "2026-10-27": {
@@ -3192,8 +3212,8 @@
       "approved_selected": 0,
       "decisions": {
         "2026-10-27,77621,67110": {
-          "reason": "API_FOOTBALL_ACCOUNT_SUSPENSION_COOLDOWN",
-          "status": "DEFERRED"
+          "reason": "NOT_SELECTED_IN_CURRENT_FT_QUEUE",
+          "status": "REJECTED"
         }
       },
       "error_details": {},
@@ -3209,12 +3229,11 @@
       "cooldown_blocked_games": 113,
       "coverage_absence_confirmed": 0,
       "coverage_absence_note": "No verified match cannot distinguish absence from names",
-      "date_http_by_path": {},
-      "date_requests": 0,
-      "deferred_days": {
-        "2026-11-06": "bsd_date_cooldown_deferred",
-        "2026-11-07": "bsd_date_cooldown_deferred"
+      "date_http_by_path": {
+        "discovery": 1
       },
+      "date_requests": 1,
+      "deferred_days": {},
       "direct_id_requests_shared_with_monte": 0,
       "direct_lookup": {
         "conflicts": 0,
@@ -3222,26 +3241,32 @@
         "ids_reused": 0,
         "known_ids": 98,
         "reasons": {
-          "bsd_registry_no_id": 28
+          "bsd_registry_no_id": 9
         }
       },
       "eligible_days_after": 0,
-      "eligible_days_before": 0,
+      "eligible_days_before": 1,
       "fallback_detail_requests": 0,
-      "http_total": 0,
+      "http_total": 1,
       "independent_of_ft_queue": true,
       "monte_only_detail_requests": 0,
       "new_ids": 0,
       "overdue_compared_with_complete_catalogue": 113,
-      "overdue_without_id": 116,
+      "overdue_without_id": 113,
       "overdue_without_id_after": 113,
       "persisted_id_new_finals": 0,
-      "planned_days": [],
+      "planned_days": [
+        "2026-11-06"
+      ],
       "post_reconcile": {
+        "compared_games": 93,
+        "complete_days": 1,
         "quarantined_bindings": 0,
         "total_id_bindings": 98
       },
       "pre_reconcile": {
+        "compared_games": 93,
+        "complete_days": 1,
         "quarantined_bindings": 0,
         "total_id_bindings": 98
       }
@@ -3251,8 +3276,12 @@
       "api_football": {
         "date_budget": 3,
         "id_requests": 0,
-        "requested_days": [],
-        "selected_days": []
+        "requested_days": [
+          "2026-11-06"
+        ],
+        "selected_days": [
+          "2026-11-06"
+        ]
       },
       "goal": {
         "date_budget": 2,
@@ -3263,8 +3292,12 @@
       "openfoot": {
         "date_budget": 2,
         "id_requests": 0,
-        "requested_days": [],
-        "selected_days": []
+        "requested_days": [
+          "2026-11-06"
+        ],
+        "selected_days": [
+          "2026-11-06"
+        ]
       }
     },
     "deferred_by_capacity": 0,
@@ -3276,7 +3309,7 @@
       "conflicts_in_run": 0,
       "invalid_previous_claims": {},
       "reason_counts": {
-        "not_unique_or_identity_changed": 28
+        "not_unique_or_identity_changed": 9
       },
       "source_revision_quarantines": 0,
       "validated_source_claims": 0,
@@ -3289,7 +3322,7 @@
       "revisions_quarantined": 0,
       "total_claims": 191
     },
-    "eligible": 28,
+    "eligible": 9,
     "goal_id_probe": {
       "calls": 0,
       "candidates_planned": 0,
@@ -3313,17 +3346,11 @@
         "http_status": 429
       }
     },
-    "last_chance_eligible": [
-      "2026-11-06,24852,24856",
-      "2026-11-06,85857,59659"
-    ],
-    "last_chance_selected": [
-      "2026-11-06,85857,59659",
-      "2026-11-06,24852,24856"
-    ],
+    "last_chance_eligible": [],
+    "last_chance_selected": [],
     "never_checked_deferred": 0,
-    "never_checked_eligible": 28,
-    "newly_confirmed": 3,
+    "never_checked_eligible": 0,
+    "newly_confirmed": 0,
     "old_id_recovery_turn": [],
     "provider_id_collisions": 0,
     "retry_policy": "V7: changed list resets; identical complete lists at 4h/12h/24h; failed/rotated visits >=4h",
@@ -3335,10 +3362,10 @@
       "score_conflicts": 0,
       "verified": 0
     },
-    "selected": 28,
+    "selected": 9,
     "selection_mode": "BOUNDED_PROVIDER_POLL"
   },
   "schema_version": 1,
   "status": "FT_BACKLOG_AUDIT_OBSERVATION_ONLY",
-  "total_matches": 1881
+  "total_matches": 1885
 }
