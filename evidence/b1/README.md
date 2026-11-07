@@ -506,15 +506,21 @@ Os produtores `research_dataset.py`, `market_math.py`, `research_dsl.py` e o
 executor partilhado mantêm os bytes do commit rejeitado. A correção fica no
 avaliador B1, no novo `research_contract.py`, nos testes e no diagnóstico offline.
 
-**Documentos em falta.** Não estão no workspace, na árvore da PR ou nos
-comentários acessíveis os ficheiros `MASTER-BRAIN-auditoria-B1-PR259-198bdf1c.md`,
-`ADENDA-52-SONDAS-ORIGINAIS.md` ou o relatório anterior com os scripts originais.
-Foi pedida a sua localização. Os testes abaixo são **reconstruídos a partir do
-pedido**, não uma reprodução literal dos 52/43/10/601 inputs do auditor. Em
-particular, não é possível identificar individualmente os **553** casos desse
-relatório sem os respetivos inputs. Esse requisito da auditoria permanece aberto.
-O histórico da secção anterior conserva as alegações e hashes dessa entrega;
-a presente correção não os apresenta como evidência suficiente de existência.
+**Documentos conferidos.** Foram lidos os três relatórios recebidos. O relatório
+original de 309 linhas tem SHA-256
+`21325d17befbd1412d382aafa8450ba4b55009f29364603633abd3ce899d3cd1`;
+o relatório de `198bdf1c`,
+`b33bfbf4bba7c9d5a4e7b36187cae36937dd1224bbe51bc5fc6229b830ba3408`;
+a adenda,
+`bbb132f4733e814784ddb768793784e9586bfd923383f448a912fad333f754dc`.
+O programa original das 52 sondas foi recuperado do primeiro bloco Python,
+conferido contra o hash publicado e conservado **sem alterações** em
+`scripts/lab_research_b1_original_probes.py`. Os ficheiros adicionais
+`adversarial.py`, `audit_fixture.py`, `supplemental.py` e `minimal.py` não foram
+fornecidos: as 43/10 sondas adicionais e o universo combinatório de 601 são
+explicitamente reconstruídos das descrições, com condições e gerador publicados.
+O histórico das secções anteriores conserva as afirmações das entregas antigas;
+a presente revisão substitui as suas alegações sobre prova de existência.
 
 ### Fonte única e significado das provas
 
@@ -537,6 +543,18 @@ verificador de certificados. O avaliador lógico e a admissão usam esse contrat
   impede `SCIENTIFICALLY_TESTABLE`. Álgebra fora do fragmento e limites de
   complexidade mantêm esse resultado. O relatório expõe `logical_proof`, com
   estados, contrato, tipo de prova e testemunhas por caminho/interseção.
+
+Exemplos executados diretamente em `prove_path`, com evidência serializável:
+
+| Condição | Estado | Prova |
+|---|---|---|
+| `lambda_net >= .10` | SAT | `CONCRETE_PRODUCER_REPLAY`, uma mensagem completa |
+| `lambda_moves_up=1 AND lambda_max_run=0` | UNSAT | `NECESSARY_PRODUCER_CONTRADICTION`, sem testemunha |
+| `lambda_first * lambda_first > 1` | UNKNOWN | `BOUNDED_METHOD_INCOMPLETE`, sem testemunha |
+
+O terceiro exemplo é matematicamente realizável, mas está fora do fragmento
+construtivo suportado; a ausência de prova não é confundida com impossibilidade.
+Os testes também forçam limites de 128 caminhos e 1 000 mensagens, mantendo UNKNOWN.
 
 A construção é deliberadamente incompleta: DNF e pares de caminhos limitados a
 64; busca construtiva até 12 mensagens, 32 modelos de sinais por configuração,
@@ -610,8 +628,8 @@ repete cada caso no sinal, controlo, OR e permutações de AND.
 | F03: changes=0 e unobserved_net=1 | SAT | UNSAT | Cotações iguais em todos os gaps implicam lambdas iguais nesses gaps. | Mesmo teste; mutações do certificado | G 100→99; C intacto. |
 | F04: n=2 e share=.3333 | SAT | UNSAT | O quociente arredondado vem de um numerador inteiro: somente 0, .5 ou 1. | Mesmo teste; enumeração dos numeradores | Share adulterado numa linha n=2: G 100→99. |
 | F05: net>=.1, velocity=0, span<=60 | SAT | UNSAT | Zero arredondado exige magnitude da velocidade <=.00005/h; duração <=60.05 min não permite net>=.1. | Mesmo teste; limites de duração | G 100→99; C intacto. |
-| F06: leads 120/60, span=1 | SAT lógico; observação admitida | UNSAT; observação excluída | Intervalos de arredondamento das três grandezas não se intersectam na identidade temporal. | `test_admission_quantization_time_and_full_certificate` | G 100→99, pré-jogo 100→99, OOS total 200→199. `120.01` também excluído. |
-| F07: n=3, span=60, max_gap=10 | SAT lógico; observação admitida | UNSAT; observação excluída | Dois gaps de até 10.05 min não cobrem um span mínimo de 59.95 min. | Mesmo teste | G 100→99; total bruto continua 200; uma exclusão detalhada. |
+| F06: leads 120/60, span=1; n=3, span=60, max_gap=10 | SAT lógico; observações admitidas | UNSAT; observações excluídas | Os intervalos não permitem a identidade lead/span; dois gaps de até 10.05 min não cobrem span mínimo 59.95 min. | `test_admission_quantization_time_and_full_certificate`; prova direta das duas famílias | Por mutação: G 100→99, pré-jogo 100→99, OOS total 200→199; bruto preservado. |
+| F07: lead_first_min=120.01 | SAT lógico; observação admitida | UNSAT; observação excluída | O produtor arredonda leads a 0.1 minuto; a tolerância cronológica de 3 s não altera a grelha. | Mesmo teste; prova direta F07 | G 100→99; bruto 200; uma exclusão detalhada. |
 | F08: net>=.1, total_msgs=2, up=2; controlo reversals=1 | `LOGICAL_GROUP_CONTROL_OVERLAP` com falsa testemunha | Interseção UNSAT; braços separados | Dois movimentos positivos ocupam as duas mensagens Total; nenhum negativo permite uma reversão. | `test_f08_separation_uses_joint_proof_and_overlap_certificate` | Remove apenas a falsa rejeição lógica por sobreposição; suporte/FT/OOS continuam independentes e obrigatórios. |
 
 Limites de cada linha: estas provas resolvem os casos explicitados, não afirmam
@@ -620,58 +638,184 @@ completude do fragmento. Uma interseção geral não resolvida produz
 válido conserva SAT e separação demonstrada. A propriedade de sobreposição
 verifica que a testemunha satisfaz ambos os braços e todos os invariantes.
 
-### Oráculos, regressões e comandos
+### Execução literal das 52 sondas originais
 
-`tests/test_research_quality_joint.py` enumera strings de sinais com um oráculo
-independente do algoritmo de runs. A seleção reconstruída tem **601 conjunções:
-54 possíveis e 547 impossíveis**. Não é a seleção original do auditor com 553
-impossíveis. São verificadas as duas direções: impossíveis nunca recebem SAT;
-nenhuma das 54 possíveis recebe UNSAT, e todas as 54 obtêm SAT com certificado.
-O mesmo conjunto foi executado nos dois commits históricos:
+O SHA-256 do programa preservado é
+`155ec6cc6f34ff35e68bcc27c2d7935fb0e3807dbdd0364647562c58b305a909`.
+As execuções normais nos dois commits históricos imprimiram 52 sondas, stderr
+vazio, exit 0 e todas as asserções passaram. **Ambos os hashes de saída coincidem
+exatamente com a adenda**, sem reconstruir expressões ou substituir fixtures.
 
-| Código avaliado | Impossíveis com SAT / 547 | Possíveis com SAT / 54 | Possíveis com UNSAT |
-|---|---:|---:|---:|
-| `fbab0d53f7298c215f56fc5b7db27c02a2770c47` | 547 | 54 | 0 |
-| `198bdf1c480b8d3e1938f26f5268451499264400` | 44 | 54 | 0 |
-| Contrato corrigido | 0 | 54 | 0 |
+| Avaliador / fixtures | Sondas impressas | Asserções | SHA-256 stdout |
+|---|---:|---|---|
+| `fbab0d53`, originais | 52 | Ativas, passaram | `3591c8addda9c01a5b291829b0b168901d4aded73babe594d44585aa4f911fe4` |
+| `198bdf1c`, originais | 52 | Ativas, passaram | `30e2d633ee371e0ab1aaf8a246ce87e33962035ef6b5a89ab5d0d65e7fb89876` |
+| Corrigido, fixtures produzíveis atuais | 52 | Ativas, passaram | `d53f490341b13333ee09b351d56094dec70b3d104fc6bfb85ee5708e181e4c8d` |
+| Corrigido, fixtures originais congeladas | 45 | Falha na asserção da sonda 46 | `aead0a874eeb612d6fcb89b06d385eff2dd9582571536a0eff6a71c54f045424` |
+| Corrigido, mesmas fixtures congeladas, `python -O` | 52 | Desativadas explicitamente para concluir a comparação | `84b4952d5548670653d6578a9262d748316f6fabc93a20aca8f13db54b20a670` |
 
-O script `scripts/lab_research_b1_oracle.py` emite cada uma das 601 entradas,
-a classificação do oráculo e a classificação obtida; permite investigar cada
-falso positivo, incluindo os 44 observados diretamente no ramo auditado de
-`198bdf1c`. Acrescenta **43 cenários reconstruídos**, **10 verificações
-suplementares reconstruídas**, F08 e hashes dos ficheiros de implementação.
-As 52 sondas originais e a comparação individual dos 553 casos permanecem
-pendentes de receção dos documentos/inputs originais.
+A execução congelada **não é declarada uma regressão verde**. As 600 linhas
+originais são impossíveis: todas têm `lambda_first=2`, `lambda_last=3`, mas net
+0 ou .2 em vez de 1. Há ainda leads/span e dispersões incompatíveis. Nenhuma
+dessas linhas pode ser tratada como controlo positivo de produzibilidade. A
+sonda 46 pressupõe apenas uma linha excluída após a mutação; a correção exclui
+as 600 já inválidas e dispara a asserção. A repetição com `-O` conserva os mesmos
+bytes do programa e permite observar os 52 resultados; não transforma a falha
+anterior em aprovação. A prova direta das conjunções continua exercitada.
 
-Há ainda 250 casos gerados com cotações e timestamps aleatórios independentes
-do solver, confrontados com o produtor original, a admissão e a prova lógica;
-e uma execução exploratória adicional de 1 500 trajetórias multimercado sem
-falsas rejeições nas condições necessárias. As propriedades cobrem AND/OR,
-controlos neutros, monotonicidade da exclusão, OOS, limites UNKNOWN e a
-independência dos braços face à disponibilidade de FT/baseline.
+A identidade exata das fixtures históricas, igual nos dois commits e na execução
+congelada do corrigido, é:
+
+- Metadata: `76576a8fcfd3af3667338c39b5a8214192d9e37bba9f19b69ce92bdbd442724d`.
+- Plano: `00ce7ac6ab2d7d1d01122f738f8de2c38a4d951c582659329056af81b06d1241`.
+- Design: `bcf46ecbb771fb0a2eb20538ac47c3b06330e6fdaeb60e05ba22d2bef849dbc1`.
+
+O metadata atual produzido tem hash
+`b17ae7f48c1ccad2e8f1b4097b6241486a13e5ffc86f35323995634ebf5045ed`;
+plano e design têm os mesmos hashes. **Não se atribuem diferenças de fixtures a
+mudanças do avaliador.** Por isso ficam registadas as duas execuções do corrigido.
+No positivo atual e no controlo neutro: SAT, desenho testável, 300/300 elegíveis,
+210/210 treino e 90/90 teste; o bloqueio de proveniência continua ativo.
+
+### Oráculo de 601 e investigação dos 553 falsos SAT
+
+A reconstrução combinatória do relatório enumera `n=1..4`, `up=0..n`,
+`down=0..n-up`, `reversals=0..n`, `max_run=0..n`:
+`sum(C(n+2,2)*(n+1)^2)=601`. A verdade vem da enumeração independente de todas as
+strings `{-1,0,1}^n`, remoção dos zeros e agrupamento de sinais. Há **42 tuplos
+possíveis e 559 impossíveis**. Não se consulta o solver corrigido para obter essa
+verdade. O ficheiro Python original deste oráculo não foi disponibilizado; a
+reconstrução reproduz exatamente ambas as contagens históricas do relatório.
+
+| Avaliador | Impossíveis SAT | Impossíveis UNSAT | Possíveis SAT | Possíveis UNSAT/UNKNOWN |
+|---|---:|---:|---:|---:|
+| `fbab0d53f7298c215f56fc5b7db27c02a2770c47` | 559 | 0 | 42 | 0 |
+| `198bdf1c480b8d3e1938f26f5268451499264400` | 553 | 6 | 42 | 0 |
+| Contrato corrigido | **0** | **559** | **42** | **0** |
+
+`scripts/lab_research_b1_report_probes.py --compare` confronta cada assinatura
+`(n,up,down,reversals,max_run)` com o resultado anterior. Os **553 SAT errados
+passam individualmente a UNSAT**, conservando os seis UNSAT antigos e os 42
+SAT válidos, todos com certificado completo. A comparação chama `_design` com
+`material=False`, diretamente no ramo auditado; não é ocultada por insuficiência
+de dados, materialidade ou qualquer mudança da execução exterior.
+
+Cada entrada do JSON regista as violações independentes e todos os pares
+`(reversals,max_run)` realizáveis para as mesmas contagens. A primeira lei que
+explica cada um dos 553 casos, em grupos disjuntos, é:
+
+| Impossibilidade | Casos |
+|---|---:|
+| Sequência não nula vazia com run/reversal positivo | 48 |
+| Movimento não nulo com max_run zero | 123 |
+| Run maior que a contagem da direção | 66 |
+| Reversal sem as duas direções | 198 |
+| Capacidade insuficiente dos runs | 30 |
+| Duas direções sem reversal | 19 |
+| Reversals em excesso | 54 |
+| Partição conjunta dos runs impossível | 15 |
+| **Total** | **553** |
+
+Por número de mensagens, são 3, 48, 148 e 354 casos (`n=1,2,3,4`). Os 15 casos
+finais exigem a composição conjunta das runs alternadas: limites individuais
+podem passar, mas nenhum dos pares realizáveis para aquelas contagens coincide
+com a assinatura pedida. O oráculo publicado enumera esse conjunto finito por
+strings, independentemente do algoritmo de composição usado na correção.
+
+Há também um **segundo oráculo adicional** de 601 casos que fixa as direções
+inicial/final, criado antes de receber o relatório: 54 possíveis e 547 impossíveis.
+No rejeitado havia 44 falsos SAT; agora há zero e os 54 positivos conservam SAT.
+`scripts/lab_research_b1_oracle.py` e os testes conservam esta cobertura adicional;
+ela não é confundida com o oráculo de 553 erros descrito pelo auditor.
+
+### 43 cenários e 10 suplementares reconstruídos
+
+O driver `lab_research_b1_report_probes.py` publica todas as condições, mutações,
+métricas e provas. Usa **a mesma amostra de 600 observações produzíveis** nos três
+avaliadores; os antigos ignoram somente o novo certificado. Não usa o metadata
+histórico impossível para demonstrar estes controlos positivos. As expressões
+não integralmente transcritas no relatório são escolhas explícitas da
+reconstrução; não se declara igualdade literal com os scripts indisponíveis.
+
+Os 18 ramos contraditórios descritos e as variantes NOT/indicador derivado (1–20)
+recebem `CONTRADICTORY_SIGNAL_PATH`, incluindo X12 com uma mensagem/reversal,
+linhas Total/AH sem movimento com net não nulo e sd zero com extremos separados.
+São implicações gerais do produtor, sem listas de assinaturas bloqueadas.
+As linhas válidas do outro ramo OR mantêm 300/300 nas métricas locais; o desenho
+rejeitado não pode executar experiências. Os casos 21–29 verificam interseções,
+fronteiras abertas/fechadas, grelhas e controlos neutros. Casos 30–43 verificam
+admissão, cronologia, FT, identidade, permutação e planos inválidos.
+
+- Uma linha de sinal com lead fora da grelha, tempo impossível ou sequência
+  impossível: elegíveis e pré-jogo **299/300**, OOS total **599**, uma exclusão.
+  Contagens brutas computáveis conservadas; o valor escalar inválido usado pelo
+  plano fica `unknown`, sem ser transferido para o controlo.
+- As duas mutações suplementares de todo o braço sinal: bruto **300/300**,
+  pré-jogo/elegíveis **0/300**; suporte global e por período falso. Os valores
+  impossíveis não chegam a preencher as células deficientes.
+- Exatamente 3 s com leads **na grelha** preserva 300/300; 3.000001 s exclui a linha.
+  Valores fora da grelha nunca são legitimados por essa tolerância.
+- FT ausente só no sinal HIGH: bruto/pré-jogo 300/300, elegíveis 260/300;
+  HIGH passa de 40/40 para 0/40. FT não altera a atribuição pré-jogo.
+- Positivo produzido e controlo neutro: testáveis, 300/300. F08: interseção
+  impossível comprovada, sem falsa declaração de overlap.
+
+As propriedades incluem 250 trajetórias com cotações e timestamps aleatórios
+independentes, 1 500 trajetórias multimercado adicionais sem falsas rejeições,
+permutação AND/OR, testemunhas de overlap, monotonicidade das exclusões,
+consistência entre prova/admissão, limites UNKNOWN e ausência de FT na atribuição.
+
+### Reprodução e validação final
+
+Exemplo com os worktrees históricos disponíveis e diretório de output novo:
 
 ```sh
+# Programa ORIGINAL: executar o MESMO caminho absoluto nos três checkouts.
+PROBES_B1=/workspace/asianodds-h1-lab/scripts/lab_research_b1_original_probes.py
+(cd /tmp/b1-historical-fbab && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/b1-historical-fbab:/tmp/b1-historical-fbab/tests python "$PROBES_B1")
+(cd /tmp/b1-rejected-198 && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/b1-rejected-198:/tmp/b1-rejected-198/tests python "$PROBES_B1")
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.:tests python "$PROBES_B1"
+# Comparação com o metadata congelado, mantendo separado o resultado das asserções.
+(cd /tmp && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/workspace/asianodds-h1-lab:/tmp/b1-historical-fbab/tests python "$PROBES_B1")
+(cd /tmp && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/workspace/asianodds-h1-lab:/tmp/b1-historical-fbab/tests python -O "$PROBES_B1")
+# As 43/10 e o oráculo do relatório são RECONSTRUÇÕES com código publicado.
+python scripts/lab_research_b1_report_probes.py --repo /tmp/b1-historical-fbab --output /tmp/new-report-fbab.json
+python scripts/lab_research_b1_report_probes.py --repo /tmp/b1-rejected-198 --output /tmp/new-report-198.json
+python scripts/lab_research_b1_report_probes.py --repo . --compare /tmp/new-report-198.json --output work/b1-diagnostics/new-report-corrected.json
 python -m unittest discover -s tests -p 'test_research_quality*.py' -v
 python -m unittest discover -s tests -p 'test_research_*.py' -v
 python -m unittest discover -s tests -v
 python -m unittest discover -s tests -p 'test_v6_offline*.py' -v
-python scripts/lab_research_b1_oracle.py --repo /tmp/b1-rejected-198 --output /tmp/b1-before.json
-python scripts/lab_research_b1_oracle.py --repo /tmp/b1-historical-fbab --output /tmp/b1-historical.json
-python scripts/lab_research_b1_oracle.py --repo . --output work/b1-diagnostics/joint-oracle.json
+python scripts/lab_research_b1_oracle.py --repo . --output work/b1-diagnostics/additional-oracle.json
 python -m scripts.lab_research_quality --source-root /tmp/b1-source-ede8 --output joint-replay.json
 python -m scripts.research_isolation_check --base 198bdf1c480b8d3e1938f26f5268451499264400
 ```
 
-Os três worktrees de reprodução usam, respetivamente, `198bdf1c`, `fbab0d53`
-e `ede8b771cc20a9236a0163df47ce2f6e7e915b25`. O script recusa sobrescrever
-outputs existentes. A UI deve executar também os cinco ficheiros diretamente
-com `node`, para expor os 30 testes UI e sete scheduler; neste runtime Node 24,
-o comando agregado `node --test` apresentou apenas cinco resultados por ficheiro.
+Os worktrees usam `198bdf1c`, `fbab0d53` e
+`ede8b771cc20a9236a0163df47ce2f6e7e915b25`. Os drivers recusam sobrescrever
+outputs. A UI executa os cinco ficheiros diretamente com `node`: 30 testes UI e
+sete scheduler. No runtime Node 24, o comando agregado `node --test` apresentava
+apenas cinco resultados por ficheiro.
+
+O replay histórico original conserva os bytes e o dataset autenticado de
+1 618 jogos, SHA-256
+`ba45b40bad2fda1380265c8afd2e1265dc720d596746cd0366415b8119743f4a`.
+Todas as 1 618 trajetórias passam tanto as condições necessárias como o replay
+completo dos certificados, sem incompatibilidades; a maior tem sete mensagens.
+O diagnóstico B1_SHADOW_4 não fornece certificados de proveniência confiável:
+os três planos continuam rejeitados, bruto 78/65, 58/52, 51/36 e zero elegíveis.
+O relatório histórico versionado não é substituído pelo diagnóstico novo.
+
+Os resultados finais das suites, checks do commit corretivo exato e isolamento
+ficam registados no comentário de auditoria da PR. Skips, tentativas iniciais e a
+falha deliberadamente preservada das asserções sobre o metadata histórico são
+identificados; não são apresentados como validações verdes.
 
 **Segurança preservada:** `TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE`,
 `promotion_eligible=false`, zero experiências B1, zero promoções e zero LLM real.
 Sem alterações H1, E5, Telegram, FT, Pages, históricos, memória, ledgers, gates,
-quotas ou workflows. As suites do sistema existente usam apenas mocks, repositórios
-temporários e ciclos TEST. Nova auditoria independente necessária; **não fazer
-merge sem autorização expressa**. A reprodução literal dos documentos ausentes
-não está concluída e não deve ser inferida dos testes reconstruídos verdes.
+quotas ou workflows. As suites do sistema existente usam mocks, repositórios
+temporários e ciclos TEST. Nova auditoria independente requerida; **não fazer
+merge sem autorização expressa**. Permanecem as limitações de incompletude
+UNKNOWN e autenticação de proveniência, bem como a indisponibilidade dos ficheiros
+Python adicionais do auditor, cujas reconstruções estão explicitamente marcadas.

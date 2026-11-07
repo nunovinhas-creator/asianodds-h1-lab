@@ -135,6 +135,9 @@ def _make_joint_rules(names, literals):
         add(counts, ('n_messages',))
     if 'total_unobserved_changes' in names:
         add(('total_unobserved_changes',), ('total_msgs',), -1)
+    if 'x12_reversals' in names:
+        add((), ('x12_msgs',), -1)
+        add((), ('n_messages',), -1)
     for feature, minimum in (('lambda_velocity_h', 2), ('lambda_accel_h', 3)):
         if feature in names:
             add((), ('total_msgs',), -minimum)
@@ -351,6 +354,20 @@ def producer_impossible(windows, literals=None):
     mhi = min(mhi, nhi)
     if mhi < 0 or nhi < 1:
         return True
+    # An m-message market contributes at most m nonzero signs and m-1
+    # transitions. This holds even when endpoint probabilities are omitted.
+    xhi = min(b('x12_msgs')[1], nhi)
+    if b('x12_reversals')[0] > max(0, xhi-1):
+        return True
+    # One snapshot with no within-message line movement has equal endpoints;
+    # omitted intervening observations cannot explain a nonzero net here.
+    for market, movements, net_name in (
+        ('total_msgs', ('total_line_ups', 'total_line_downs'), 'total_line_net'),
+        ('ah_msgs', ('ah_line_moves',), 'ah_line_net'),
+    ):
+        if min(b(market)[1], nhi) == 1 and sum(b(v)[1] for v in movements) == 0:
+            if not b(net_name)[0] <= 0 <= b(net_name)[1]:
+                return True
     # Inclusion-exclusion: two subsets of n messages cannot have an arbitrarily
     # small intersection. The upper bounds are in _joint_rules.
     for market, intersection in (('ah_msgs', 'total_ah_same_msg'), ('x12_msgs', 'total_1x2_same_msg')):
@@ -389,6 +406,10 @@ def producer_impossible(windows, literals=None):
         if path[0] > 2*mhi*(sd[1]+.00005)+.00005+1e-9:
             return True
         if max(net[0], -net[1], 0) > 2*math.sqrt(mhi)*(sd[1]+.00005)+1e-9:
+            return True
+        first, last = b('lambda_first'), b('lambda_last')
+        endpoint_range = max(first[0]-last[1], last[0]-first[1], 0)
+        if endpoint_range > 2*math.sqrt(mhi)*(sd[1]+.00005)+1e-9:
             return True
         zeros_max = max(0, mhi-up[0]-down[0])
         obslo = up[0]*eps-down[1]*width-zeros_max*(LAMBDA_EPS+1e-12)

@@ -1,8 +1,8 @@
-"""Independent B1 producer-universe oracles, reconstructed from the user brief.
+"""Independent B1 producer-universe and report-specific combinatorial oracles.
 
-The auditor's original 52/43/10 scripts and exact 601 inputs were not supplied.
-These are explicitly reconstructed tests, not a claim to literal reproduction.
-The sequence oracle enumerates strings independently of the run-count solver.
+The original 52-probe program is preserved separately without edits. Additional
+43/10 scripts were not supplied; their tests are reconstructed from the reports.
+Sequence truth enumerates strings independently of the corrected run solver.
 """
 import copy
 import itertools
@@ -33,7 +33,8 @@ FAMILIES = {
     'F04': [cmp('eq', 'n_messages', 2), cmp('eq', 'trigger_total_share', .3333)],
     'F05': [A, cmp('eq', 'lambda_velocity_h', 0), cmp('le', 'span_min', 60)],
     'F06': [cmp('eq', 'lead_first_min', 120), cmp('eq', 'lead_last_min', 60), cmp('eq', 'span_min', 1)],
-    'F07': [cmp('eq', 'n_messages', 3), cmp('eq', 'span_min', 60), cmp('eq', 'max_gap_min', 10)],
+    'F06_gap': [cmp('eq', 'n_messages', 3), cmp('eq', 'span_min', 60), cmp('eq', 'max_gap_min', 10)],
+    'F07': [cmp('eq', 'lead_first_min', 120.01)],
 }
 
 
@@ -63,6 +64,19 @@ def reconstructed_sequence_cases():
     # Include every positive first; the final count is fixed and reproducible.
     cases.sort(key=lambda entry: (not entry[2], entry[0], entry[1]))
     return cases[:601]
+
+
+def report_sequence_cases():
+    """Natural 601-case universe from the report; no endpoint directions fixed."""
+    cases = []
+    for n in range(1, 5):
+        truth = {oracle_signature(seq)[:4] for seq in itertools.product((-1, 0, 1), repeat=n)}
+        for up in range(n+1):
+            for down in range(n+1-up):
+                for reversals, run in itertools.product(range(n+1), repeat=2):
+                    signature = (up, down, reversals, run)
+                    cases.append((n, signature, signature in truth))
+    return cases
 
 
 class JointProducerTests(unittest.TestCase):
@@ -96,6 +110,33 @@ class JointProducerTests(unittest.TestCase):
             self.assertEqual(result, reordered)
         self.assertGreater(positives, 30)
         self.assertEqual(proved, positives, 'Short valid sequences must retain constructive SAT')
+        # Independently reconstruct the report's exact combinatorial universe:
+        # sum C(n+2,2)*(n+1)^2 for n=1..4 = 601, with 42 feasible tuples.
+        report_cases = report_sequence_cases()
+        self.assertEqual(len(report_cases), 601)
+        self.assertEqual(sum(possible for _, _, possible in report_cases), 42)
+        for n, signature, possible in report_cases:
+            terms = [cmp('eq', 'total_msgs', n)]
+            terms += [cmp('eq', name, value) for name, value in zip(SEQ_FIELDS, signature)]
+            evidence = prove_path(terms)
+            self.assertEqual(evidence['status'], SAT if possible else UNSAT, (n, signature))
+            if possible:
+                self.assertTrue(witness_matches(evidence['witness'], {}, branch=terms))
+
+    def test_report_additional_market_and_dispersion_implications(self):
+        impossible = [
+            [cmp('eq', 'x12_msgs', 1), cmp('eq', 'x12_reversals', 1)],
+            [cmp('eq', 'n_messages', 1), cmp('eq', 'x12_reversals', 1)],
+            [cmp('eq', 'total_msgs', 1), cmp('eq', 'total_line_ups', 0),
+             cmp('eq', 'total_line_downs', 0), cmp('eq', 'total_line_net', .25)],
+            [cmp('eq', 'ah_msgs', 1), cmp('eq', 'ah_line_moves', 0), cmp('eq', 'ah_line_net', .25)],
+            [cmp('eq', 'total_msgs', 2), cmp('eq', 'lambda_first', 2),
+             cmp('eq', 'lambda_last', 3), cmp('eq', 'lambda_sd', 0)],
+        ]
+        for terms in impossible:
+            for ordered in (terms, list(reversed(terms))):
+                self.assertEqual(prove_path(ordered)['status'], UNSAT)
+                self.assertIn('CONTRADICTORY_SIGNAL_PATH', _design(join('or', A, join('and', A, *ordered)))[0])
 
     def test_f08_separation_uses_joint_proof_and_overlap_certificate(self):
         signal = join('and', A, cmp('eq', 'total_msgs', 2), cmp('eq', 'lambda_moves_up', 2))

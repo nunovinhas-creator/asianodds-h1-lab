@@ -1,4 +1,4 @@
-"""Read-only reconstructed B1 audit; exact auditor artifacts are unavailable.
+"""Additional read-only B1 oracle, independent of the report-specific 601 cases.
 
 Run this SAME file with --repo pointing at each historical/corrected checkout.
 Only --output under /tmp or the checkout's work/b1-diagnostics is written.
@@ -71,12 +71,12 @@ def reconstructed_paths():
     add('F05', cmp('eq', 'n_messages', 1), cmp('ge', 'lambda_velocity_h', .1))
     add('F05', cmp('eq', 'total_msgs', 2), cmp('ge', 'lambda_accel_h', .1))
     add('F06', cmp('eq', 'lead_first_min', 120), cmp('eq', 'lead_last_min', 60), cmp('eq', 'span_min', 1))
-    add('F06', cmp('eq', 'lead_first_min', 120.01))
-    add('F06', cmp('eq', 'lead_last_min', 60.01))
-    add('F07', cmp('eq', 'n_messages', 3), cmp('eq', 'span_min', 60), cmp('eq', 'max_gap_min', 10))
-    add('F07', cmp('eq', 'n_messages', 2), cmp('eq', 'span_min', 60), cmp('eq', 'max_gap_min', 30))
-    add('F07', cmp('eq', 'n_messages', 1), cmp('gt', 'span_min', 0))
-    add('F07', cmp('eq', 'span_min', 10), cmp('eq', 'max_gap_min', 11))
+    add('F07', cmp('eq', 'lead_first_min', 120.01))
+    add('F07', cmp('eq', 'lead_last_min', 60.01))
+    add('F06', cmp('eq', 'n_messages', 3), cmp('eq', 'span_min', 60), cmp('eq', 'max_gap_min', 10))
+    add('F06', cmp('eq', 'n_messages', 2), cmp('eq', 'span_min', 60), cmp('eq', 'max_gap_min', 30))
+    add('F06', cmp('eq', 'n_messages', 1), cmp('gt', 'span_min', 0))
+    add('F06', cmp('eq', 'span_min', 10), cmp('eq', 'max_gap_min', 11))
     assert len(result) == 43
     return result
 
