@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T06:12:04+00:00",
+  "generated_at": "2026-11-07T06:17:07+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,19 +32,19 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
-      "matches": 264,
+      "matches": 263,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 66.0
+      "percentage_descriptive": 65.8
     },
     "both_total_and_1x2": {
-      "matches": 255,
+      "matches": 256,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 63.8
+      "percentage_descriptive": 64.0
     },
     "opposing_intra_alert_directions": {
-      "matches": 127,
+      "matches": 126,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 31.8
+      "percentage_descriptive": 31.5
     },
     "with_ambiguous_repeats": {
       "matches": 56,
@@ -259,48 +259,52 @@
     },
     {
       "directions": [
+        "DOWN",
         "UP",
-        "DOWN"
+        "FLAT",
+        "UP"
       ],
       "event_ids": [
-        "3571094759:51717",
-        "3571094759:51789"
+        "3571094759:52775",
+        "3571094759:52878",
+        "3571094759:52883",
+        "3571094759:52884"
       ],
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-31,10066604,10063395",
-      "match_label": "Al Ittihad Kalba U23 vs Shabab Al Ahli U23"
+      "match_key": "2026-11-04,36058,27343",
+      "match_label": "Al Taawon (KSA) vs Al Faisaly Amman (JOR)"
     }
   ],
   "schema_version": 1,
   "scope": {
-    "all_distinct_matches": 1812,
+    "all_distinct_matches": 1815,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
     "events_analysed": 1019,
-    "messages_in_source": 2799,
+    "messages_in_source": 2803,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 666,
-    "repeated_matches_omitted": 266,
+    "repeated_matches_in_source": 667,
+    "repeated_matches_omitted": 267,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "c4cce6ddbe1532de4259758697a32e20af466c6c",
-  "source_generated_at": "2026-11-07T06:12:02+00:00",
+  "source_commit": "ea46df9aca20b54161879bb049bf6104e1f7a8a4",
+  "source_generated_at": "2026-11-07T06:17:05+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
       "AFTER_KICKOFF": 33,
       "T_0_TO_60": 199,
-      "T_360_TO_1440": 164,
-      "T_60_TO_360": 145,
+      "T_360_TO_1440": 165,
+      "T_60_TO_360": 144,
       "T_OVER_1440": 159,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
       "AFTER_KICKOFF": 36,
       "T_0_TO_60": 272,
-      "T_360_TO_1440": 233,
-      "T_60_TO_360": 218,
+      "T_360_TO_1440": 235,
+      "T_60_TO_360": 216,
       "T_OVER_1440": 260,
       "UNKNOWN": 0
     },
@@ -312,12 +316,12 @@
       "V4_EXPLICIT": 1017
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.6,
-      "FLAT": 27.5,
+      "DOWN": 35.5,
+      "FLAT": 27.6,
       "UP": 36.9
     },
-    "down": 362,
-    "flat": 280,
+    "down": 361,
+    "flat": 281,
     "messages_with_total": 1018,
     "up": 376,
     "warning": "This tabulation is per message, not independent betting trials"
