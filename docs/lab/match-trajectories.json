@@ -1,6 +1,6 @@
 {
  "evaluation_unit": "match (match_key); messages and snapshots are not independent trials",
- "generated_at": "2026-11-07T09:52:03+00:00",
+ "generated_at": "2026-11-07T09:57:09+00:00",
  "issue_count": 0,
  "issue_counts": {},
  "issues": [],
@@ -22,23 +22,23 @@
  "sampling": {
   "order": "most recent last_observed_at first",
   "single_message_matches_detail": "counted, not listed",
-  "timelines_omitted": 296,
+  "timelines_omitted": 297,
   "timelines_published": 400
  },
  "schema_version": 1,
- "source_commit": "dec69954dbb210ff32577abca4bd0e1675a76cdf",
+ "source_commit": "42f9a820ca1e0b570382bd96f9306dad654c8f02",
  "status": "DESCRIPTIVE_SHADOW_AUDIT_NOT_CERTIFIED",
  "summary": {
   "matches": 1885,
   "matches_with_identity_inconsistency": 4,
   "max_messages_per_match": 7,
-  "messages": 2914,
+  "messages": 2915,
   "messages_excluded": 0,
   "messages_h1_only": 74,
-  "messages_on_repeated_matches": 1725,
+  "messages_on_repeated_matches": 1727,
   "messages_v4_only": 5,
-  "messages_with_v4": 2840,
-  "movement_episodes_upper_bound": 2804,
+  "messages_with_v4": 2841,
+  "movement_episodes_upper_bound": 2805,
   "possibly_redundant_snapshots": 87,
   "post_kickoff_messages": 108,
   "related_message_pairs": 110,
@@ -50,25 +50,171 @@
    "SAME_TOTAL_LINE_MOVE_DIFFERENT_PRICES": 23
   },
   "related_pairs_mixed_origin": 1,
-  "repeated_matches": 696,
+  "repeated_matches": 697,
   "snapshots_by_origin": {
    "H1_LEGACY_ONLY": 118,
-   "V4_EXPLICIT": 4696
+   "V4_EXPLICIT": 4697
   },
-  "total_line_reversals_on_repeated": 430,
+  "total_line_reversals_on_repeated": 431,
   "total_line_transitions_on_repeated": {
    "AMBIGUOUS_REPEAT_OR_REVERSAL": 102,
-   "CONTINUOUS": 561,
+   "CONTINUOUS": 562,
    "SAME_MOVEMENT_REPEAT": 110,
    "UNOBSERVED_CHANGE": 255
   },
   "v4_vs_h1_record_agreement": {
    "asian_handicap:AGREE": 942,
    "one_x_two:AGREE": 910,
-   "total:AGREE": 2831
+   "total:AGREE": 2832
   }
  },
  "timelines": [
+  {
+   "event_count": 2,
+   "event_ids": [
+    "3571094759:53212",
+    "3571094759:53513"
+   ],
+   "events": [
+    {
+     "event_id": "3571094759:53212",
+     "message_id": 53212,
+     "minutes_to_kickoff": 1398.1,
+     "observed_at": "2026-11-06T14:11:52+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.0,
+        "over_price": 1.79,
+        "under_price": 2.0
+       },
+       "before": {
+        "line": 2.25,
+        "over_price": 1.93,
+        "under_price": 1.86
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    },
+    {
+     "event_id": "3571094759:53513",
+     "message_id": 53513,
+     "minutes_to_kickoff": 215.3,
+     "observed_at": "2026-11-07T09:54:44+00:00",
+     "snapshots": {
+      "total": {
+       "after": {
+        "line": 2.25,
+        "over_price": 2.0,
+        "under_price": 1.81
+       },
+       "before": {
+        "line": 2.0,
+        "over_price": 1.81,
+        "under_price": 2.0
+       },
+       "origin": "V4_EXPLICIT"
+      }
+     },
+     "sources": [
+      "H1_RECORD",
+      "V4_RECORD"
+     ],
+     "trigger_market": "total",
+     "v4_vs_h1_record": {
+      "total": {
+       "fields": [],
+       "status": "AGREE"
+      }
+     }
+    }
+   ],
+   "first_observed_at": "2026-11-06T14:11:52+00:00",
+   "identity": {
+    "kickoff_consistent": true,
+    "kickoff_utc": [
+     "2026-11-07T13:30:00+00:00"
+    ],
+    "per_message_conflicts": [],
+    "team_names_consistent": true
+   },
+   "last_observed_at": "2026-11-07T09:54:44+00:00",
+   "match_key": "2026-11-07,23114,23104",
+   "match_label": "Espérance Sportive de Tunis vs US Monastir",
+   "movement_episodes": [
+    [
+     "3571094759:53212"
+    ],
+    [
+     "3571094759:53513"
+    ]
+   ],
+   "movement_episodes_upper_bound": 2,
+   "possibly_redundant_event_ids": [],
+   "post_kickoff_messages": 0,
+   "related_messages": [],
+   "seconds_between_messages": [
+    70972.0
+   ],
+   "trajectory": {
+    "total": {
+     "first_observed_line": 2.25,
+     "last_observed_line": 2.25,
+     "net_observed_change": 0.0,
+     "observations": 2,
+     "origins": {
+      "V4_EXPLICIT": 2
+     },
+     "points": [
+      {
+       "after": 2.0,
+       "before": 2.25,
+       "event_id": "3571094759:53212",
+       "move": "DOWN",
+       "origin": "V4_EXPLICIT"
+      },
+      {
+       "after": 2.25,
+       "before": 2.0,
+       "event_id": "3571094759:53513",
+       "move": "UP",
+       "origin": "V4_EXPLICIT"
+      }
+     ],
+     "reversals": [
+      {
+       "after_event": "3571094759:53212",
+       "at_event": "3571094759:53513",
+       "evidence": "intra",
+       "from": "DOWN",
+       "to": "UP"
+      }
+     ],
+     "transitions": [
+      {
+       "from": "3571094759:53212",
+       "line": "CONTINUOUS",
+       "next_before_line": 2.0,
+       "previous_after_line": 2.0,
+       "prices_at_line": "CHANGED_UNOBSERVED",
+       "to": "3571094759:53513"
+      }
+     ]
+    }
+   }
+  },
   {
    "event_count": 2,
    "event_ids": [
@@ -98753,143 +98899,6 @@
        "previous_after_line": 3.0,
        "prices_at_line": "CHANGED_UNOBSERVED",
        "to": "3571094759:51893"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "event_count": 2,
-   "event_ids": [
-    "3571094759:50715",
-    "3571094759:51890"
-   ],
-   "events": [
-    {
-     "event_id": "3571094759:50715",
-     "message_id": 50715,
-     "minutes_to_kickoff": 5446.3,
-     "observed_at": "2026-10-27T20:13:40+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.5,
-        "over_price": 1.96,
-        "under_price": 1.94
-       },
-       "before": {
-        "line": 3.25,
-        "over_price": 1.81,
-        "under_price": 1.95
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    },
-    {
-     "event_id": "3571094759:51890",
-     "message_id": 51890,
-     "minutes_to_kickoff": -0.2,
-     "observed_at": "2026-10-31T15:00:13+00:00",
-     "snapshots": {
-      "total": {
-       "after": {
-        "line": 3.5,
-        "over_price": 1.92,
-        "under_price": 1.99
-       },
-       "before": {
-        "line": 3.25,
-        "over_price": 1.85,
-        "under_price": 1.99
-       },
-       "origin": "V4_EXPLICIT"
-      }
-     },
-     "sources": [
-      "H1_RECORD",
-      "V4_RECORD"
-     ],
-     "trigger_market": "total",
-     "v4_vs_h1_record": {
-      "total": {
-       "fields": [],
-       "status": "AGREE"
-      }
-     }
-    }
-   ],
-   "first_observed_at": "2026-10-27T20:13:40+00:00",
-   "identity": {
-    "kickoff_consistent": true,
-    "kickoff_utc": [
-     "2026-10-31T15:00:00+00:00"
-    ],
-    "per_message_conflicts": [],
-    "team_names_consistent": true
-   },
-   "last_observed_at": "2026-10-31T15:00:13+00:00",
-   "match_key": "2026-10-31,24270,39",
-   "match_label": "Boreham Wood FC vs Hartlepool United FC",
-   "movement_episodes": [
-    [
-     "3571094759:50715"
-    ],
-    [
-     "3571094759:51890"
-    ]
-   ],
-   "movement_episodes_upper_bound": 2,
-   "possibly_redundant_event_ids": [],
-   "post_kickoff_messages": 1,
-   "related_messages": [],
-   "seconds_between_messages": [
-    326793.0
-   ],
-   "trajectory": {
-    "total": {
-     "first_observed_line": 3.25,
-     "last_observed_line": 3.5,
-     "net_observed_change": 0.25,
-     "observations": 2,
-     "origins": {
-      "V4_EXPLICIT": 2
-     },
-     "points": [
-      {
-       "after": 3.5,
-       "before": 3.25,
-       "event_id": "3571094759:50715",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      },
-      {
-       "after": 3.5,
-       "before": 3.25,
-       "event_id": "3571094759:51890",
-       "move": "UP",
-       "origin": "V4_EXPLICIT"
-      }
-     ],
-     "reversals": [],
-     "transitions": [
-      {
-       "from": "3571094759:50715",
-       "line": "AMBIGUOUS_REPEAT_OR_REVERSAL",
-       "next_before_line": 3.25,
-       "previous_after_line": 3.5,
-       "to": "3571094759:51890"
       }
      ]
     }
