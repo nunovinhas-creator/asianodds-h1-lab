@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T11:07:12+00:00",
+  "generated_at": "2026-11-07T11:12:20+00:00",
   "hypotheses_for_future_oos_only": [
     {
       "design": "prospective, match-level; require >=2 confirmed non-flat alerts; stratify by lead time; no in-play leakage",
@@ -32,19 +32,19 @@
   ],
   "match_level_patterns": {
     "at_least_two_nonflat_total_alerts": {
+      "matches": 260,
+      "of_repeated_matches_analysed": 400,
+      "percentage_descriptive": 65.0
+    },
+    "both_total_and_1x2": {
       "matches": 261,
       "of_repeated_matches_analysed": 400,
       "percentage_descriptive": 65.2
     },
-    "both_total_and_1x2": {
-      "matches": 262,
-      "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 65.5
-    },
     "opposing_intra_alert_directions": {
-      "matches": 129,
+      "matches": 127,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 32.2
+      "percentage_descriptive": 31.8
     },
     "with_ambiguous_repeats": {
       "matches": 56,
@@ -52,9 +52,9 @@
       "percentage_descriptive": 14.0
     },
     "with_identical_total_snapshots": {
-      "matches": 51,
+      "matches": 50,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 12.8
+      "percentage_descriptive": 12.5
     },
     "with_mixed_origin_total": {
       "matches": 1,
@@ -72,19 +72,19 @@
       "percentage_descriptive": 99.8
     },
     "with_post_kickoff_alerts": {
-      "matches": 29,
+      "matches": 28,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 7.2
+      "percentage_descriptive": 7.0
     },
     "with_related_alerts": {
-      "matches": 62,
+      "matches": 61,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 15.5
+      "percentage_descriptive": 15.2
     },
     "with_unobserved_line_gaps": {
-      "matches": 130,
+      "matches": 131,
       "of_repeated_matches_analysed": 400,
-      "percentage_descriptive": 32.5
+      "percentage_descriptive": 32.8
     }
   },
   "opposing_direction_examples": [
@@ -115,21 +115,6 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-07,206,1080",
       "match_label": "1. FC Nürnberg vs SV Darmstadt 1898"
-    },
-    {
-      "directions": [
-        "DOWN",
-        "UP",
-        "UP"
-      ],
-      "event_ids": [
-        "3571094759:51685",
-        "3571094759:51915",
-        "3571094759:51916"
-      ],
-      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
-      "match_key": "2026-10-31,1247,28715",
-      "match_label": "1.FK Příbram vs FK MAS Táborsko"
     },
     {
       "directions": [
@@ -269,39 +254,54 @@
       "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
       "match_key": "2026-11-07,26870,94539",
       "match_label": "Al Gharafa SC vs Al Duhail SC"
+    },
+    {
+      "directions": [
+        "UP",
+        "FLAT",
+        "DOWN"
+      ],
+      "event_ids": [
+        "3571094759:50861",
+        "3571094759:51924",
+        "3571094759:51939"
+      ],
+      "interpretation": "OPPOSING_INTRA_ALERT_DIRECTIONS_NOT_CONTINUOUS_REVERSAL",
+      "match_key": "2026-10-31,26901,35746",
+      "match_label": "Al Hilal (KSA) vs Al Fateh"
     }
   ],
   "schema_version": 1,
   "scope": {
     "all_distinct_matches": 1903,
     "coverage": "PARTIAL_RECENT_REPEATED_MATCHES",
-    "events_analysed": 1018,
-    "messages_in_source": 2940,
+    "events_analysed": 1016,
+    "messages_in_source": 2942,
     "repeated_matches_analysed": 400,
-    "repeated_matches_in_source": 704,
-    "repeated_matches_omitted": 304,
+    "repeated_matches_in_source": 706,
+    "repeated_matches_omitted": 306,
     "unit_for_direction_tabulation": "one Total table per Telegram message",
     "unit_for_pattern_prevalence": "distinct match_key"
   },
-  "source_commit": "37fdf692d33ea63c2dc64e6ba838ca2da26fc54b",
-  "source_generated_at": "2026-11-07T11:07:10+00:00",
+  "source_commit": "2cd7f70d7d125bbd638ae24f6bc76335d2c19bcf",
+  "source_generated_at": "2026-11-07T11:12:17+00:00",
   "status": "EXPLORATORY_NO_OUTCOME_TEST",
   "time_to_kickoff": {
     "buckets": "minutes before scheduled kickoff: <0, 0–<60, 60–<360, 360–<1440, >=1440",
     "distinct_matches_touching_bucket": {
-      "AFTER_KICKOFF": 29,
+      "AFTER_KICKOFF": 28,
       "T_0_TO_60": 176,
-      "T_360_TO_1440": 178,
-      "T_60_TO_360": 148,
-      "T_OVER_1440": 161,
+      "T_360_TO_1440": 177,
+      "T_60_TO_360": 149,
+      "T_OVER_1440": 162,
       "UNKNOWN": 0
     },
     "messages_by_bucket": {
-      "AFTER_KICKOFF": 33,
+      "AFTER_KICKOFF": 31,
       "T_0_TO_60": 244,
-      "T_360_TO_1440": 249,
-      "T_60_TO_360": 228,
-      "T_OVER_1440": 264,
+      "T_360_TO_1440": 247,
+      "T_60_TO_360": 229,
+      "T_OVER_1440": 265,
       "UNKNOWN": 0
     },
     "warning": "Match counts across buckets can overlap; alerts are not continuously sampled"
@@ -309,27 +309,27 @@
   "total_line_within_alert": {
     "by_origin": {
       "H1_LEGACY_ONLY": 1,
-      "V4_EXPLICIT": 1016
+      "V4_EXPLICIT": 1014
     },
     "direction_pct_of_messages_with_total": {
-      "DOWN": 35.9,
-      "FLAT": 27.4,
-      "UP": 36.7
+      "DOWN": 36.0,
+      "FLAT": 27.7,
+      "UP": 36.4
     },
     "down": 365,
-    "flat": 279,
-    "messages_with_total": 1017,
-    "up": 373,
+    "flat": 281,
+    "messages_with_total": 1015,
+    "up": 369,
     "warning": "This tabulation is per message, not independent betting trials"
   },
   "transitions": {
     "ambiguous_repeat_or_reversal": 59,
-    "continuous": 342,
-    "identical_total_pairs": 51,
-    "related_pairs": 62,
+    "continuous": 340,
+    "identical_total_pairs": 50,
+    "related_pairs": 61,
     "rule": "Relations are annotations; do not delete alerts or assert independent moves",
     "same_lines_different_prices_pairs": 11,
-    "same_movement_repeat": 62,
-    "unobserved_change": 154
+    "same_movement_repeat": 61,
+    "unobserved_change": 155
   }
 }
