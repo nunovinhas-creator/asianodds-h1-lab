@@ -6,24 +6,13 @@ from unittest.mock import patch
 
 from h1lab.research_quality import evaluate_quality, shadow_report, raw_plan
 from h1lab.research_plan import validate_plan
-from research_fixtures import LLM_PLAN, rows
+from research_fixtures import LLM_PLAN, rows, b1_produced_metadata, b1_refresh
 
 
 class QualityTest(unittest.TestCase):
     def setUp(self):
         self.plan = validate_plan(LLM_PLAN)
-        self.meta = []
-        for r in rows(n=600, ft_share=1):
-            self.meta.append({k: copy.deepcopy(r[k]) for k in
-                              ('match_key', 'variables', 'decision_at', 'kickoff_utc', 'source_event_ids')})
-            m = self.meta[-1]
-            # Synthetic lead must place the first event before the decision.
-            decision_lead = (datetime.fromisoformat(r['kickoff_utc']) -
-                             datetime.fromisoformat(r['decision_at'])).total_seconds() / 60
-            m['variables']['lead_first_min'] = max(m['variables']['lead_first_min'], decision_lead)
-            m.update(feature_observed_at={v: r['decision_at'] for v in r['variables']},
-                     feature_frozen_at=r['decision_at'], ft_verified=True, ft_source_verified=True,
-                     baseline_available={k: True for k in r['baselines']})
+        self.meta = [b1_produced_metadata(i, net=.2 if i % 2 else 0, competition='Cup' if i % 9 == 0 else 'Youth U21' if i % 11 == 0 else 'League') for i in range(600)]
         self.design = {'threshold_origin': 'APRIORI', 'frozen_at': '2026-10-01T00:00:00+00:00'}
 
     def quality(self, p=None, m=None, **kw):
@@ -71,6 +60,7 @@ class QualityTest(unittest.TestCase):
         p = self.plan_with({'var': 'ctx_cup'}, control_condition={'var': 'ctx_league_other'})
         self.meta[0]['variables'].update(ctx_cup=True, ctx_league_other=True)
         self.assertIn('GROUP_CONTROL_OVERLAP', self.quality(p)['reasons'])
+        self.setUp()  # The impossible flags must not contaminate later positive fixtures.
         self.assertIn('CONSTANT_CONDITION', self.quality(self.plan_with({'const': True}))['reasons'])
         self.assertIn('MIN_N_NOT_MET', self.quality(m=self.meta[:3])['reasons'])
         for m in self.meta:
@@ -213,7 +203,7 @@ class WorkRevisionTests(unittest.TestCase):
 
     def test_neutral_control_and_equivalent_complement(self):
         for i, row in enumerate(self.meta):
-            row['variables'].update(lambda_net=.2 if i < 182 else 0, total_line_last=2.5)
+            b1_refresh(row, net=.2 if i < 182 else 0, line=2.5)
         group = {'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]}
         neutral = {'op': 'between', 'args': [
             {'var': 'lambda_net'}, {'const': -.02}, {'const': .02}]}
@@ -238,8 +228,7 @@ class WorkRevisionTests(unittest.TestCase):
 
     def test_work_182_418_and_182_43(self):
         for i, row in enumerate(self.meta):
-            row['variables']['lambda_net'] = .2 if i < 182 else -.2
-            row['variables']['ctx_cup'] = 182 <= i < 225
+            b1_refresh(row, net=.2 if i < 182 else -.2, competition='Cup' if 182 <= i < 225 else 'League')
         group = {'op': 'ge', 'args': [{'var': 'lambda_net'}, {'const': .1}]}
         q = self.quality(self.plan_with(group))
         self.assertEqual((q['metrics']['group'], q['metrics']['control']), (182, 418))

@@ -498,3 +498,180 @@ A próxima auditoria deve procurar caminhos conjuntamente impossíveis
 que o fragmento ainda aceite, sobreposição latente fora das regiões da
 amostra, fronteiras de precisão e pedidos com a mesma identidade mas
 decisões diferentes.
+
+## Contrato de existência após rejeição de 198bdf1c — F01–F08
+
+Correção `B1_SHADOW_4`, contrato `B1_PRODUCER_1`. A PR #259 continua **Draft**.
+Os produtores `research_dataset.py`, `market_math.py`, `research_dsl.py` e o
+executor partilhado mantêm os bytes do commit rejeitado. A correção fica no
+avaliador B1, no novo `research_contract.py`, nos testes e no diagnóstico offline.
+
+**Documentos em falta.** Não estão no workspace, na árvore da PR ou nos
+comentários acessíveis os ficheiros `MASTER-BRAIN-auditoria-B1-PR259-198bdf1c.md`,
+`ADENDA-52-SONDAS-ORIGINAIS.md` ou o relatório anterior com os scripts originais.
+Foi pedida a sua localização. Os testes abaixo são **reconstruídos a partir do
+pedido**, não uma reprodução literal dos 52/43/10/601 inputs do auditor. Em
+particular, não é possível identificar individualmente os **553** casos desse
+relatório sem os respetivos inputs. Esse requisito da auditoria permanece aberto.
+O histórico da secção anterior conserva as alegações e hashes dessa entrega;
+a presente correção não os apresenta como evidência suficiente de existência.
+
+### Fonte única e significado das provas
+
+`h1lab/research_contract.py` contém os domínios, grelhas, unidades, dependências,
+restrições de subconjuntos, modelo de sequências, intervalos temporais e o
+verificador de certificados. O avaliador lógico e a admissão usam esse contrato.
+
+- **SAT:** há um certificado com mensagens pré-jogo completas. O certificado é
+  validado contra a gramática das fontes, passado pelo produtor original e pelo
+  cálculo original de episódios; todos os operandos necessários são conhecidos,
+  todos os átomos do caminho avaliam a `True` na DSL e o resumo passa o contrato.
+  Os valores de lambda resultam de cotações válidas e da inversão original de
+  `market_math`, incluindo o seu arredondamento. Um vetor de valores numéricos
+  que apenas passe desigualdades nunca prova SAT.
+- **UNSAT:** uma contradição lógica, escalar ou uma condição necessária do
+  produtor demonstra impossibilidade. A ausência de candidatos numa busca
+  limitada não é uma prova UNSAT. Na política de desenho existente, qualquer
+  alternativa explicitamente impossível recebe `CONTRADICTORY_SIGNAL_PATH`.
+- **UNKNOWN:** falta prova num dos sentidos. Emite `SATISFIABILITY_UNPROVEN` e
+  impede `SCIENTIFICALLY_TESTABLE`. Álgebra fora do fragmento e limites de
+  complexidade mantêm esse resultado. O relatório expõe `logical_proof`, com
+  estados, contrato, tipo de prova e testemunhas por caminho/interseção.
+
+A construção é deliberadamente incompleta: DNF e pares de caminhos limitados a
+64; busca construtiva até 12 mensagens, 32 modelos de sinais por configuração,
+512 passos de geração de pontos/cotações e 256 certificados completos por
+análise. O verificador admite certificados explícitos até 64 mensagens. Uma
+observação maior sem certificado suportado fica excluída, com ausência de prova;
+não é declarada fisicamente impossível por exceder o limite. A enumeração de
+sequências pode provar impossibilidade fora da busca construtiva, mas não
+certifica preços, duração ou dispersão. Estes exigem sempre replay concreto.
+
+### Relações do produtor e arredondamento
+
+| Família | Contrato usado nas duas fronteiras |
+|---|---|
+| Domínios/unidades | Contagens inteiras; direções em `{-1,0,1}`; hora UTC inteira `0..23`; booleans sem coerção; lambda `0.05..12`, variação `-11.95..11.95`; unidades em `VARIABLE_UNITS`. |
+| Grelhas | Leads/span/gap a **0,1 minuto**; resumos lambda/probabilidade/variações/share a quatro casas; overround a cinco casas. Linhas brutas respeitam a grelha de quartos e a tolerância explícita do parser; linhas Total inválidas para Poisson não produzem lambda conhecida. |
+| Disponibilidade | O replay original determina a disponibilidade conjunta; features necessárias não podem ser `None`. Metadados omissos não são inventados. `None` em metadados de admissão significa falta de evidência e não é usado como prova de inexistência. |
+| Subconjuntos | Cada mercado é subconjunto das mensagens; interseções têm limites superior e de inclusão-exclusão; episódios `1..n`; movimentos não excedem mensagens do mercado. |
+| Sinais/runs | O sinal usa o teste original estrito `>0.05`/`<-0.05`; zeros são removidos antes de contar runs e reversals. Enumeram-se contagens e comprimentos de runs alternadas, incluindo a paridade entre direções inicial/final. Diferenças binárias próximas de 0,05 não recebem uma fronteira artificial de 0,0501 na prova de impossibilidade. |
+| Observado/não observado | Extremos e net referem todos os pontos; path soma apenas movimentos dentro das mensagens. `net - unobserved_net` é a soma assinada observada. Nenhuma mudança de cotação não observada implica drift não observado nulo; cada gap tem amplitude máxima 11,95 em lambda. |
+| Dispersão/extremos | `sd <= (12-.05)/2 = 5.975`; path e diferença de extremos respeitam limites derivados do mesmo conjunto de `2m` pontos. Com um Total: `path=abs(net)` e `sd=abs(net)/2`, com intervalos de arredondamento. O replay verifica as relações completas mesmo quando as condições necessárias não decidem. |
+| Tempo | Cada resumo temporal arredondado `x` representa um intervalo exterior `[max(0,x-.05),x+.05]` minutos; os extremos de empate são incluídos conservadoramente. Esses intervalos têm de permitir `lead_first-lead_last=span`, `max_gap<=span` e `span<= (n-1)*max_gap`. Um evento tem span/gap zero. |
+| Velocidade | Usa o **net já arredondado**, dividido pela duração positiva entre a primeira e última mensagem **Total**, em horas; essa duração não excede o span global. O valor final tem intervalo de meia unidade na quarta casa. Accel exige pelo menos três mensagens e duas durações positivas. |
+
+Os intervalos exteriores só são usados para provar impossibilidade. O certificado
+SAT percorre o arredondamento real e os timestamps reais, em segundos como nas
+fontes normalizadas. A tolerância de **três segundos** continua a aplicar-se à
+comparação de um lead inferido com uma fronteira cronológica; não torna
+`lead_first_min=120.01` um valor admissível.
+
+### Admissão de observações
+
+A B1 exige agora `producer_witness` nos metadados de admissão: objeto com
+`contract`, `kickoff_utc`, `competition` e `events`; cada evento contém
+`event_id`, `observed_at`, `trigger_market`, `snapshots`. O replay deve reproduzir
+**todos os valores fornecidos e conhecidos**, a disponibilidade das features
+necessárias, o kickoff e a decisão. Não há alteração do produtor operacional
+para fornecer ou adaptar esse certificado. Uma fonte sem certificado recebe
+`OBSERVATION_PRODUCIBILITY_UNPROVEN`; uma incompatibilidade demonstrada recebe
+`PRODUCER_WITNESS_MISMATCH` e/ou `TRAJECTORY_INVARIANTS_VIOLATED`.
+
+Esta é uma prova matemática de produzibilidade, não uma autenticação de eventos.
+Continua em falta o adaptador de proveniência de confiança. Valores inválidos,
+incluindo os fornecidos em campos que o plano não utiliza, são verificados.
+Nenhuma linha excluída entra no suporte pré-jogo, elegibilidade, suporte por
+período ou OOS. Contagens brutas, braços computáveis e razões de exclusão ficam
+preservados; FT e baseline são consultados depois da atribuição pré-jogo.
+
+Os positivos antigos usavam resumos escalares aleatórios que não representavam
+trajetórias: por exemplo, alteravam net sem os extremos e deixavam leads/span/gap
+independentes. As permutações puramente lógicas usam quatro linhas válidas e continuam a
+exercitar a prova antes da admissão; os testes de contabilidade mantêm as
+amostras completas de 600/200 linhas. Os positivos B1 foram substituídos por mensagens que o produtor
+real transforma em resumos. Alterações intencionadas de um positivo (linha,
+competição, janela) regeneram as mensagens; as mutações adversariais continuam
+a adulterar apenas o campo em teste. A antiga expectativa de que
+`p_home_net=1` fosse SAT também foi retirada: preços válidos e normalização de
+três probabilidades tornam esse extremo impossível.
+
+### Matriz reproduzível F01–F08
+
+Os resultados abaixo exercitam diretamente `_path_constraints`/`prove_path` e
+`_arm_separation`; não dependem de o desenho ultrapassar materialidade, suporte
+ou outro ramo exterior. O teste `test_f01_to_f07_direct_both_arms_orders_and_or_paths`
+repete cada caso no sinal, controlo, OR e permutações de AND.
+
+| Caso | `198bdf1c` | Correção | Prova/testemunha | Teste reproduzível | Elegibilidade na amostra de 200 linhas |
+|---|---|---|---|---|---|
+| F01: up=1 e max_run=0 | SAT | UNSAT | Um movimento não nulo exige um run de comprimento >=1. | `test_f01_to_f07_direct_both_arms_orders_and_or_paths`; oráculo de sequências | Uma linha adulterada: G 100→99, C 100; excluída também do pré-jogo e OOS. |
+| F02: sd>6 | SAT | UNSAT | Popoviciu sobre pontos em `[.05,12]`: sd<=5.975. | Mesmo teste; amostragem independente de cotações | G 100→99; C intacto. |
+| F03: changes=0 e unobserved_net=1 | SAT | UNSAT | Cotações iguais em todos os gaps implicam lambdas iguais nesses gaps. | Mesmo teste; mutações do certificado | G 100→99; C intacto. |
+| F04: n=2 e share=.3333 | SAT | UNSAT | O quociente arredondado vem de um numerador inteiro: somente 0, .5 ou 1. | Mesmo teste; enumeração dos numeradores | Share adulterado numa linha n=2: G 100→99. |
+| F05: net>=.1, velocity=0, span<=60 | SAT | UNSAT | Zero arredondado exige magnitude da velocidade <=.00005/h; duração <=60.05 min não permite net>=.1. | Mesmo teste; limites de duração | G 100→99; C intacto. |
+| F06: leads 120/60, span=1 | SAT lógico; observação admitida | UNSAT; observação excluída | Intervalos de arredondamento das três grandezas não se intersectam na identidade temporal. | `test_admission_quantization_time_and_full_certificate` | G 100→99, pré-jogo 100→99, OOS total 200→199. `120.01` também excluído. |
+| F07: n=3, span=60, max_gap=10 | SAT lógico; observação admitida | UNSAT; observação excluída | Dois gaps de até 10.05 min não cobrem um span mínimo de 59.95 min. | Mesmo teste | G 100→99; total bruto continua 200; uma exclusão detalhada. |
+| F08: net>=.1, total_msgs=2, up=2; controlo reversals=1 | `LOGICAL_GROUP_CONTROL_OVERLAP` com falsa testemunha | Interseção UNSAT; braços separados | Dois movimentos positivos ocupam as duas mensagens Total; nenhum negativo permite uma reversão. | `test_f08_separation_uses_joint_proof_and_overlap_certificate` | Remove apenas a falsa rejeição lógica por sobreposição; suporte/FT/OOS continuam independentes e obrigatórios. |
+
+Limites de cada linha: estas provas resolvem os casos explicitados, não afirmam
+completude do fragmento. Uma interseção geral não resolvida produz
+`CONTROL_DISJOINTNESS_UNPROVEN`, sem afirmar sobreposição. Um controlo neutro
+válido conserva SAT e separação demonstrada. A propriedade de sobreposição
+verifica que a testemunha satisfaz ambos os braços e todos os invariantes.
+
+### Oráculos, regressões e comandos
+
+`tests/test_research_quality_joint.py` enumera strings de sinais com um oráculo
+independente do algoritmo de runs. A seleção reconstruída tem **601 conjunções:
+54 possíveis e 547 impossíveis**. Não é a seleção original do auditor com 553
+impossíveis. São verificadas as duas direções: impossíveis nunca recebem SAT;
+nenhuma das 54 possíveis recebe UNSAT, e todas as 54 obtêm SAT com certificado.
+O mesmo conjunto foi executado nos dois commits históricos:
+
+| Código avaliado | Impossíveis com SAT / 547 | Possíveis com SAT / 54 | Possíveis com UNSAT |
+|---|---:|---:|---:|
+| `fbab0d53f7298c215f56fc5b7db27c02a2770c47` | 547 | 54 | 0 |
+| `198bdf1c480b8d3e1938f26f5268451499264400` | 44 | 54 | 0 |
+| Contrato corrigido | 0 | 54 | 0 |
+
+O script `scripts/lab_research_b1_oracle.py` emite cada uma das 601 entradas,
+a classificação do oráculo e a classificação obtida; permite investigar cada
+falso positivo, incluindo os 44 observados diretamente no ramo auditado de
+`198bdf1c`. Acrescenta **43 cenários reconstruídos**, **10 verificações
+suplementares reconstruídas**, F08 e hashes dos ficheiros de implementação.
+As 52 sondas originais e a comparação individual dos 553 casos permanecem
+pendentes de receção dos documentos/inputs originais.
+
+Há ainda 250 casos gerados com cotações e timestamps aleatórios independentes
+do solver, confrontados com o produtor original, a admissão e a prova lógica;
+e uma execução exploratória adicional de 1 500 trajetórias multimercado sem
+falsas rejeições nas condições necessárias. As propriedades cobrem AND/OR,
+controlos neutros, monotonicidade da exclusão, OOS, limites UNKNOWN e a
+independência dos braços face à disponibilidade de FT/baseline.
+
+```sh
+python -m unittest discover -s tests -p 'test_research_quality*.py' -v
+python -m unittest discover -s tests -p 'test_research_*.py' -v
+python -m unittest discover -s tests -v
+python -m unittest discover -s tests -p 'test_v6_offline*.py' -v
+python scripts/lab_research_b1_oracle.py --repo /tmp/b1-rejected-198 --output /tmp/b1-before.json
+python scripts/lab_research_b1_oracle.py --repo /tmp/b1-historical-fbab --output /tmp/b1-historical.json
+python scripts/lab_research_b1_oracle.py --repo . --output work/b1-diagnostics/joint-oracle.json
+python -m scripts.lab_research_quality --source-root /tmp/b1-source-ede8 --output joint-replay.json
+python -m scripts.research_isolation_check --base 198bdf1c480b8d3e1938f26f5268451499264400
+```
+
+Os três worktrees de reprodução usam, respetivamente, `198bdf1c`, `fbab0d53`
+e `ede8b771cc20a9236a0163df47ce2f6e7e915b25`. O script recusa sobrescrever
+outputs existentes. A UI deve executar também os cinco ficheiros diretamente
+com `node`, para expor os 30 testes UI e sete scheduler; neste runtime Node 24,
+o comando agregado `node --test` apresentou apenas cinco resultados por ficheiro.
+
+**Segurança preservada:** `TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE`,
+`promotion_eligible=false`, zero experiências B1, zero promoções e zero LLM real.
+Sem alterações H1, E5, Telegram, FT, Pages, históricos, memória, ledgers, gates,
+quotas ou workflows. As suites do sistema existente usam apenas mocks, repositórios
+temporários e ciclos TEST. Nova auditoria independente necessária; **não fazer
+merge sem autorização expressa**. A reprodução literal dos documentos ausentes
+não está concluída e não deve ser inferida dos testes reconstruídos verdes.

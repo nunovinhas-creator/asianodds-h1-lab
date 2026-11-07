@@ -11,16 +11,23 @@ import math
 import re
 from collections import Counter
 from datetime import timedelta
-from itertools import islice, product
+from functools import lru_cache
+from itertools import product
 
-from .market_math import LAM_MAX, LAM_MIN
-from .research_dataset import LAMBDA_EPS, OUTCOMES, VARIABLES
+from .research_dataset import OUTCOMES, VARIABLES
+from .research_contract import (
+    CONTRACT_VERSION, SAT, UNSAT, UNKNOWN, COUNTS, DIRECTIONS, NONNEGATIVE, VARIABLE_UNITS,
+    PRODUCER_TIME_FIELDS, PRODUCER_PRECISION,
+    _numeric_domain, _joint_rules, _violated_rule, producer_impossible,
+    sequence_impossible, temporal_impossible, construct_witness,
+    value_valid, summary_impossible, witness_matches, produce_witness,
+)
 from .research_dsl import variables_used, evaluate
 from .research_executor import MIN_N, OOS_TRAIN_SHARE, membership
 from .research_plan import PlanError, REQUIRED, OPTIONAL, inline, validate_plan
 from .v6_shadow import utc
 
-VERSION = 'B1_SHADOW_3'
+VERSION = 'B1_SHADOW_4'
 # Probability units are fractions: .05 == five percentage points.
 FLOORS = {'p_home_net': (.05, 'PROBABILITY_FRACTION'),
           'p_draw_net': (.05, 'PROBABILITY_FRACTION'),
@@ -28,10 +35,6 @@ FLOORS = {'p_home_net': (.05, 'PROBABILITY_FRACTION'),
           'lambda_net': (.10, 'IMPLIED_GOALS'),
           'lambda_abs_path': (.10, 'IMPLIED_GOALS'),
           'total_line_net': (.25, 'TOTAL_LINE'), 'ah_line_net': (.25, 'AH_LINE')}
-# Proven by trajectory_variables: absolute sums are nonnegative; differences
-# of fair probabilities in [0, 1] are in [-1, 1]. No fitted domain limits.
-SIGNAL_DOMAINS = {'lambda_abs_path': (0, math.inf),
-                  **{v: (-1, 1) for v in ('p_home_net', 'p_draw_net', 'p_away_net')}}
 STRATA_VARIABLES = {'lead_bin': ('lead_first_min',), 'line_bin': ('total_line_last',),
                     'competition_type': ('ctx_cup', 'ctx_youth_reserve', 'ctx_league_other')}
 UNAVAILABLE = re.compile(r'\b(bookmaker|operator|operador|live|in.play|btts price|post.kickoff|pós.kickoff|score|scores|ganhos|profit)\b', re.I)
@@ -73,27 +76,7 @@ def _dimensions(expr):
         if 'const' in n:
             return None
         if 'var' in n:
-            v = n['var']
-            if VARIABLES[v][0] == 'bool':
-                return 'BOOL'
-            if v.startswith('p_') or v == 'total_overround_last':
-                return 'PROBABILITY'
-            if v.startswith('total_line_') and v not in ('total_line_ups', 'total_line_downs'):
-                return 'TOTAL_LINE'
-            if v.startswith('ah_line_') and v != 'ah_line_moves':
-                return 'AH_LINE'
-            if v in ('lambda_first', 'lambda_last', 'lambda_net', 'lambda_abs_path',
-                     'lambda_sd', 'lambda_unobserved_net'):
-                return 'IMPLIED_GOALS'
-            if v in ('lambda_velocity_h', 'lambda_accel_h'):
-                return 'IMPLIED_GOALS_PER_HOUR'
-            if v.endswith('_min'):
-                return 'MINUTES'
-            if v.endswith('_share'):
-                return 'FRACTION'
-            if v == 'kickoff_hour_utc':
-                return 'HOUR_OF_DAY'
-            return 'COUNT_OR_DIRECTION'
+            return VARIABLE_UNITS[n['var']]
         op = n['op']
         operand_units = [unit(a) for a in n['args']]
         units = {u for u in operand_units if u is not None}
@@ -148,7 +131,7 @@ def _logic_paths(n, negate=False):
     return [[{'op': 'not', 'args': [n]} if negate else n]]
 
 
-def _path_constraints(branch, *, competition_type=False, available=()):
+def _solve_path(branch, *, competition_type=False, available=(), _evidence=None):
     """Prove scalar and catalogue constraints; defer unsupported algebra.
 
     Equality follows the DSL's 1e-9 tolerance, not exact Python equality.
@@ -367,9 +350,32 @@ def _path_constraints(branch, *, competition_type=False, available=()):
                         and all(evaluate(n, {v: x}) is True for n in atoms[v])):
                     witnesses[v].add(x)
         windows[v] = (min(i[0] for i in intervals), max(i[2] for i in intervals))
-        if v in DIRECTIONS or v in COUNTS:
-            low, high = windows[v]
-            windows[v] = (math.ceil(low), math.floor(high) if math.isfinite(high) else high)
+        # Preserve strict endpoints in necessary joint bounds. Check every grid
+        # point skipped at an edge in the DSL; never tighten to an interior seed.
+        scale = 1 if v in COUNTS or v in DIRECTIONS or v == 'kickoff_hour_utc' else 10**precision if precision is not None else None
+        if scale is not None:
+            lows, highs = [], []
+            for l, li, h, hin in intervals:
+                edge_lo, edge_hi = l, h
+                if math.isfinite(l) and abs(l) <= 10**6:
+                    start = math.ceil(math.nextafter(l*scale, -math.inf))
+                    candidate = next((i/scale for i in range(start, start+3)
+                                      if (i/scale > l or (li and i/scale == l))
+                                      and (i/scale < h or (hin and i/scale == h))
+                                      and all(evaluate(n, {v: i/scale}) is True for n in atoms[v])), None)
+                    if candidate is not None:
+                        edge_lo = candidate
+                if math.isfinite(h) and abs(h) <= 10**6:
+                    end = math.floor(math.nextafter(h*scale, math.inf))
+                    candidate = next((i/scale for i in range(end, end-3, -1)
+                                      if (i/scale > l or (li and i/scale == l))
+                                      and (i/scale < h or (hin and i/scale == h))
+                                      and all(evaluate(n, {v: i/scale}) is True for n in atoms[v])), None)
+                    if candidate is not None:
+                        edge_hi = candidate
+                lows.append(edge_lo)
+                highs.append(edge_hi)
+            windows[v] = min(lows), max(highs)
         if not witnesses[v]:
             if discrete and not discrete_possible:
                 contradiction = True
@@ -377,33 +383,59 @@ def _path_constraints(branch, *, competition_type=False, available=()):
                 unproven = True
 
     referenced = set().union(*(variables_used(node) for node in branch))
-    rules = _joint_rules(referenced | set(available), literals)
-    # Use domain bounds for required variables which have no scalar atoms.
-    windows = {v: windows.get(v, _numeric_domain(v)) for v in referenced | set(available)}
-    if _violated_rule(windows, rules):
+    # Include all referenced dependencies in one joint producer model. The
+    # previous Cartesian vector was a relaxation, never an existence proof.
+    windows = {v: windows.get(v, _numeric_domain(v)) for v in referenced | set(available)
+               if VARIABLES[v][0] == 'num'}
+    if producer_impossible(windows, literals):
         contradiction = True
-    sequence_fields = (referenced | set(available)) & SEQUENCE_FIELDS
-    if not _sequence_possible(windows):
-        contradiction = True
+    certificate = None
     if not contradiction and not unproven:
-        involved = set().union(*(terms.keys() for terms, _ in rules)) | sequence_fields
-        for v in involved - witnesses.keys():
-            lo, hi = windows[v]
-            witnesses[v] = {x for x in (lo, hi, 0, 1, 2) if math.isfinite(x) and lo <= x <= hi}
-        names = sorted(witnesses)
-        defaults = dict(literals)
-        defaults.update({v: flag_witness[v] for v in referenced & set(flags)})
-        for v in referenced - defaults.keys() - witnesses.keys():
-            defaults[v] = False if VARIABLES[v][0] == 'bool' else _default_value(v)
-        for values in islice(product(*(sorted(witnesses[v]) for v in names)), 4096):
-            env = dict(defaults, **dict(zip(names, values)))
-            point = {v: (env[v], env[v]) for v in involved}
-            if (not _violated_rule(point, rules) and _sequence_possible(point)
-                    and all(evaluate(node, env) is True for node in branch)):
-                break
-        else:
+        certificate = construct_witness(branch, windows, witnesses,
+                                        required=referenced | set(available), literals=literals)
+        if certificate is None:
             unproven = True
+    if _evidence is not None:
+        _evidence.update(contract=CONTRACT_VERSION,
+                         status=UNSAT if contradiction else UNKNOWN if unproven else SAT,
+                         witness=certificate,
+                         proof='NECESSARY_PRODUCER_CONTRADICTION' if contradiction else
+                               'CONCRETE_PRODUCER_REPLAY' if certificate else 'BOUNDED_METHOD_INCOMPLETE')
     return contradiction, unproven, domains
+
+
+@lru_cache(maxsize=8192)
+def _cached_path(serialized, competition_type, available):
+    evidence = {}
+    result = _solve_path(json.loads(serialized), competition_type=competition_type,
+                         available=available, _evidence=evidence)
+    return result, evidence
+
+
+def _path_constraints(branch, *, competition_type=False, available=(), _evidence=None):
+    # Sorting the conjunction makes bounded search independent of AND order.
+    ordered = sorted(branch, key=lambda n: json.dumps(n, sort_keys=True))
+    result, evidence = _cached_path(json.dumps(ordered, sort_keys=True), competition_type,
+                                    tuple(sorted(available)))
+    if _evidence is not None:
+        _evidence.update(json.loads(json.dumps(evidence)))
+    return result
+
+
+def prove_path(branch, *, available=()):
+    """Public diagnostic evidence: SAT carries complete replayable messages."""
+    evidence = {}
+    _path_constraints(branch, available=available, _evidence=evidence)
+    return evidence
+
+
+def _expression_proofs(expr, available):
+    try:
+        branches = _logic_paths(expr)
+    except ValueError:
+        return [{'contract': CONTRACT_VERSION, 'status': UNKNOWN,
+                 'proof': 'DNF_COMPLEXITY_LIMIT', 'witness': None}]
+    return sorted([prove_path(branch, available=available) for branch in branches], key=sha)
 
 
 def _design(expr, *, material=True, competition_type=False, available=()):
@@ -501,172 +533,9 @@ def _stratum_cell(variables, selected):
 # This tolerance applies only to inferred event times, never feature lateness.
 LEAD_ROUNDING_SECONDS = 3
 IDENTIFIER = re.compile(r'[^\s\x00-\x1f\x7f]{1,256}')
-NONNEGATIVE = frozenset(('n_messages', 'n_episodes', 'lead_first_min', 'lead_last_min',
-    'span_min', 'max_gap_min', 'total_msgs', 'total_line_first', 'total_line_last',
-    'total_line_ups', 'total_line_downs', 'lambda_first', 'lambda_last', 'lambda_abs_path',
-    'lambda_sd', 'lambda_moves_up', 'lambda_moves_down', 'lambda_reversals', 'lambda_max_run',
-    'total_unobserved_changes', 'x12_msgs', 'x12_reversals', 'ah_msgs', 'ah_line_moves',
-    'total_ah_same_msg', 'total_1x2_same_msg'))
-COUNTS = frozenset(v for v in NONNEGATIVE if v not in (
-    'lead_first_min', 'lead_last_min', 'span_min', 'max_gap_min', 'total_line_first',
-    'total_line_last', 'lambda_first', 'lambda_last', 'lambda_abs_path', 'lambda_sd'))
-
-
-DIRECTIONS = ('lambda_first_dir', 'lambda_last_dir')
-SEQUENCE_FIELDS = frozenset((*DIRECTIONS, 'n_messages', 'total_msgs', 'lambda_moves_up',
-                             'lambda_moves_down', 'lead_first_min', 'lead_last_min',
-                             'span_min', 'max_gap_min', 'lambda_net', 'lambda_abs_path',
-                             'lambda_unobserved_net', 'lambda_reversals'))
-PRODUCER_TIME_FIELDS = frozenset(('lead_first_min', 'lead_last_min', 'span_min', 'max_gap_min'))
-PRODUCER_PRECISION = dict.fromkeys((
-    'lambda_first', 'lambda_last', 'lambda_net', 'lambda_abs_path', 'lambda_sd',
-    'lambda_unobserved_net', 'lambda_velocity_h', 'lambda_accel_h',
-    'p_home_first', 'p_home_last', 'p_home_net', 'p_draw_net', 'p_away_net',
-    'total_line_net', 'ah_line_net',
-    'trigger_total_share'), 4)
-
-
-def _joint_rules(names, literals):
-    """Necessary inequalities from trajectory_variables, projected to available fields."""
-    rules = []
-
-    def add(positive, negative=(), limit=0):
-        terms = {**dict.fromkeys(positive, 1), **dict.fromkeys(negative, -1)}
-        # Existentially project omitted fields using the most favourable
-        # values allowed by their producer domains. Never assume a missing
-        # endpoint or count has a particular value.
-        missing = terms.keys() - names
-        projected = {v: sign for v, sign in terms.items() if v in names}
-        if not projected:
-            return
-        for v in sorted(missing):
-            lo, hi = _numeric_domain(v)
-            minimum = lo if terms[v] == 1 else -hi
-            if not math.isfinite(minimum):
-                return
-            limit -= minimum
-            if isinstance(limit, float):
-                limit = math.nextafter(limit, math.inf)
-        rules.append((projected, limit))
-
-    for count in ('total_msgs', 'x12_msgs', 'ah_msgs', 'n_episodes'):
-        add((count,), ('n_messages',))
-    for counts, market in (
-        (('total_line_ups', 'total_line_downs'), 'total_msgs'),
-        (('lambda_moves_up', 'lambda_moves_down'), 'total_msgs'),
-        (('lambda_reversals',), 'total_msgs'), (('lambda_max_run',), 'total_msgs'),
-        (('x12_reversals',), 'x12_msgs'), (('ah_line_moves',), 'ah_msgs'),
-        (('total_ah_same_msg',), 'total_msgs'), (('total_ah_same_msg',), 'ah_msgs'),
-        (('total_1x2_same_msg',), 'total_msgs'), (('total_1x2_same_msg',), 'x12_msgs'),
-    ):
-        add(counts, (market,))
-        add(counts, ('n_messages',))
-    if 'total_unobserved_changes' in names:
-        add(('total_unobserved_changes',), ('total_msgs',), -1)
-    for feature, minimum in (('lambda_velocity_h', 2), ('lambda_accel_h', 3)):
-        if feature in names:
-            add((), ('total_msgs',), -minimum)
-            add((), ('n_messages',), -minimum)
-    for market, prefix in (('total_msgs', 'lambda_'), ('total_msgs', 'total_line_'),
-                           ('ah_msgs', 'ah_line_'), ('x12_msgs', 'p_')):
-        if any(name.startswith(prefix) for name in names):
-            add((), (market,), -1)
-    for first, last, net, rounded_values in (
-        ('lambda_first', 'lambda_last', 'lambda_net', 0),
-        ('total_line_first', 'total_line_last', 'total_line_net', 1),
-        ('ah_line_first', 'ah_line_last', 'ah_line_net', 1),
-        ('p_home_first', 'p_home_last', 'p_home_net', 0),
-    ):
-        # Implied lambda and fair 1X2 probabilities already use the same grid
-        # before the subtraction. Raw market lines can require final rounding.
-        limit = rounded_values / 20000
-        add((first, net), (last,), limit)
-        add((last,), (first, net), limit)
-    probability_changes = ('p_home_net', 'p_draw_net', 'p_away_net')
-    add(probability_changes, limit=6 / 20000)
-    add((), probability_changes, limit=6 / 20000)
-    add(('lead_last_min',), ('lead_first_min',))
-    add(('max_gap_min',), ('span_min',))
-    for flag, up, down in (('line_up_then_lambda_down', 'total_line_ups', 'lambda_moves_down'),
-                           ('line_down_then_lambda_up', 'lambda_moves_up', 'total_line_downs')):
-        if literals.get(flag) is True:
-            add((), (up,), -1)
-            add((), (down,), -1)
-    return rules
-
-
-def _violated_rule(windows, rules):
-    for terms, limit in rules:
-        bounds = [windows[v][0] if sign == 1 else -windows[v][1]
-                  for v, sign in terms.items()]
-        if all(math.isfinite(x) for x in bounds):
-            # Integer sums have exact bounds. Rounded features allow floating
-            # error from the producer's subtraction and this interval sum.
-            if all(v in COUNTS for v in terms):
-                if sum(bounds) > limit:
-                    return True
-            else:
-                allowance = sum(math.ulp(x) for x in bounds) if len(bounds) > 2 or limit else 0
-                try:
-                    if math.fsum(bounds) > limit + allowance:
-                        return True
-                except OverflowError:
-                    continue
-    return False
-
-
 def _sequence_possible(windows):
-    """Check projected sign counts and the temporal consequences of one event."""
-    def bounds(name):
-        return windows.get(name, _numeric_domain(name))
-
-    _, max_messages = bounds('n_messages')
-    if max_messages == 1:
-        first_lo, first_hi = bounds('lead_first_min')
-        last_lo, last_hi = bounds('lead_last_min')
-        if (max(first_lo, last_lo) > min(first_hi, last_hi)
-                or bounds('span_min')[0] > 0 or bounds('max_gap_min')[0] > 0):
-            return False
-    limit = min(max_messages, bounds('total_msgs')[1])
-    up_lo, up_hi = bounds('lambda_moves_up')
-    down_lo, down_hi = bounds('lambda_moves_down')
-    first_lo, first_hi = bounds('lambda_first_dir')
-    last_lo, last_hi = bounds('lambda_last_dir')
-    for first, last in product((-1, 0, 1), repeat=2):
-        if not (first_lo <= first <= first_hi and last_lo <= last <= last_hi):
-            continue
-        if limit == 1:
-            net_lo, net_hi = bounds('lambda_net')
-            if first == 0:
-                net_lo, net_hi = max(net_lo, -LAMBDA_EPS), min(net_hi, LAMBDA_EPS)
-            elif first == 1:
-                net_lo = max(net_lo, LAMBDA_EPS)
-            else:
-                net_hi = min(net_hi, -LAMBDA_EPS)
-            if net_lo > net_hi:
-                continue
-            path_lo, path_hi = bounds('lambda_abs_path')
-            # With one Total event the endpoint change is the only movement.
-            if (max(net_lo, -net_hi, 0) > path_hi
-                    or max(abs(net_lo), abs(net_hi)) < path_lo
-                    or any(not lo <= 0 <= hi for lo, hi in
-                           (bounds('lambda_unobserved_net'), bounds('lambda_reversals')))):
-                continue
-        if first == last == 0:
-            if up_lo == down_lo == 0:
-                return True
-        elif first and last:
-            up = max(up_lo, int(1 in (first, last)))
-            down = max(down_lo, int(-1 in (first, last)))
-            # If a sequence starts and ends in one direction but contains the
-            # opposite direction, its two endpoint movements are distinct.
-            if first == last == 1 and down:
-                up = max(up, 2)
-            if first == last == -1 and up:
-                down = max(down, 2)
-            if up <= up_hi and down <= down_hi and up+down <= limit:
-                return True
-    return False
+    """Compatibility helper: necessary feasibility is never a SAT certificate."""
+    return not (sequence_impossible(windows) or temporal_impossible(windows))
 
 
 def _domain_tautology(node):
@@ -680,11 +549,6 @@ def _domain_tautology(node):
     if 'const' in var and 'var' in bound:
         return var['const'] >= _numeric_domain(bound['var'])[1]
     return False
-
-
-def _default_value(name):
-    lo, hi = _numeric_domain(name)
-    return min(hi, max(lo, 0))
 
 
 def _arm_separation(signal, control, available):
@@ -705,24 +569,6 @@ def _arm_separation(signal, control, available):
     return 'CONTROL_DISJOINTNESS_UNPROVEN' if uncertain else None
 
 
-def _numeric_domain(name):
-    # One catalogue contract for row admission AND logical witnesses. Never
-    # prove satisfiability with values that row validation would exclude.
-    if name in ('n_messages', 'n_episodes'):
-        return 1, math.inf
-    if name in ('lambda_first', 'lambda_last'):
-        return LAM_MIN, LAM_MAX
-    if name == 'lambda_net':
-        return round(LAM_MIN-LAM_MAX, 4), round(LAM_MAX-LAM_MIN, 4)
-    if name in SIGNAL_DOMAINS:
-        return SIGNAL_DOMAINS[name]
-    if name in ('p_home_first', 'p_home_last', 'trigger_total_share'):
-        return 0, 1
-    if name in DIRECTIONS:
-        return -1, 1
-    if name == 'kickoff_hour_utc':
-        return 0, 23
-    return (0, math.inf) if name in NONNEGATIVE else (-math.inf, math.inf)
 
 
 def _excess_precision(value):
@@ -763,7 +609,7 @@ def _variable_issues(variables, names):
                   or (name in COUNTS and value != int(value))
                   or (name in ('lambda_first_dir', 'lambda_last_dir') and value not in (-1, 0, 1))
                   or (name == 'kickoff_hour_utc' and value != int(value))
-                  or (name in PRODUCER_PRECISION and round(value, PRODUCER_PRECISION[name]) != value)):
+                  or not value_valid(name, value)):
                 reason = 'SIGNAL_VALUE_OUT_OF_DOMAIN'
         if reason:
             issues.append({'variable': name, 'reason': reason})
@@ -802,7 +648,7 @@ def _prior_identity(prior_plans):
 
 def _request_hash(plans, metadata, design, prior_plans):
     try:
-        payload = {'contract': VERSION, 'plans': plans, 'metadata': metadata,
+        payload = {'contract': VERSION, 'producer_contract': CONTRACT_VERSION, 'plans': plans, 'metadata': metadata,
                    'design': design, 'prior_plans': _prior_identity(prior_plans)}
         _json_input(payload)
         return sha(payload)
@@ -825,6 +671,7 @@ def _evaluate_quality(plan, metadata, design, prior_plans, input_hash):
     report attrition, not a correction for missing-outcome selection bias.
     """
     reject, defer = set(), set()
+    logical_proof = {'contract': CONTRACT_VERSION, 'signal_paths': [], 'control_paths': [], 'intersections': []}
     if input_hash is None:
         reject.add('INPUT_IDENTITY_UNAVAILABLE')
     rows_ok = type(metadata) is list
@@ -851,10 +698,21 @@ def _evaluate_quality(plan, metadata, design, prior_plans, input_hash):
         r, d = _design(expr, available=temporal_used)
         reject |= r
         defer |= d
+        logical_proof['signal_paths'] = _expression_proofs(expr, temporal_used)
         ctrl = canonical.get('control_condition')
         if ctrl:
             ctrl = inline(ctrl, canonical['indicators'])
             r, d = _design(ctrl, material=False, available=temporal_used)
+            logical_proof['control_paths'] = _expression_proofs(ctrl, temporal_used)
+            try:
+                signals, controls = _logic_paths(expr), _logic_paths(ctrl)
+                if len(signals)*len(controls) > 64:
+                    raise ValueError('INTERSECTION_COMPLEXITY_LIMIT')
+                logical_proof['intersections'] = sorted(
+                    [prove_path(left+right, available=temporal_used) for left, right in product(signals, controls)], key=sha)
+            except ValueError:
+                logical_proof['intersections'] = [{'contract': CONTRACT_VERSION, 'status': UNKNOWN,
+                    'proof': 'INTERSECTION_COMPLEXITY_LIMIT', 'witness': None}]
             reject |= r
             defer |= d
             if expr == ctrl:
@@ -936,6 +794,29 @@ def _evaluate_quality(plan, metadata, design, prior_plans, input_hash):
             invalid_variables.update(entry['variable'] for entry in
                                      _variable_issues(variables, temporal_used - used))
             known_values = {v: variables[v] for v in temporal_used - invalid_variables}
+            # Validate every supplied catalogue field, including dependencies
+            # omitted from the plan. Unused impossible data cannot give support.
+            for entry in _variable_issues(variables, {v for v in variables if v in VARIABLES and variables[v] is not None}):
+                issue(**entry)
+            if summary_impossible(variables):
+                issue('variables', 'TRAJECTORY_INVARIANTS_VIOLATED')
+            certificate = row.get('producer_witness')
+            if certificate is None or (type(certificate) is dict and type(certificate.get('events')) is list
+                                       and len(certificate['events']) > 64):
+                issue('producer_witness', 'OBSERVATION_PRODUCIBILITY_UNPROVEN', missing=True)
+            elif not witness_matches(certificate, variables, required=temporal_used):
+                issue('producer_witness', 'PRODUCER_WITNESS_MISMATCH')
+            else:
+                # The same event universe must also match the declared kickoff
+                # and observation window. Mathematical witnesses do not certify
+                # provenance, which remains independently blocked below.
+                if _time(row.get('kickoff_utc')) is not None and _time(certificate['kickoff_utc']) != _time(row.get('kickoff_utc')):
+                    issue('producer_witness', 'PRODUCER_WITNESS_TIME_MISMATCH')
+                last_event = _time(certificate['events'][-1]['observed_at'])
+                if _time(row.get('decision_at')) is not None and last_event != _time(row.get('decision_at')):
+                    issue('producer_witness', 'PRODUCER_WITNESS_TIME_MISMATCH')
+                if type(row.get('source_event_ids')) is list and row['source_event_ids'] != [event['event_id'] for event in certificate['events']]:
+                    issue('producer_witness', 'PRODUCER_WITNESS_IDENTITY_MISMATCH')
             rules = trajectory_rules + [rule for flag, additional in contextual_rules.items()
                                         if known_values.get(flag) is True for rule in additional]
             flags = [known_values[v] for v in STRATA_VARIABLES['competition_type'] if v in known_values]
@@ -1165,9 +1046,9 @@ def _evaluate_quality(plan, metadata, design, prior_plans, input_hash):
             metrics['unidentified_diagnostics']['attrition'] = metrics.pop('attrition')
     design_status = 'REJECTED' if reject else 'INSUFFICIENT_DATA' if defer else 'SCIENTIFICALLY_TESTABLE'
     defer.add('TRUSTED_PROVENANCE_ADAPTER_UNAVAILABLE')
-    return {'version': VERSION, 'quality_status': 'REJECTED' if reject else 'INSUFFICIENT_DATA',
+    return {'version': VERSION, 'producer_contract': CONTRACT_VERSION, 'quality_status': 'REJECTED' if reject else 'INSUFFICIENT_DATA',
             'design_quality_status': design_status, 'reasons': sorted(reject | defer),
-            'metrics': metrics, 'diagnostic_only': True, 'promotion_eligible': False,
+            'metrics': metrics, 'logical_proof': logical_proof, 'diagnostic_only': True, 'promotion_eligible': False,
             'alternative_explanations': 'TEXT_NOT_VERIFIED',
             'confounding_scope': 'COMMON_SUPPORT_REQUIRED_NOT_CAUSAL_PROOF',
             'scientific_status': 'EXPLORATORY_NOT_VALIDATED'}

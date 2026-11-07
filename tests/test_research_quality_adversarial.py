@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from h1lab.research_dsl import evaluate
 from h1lab.research_quality import _design
 import test_research_quality as quality_fixture
+from research_fixtures import b1_refresh
 
 
 def var(name):
@@ -26,6 +27,8 @@ def cmp(name, variable, value):
 
 
 class IndependentPathTests(unittest.TestCase):
+    # Logical regressions still exercise the proof before sample admission;
+    # four producer-valid rows suffice here. Full accounting is tested below.
     setUp = quality_fixture.QualityTest.setUp
     quality = quality_fixture.QualityTest.quality
     plan_with = quality_fixture.QualityTest.plan_with
@@ -42,7 +45,7 @@ class IndependentPathTests(unittest.TestCase):
                         with self.subTest(expr=expr, arm=arm):
                             p = (self.plan_with(expr) if arm == 'signal' else
                                  self.plan_with(cmp('le', 'lambda_net', -.1), control_condition=expr))
-                            q = self.quality(p)
+                            q = self.quality(p, m=self.meta[:4])
                             self.assertEqual(q['design_quality_status'], 'REJECTED')
                             self.assertIn('CONTRADICTORY_SIGNAL_PATH', q['reasons'])
         neutral = op('between', var('lambda_net'), const(-.02), const(.02))
@@ -70,7 +73,7 @@ class IndependentPathTests(unittest.TestCase):
             self.assertIn('CONTRADICTORY_SIGNAL_PATH',
                           _design(op('or', cmp('ge', 'lambda_net', .1), expr))[0])
         for expr in (cmp('ge', 'lambda_abs_path', .1), cmp('ge', 'p_home_net', .05),
-                     cmp('eq', 'p_home_net', 1), cmp('le', 'p_home_net', -1)):
+                     cmp('eq', 'p_home_net', .5), cmp('le', 'p_home_net', -.5)):
             self.assertEqual(_design(expr), (set(), set()), expr)
 
     def test_p2_legitimate_dimensionless_ratios_defer_without_false_rejection(self):
@@ -126,7 +129,7 @@ class IndependentPathTests(unittest.TestCase):
                             else:
                                 plan = self.plan_with(cmp('le', 'lambda_net', -.1),
                                                       control_condition=expr)
-                            q = self.quality(plan)
+                            q = self.quality(plan, m=self.meta[:4])
                             self.assertEqual(q['design_quality_status'], 'REJECTED')
                             self.assertIn('CONTRADICTORY_SIGNAL_PATH', q['reasons'])
                             self.assertFalse(q['promotion_eligible'])
@@ -173,7 +176,7 @@ class IndependentPathTests(unittest.TestCase):
         for arm in ('signal', 'control'):
             p = (self.plan_with(expr) if arm == 'signal' else
                  self.plan_with(cmp('le', 'lambda_net', -.1), control_condition=expr))
-            q = self.quality(p)
+            q = self.quality(p, m=self.meta[:4])
             self.assertIn('SATISFIABILITY_UNPROVEN', q['reasons'])
             self.assertNotEqual(q['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
 
@@ -186,11 +189,7 @@ class IndependentStrataTests(unittest.TestCase):
     def prepare(self, stratum):
         for i, row in enumerate(self.meta):
             row['decision_at'] = (datetime.fromisoformat(row['kickoff_utc'])-timedelta(minutes=30)).isoformat()
-            row['feature_frozen_at'] = row['decision_at']
-            row['feature_observed_at'] = dict.fromkeys(row['variables'], row['decision_at'])
-            row['variables'].update(lambda_net=.2 if i % 2 else -.2,
-                                    total_line_last=2.5, lead_first_min=60,
-                                    ctx_cup=False, ctx_youth_reserve=False, ctx_league_other=True)
+            b1_refresh(row, net=.2 if i % 2 else -.2, line=2.5, competition='League', span=30)
         return self.plan_with(cmp('ge', 'lambda_net', .1), confounders=[stratum])
 
     def assert_excluded(self, plan, metadata, reason, status, excluded=600):
@@ -276,6 +275,8 @@ class IndependentStrataTests(unittest.TestCase):
             for row in self.meta:
                 row['variables'].update(zip(('ctx_cup', 'ctx_youth_reserve', 'ctx_league_other'), selected))
             if sum(selected) == 1:
+                for row in self.meta:
+                    b1_refresh(row, competition=('Cup', 'Youth U21', 'League')[selected.index(True)], span=30)
                 self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
             else:
                 self.assert_excluded(p, self.meta, 'CONFOUNDER_COMPETITION_CONTRADICTION', 'REJECTED')
@@ -339,11 +340,14 @@ class IndependentStrataTests(unittest.TestCase):
             cell, issues = _stratum_cell(row['variables'], selected)
             self.assertEqual(issues, [])
             self.assertEqual(cell, tuple(_bins(row)[s] for s in selected))
-        # An unused malformed value must never be sent through shared _bins.
+        # Every supplied value is checked, including unused malformed fields.
         p = self.prepare('lead_bin')
         for row in self.meta:
             row['variables']['total_line_last'] = 'unused'
-        self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
+        q = self.quality(p)
+        self.assertEqual(q['design_quality_status'], 'REJECTED')
+        self.assertIn('SIGNAL_VALUE_TYPE_INVALID', q['reasons'])
+        self.assertEqual(q['metrics']['group_eligible'] + q['metrics']['control_eligible'], 0)
 
     def test_p2_large_first_lead_with_late_final_observation_is_possible(self):
         from h1lab.research_dataset import trajectory_variables
@@ -358,7 +362,7 @@ class IndependentStrataTests(unittest.TestCase):
             row['variables']['lead_first_min'] = computed['lead_first_min']
             row['decision_at'] = events[-1]['observed_at']
             row['feature_frozen_at'] = row['decision_at']
-            row['feature_observed_at'] = dict.fromkeys(row['variables'], row['decision_at'])
+            b1_refresh(row, span=4990)
         self.assertEqual(self.quality(p)['design_quality_status'], 'SCIENTIFICALLY_TESTABLE')
 
     def test_all_selected_strata_variables_and_arms(self):
@@ -394,7 +398,7 @@ class IndependentStrataTests(unittest.TestCase):
     def test_one_control_one_second_late_cannot_complete_common_support(self):
         p = self.prepare('line_bin')
         for row in self.meta[:4]:
-            row['variables']['total_line_last'] = 4
+            b1_refresh(row, line=4, span=30)
         initial = self.quality(p)
         self.assertTrue(initial['metrics']['common_support']['pregame'])
         self.assertTrue(initial['metrics']['common_support']['eligible'])

@@ -125,3 +125,76 @@ class FakeOpener:
     def __call__(self, req, timeout=None):
         self.calls.append(req)
         return FakeResponse(self.body, self.status)
+
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=256)
+def _b1_cached_values(serialized, competition):
+    import json
+    from h1lab.research_dataset import trajectory_variables
+    return trajectory_variables(json.loads(serialized), datetime(2026, 1, 2, 13, tzinfo=timezone.utc), competition)
+
+
+def _b1_values(events, ko, competition):
+    import json
+    from copy import deepcopy
+    normalized = deepcopy(events)
+    end = datetime.fromisoformat(events[-1]['observed_at'])
+    anchor = datetime(2026, 1, 2, 12, tzinfo=timezone.utc)
+    for i, event in enumerate(normalized):
+        event.update(event_id='fixture:'+str(i), observed_at=(anchor+(datetime.fromisoformat(event['observed_at'])-end)).isoformat())
+    v = dict(_b1_cached_values(json.dumps(normalized, sort_keys=True), competition))
+    v.update(lead_first_min=round((ko-datetime.fromisoformat(events[0]['observed_at'])).total_seconds()/60,1),
+             lead_last_min=round((ko-end).total_seconds()/60,1), kickoff_hour_utc=ko.hour)
+    return v
+
+
+def b1_produced_metadata(index=0, *, net=.2, line=2.5, competition='League', span=60):
+    """B1 positives come from actual messages, never independent random summaries."""
+    ko = datetime(2026, 10, 10, 12, tzinfo=timezone.utc)+timedelta(days=index % 20)
+    dec = ko-timedelta(minutes=30+index % 300)
+    row = {'match_key': 'B1-SYN-%04d' % index, 'kickoff_utc': ko.isoformat(),
+           'decision_at': dec.isoformat(), 'ft_verified': True, 'ft_source_verified': True,
+           'baseline_available': {'p_over_2_5': True, 'p_home': True, 'p_draw': True,
+                                  'p_away': True, 'p_ah_home': True}}
+    return b1_refresh(row, net=net, line=line, competition=competition, span=span)
+
+
+def b1_refresh(row, *, net=None, line=None, competition=None, span=60):
+    """Regenerate a positive observation after an intended pregame mutation."""
+    from h1lab.market_math import fair_over_share
+    from h1lab.research_dataset import trajectory_variables
+    from h1lab.timeline import match_timeline
+    from copy import deepcopy
+    v = row.get('variables', {})
+    net = v.get('lambda_net', .2) if net is None else net
+    line = v.get('total_line_last', 2.5) if line is None else line
+    competition = (row.get('producer_witness') or {}).get('competition', 'League') if competition is None else competition
+    ko, dec = (datetime.fromisoformat(row[k]) for k in ('kickoff_utc', 'decision_at'))
+    def quote(lam):
+        p = fair_over_share(lam, line)
+        return {'line': line, 'over_price': 1/p, 'under_price': 1/(1-p)}
+    events = []
+    for i, t in enumerate((dec-timedelta(minutes=span), dec)):
+        before, after = round(2.5+i*net/2, 4), round(2.5+(i+1)*net/2, 4)
+        events.append({'event_id': row['match_key']+':'+str(i), 'observed_at': t.isoformat(),
+                       'trigger_market': 'total', 'snapshots': {
+                           'total': {'before': quote(before), 'after': quote(after)},
+                           'asian_handicap': {'before': {'line': -.5, 'home_price': 2., 'away_price': 2.},
+                                               'after': {'line': -.5, 'home_price': 2., 'away_price': 2.}},
+                           'one_x_two': {k: {'before': p, 'after': p} for k, p in [('1', 2.5), ('X', 3.5), ('2', 3.2)]}}})
+    normalized = deepcopy(events)
+    for i, e in enumerate(normalized):
+        e.update(message_id=i, sources=['V4_RECORD'])
+        for snap in e['snapshots'].values():
+            snap['origin'] = 'V4_EXPLICIT'
+    values = _b1_values(normalized, ko, competition)
+    values['n_episodes'] = len(match_timeline(row['match_key'], normalized, near_seconds=120,
+                                           identities=[{'kickoff_utc': ko.isoformat()}])['movement_episodes'])
+    row.update(variables=values, source_event_ids=[e['event_id'] for e in events],
+               feature_observed_at=dict.fromkeys(values, dec.isoformat()), feature_frozen_at=dec.isoformat(),
+               producer_witness={'contract': 'B1_PRODUCER_1', 'kickoff_utc': ko.isoformat(),
+                                 'competition': competition, 'events': events})
+    return row

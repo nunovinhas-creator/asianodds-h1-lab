@@ -14,7 +14,7 @@ from unittest.mock import patch
 from h1lab.research_dsl import evaluate
 from h1lab.research_plan import validate_plan
 from h1lab.research_quality import _design, shadow_report, LEAD_ROUNDING_SECONDS
-from research_fixtures import LLM_PLAN
+from research_fixtures import LLM_PLAN, b1_refresh
 import test_research_quality as quality_fixture
 from test_research_quality_adversarial import var, const, op, cmp
 
@@ -37,10 +37,6 @@ class BlockerTests(unittest.TestCase):
 
     def setUp(self):
         quality_fixture.QualityTest.setUp(self)
-        for i, row in enumerate(self.meta):
-            row['variables'].update(lambda_net=.2 if i % 2 else 0, lead_first_min=600,
-                                    total_line_last=2.5, lambda_first=2, lambda_last=3, p_home_last=.5,
-                                    ctx_cup=False, ctx_youth_reserve=False, ctx_league_other=True)
         self.plan = self.plan_with(A, confounders=['line_bin'])
 
     def test_six_impossible_predicates_both_arms_orders_and_nested_negation(self):
@@ -55,7 +51,7 @@ class BlockerTests(unittest.TestCase):
                 p = (self.plan_with(equivalent, confounders=['line_bin']) if arm == 'signal' else
                      self.plan_with(cmp('le', 'lambda_net', -.1), control_condition=equivalent,
                                     confounders=['line_bin']))
-                q = self.quality(p)
+                q = self.quality(p, m=self.meta[:4])
                 with self.subTest(contradiction=contradiction, reverse=reverse, arm=arm):
                     self.assertEqual(q['design_quality_status'], 'REJECTED')
                     self.assertIn('CONTRADICTORY_SIGNAL_PATH', q['reasons'])
@@ -198,13 +194,16 @@ class BlockerTests(unittest.TestCase):
         row = self.meta[1]
         ko = datetime.fromisoformat(row['kickoff_utc'])
         row['decision_at'] = (ko-timedelta(minutes=31)).isoformat()
-        row['feature_frozen_at'] = row['decision_at']
-        row['feature_observed_at'] = dict.fromkeys(row['variables'], row['decision_at'])
-        for lead, valid in ((0, False), (30.94, False), (30.95, True), (31, True), (5000, True)):
+        b1_refresh(row, span=0)
+        for lead, valid in ((0, False), (30.94, False), (30.95, False), (31, True), (5000, True)):
+            if valid:
+                b1_refresh(row, span=lead-31)
             row['variables']['lead_first_min'] = lead
             q = self.quality(p)
             self.assertEqual(q['metrics']['group_eligible'], 300 if valid else 299)
-            self.assertEqual('LEAD_FIRST_AFTER_DECISION_AT' in q['reasons'], not valid)
+            if lead in (30.94, 30.95):
+                self.assertIn('SIGNAL_VALUE_OUT_OF_DOMAIN', q['reasons'])
+        b1_refresh(row, span=0)
         self.assertEqual(LEAD_ROUNDING_SECONDS, 3)
         row['variables']['lead_first_min'] = 31
         row['feature_observed_at']['lead_first_min'] = (ko-timedelta(minutes=32)).isoformat()
@@ -214,7 +213,7 @@ class BlockerTests(unittest.TestCase):
 
     def test_eligible_support_ft_attrition_preserves_raw_and_pregame_arms(self):
         for row in self.meta[:4]:
-            row['variables']['total_line_last'] = 4
+            b1_refresh(row, line=4)
         before = self.quality()
         self.assertTrue(before['metrics']['common_support']['eligible'])
         for row in self.meta[1:4:2]:
@@ -244,7 +243,7 @@ class BlockerTests(unittest.TestCase):
             day = datetime.fromisoformat(row['kickoff_utc']).day
             group = row['variables']['lambda_net'] >= .1
             if (group and day <= 18) or (not group and day >= 26):
-                row['variables']['total_line_last'] = 4
+                b1_refresh(row, line=4)
         q = self.quality()
         support = q['metrics']['common_support']
         self.assertTrue(support['pregame'])
@@ -317,7 +316,7 @@ class BlockerTests(unittest.TestCase):
             after = replay(root, proof)
             self.assertEqual(after, replay(root, proof))
         before = json.loads(Path('evidence/b1/replay.json').read_text())
-        self.assertEqual(after['mode'], 'B1_SHADOW_3')
+        self.assertEqual(after['mode'], 'B1_SHADOW_4')
         self.assertNotEqual(after['input_sha256'], before['input_sha256'])
         for key in ('provenance', 'before', 'costs', 'limits', 'funnel'):
             self.assertEqual(after[key], before[key], key)
@@ -330,8 +329,10 @@ class BlockerTests(unittest.TestCase):
                     self.assertEqual(new['metrics'][key], value, key)
             self.assertEqual(new['metrics']['unknown'] + new['metrics']['unassigned'],
                              old['metrics']['unknown'] + old['metrics']['unassigned'])
-            self.assertEqual(set(new['reasons']) - set(old['reasons']),
-                             {'BASELINE_MISSING', 'SIGNAL_DATA_MISSING', 'COMMON_STRATUM_PERIOD_SUPPORT_MISSING'})
+            additions = set(new['reasons']) - set(old['reasons'])
+            self.assertEqual(additions - {'SATISFIABILITY_UNPROVEN'},
+                             {'BASELINE_MISSING', 'SIGNAL_DATA_MISSING', 'COMMON_STRATUM_PERIOD_SUPPORT_MISSING',
+                              'OBSERVATION_PRODUCIBILITY_UNPROVEN'})
             self.assertLessEqual(set(old['reasons']), set(new['reasons']))
         self.assertEqual(after['output_sha256'], sha({k:v for k,v in after.items() if k != 'output_sha256'}))
         self.assertEqual(hashlib.sha256(Path('evidence/b1/replay.json').read_bytes()).hexdigest(),
@@ -350,7 +351,7 @@ class BlockerTests(unittest.TestCase):
         self.assertEqual(self.quality(m=self.meta+[duplicate]), self.quality(m=[duplicate]+self.meta))
         # Invalid new observations cannot fill an otherwise unsupported HIGH cell.
         valid = copy.deepcopy(self.meta[0])
-        valid['variables']['total_line_last'] = 4
+        b1_refresh(valid, line=4)
         valid['match_key'] = 'NEW-CONTROL'
         bad = copy.deepcopy(valid)
         bad.update(match_key='NEW-GROUP', ft_source_verified=False)
